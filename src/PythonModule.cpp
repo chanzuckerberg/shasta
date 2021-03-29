@@ -357,6 +357,8 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::analyzeReadGraph)
         .def("readGraphClustering",
              &Assembler::readGraphClustering)
+        .def("writeReadGraphEdges",
+             &Assembler::writeReadGraphEdges)
 
 
 

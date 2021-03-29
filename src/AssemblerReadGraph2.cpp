@@ -23,6 +23,25 @@ using namespace shasta;
 *******************************************************************************/
 
 
+void Assembler::writeReadGraphEdges() const{
+    string path = "ReadGraphEdges.csv";
+    path = filesystem::getAbsolutePath(path);
+    ofstream file(path);
+
+    if (not file.good()){
+        throw runtime_error("ERROR: file could not be written: " + path);
+    }
+
+    file << "ReadId0,ReadId1,SameStrand\n";
+
+    // Loop over readgraph edges
+    for (const ReadGraphEdge& edge: readGraph.edges){
+        file << edge.orientedReadIds[0].getReadId() << ','
+            << edge.orientedReadIds[1].getReadId() << ','
+            << (edge.crossesStrands ? "No" : "Yes") << '\n';
+    }
+}
+
 
 void Assembler::createReadGraph2(
     uint32_t maxAlignmentCount,
