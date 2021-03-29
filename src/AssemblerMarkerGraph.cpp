@@ -249,6 +249,8 @@ void Assembler::createMarkerGraphVertices(
             }
         }
     }
+    // Store the value of minCoverage actually used.
+    assemblerInfo->markerGraphMinCoverageUsed = minCoverage;
 
 
 

@@ -135,6 +135,7 @@ public:
     // Marker graph statistics.
     size_t markerGraphVerticesNotIsolatedCount = 0;
     size_t markerGraphEdgesNotRemovedCount = 0;
+    uint64_t markerGraphMinCoverageUsed = 0;
 
     // Assembly graph statistics.
     size_t assemblyGraphAssembledEdgeCount = 0;
@@ -366,9 +367,19 @@ private:
         }
     }
 
+
+
     // Various pieces of assembler information stored in shared memory.
     // See class AssemblerInfo for more information.
     MemoryMapped::Object<AssemblerInfo> assemblerInfo;
+public:
+    uint64_t getMarkerGraphMinCoverageUsed() const
+    {
+        return assemblerInfo->markerGraphMinCoverageUsed;
+    }
+private:
+
+
 
     // Reads in RLE representation.
     unique_ptr<Reads> reads;

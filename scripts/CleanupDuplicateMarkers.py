@@ -14,7 +14,7 @@ a.accessCompressedAlignments()
 a.accessMarkerGraphVertices(readWriteAccess = True)
 a.accessMarkerGraphReverseComplementVertex(readWriteAccess = True)
 a.cleanupDuplicateMarkers(
-    minCoverage = int(config['MarkerGraph']['minCoverage']),
+    minCoverage = a.getMarkerGraphMinCoverageUsed(),
     minCoveragePerStrand = int(config['MarkerGraph']['minCoveragePerStrand']),
     duplicateMarkersPattern1Threshold = float(config['MarkerGraph']['duplicateMarkersPattern1Threshold']),
     pattern1CreateNewVertices = False,

@@ -421,6 +421,8 @@ PYBIND11_MODULE(shasta, module)
             arg("duplicateMarkersPattern1Threshold"),
             arg("pattern1CreateNewVertices"),
             arg("pattern2CreateNewVertices"))
+        .def("getMarkerGraphMinCoverageUsed",
+            &Assembler::getMarkerGraphMinCoverageUsed)
 
 
         // Edges of the global marker graph.
