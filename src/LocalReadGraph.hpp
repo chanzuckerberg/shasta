@@ -91,11 +91,16 @@ public:
     // Flag that indicates this edge jumps across strands.
     bool crossesStrands;
 
+    // The corresponding global read graph edge.
+    uint64_t globalEdgeId;
+
     LocalReadGraphEdge(
         uint32_t markerCount,
-        bool crossesStrands) :
+        bool crossesStrands,
+        uint64_t globalEdgeId) :
         markerCount(markerCount),
-        crossesStrands(crossesStrands)
+        crossesStrands(crossesStrands),
+        globalEdgeId(globalEdgeId)
         {}
 };
 
@@ -115,6 +120,7 @@ public:
         OrientedReadId,
         OrientedReadId,
         uint32_t markerCount,
+        uint64_t globalEdgeId,
         bool crossesStrands);
 
     // Find out if a vertex with a given OrientedReadId exists.

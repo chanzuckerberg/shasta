@@ -1052,6 +1052,9 @@ private:
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 
+    // Singular value decomposition analysis of the local read graph.
+    void analyzeLocalReadGraph(const LocalReadGraph&) const;
+
 public:
 
 

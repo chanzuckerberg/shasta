@@ -36,6 +36,7 @@ void LocalReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     uint32_t markerCount,
+    uint64_t globalEdgeId,
     bool crossesStrands)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -48,7 +49,7 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(markerCount, crossesStrands),
+        LocalReadGraphEdge(markerCount, crossesStrands, globalEdgeId),
         *this);
 }
 

@@ -3,6 +3,7 @@
 #include "Assembler.hpp"
 #include "LocalReadGraph.hpp"
 #include "orderPairs.hpp"
+#include "shastaLapack.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
@@ -311,6 +312,7 @@ bool Assembler::createLocalReadGraph(
                         orientedReadId0,
                         orientedReadId1,
                         markerCount,
+                        i,
                         globalEdge.crossesStrands == 1);
             } else {
                 SHASTA_ASSERT(distance0 == maxDistance);
@@ -319,6 +321,7 @@ bool Assembler::createLocalReadGraph(
                             orientedReadId0,
                             orientedReadId1,
                             markerCount,
+                            i,
                             globalEdge.crossesStrands == 1);
                 }
             }
@@ -1294,3 +1297,115 @@ void Assembler::readGraphClustering()
     graphOut << "}\n";
 }
 
+
+
+// Singular value decomposition analysis of the local read graph.
+
+// Call x the vector of estimated center positions for the oriented reads
+// corresponding to the vertices of the LocalReadGraph.
+
+// Each edge U--V corresponds to an alignment that gives an equation
+// xU - xV = offset, the average offset between the centers.
+
+// The linear system consisting of these equations is overdetermined
+// and can only be solved in a least square sense.
+// The least square solution is determined up to a constant,
+// because we can add a constant to all the x coordinates
+// without affecting the alignments.
+
+// We use a singular value decomposition to compute the least square
+// solution, as described for eexample here:
+// https://www2.math.uconn.edu/~leykekhman/courses/MATH3795/Lectures/Lecture_9_Linear_least_squares_SVD.pdf
+
+// The number of rows, M, of the constraint matrix A is equal to the
+// number of edges, because each edge contributes one equation.
+// The number of columns, N, is equal to the number of vertices.
+
+void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
+{
+    using vertex_descriptor = LocalReadGraph::vertex_descriptor;
+
+    // Initialize the constraint matrix A and the right-hand side B.
+    // Use int's because that is what Lapack wants.
+    const int M = int(num_edges(graph));
+    const int N = int(num_vertices(graph));
+    vector<double> A(M*N, 0.);  // Constraint matrix.
+    vector<double> B(M, 0.);    // Right-hand side.
+
+    // Map the vertices to integers starting at 0.
+    std::map<vertex_descriptor, int> vertexMap;
+    int j = 0;
+    BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+        vertexMap.insert(make_pair(v, j++));
+    }
+
+
+    // Fill in the constraint matrix A and the right-hand side B.
+    int i = 0;
+    BGL_FORALL_EDGES(e, graph, LocalReadGraph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const auto it0 = vertexMap.find(v0);
+        const auto it1 = vertexMap.find(v1);
+        SHASTA_ASSERT(it0 != vertexMap.end());
+        SHASTA_ASSERT(it1 != vertexMap.end());
+        const int j0 = it0->second;
+        const int j1 = it1->second;
+        const OrientedReadId orientedReadId0 = graph[v0].orientedReadId;
+        const OrientedReadId orientedReadId1 = graph[v1].orientedReadId;
+        const uint64_t globalEdgeId = graph[e].globalEdgeId;
+        const ReadGraphEdge& globalEdge = readGraph.edges[globalEdgeId];
+        const uint64_t alignmentId = globalEdge.alignmentId;
+        AlignmentData ad = alignmentData[alignmentId];
+
+        // Swap and reverse complement, if necessary.
+        if(ad.readIds[0] != orientedReadId0.getReadId()) {
+            ad.info.swap();
+        }
+        if(orientedReadId0.getStrand() != 0) {
+            ad.info.reverseComplement();
+        }
+        const double offsetAtCenter = ad.info.offsetAtCenter();
+
+        // Fill in this equation.
+        A[j0*M + i] = 1.;
+        A[j1*M + i] = -1.;
+        B[i] = offsetAtCenter;
+
+        cout << orientedReadId0 << " " << orientedReadId1 << " " <<
+            j0 << " " << j1 << " " << offsetAtCenter << endl;
+
+        ++i;
+    }
+    SHASTA_ASSERT(i == M);
+
+    // Compute the SVD.
+    const string JOBU = "A";
+    const string JOBVT = "A";
+    const int LDA = M;
+    vector<double> S(min(M, N));
+    vector<double> U(M*M);
+    const int LDU = M;
+    vector<double> VT(N*N);
+    const int LDVT = N;
+    const int LWORK = 10 * max(M, N);
+    vector<double> WORK(LWORK);
+    int INFO = 0;
+
+    dgesvd_(
+        JOBU.data(), JOBVT.data(),
+        M, N,
+        &A[0], LDA, &S[0], &U[0], LDU, &VT[0], LDVT, &WORK[0], LWORK, INFO);
+    cout << "dgesvd return code " << INFO << endl;
+    cout << "Singular values: " << endl;
+    for(const double v: S) {
+        cout << v << endl;
+    }
+
+
+
+    // Now that we have the SVD we can compute the minimum norm solution.
+    // See page 11 of
+    // https://www2.math.uconn.edu/~leykekhman/courses/MATH3795/Lectures/Lecture_9_Linear_least_squares_SVD.pdf
+
+}

@@ -138,6 +138,9 @@ void Assembler::exploreUndirectedReadGraph(
     string addBlastAnnotationsString;
     const bool addBlastAnnotations = getParameterValue(request, "addBlastAnnotations", addBlastAnnotationsString);
 
+    string analyzeString;
+    const bool analyze = getParameterValue(request, "analyze", analyzeString);
+
 
     // Write the form.
     string readGraphHeading;
@@ -226,6 +229,12 @@ void Assembler::exploreUndirectedReadGraph(
          "<td>Add Blast annotations"
          "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
          (addBlastAnnotations ? " checked" : "") <<
+         ">"
+
+         "<tr title='Singular value decomposition analysis of this local read graph'>"
+         "<td>Analyze the local read graph"
+         "<td class=centered><input type=checkbox name=analyze" <<
+         (analyze ? " checked" : "") <<
          ">"
 
          "</table>"
@@ -358,6 +367,12 @@ void Assembler::exploreUndirectedReadGraph(
         }
     }
 
+
+
+    // Analyze the local read graph, if requested.
+    if(analyze) {
+        analyzeLocalReadGraph(graph);
+    }
 
 
     // Write a title.
