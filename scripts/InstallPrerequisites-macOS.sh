@@ -18,6 +18,10 @@ brew install libpng
 # Assume zlib is always available.
 # brew install zlib 
 
+# Install Blas and Lapack.
+brew install openblas
+brew install lapack
+
 # Install SeqAn 2.4.0
 brew install brewsci/bio/seqan@2
 
