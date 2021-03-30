@@ -75,9 +75,8 @@ if(MACOS)
     target_link_libraries(
     shastaStaticExecutable 
     shastaStaticLibrary
-    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z 
-    /usr/local/opt/lapack/lib/liblapack.a 
-    /usr/local/opt/lapack/lib/libblas.a 
+    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z
+    -framework Accelerate
     pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
