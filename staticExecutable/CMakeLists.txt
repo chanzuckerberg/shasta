@@ -75,7 +75,10 @@ if(MACOS)
     target_link_libraries(
     shastaStaticExecutable 
     shastaStaticLibrary
-    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z pthread)
+    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z 
+    /usr/local/opt/lapack/lib/lapack.a 
+    /usr/local/opt/lapack/lib/blas.a 
+    pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive".
@@ -84,12 +87,14 @@ else(MACOS)
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
+            lapack blas
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
     else(X86_64)
         target_link_libraries(
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa png z
+            lapack blas
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
     endif(X86_64) 
     

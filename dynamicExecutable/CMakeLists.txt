@@ -67,12 +67,14 @@ if(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa cpu_features png z pthread)
+        atomic boost_system boost_program_options boost_chrono spoa cpu_features png z 
+        lapack blas pthread)
 else(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa png z pthread)
+        atomic boost_system boost_program_options boost_chrono spoa png z 
+        lapack blas pthread)
 endif(X86_64)
 
 if(BUILD_DEBUG) 
