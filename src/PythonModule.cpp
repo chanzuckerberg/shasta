@@ -8,6 +8,7 @@
 #include "compressAlignment.hpp"
 #include "deduplicate.hpp"
 #include "dset64Test.hpp"
+#include "shastaLapack.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
 #include "Map.hpp"
@@ -661,6 +662,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testMemoryMappedAllocator",
         MemoryMapped::testMemoryMappedAllocator
+        );
+    module.def("testLapack",
+        testLapack
         );
 }
 
