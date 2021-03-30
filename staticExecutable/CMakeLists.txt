@@ -76,7 +76,7 @@ if(MACOS)
     shastaStaticExecutable 
     shastaStaticLibrary
     ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z
-    program "-framework Accelerate"
+    "-framework Accelerate"
     pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
