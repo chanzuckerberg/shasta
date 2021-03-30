@@ -21,6 +21,8 @@ brew install libpng
 # Install Blas and Lapack.
 brew install openblas
 brew install lapack
+brew ls --verbose openblas
+brew ls --verbose lapack
 
 # Install SeqAn 2.4.0
 brew install brewsci/bio/seqan@2
