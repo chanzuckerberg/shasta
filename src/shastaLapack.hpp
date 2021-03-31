@@ -49,6 +49,21 @@ namespace shasta {
     void testLapack();
 }
 
+
+extern "C" void dgemv_(
+    const char* TRANS,
+    const int& M,
+    const int& N,
+    const double& ALPHA,
+    const double* A,
+    const int& LDA,
+    double* X,
+    const int& INCX,
+    const double& BETA,
+    const double* Y,
+    const int& INCY
+    );
+
 extern "C" void dgesvd_(
     const char* JOBU,
     const char* JOBVT,

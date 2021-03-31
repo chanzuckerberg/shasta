@@ -1324,60 +1324,107 @@ void Assembler::readGraphClustering()
 void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
 {
     using vertex_descriptor = LocalReadGraph::vertex_descriptor;
+    using edge_descriptor = LocalReadGraph::edge_descriptor;
 
-    // Initialize the constraint matrix A and the right-hand side B.
-    // Use int's because that is what Lapack wants.
-    const int M = int(num_edges(graph));
+    const double svThreshold = 1.e-3;   // EXPOSE WHEN CODE STABILIZES **********
+
+    // Count vertices and edges. Use int's because this is what Lapack wants.
     const int N = int(num_vertices(graph));
-    vector<double> A(M*N, 0.);  // Constraint matrix.
-    vector<double> B(M, 0.);    // Right-hand side.
+    const int M = int(num_edges(graph));
 
-    // Map the vertices to integers starting at 0.
+    // Map the vertices to integers in [0, N).
+    vector<vertex_descriptor> vertexTable;
     std::map<vertex_descriptor, int> vertexMap;
+    cout << "Vertices:" << endl;
     int j = 0;
     BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+        cout << j << " " << graph[v].orientedReadId << endl;
+        vertexTable.push_back(v);
         vertexMap.insert(make_pair(v, j++));
     }
 
 
-    // Fill in the constraint matrix A and the right-hand side B.
-    int i = 0;
+
+    // Map the edges to integers in [0, M] and construct the constraint equations.
+    // Each equation is of the form xU - xV = offset.
+    vector<edge_descriptor> edgeTable;
+    vector< tuple<int, int, double> > equations;
+    cout << "Edges:" << endl;
     BGL_FORALL_EDGES(e, graph, LocalReadGraph) {
+        edgeTable.push_back(e);
+
+        // Get the vertices of this edge.
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
+
+        // Find the corresponding integer indexes.
         const auto it0 = vertexMap.find(v0);
         const auto it1 = vertexMap.find(v1);
         SHASTA_ASSERT(it0 != vertexMap.end());
         SHASTA_ASSERT(it1 != vertexMap.end());
         const int j0 = it0->second;
         const int j1 = it1->second;
+
+        /// Find the corresponding OrientedReadId's.
         const OrientedReadId orientedReadId0 = graph[v0].orientedReadId;
         const OrientedReadId orientedReadId1 = graph[v1].orientedReadId;
+
+        // Get the alignment data.
         const uint64_t globalEdgeId = graph[e].globalEdgeId;
         const ReadGraphEdge& globalEdge = readGraph.edges[globalEdgeId];
         const uint64_t alignmentId = globalEdge.alignmentId;
-        AlignmentData ad = alignmentData[alignmentId];
+        const AlignmentData& ad = alignmentData[alignmentId];
 
-        // Swap and reverse complement, if necessary.
-        if(ad.readIds[0] != orientedReadId0.getReadId()) {
-            ad.info.swap();
+        OrientedReadId alignmentOrientedReadId0(ad.readIds[0], 0);
+        OrientedReadId alignmentOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
+        AlignmentInfo alignmentInfo = ad.info;
+
+        // Do a swap, if needed.
+        if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
+            alignmentInfo.swap();
+            swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
         }
-        if(orientedReadId0.getStrand() != 0) {
-            ad.info.reverseComplement();
+        SHASTA_ASSERT(alignmentOrientedReadId0.getReadId() == orientedReadId0.getReadId());
+
+        // Reverse complement, if needed.
+        if(alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
+            alignmentOrientedReadId0.flipStrand();
+            alignmentOrientedReadId1.flipStrand();
+            alignmentInfo.reverseComplement();
         }
-        const double offsetAtCenter = ad.info.offsetAtCenter();
+        SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+        SHASTA_ASSERT(alignmentOrientedReadId1 == orientedReadId1);
+
+        // Get the offset at center.
+        const double offsetAtCenter = alignmentInfo.offsetAtCenter();
+
+        // Store this equation.
+        cout << equations.size() << " " << orientedReadId0 << " " << orientedReadId1 << " " <<
+            j0 << " " << j1 << " " << offsetAtCenter << endl;
+        equations.push_back(make_tuple(j0, j1, offsetAtCenter));
+
+    }
+    SHASTA_ASSERT(int(equations.size()) == M);
+
+
+
+    // Fill in the constraint matrix A and the right-hand side B.
+    vector<double> A(M*N, 0.);  // Constraint matrix.
+    vector<double> B(M, 0.);    // Right-hand side.
+    for(int i=0; i<M; i++) {
+        const auto& equation = equations[i];
+        const int j0 = get<0>(equation);
+        const int j1 = get<1>(equation);
+        const double offsetAtCenter = get<2>(equation);
 
         // Fill in this equation.
-        A[j0*M + i] = 1.;
-        A[j1*M + i] = -1.;
+        // Use Fortran matrix storage by columns!
+        A[j0*M + i] = -1.;
+        A[j1*M + i] = +1.;
         B[i] = offsetAtCenter;
-
-        cout << orientedReadId0 << " " << orientedReadId1 << " " <<
-            j0 << " " << j1 << " " << offsetAtCenter << endl;
-
-        ++i;
     }
-    SHASTA_ASSERT(i == M);
+
+
 
     // Compute the SVD.
     const string JOBU = "A";
@@ -1391,16 +1438,22 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
     const int LWORK = 10 * max(M, N);
     vector<double> WORK(LWORK);
     int INFO = 0;
-
     dgesvd_(
         JOBU.data(), JOBVT.data(),
         M, N,
         &A[0], LDA, &S[0], &U[0], LDU, &VT[0], LDVT, &WORK[0], LWORK, INFO);
     cout << "dgesvd return code " << INFO << endl;
+    if(INFO != 0) {
+        throw runtime_error("Error computing SVD decomposition of local read graph.");
+    }
     cout << "Singular values: " << endl;
     for(const double v: S) {
         cout << v << endl;
     }
+
+    // We know that there must be a zero singular value because
+    // the least square solution is defined up to a constant.
+    SHASTA_ASSERT(abs(S[N-1]) < 1.e-14);
 
 
 
@@ -1408,4 +1461,69 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
     // See page 11 of
     // https://www2.math.uconn.edu/~leykekhman/courses/MATH3795/Lectures/Lecture_9_Linear_least_squares_SVD.pdf
 
+    // Compute BB = UT * B, the right hand side in the space transformed
+    // according to the SVD.
+    vector<double> BB(M, 0.);
+    const string TRANS = "T";
+    dgemv_(
+        TRANS.data(), M, M,
+        1.,
+        &U[0], M,
+        &B[0], 1,
+        0.,
+        &BB[0], 1);
+
+    /*
+    cout << "BB:" << endl;
+    for(int i=0; i<M; i++) {
+        cout << i << " " << BB[i] << endl;
+    }
+    */
+
+    // Solve for XX = VT * X, the solution vector in the space transformed
+    // according to the SVD. In this space, the solution is trivial.
+    vector<double> XX(N, 0.);
+    for(int i=0; i<N-1; i++) {
+        const double sv = S[i];
+        SHASTA_ASSERT(sv >= 0.);
+        if(sv > svThreshold) {
+            XX[i] = BB[i] / sv; // Otherwise it stays at zero.
+        }
+    }
+
+    // Compute the least square solution vector in the untransformed space,
+    // X = V * XX
+    vector<double> X(N, 0.);
+    dgemv_(
+        TRANS.data(), N, N,
+        1.,
+        &VT[0], N,
+        &XX[0], 1,
+        0.,
+        &X[0], 1);
+
+    cout << "Least square solution vector:" << endl;
+    for(int j=0; j<N; j++) {
+        cout << j << " " << graph[vertexTable[j]].orientedReadId << " " << X[j] << endl;
+    }
+
+    cout << "Residuals at edges: " << endl;
+    for(int i=0; i<M; i++) {
+        const auto& equation = equations[i];
+        const int j0 = get<0>(equation);
+        const int j1 = get<1>(equation);
+        const double offsetAtCenter = get<2>(equation);
+
+        const double leastSquareOffsetAtCenter = X[j1] - X[j0];
+        const double residual = leastSquareOffsetAtCenter - offsetAtCenter;
+
+        cout << i << " " <<
+            graph[vertexTable[j0]].orientedReadId << " " <<
+            graph[vertexTable[j1]].orientedReadId << " " <<
+            j0 << " " <<
+            j1 << " " <<
+            offsetAtCenter << " " <<
+            leastSquareOffsetAtCenter << " " <<
+            residual << endl;
+    }
 }
