@@ -1330,7 +1330,11 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
 
     // Count vertices and edges. Use int's because this is what Lapack wants.
     const int N = int(num_vertices(graph));
+    SHASTA_ASSERT(N > 0);
     const int M = int(num_edges(graph));
+    if(M == 0) {
+        cout << "The local read graph has no edges." << endl;
+    }
 
     // Map the vertices to integers in [0, N).
     vector<vertex_descriptor> vertexTable;
