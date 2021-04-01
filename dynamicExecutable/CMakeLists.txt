@@ -74,7 +74,7 @@ else(X86_64)
         shastaDynamicExecutable
         shastaDynamicLibrary
         atomic boost_system boost_program_options boost_chrono spoa png z 
-        lapack blas gfortran quadmath pthread)
+        lapack blas gfortran pthread)
 endif(X86_64)
 
 if(BUILD_DEBUG) 

@@ -93,7 +93,7 @@ else(MACOS)
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa png z
-            lapack blas gfortran quadmath
+            lapack blas gfortran
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
     endif(X86_64) 
     
