@@ -1395,13 +1395,13 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
         SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
         SHASTA_ASSERT(alignmentOrientedReadId1 == orientedReadId1);
 
-        // Get the offset at center.
-        const double offsetAtCenter = alignmentInfo.offsetAtCenter();
+        // Get the offset.
+        const double offset = - alignmentInfo.averageOrdinalOffset;
 
         // Store this equation.
         cout << equations.size() << " " << orientedReadId0 << " " << orientedReadId1 << " " <<
-            j0 << " " << j1 << " " << offsetAtCenter << endl;
-        equations.push_back(make_tuple(j0, j1, offsetAtCenter));
+            j0 << " " << j1 << " " << offset << endl;
+        equations.push_back(make_tuple(j0, j1, offset));
 
     }
     SHASTA_ASSERT(int(equations.size()) == M);
@@ -1415,13 +1415,13 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
         const auto& equation = equations[i];
         const int j0 = get<0>(equation);
         const int j1 = get<1>(equation);
-        const double offsetAtCenter = get<2>(equation);
+        const double offset = get<2>(equation);
 
         // Fill in this equation.
         // Use Fortran matrix storage by columns!
         A[j0*M + i] = -1.;
         A[j1*M + i] = +1.;
-        B[i] = offsetAtCenter;
+        B[i] = offset;
     }
 
 
@@ -1473,13 +1473,6 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
         0.,
         &BB[0], 1);
 
-    /*
-    cout << "BB:" << endl;
-    for(int i=0; i<M; i++) {
-        cout << i << " " << BB[i] << endl;
-    }
-    */
-
     // Solve for XX = VT * X, the solution vector in the space transformed
     // according to the SVD. In this space, the solution is trivial.
     vector<double> XX(N, 0.);
@@ -1508,22 +1501,25 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
     }
 
     cout << "Residuals at edges: " << endl;
+    double maxResidual = 0.;
     for(int i=0; i<M; i++) {
         const auto& equation = equations[i];
         const int j0 = get<0>(equation);
         const int j1 = get<1>(equation);
-        const double offsetAtCenter = get<2>(equation);
+        const double offset = get<2>(equation);
 
-        const double leastSquareOffsetAtCenter = X[j1] - X[j0];
-        const double residual = leastSquareOffsetAtCenter - offsetAtCenter;
+        const double leastSquareOffset = X[j1] - X[j0];
+        const double residual = leastSquareOffset - offset;
+        maxResidual = max(maxResidual, abs(residual));
 
         cout << i << " " <<
             graph[vertexTable[j0]].orientedReadId << " " <<
             graph[vertexTable[j1]].orientedReadId << " " <<
             j0 << " " <<
             j1 << " " <<
-            offsetAtCenter << " " <<
-            leastSquareOffsetAtCenter << " " <<
+            offset << " " <<
+            leastSquareOffset << " " <<
             residual << endl;
     }
+    cout << "Maximum residual absolute value " << maxResidual << endl;
 }
