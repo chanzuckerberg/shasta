@@ -1334,6 +1334,7 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
     const int M = int(num_edges(graph));
     if(M == 0) {
         cout << "The local read graph has no edges." << endl;
+        return;
     }
 
     // Map the vertices to integers in [0, N).
