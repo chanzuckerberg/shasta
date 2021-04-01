@@ -1053,7 +1053,7 @@ private:
         LocalReadGraph&);
 
     // Singular value decomposition analysis of the local read graph.
-    void analyzeLocalReadGraph(const LocalReadGraph&) const;
+    void analyzeLocalReadGraph(LocalReadGraph&) const;
 
 public:
 

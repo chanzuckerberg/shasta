@@ -61,6 +61,10 @@ public:
     // Used for Blast annotations.
     string additionalToolTipText;
 
+    // The least square position of this vertex,
+    // computed by Assembler::analyzeLocalReadGraph.
+    double leastSquarePosition;
+
     LocalReadGraphVertex(
         OrientedReadId orientedReadId,
         uint32_t markerCount,
@@ -93,6 +97,9 @@ public:
 
     // The corresponding global read graph edge.
     uint64_t globalEdgeId;
+
+    // The average alignment offset.
+    double averageAlignmentOffset;
 
     LocalReadGraphEdge(
         uint32_t markerCount,

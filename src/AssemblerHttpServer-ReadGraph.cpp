@@ -4,6 +4,7 @@
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
 #include "LocalReadGraph.hpp"
+#include "orderPairs.hpp"
 #include "platformDependent.hpp"
 using namespace shasta;
 
@@ -231,8 +232,8 @@ void Assembler::exploreUndirectedReadGraph(
          (addBlastAnnotations ? " checked" : "") <<
          ">"
 
-         "<tr title='Singular value decomposition analysis of this local read graph'>"
-         "<td>Analyze the local read graph"
+         "<tr>"
+         "<td>Perform least square analysis"
          "<td class=centered><input type=checkbox name=analyze" <<
          (analyze ? " checked" : "") <<
          ">"
@@ -420,6 +421,82 @@ void Assembler::exploreUndirectedReadGraph(
                        html);
     }
 
+
+
+    if(analyze) {
+        using vertex_descriptor = LocalReadGraph::vertex_descriptor;
+        using edge_descriptor = LocalReadGraph::edge_descriptor;
+
+        // Sort vertices by OrientedReadId.
+        vector< pair<OrientedReadId, vertex_descriptor> > sortedVertices;
+        BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+            sortedVertices.push_back(make_pair(graph[v].orientedReadId, v));
+        }
+        sort(sortedVertices.begin(), sortedVertices.end(),
+            OrderPairsByFirstOnly<OrientedReadId, vertex_descriptor>());
+
+        // Write least square positions of the vertices.
+        html << "<h2>Least square analysis</h2>"
+            "<h3>Vertices</h3>"
+            "<table><tr><th>Oriented<br>Read Id<th>Least<br>square<br>position";
+        for(const auto& p: sortedVertices) {
+            const vertex_descriptor v = p.second;
+            const LocalReadGraphVertex& vertex = graph[v];
+            html << "<tr><td class=centered>" << vertex.orientedReadId <<
+                "<td class=centered>" << vertex.leastSquarePosition;
+        }
+        html << "</table>";
+
+
+        // Sort the edges by absolute value of residual.
+        vector< pair<double, edge_descriptor> > sortedEdges;
+        BGL_FORALL_EDGES(e, graph, LocalReadGraph) {
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            const double x0 = graph[v0].leastSquarePosition;
+            const double x1 = graph[v1].leastSquarePosition;
+            const double residual = (x1 - x0) - graph[e].averageAlignmentOffset;
+            sortedEdges.push_back(make_pair(abs(residual), e));
+        }
+        sort(sortedEdges.begin(), sortedEdges.end(),
+            OrderPairsByFirstOnlyGreater<double, edge_descriptor>());
+
+
+        // Write edge information.
+        const auto oldPrecision = html.precision(1);
+        const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
+
+        html <<
+            "<h3>Edges</h3>"
+            "<table><tr>"
+            "<th>Id0"
+            "<th>Id1"
+            "<th>Least<br>square<br>position0"
+            "<th>Least<br>square<br>position1"
+            "<th>Alignment<br>offset"
+            "<th>Least<br>square<br>offset"
+            "<th>Least<br>square<br>residual";
+        for(const auto& p: sortedEdges) {
+            const edge_descriptor e = p.second;
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            const double x0 = graph[v0].leastSquarePosition;
+            const double x1 = graph[v1].leastSquarePosition;
+            const double residual = (x1 - x0) - graph[e].averageAlignmentOffset;
+            html << "<tr>"
+                "<td class=centered>" << graph[v0].orientedReadId <<
+                "<td class=centered>" << graph[v1].orientedReadId <<
+                "<td class=centered>" << x0 <<
+                "<td class=centered>" << x1 <<
+                "<td class=centered>" << graph[e].averageAlignmentOffset <<
+                "<td class=centered>" << x1 - x0 <<
+                "<td class=centered>" << residual;
+        }
+        html << "</table>";
+        html.precision(oldPrecision);
+        html.setf(oldFlags);
+
+    }
 
 }
 

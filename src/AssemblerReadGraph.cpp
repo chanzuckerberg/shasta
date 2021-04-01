@@ -1321,7 +1321,7 @@ void Assembler::readGraphClustering()
 // number of edges, because each edge contributes one equation.
 // The number of columns, N, is equal to the number of vertices.
 
-void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
+void Assembler::analyzeLocalReadGraph(LocalReadGraph& graph) const
 {
     using vertex_descriptor = LocalReadGraph::vertex_descriptor;
     using edge_descriptor = LocalReadGraph::edge_descriptor;
@@ -1333,17 +1333,16 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
     SHASTA_ASSERT(N > 0);
     const int M = int(num_edges(graph));
     if(M == 0) {
-        cout << "The local read graph has no edges." << endl;
-        return;
+        throw runtime_error("The local read graph has no edges.");
     }
 
     // Map the vertices to integers in [0, N).
     vector<vertex_descriptor> vertexTable;
     std::map<vertex_descriptor, int> vertexMap;
-    cout << "Vertices:" << endl;
+    // cout << "Vertices:" << endl;
     int j = 0;
     BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
-        cout << j << " " << graph[v].orientedReadId << endl;
+        // cout << j << " " << graph[v].orientedReadId << endl;
         vertexTable.push_back(v);
         vertexMap.insert(make_pair(v, j++));
     }
@@ -1354,7 +1353,7 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
     // Each equation is of the form xU - xV = offset.
     vector<edge_descriptor> edgeTable;
     vector< tuple<int, int, double> > equations;
-    cout << "Edges:" << endl;
+    // cout << "Edges:" << endl;
     BGL_FORALL_EDGES(e, graph, LocalReadGraph) {
         edgeTable.push_back(e);
 
@@ -1402,10 +1401,13 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
 
         // Get the offset.
         const double offset = - alignmentInfo.averageOrdinalOffset;
+        graph[e].averageAlignmentOffset = offset;
 
         // Store this equation.
+        /*
         cout << equations.size() << " " << orientedReadId0 << " " << orientedReadId1 << " " <<
             j0 << " " << j1 << " " << offset << endl;
+        */
         equations.push_back(make_tuple(j0, j1, offset));
 
     }
@@ -1447,9 +1449,9 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
         JOBU.data(), JOBVT.data(),
         M, N,
         &A[0], LDA, &S[0], &U[0], LDU, &VT[0], LDVT, &WORK[0], LWORK, INFO);
-    cout << "dgesvd return code " << INFO << endl;
     if(INFO != 0) {
-        throw runtime_error("Error computing SVD decomposition of local read graph.");
+        throw runtime_error("Error " + to_string(INFO) +
+            " computing SVD decomposition of local read graph.");
     }
     cout << "Singular values: " << endl;
     for(const double v: S) {
@@ -1500,11 +1502,13 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
         0.,
         &X[0], 1);
 
-    cout << "Least square solution vector:" << endl;
+    // cout << "Least square solution vector:" << endl;
     for(int j=0; j<N; j++) {
-        cout << j << " " << graph[vertexTable[j]].orientedReadId << " " << X[j] << endl;
+        // cout << j << " " << graph[vertexTable[j]].orientedReadId << " " << X[j] << endl;
+        graph[vertexTable[j]].leastSquarePosition = X[j];
     }
 
+    /*
     cout << "Residuals at edges: " << endl;
     double maxResidual = 0.;
     for(int i=0; i<M; i++) {
@@ -1527,4 +1531,5 @@ void Assembler::analyzeLocalReadGraph(const LocalReadGraph& graph) const
             residual << endl;
     }
     cout << "Maximum residual absolute value " << maxResidual << endl;
+    */
 }
