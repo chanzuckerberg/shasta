@@ -898,8 +898,8 @@ void Assembler::displayAlignments(
             "<td class=centered>" << alignmentInfo.maxSkip <<
             "<td class=centered>" << alignmentInfo.maxDrift <<
             "<td>" << alignmentInfo.minOrdinalOffset <<
-            "<td>" << alignmentInfo.maxOrdinalOffset <<
             "<td>" << alignmentInfo.averageOrdinalOffset <<
+            "<td>" << alignmentInfo.maxOrdinalOffset <<
             "<td class=centered>" << std::setprecision(6) << alignmentInfo.offsetAtCenter() <<
             "<td class=centered>" << alignmentInfo.leftTrim(0) <<
             "<td class=centered>" << alignmentInfo.range(0) <<
