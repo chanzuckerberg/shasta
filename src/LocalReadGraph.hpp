@@ -101,6 +101,8 @@ public:
     // The average alignment offset.
     double averageAlignmentOffset;
 
+    string color;
+
     LocalReadGraphEdge(
         uint32_t markerCount,
         bool crossesStrands,

@@ -275,7 +275,11 @@ void LocalReadGraph::writeSvg(
         EdgeAttributes attributes;
 
         attributes.thickness = edgeThicknessScalingFactor * 1.e-6 * double(edge.markerCount);
-        attributes.color = "midnightblue";
+        if(edge.color.empty()) {
+            attributes.color = "midnightblue";
+        } else {
+            attributes.color = edge.color;
+        }
 
         attributes.tooltip = vertex0.orientedReadId.getString() + " " +
             vertex1.orientedReadId.getString() +

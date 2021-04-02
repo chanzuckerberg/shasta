@@ -1321,7 +1321,9 @@ void Assembler::readGraphClustering()
 // number of edges, because each edge contributes one equation.
 // The number of columns, N, is equal to the number of vertices.
 
-void Assembler::analyzeLocalReadGraph(LocalReadGraph& graph) const
+void Assembler::analyzeLocalReadGraph(
+    LocalReadGraph& graph,
+    vector<double>& S) const
 {
     using vertex_descriptor = LocalReadGraph::vertex_descriptor;
     using edge_descriptor = LocalReadGraph::edge_descriptor;
@@ -1437,7 +1439,7 @@ void Assembler::analyzeLocalReadGraph(LocalReadGraph& graph) const
     const string JOBU = "A";
     const string JOBVT = "A";
     const int LDA = M;
-    vector<double> S(min(M, N));
+    S.resize(min(M, N));
     vector<double> U(M*M);
     const int LDU = M;
     vector<double> VT(N*N);
@@ -1453,10 +1455,12 @@ void Assembler::analyzeLocalReadGraph(LocalReadGraph& graph) const
         throw runtime_error("Error " + to_string(INFO) +
             " computing SVD decomposition of local read graph.");
     }
+    /*
     cout << "Singular values: " << endl;
     for(const double v: S) {
         cout << v << endl;
     }
+    */
 
     // We know that there must be a zero singular value because
     // the least square solution is defined up to a constant.

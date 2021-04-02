@@ -106,6 +106,10 @@ void Assembler::addScaleSvgButtons(ostream& html)
 void Assembler::exploreUndirectedReadGraph(
     const vector<string>& request,
     ostream& html) {
+
+    using vertex_descriptor = LocalReadGraph::vertex_descriptor;
+    using edge_descriptor = LocalReadGraph::edge_descriptor;
+
     // Get the parameters.
     vector<OrientedReadId> readIds;
     string readIdsString;
@@ -141,6 +145,10 @@ void Assembler::exploreUndirectedReadGraph(
 
     string analyzeString;
     const bool analyze = getParameterValue(request, "analyze", analyzeString);
+
+    double residualThreshold = 100;
+    getParameterValue(request, "residualThreshold", residualThreshold);
+
 
 
     // Write the form.
@@ -237,6 +245,12 @@ void Assembler::exploreUndirectedReadGraph(
          "<td class=centered><input type=checkbox name=analyze" <<
          (analyze ? " checked" : "") <<
          ">"
+
+         "<tr title='Edges with least square residual greater than this value will be colored red'>"
+         "<td>Residual threshold for least square analysis"
+         "<td><input type=text required name=residualThreshold size=8 style='text-align:center'" <<
+         " value='" << residualThreshold <<
+         "'>"
 
          "</table>"
          "</div>"
@@ -371,8 +385,30 @@ void Assembler::exploreUndirectedReadGraph(
 
 
     // Analyze the local read graph, if requested.
+    double maxLeastSquareResidual = 0.;
+    double rmsLeastSquareResidual = 0.;
+    vector<double> singularValues;
     if(analyze) {
-        analyzeLocalReadGraph(graph);
+        analyzeLocalReadGraph(graph, singularValues);
+
+        // Set edge colors bases on residual.
+        // The hue is set to green for zero residual,
+        // and red for residual greater than residualThreshold.
+        uint64_t edgeCount = 0;
+        BGL_FORALL_EDGES(e, graph, LocalReadGraph) {
+            ++edgeCount;
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            const double x0 = graph[v0].leastSquarePosition;
+            const double x1 = graph[v1].leastSquarePosition;
+            const double residual = abs((x1 - x0) - graph[e].averageAlignmentOffset);
+            maxLeastSquareResidual = max(maxLeastSquareResidual, residual);
+            rmsLeastSquareResidual += residual * residual;
+            const double ratio = min(1., residual/residualThreshold);
+            const int hue = int(120. * (1. - ratio));
+            graph[e].color = "hsl(" + to_string(hue) + ", 60%, 50%)";
+        }
+        rmsLeastSquareResidual = sqrt(rmsLeastSquareResidual / double(edgeCount));
     }
 
 
@@ -424,8 +460,6 @@ void Assembler::exploreUndirectedReadGraph(
 
 
     if(analyze) {
-        using vertex_descriptor = LocalReadGraph::vertex_descriptor;
-        using edge_descriptor = LocalReadGraph::edge_descriptor;
 
         // Sort vertices by OrientedReadId.
         vector< pair<OrientedReadId, vertex_descriptor> > sortedVertices;
@@ -436,7 +470,13 @@ void Assembler::exploreUndirectedReadGraph(
             OrderPairsByFirstOnly<OrientedReadId, vertex_descriptor>());
 
         // Write least square positions of the vertices.
+        const auto oldPrecision = html.precision(1);
+        const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
         html << "<h2>Least square analysis</h2>"
+            "Maximum absolute value of least square residual is " <<
+            maxLeastSquareResidual << " markers."
+            "<br>Root mean square value of least square residual is " <<
+            rmsLeastSquareResidual << " markers."
             "<h3>Vertices</h3>"
             "<table><tr><th>Oriented<br>Read Id<th>Least<br>square<br>position";
         for(const auto& p: sortedVertices) {
@@ -463,9 +503,6 @@ void Assembler::exploreUndirectedReadGraph(
 
 
         // Write edge information.
-        const auto oldPrecision = html.precision(1);
-        const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
-
         html <<
             "<h3>Edges</h3>"
             "<table><tr>"
@@ -494,7 +531,16 @@ void Assembler::exploreUndirectedReadGraph(
         }
         html << "</table>";
         html.precision(oldPrecision);
-        html.setf(oldFlags);
+        html.flags(oldFlags);
+
+        html <<
+            "<h3>Singular values</h3>"
+            "<table><tr>";
+        for(const double s: singularValues) {
+            html << "<tr><td class=centered>" << s;
+        }
+        html << "</table>";
+
 
     }
 

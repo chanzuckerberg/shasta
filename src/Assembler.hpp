@@ -1053,7 +1053,9 @@ private:
         LocalReadGraph&);
 
     // Singular value decomposition analysis of the local read graph.
-    void analyzeLocalReadGraph(LocalReadGraph&) const;
+    void analyzeLocalReadGraph(
+        LocalReadGraph&,
+        vector<double>& singularValues) const;
 
 public:
 
