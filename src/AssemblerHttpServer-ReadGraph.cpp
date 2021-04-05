@@ -391,12 +391,37 @@ void Assembler::exploreUndirectedReadGraph(
 
 
 
-    // Analyze the local read graph, if requested.
+    // Triangle analysis of the local read graph, if requested.
+    vector< pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t> > triangles;
+    if(alignmentAnalysis == "triangles") {
+        triangleAnalysis(graph, triangles);
+
+        // Color all edges that are part of at least one triangle
+        // with error greater than residualThreshold.
+        BGL_FORALL_EDGES(e, graph, LocalReadGraph) {
+            graph[e].color = "hsl(120, 60%, 50%)";
+        }
+        for(const auto& p: triangles) {
+            const auto& edges = p.first;
+            const int32_t offsetError = p.second;
+            if(abs(offsetError) < residualThreshold) {
+                continue;
+            }
+
+            for(uint64_t i=0; i<3; i++) {
+                graph[edges[i]].color = "hsl(0, 60%, 50%)";
+            }
+        }
+    }
+
+
+
+    // Least square analysis of the local read graph, if requested.
     double maxLeastSquareResidual = 0.;
     double rmsLeastSquareResidual = 0.;
     vector<double> singularValues;
     if(alignmentAnalysis == "leastSquare") {
-        analyzeLocalReadGraph(graph, singularValues);
+        leastSquareAnalysis(graph, singularValues);
 
         // Set edge colors bases on residual.
         // The hue is set to green for zero residual,
@@ -462,6 +487,65 @@ void Assembler::exploreUndirectedReadGraph(
                        edgeThicknessScalingFactor,
                        maxDistance,
                        html);
+    }
+
+
+
+
+    if(alignmentAnalysis == "triangles" and not triangles.empty()) {
+        html << "<h2>Triangle analysis</h2>"
+            "The worst offset error is " << triangles.front().second <<
+            " markers."
+            "<p><table>"
+            "<tr>"
+            "<th>0"
+            "<th>1"
+            "<th>2"
+            "<th>Offset01"
+            "<th>Offset12"
+            "<th>Offset20"
+            "<th>OffsetError";
+
+        // Write a table row for each triangle.
+        for(const auto& p: triangles) {
+            const auto& edges = p.first;
+            const int32_t offsetError = p.second;
+
+            const edge_descriptor e01 = edges[0];
+            const edge_descriptor e12 = edges[1];
+            const edge_descriptor e20 = edges[2];
+
+            const vertex_descriptor v0 = source(e01, graph);
+            const vertex_descriptor v1 = source(e12, graph);
+            const vertex_descriptor v2 = source(e20, graph);
+            SHASTA_ASSERT(target(e20, graph) == v0);
+
+            const OrientedReadId orientedReadId0 = graph[v0].orientedReadId;
+            const OrientedReadId orientedReadId1 = graph[v1].orientedReadId;
+            const OrientedReadId orientedReadId2 = graph[v2].orientedReadId;
+
+            const ReadGraphEdge& globalEdge01 = readGraph.edges[graph[e01].globalEdgeId];
+            const ReadGraphEdge& globalEdge12 = readGraph.edges[graph[e12].globalEdgeId];
+            const ReadGraphEdge& globalEdge20 = readGraph.edges[graph[e20].globalEdgeId];
+
+            const uint64_t alignmentId01 = globalEdge01.alignmentId;
+            const uint64_t alignmentId12 = globalEdge12.alignmentId;
+            const uint64_t alignmentId20 = globalEdge20.alignmentId;
+
+            const AlignmentInfo alignmentInfo01 = alignmentData[alignmentId01].orient(orientedReadId0, orientedReadId1);
+            const AlignmentInfo alignmentInfo12 = alignmentData[alignmentId12].orient(orientedReadId1, orientedReadId2);
+            const AlignmentInfo alignmentInfo20 = alignmentData[alignmentId20].orient(orientedReadId2, orientedReadId0);
+
+            html << "<tr>"
+                "<td class=centered>" << orientedReadId0 <<
+                "<td class=centered>" << orientedReadId1 <<
+                "<td class=centered>" << orientedReadId2 <<
+                "<td class=centered>" << - alignmentInfo01.averageOrdinalOffset <<
+                "<td class=centered>" << - alignmentInfo12.averageOrdinalOffset <<
+                "<td class=centered>" << - alignmentInfo20.averageOrdinalOffset <<
+                "<td class=centered>" << offsetError;
+        }
+        html << "</table>";
     }
 
 

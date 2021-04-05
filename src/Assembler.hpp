@@ -14,6 +14,7 @@
 #include "InducedAlignment.hpp"
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
+#include "LocalReadGraph.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "MarkerConnectivityGraph.hpp"
@@ -50,7 +51,6 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
-    class LocalReadGraph;
     class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1052,8 +1052,15 @@ private:
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 
+    // Triangle analysis of the local read graph.
+    // Returns a vector of triangles and their alignment residuals,
+    // sorted by decreasing residual.
+    void triangleAnalysis(
+        LocalReadGraph&,
+        vector< pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t> >&) const;
+
     // Singular value decomposition analysis of the local read graph.
-    void analyzeLocalReadGraph(
+    void leastSquareAnalysis(
         LocalReadGraph&,
         vector<double>& singularValues) const;
 

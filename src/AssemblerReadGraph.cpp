@@ -1321,7 +1321,7 @@ void Assembler::readGraphClustering()
 // number of edges, because each edge contributes one equation.
 // The number of columns, N, is equal to the number of vertices.
 
-void Assembler::analyzeLocalReadGraph(
+void Assembler::leastSquareAnalysis(
     LocalReadGraph& graph,
     vector<double>& S) const
 {
@@ -1517,3 +1517,87 @@ void Assembler::analyzeLocalReadGraph(
     cout << "Maximum residual absolute value " << maxResidual << endl;
     */
 }
+
+
+
+// Triangle analysis of the local read graph.
+// Returns a vector of triangles and their alignment residuals,
+// sorted by decreasing residual.
+void Assembler::triangleAnalysis(
+    LocalReadGraph& graph,
+    vector< pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t> >& triangles) const
+{
+    using vertex_descriptor = LocalReadGraph::vertex_descriptor;
+    // using edge_descriptor = LocalReadGraph::edge_descriptor;
+
+    // Loop over triangles.
+    // To make sure each triangle only gets seen once,
+    // only consider it if orientedReadId0<orientedReadId1<orientedReadId2.
+    triangles.clear();
+    BGL_FORALL_VERTICES(v0, graph, LocalReadGraph) {
+        const OrientedReadId orientedReadId0 = graph[v0].orientedReadId;
+        BGL_FORALL_OUTEDGES(v0, e01, graph, LocalReadGraph) {
+            const vertex_descriptor v1 = target(e01, graph);
+            const OrientedReadId orientedReadId1 = graph[v1].orientedReadId;
+            if(orientedReadId1 <= orientedReadId0) {
+                continue;
+            }
+
+            // Get the offset of orientedReadId1 relative to orientedReadId0.
+            const uint64_t globalEdgeId01 = graph[e01].globalEdgeId;
+            const ReadGraphEdge& globalEdge01 = readGraph.edges[globalEdgeId01];
+            const uint64_t alignmentId01 = globalEdge01.alignmentId;
+            const AlignmentInfo alignmentInfo01 = alignmentData[alignmentId01].orient(orientedReadId0, orientedReadId1);
+            const int32_t offset01 = - alignmentInfo01.averageOrdinalOffset;
+
+            BGL_FORALL_OUTEDGES(v1, e12, graph, LocalReadGraph) {
+                const vertex_descriptor v2 = target(e12, graph);
+                const OrientedReadId orientedReadId2 = graph[v2].orientedReadId;
+                if(orientedReadId2 <= orientedReadId1) {
+                    continue;
+                }
+
+                // Get the offset of orientedReadId2 relative to orientedReadId1.
+                const uint64_t globalEdgeId12 = graph[e12].globalEdgeId;
+                const ReadGraphEdge& globalEdge12 = readGraph.edges[globalEdgeId12];
+                const uint64_t alignmentId12 = globalEdge12.alignmentId;
+                const AlignmentInfo alignmentInfo12 = alignmentData[alignmentId12].orient(orientedReadId1, orientedReadId2);
+                const int32_t offset12 = - alignmentInfo12.averageOrdinalOffset;
+
+                // Get the offset of orientedReadId2 relative to orientedReadId0.
+                const int32_t offset02 = offset01 + offset12;
+
+                BGL_FORALL_OUTEDGES(v2, e23, graph, LocalReadGraph) {
+                    const vertex_descriptor v3 = target(e23, graph);
+                    if(v3 != v0) {
+                        continue;
+                    }
+
+                    // Get the offset of orientedReadId0 relative to orientedReadId2.
+                    const uint64_t globalEdgeId23 = graph[e23].globalEdgeId;
+                    const ReadGraphEdge& globalEdge23 = readGraph.edges[globalEdgeId23];
+                    const uint64_t alignmentId23 = globalEdge23.alignmentId;
+                    const AlignmentInfo alignmentInfo23 = alignmentData[alignmentId23].orient(orientedReadId2, orientedReadId0);
+                    const int32_t offset23 = - alignmentInfo23.averageOrdinalOffset;
+
+                    // Since v3 is the same as v0, the total offset should be zero.
+                    const int32_t offsetError = offset02 + offset23;
+
+                    // Store this triangle.
+                    triangles.push_back(make_pair(
+                        array<LocalReadGraph::edge_descriptor, 3>({e01, e12, e23}), offsetError));
+                }
+            }
+        }
+    }
+
+    // Sort them by decreasing absolute value of offset error.
+    using Triangle = pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t>;
+    sort(triangles.begin(), triangles.end(),
+        [](const Triangle& x, const Triangle& y)
+        {
+            return abs(x.second) > abs(y.second);
+        });
+
+}
+
