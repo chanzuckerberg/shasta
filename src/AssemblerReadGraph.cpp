@@ -1379,27 +1379,7 @@ void Assembler::analyzeLocalReadGraph(
         const uint64_t globalEdgeId = graph[e].globalEdgeId;
         const ReadGraphEdge& globalEdge = readGraph.edges[globalEdgeId];
         const uint64_t alignmentId = globalEdge.alignmentId;
-        const AlignmentData& ad = alignmentData[alignmentId];
-
-        OrientedReadId alignmentOrientedReadId0(ad.readIds[0], 0);
-        OrientedReadId alignmentOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
-        AlignmentInfo alignmentInfo = ad.info;
-
-        // Do a swap, if needed.
-        if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
-            alignmentInfo.swap();
-            swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
-        }
-        SHASTA_ASSERT(alignmentOrientedReadId0.getReadId() == orientedReadId0.getReadId());
-
-        // Reverse complement, if needed.
-        if(alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
-            alignmentOrientedReadId0.flipStrand();
-            alignmentOrientedReadId1.flipStrand();
-            alignmentInfo.reverseComplement();
-        }
-        SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
-        SHASTA_ASSERT(alignmentOrientedReadId1 == orientedReadId1);
+        const AlignmentInfo alignmentInfo = alignmentData[alignmentId].orient(orientedReadId0, orientedReadId1);
 
         // Get the offset.
         const double offset = - alignmentInfo.averageOrdinalOffset;

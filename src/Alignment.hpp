@@ -438,6 +438,12 @@ public:
         info(info)
     {}
 
+    // Given an AlignmentData, return its AlignmentInfo,
+    // after swapping and/or reverse complementing it
+    // to make sure it refers to the given OrientedReadId's,
+    // in that order.
+    AlignmentInfo orient(OrientedReadId, OrientedReadId) const;
+
 };
 
 

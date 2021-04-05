@@ -121,3 +121,37 @@ void AlignmentInfo::create(
 {
     create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
 }
+
+
+
+// Given an AlignmentData, return its AlignmentInfo,
+// after swapping and/or reverse complementing it
+// to make sure it refers to the given OrientedReadId's,
+// in that order.
+AlignmentInfo AlignmentData::orient(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1) const
+{
+    OrientedReadId alignmentOrientedReadId0(readIds[0], 0);
+    OrientedReadId alignmentOrientedReadId1(readIds[1], isSameStrand ? 0 : 1);
+    AlignmentInfo alignmentInfo = info;
+
+    // Do a swap, if needed.
+    if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
+        alignmentInfo.swap();
+        swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
+    }
+    SHASTA_ASSERT(alignmentOrientedReadId0.getReadId() == orientedReadId0.getReadId());
+
+    // Reverse complement, if needed.
+    if(alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
+        alignmentOrientedReadId0.flipStrand();
+        alignmentOrientedReadId1.flipStrand();
+        alignmentInfo.reverseComplement();
+    }
+    SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+    SHASTA_ASSERT(alignmentOrientedReadId1 == orientedReadId1);
+
+    return alignmentInfo;
+
+}
