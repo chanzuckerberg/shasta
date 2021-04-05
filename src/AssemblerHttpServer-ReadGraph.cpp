@@ -254,7 +254,7 @@ void Assembler::exploreUndirectedReadGraph(
          ">Least square"
 
          "<tr title='Edges with least square residual greater than this value will be colored red'>"
-         "<td>Residual threshold for least square analysis"
+         "<td>Residual threshold for alignment analysis"
          "<td><input type=text required name=residualThreshold size=8 style='text-align:center'" <<
          " value='" << residualThreshold <<
          "'>"
