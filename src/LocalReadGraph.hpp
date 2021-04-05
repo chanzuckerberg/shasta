@@ -99,7 +99,7 @@ public:
     uint64_t globalEdgeId;
 
     // The average alignment offset.
-    double averageAlignmentOffset;
+    double averageAlignmentOffset = 0.;
 
     string color;
 
