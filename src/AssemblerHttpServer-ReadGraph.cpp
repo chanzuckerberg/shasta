@@ -143,8 +143,8 @@ void Assembler::exploreUndirectedReadGraph(
     string addBlastAnnotationsString;
     const bool addBlastAnnotations = getParameterValue(request, "addBlastAnnotations", addBlastAnnotationsString);
 
-    string analyzeString;
-    const bool analyze = getParameterValue(request, "analyze", analyzeString);
+    string alignmentAnalysis = "none";
+    getParameterValue(request, "alignmentAnalysis", alignmentAnalysis);
 
     double residualThreshold = 100;
     getParameterValue(request, "residualThreshold", residualThreshold);
@@ -241,10 +241,17 @@ void Assembler::exploreUndirectedReadGraph(
          ">"
 
          "<tr>"
-         "<td>Perform least square analysis"
-         "<td class=centered><input type=checkbox name=analyze" <<
-         (analyze ? " checked" : "") <<
-         ">"
+         "<td>Alignment analysis"
+         "<td>"
+         "<input type=radio name=alignmentAnalysis value=none" <<
+         (alignmentAnalysis=="none" ? " checked=on" : "") <<
+         ">None"
+         "<br><input type=radio name=alignmentAnalysis value=triangles" <<
+         (alignmentAnalysis=="triangles" ? " checked=on" : "") <<
+         ">Triangles"
+         "<br><input type=radio name=alignmentAnalysis value=leastSquare" <<
+         (alignmentAnalysis=="leastSquare" ? " checked=on" : "") <<
+         ">Least square"
 
          "<tr title='Edges with least square residual greater than this value will be colored red'>"
          "<td>Residual threshold for least square analysis"
@@ -388,7 +395,7 @@ void Assembler::exploreUndirectedReadGraph(
     double maxLeastSquareResidual = 0.;
     double rmsLeastSquareResidual = 0.;
     vector<double> singularValues;
-    if(analyze) {
+    if(alignmentAnalysis == "leastSquare") {
         analyzeLocalReadGraph(graph, singularValues);
 
         // Set edge colors bases on residual.
@@ -459,7 +466,7 @@ void Assembler::exploreUndirectedReadGraph(
 
 
 
-    if(analyze) {
+    if(alignmentAnalysis == "leastSquare") {
 
         // Sort vertices by OrientedReadId.
         vector< pair<OrientedReadId, vertex_descriptor> > sortedVertices;
