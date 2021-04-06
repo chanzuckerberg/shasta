@@ -15,6 +15,6 @@ a.accessReadGraphReadWrite()
 a.flagInconsistentAlignments(
     triangleErrorThreshold = 200,
     leastSquareErrorThreshold = 200,
-    leastSquareMaxDistance =1)
+    leastSquareMaxDistance = 1)
 
 

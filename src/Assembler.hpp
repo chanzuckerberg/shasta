@@ -971,6 +971,9 @@ private:
         // The alignment offset for each edge of the read graph,
         // oriented with the lowest OrientedReadId first.
         MemoryMapped::Vector<int32_t> edgeOffset;
+
+        // The inconsistent alignmentId's found by each thread.
+        vector< vector<uint64_t> > threadAlignmentIds;
     };
     FlagInconsistentAlignmentsData flagInconsistentAlignmentsData;
 public:
