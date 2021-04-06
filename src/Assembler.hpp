@@ -954,6 +954,7 @@ public:
     void flagInconsistentAlignments(
         uint64_t triangleErrorThreshold,
         uint64_t leastSquareErrorThreshold,
+        uint64_t leastSquareMaxDistance,
         size_t threadCount);
 private:
     void flagInconsistentAlignmentsThreadFunction1(size_t threadId);
@@ -965,6 +966,7 @@ private:
         // to make them visible to the threads.
         uint64_t triangleErrorThreshold;
         uint64_t leastSquareErrorThreshold;
+        uint64_t leastSquareMaxDistance;
 
         // The alignment offset for each edge of the read graph,
         // oriented with the lowest OrientedReadId first.
@@ -1071,7 +1073,7 @@ private:
     // starting at any number of  given vertexes and extending out to a specified
     // distance (number of edges).
     bool createLocalReadGraph(
-        vector<OrientedReadId>& starts,
+        const vector<OrientedReadId>& starts,
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
         bool allowCrossStrandEdges,

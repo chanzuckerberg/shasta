@@ -205,7 +205,7 @@ bool Assembler::createLocalReadGraph(
         double timeout,                 // Or 0 for no timeout.
         LocalReadGraph& graph)
 {
-    vector<OrientedReadId> starts = {start};
+    const vector<OrientedReadId> starts = {start};
     bool success = createLocalReadGraph(
             starts,
             maxDistance,           // How far to go from starting oriented read.
@@ -223,7 +223,7 @@ bool Assembler::createLocalReadGraph(
 // starting at a given vertex and extending out to a specified
 // distance (number of edges).
 bool Assembler::createLocalReadGraph(
-    vector<OrientedReadId>& starts,
+    const vector<OrientedReadId>& starts,
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
     bool allowCrossStrandEdges,
@@ -1606,6 +1606,7 @@ void Assembler::triangleAnalysis(
 void Assembler::flagInconsistentAlignments(
     uint64_t triangleErrorThreshold,
     uint64_t leastSquareErrorThreshold,
+    uint64_t leastSquareMaxDistance,
     size_t threadCount)
 {
     // Check that we have what we need.
@@ -1621,6 +1622,7 @@ void Assembler::flagInconsistentAlignments(
     // Store the arguments so they are visible to the threads.
     flagInconsistentAlignmentsData.triangleErrorThreshold = triangleErrorThreshold;
     flagInconsistentAlignmentsData.leastSquareErrorThreshold = leastSquareErrorThreshold;
+    flagInconsistentAlignmentsData.leastSquareMaxDistance = leastSquareMaxDistance;
 
     // Compute the alignment offset for each edge of the read graph,
     // oriented with the lowest OrientedReadId first.
@@ -1681,8 +1683,13 @@ void Assembler::flagInconsistentAlignmentsThreadFunction1(size_t threadId)
 
 void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
 {
-    ofstream out("flagInconsistentAlignmentsThreadFunction2-" + to_string(threadId) + ".log");
+    using vertex_descriptor = LocalReadGraph::vertex_descriptor;
+    using edge_descriptor = LocalReadGraph::edge_descriptor;
+
+    ofstream out("flagInconsistentAlignments-" + to_string(threadId) + ".log");
     const uint64_t triangleErrorThreshold = flagInconsistentAlignmentsData.triangleErrorThreshold;
+    const double leastSquareErrorThreshold = double(flagInconsistentAlignmentsData.leastSquareErrorThreshold);
+    const uint64_t leastSquareMaxDistance = flagInconsistentAlignmentsData.leastSquareMaxDistance;
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -1724,14 +1731,67 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
 
                         // We found a triangle.
                         const int32_t offsetError = offset02 + offset20;
-                        if(abs(offsetError)> triangleErrorThreshold) {
-                            out << orientedReadId0 << ",";
-                            out << orientedReadId1 << ",";
-                            out << orientedReadId2 << ",";
-                            out << offset01 << ",";
-                            out << offset12 << ",";
-                            out << offset20 << ",";
-                            out << offsetError << "\n";
+
+                        // If the error is small, don't do anything.
+                        if(abs(offsetError) < triangleErrorThreshold) {
+                            continue;
+                        }
+
+                        out << "Working on triangle ";
+                        out << orientedReadId0 << " ";
+                        out << orientedReadId1 << " ";
+                        out << orientedReadId2 << " ";
+                        out << offset01 << " ";
+                        out << offset12 << " ";
+                        out << offset20 << " ";
+                        out << offsetError << "\n";
+
+                        // Construct a local read graph around this triangle.
+                        LocalReadGraph graph;
+                        const vector<OrientedReadId> orientedReadIds =
+                            {orientedReadId0, orientedReadId1, orientedReadId2};
+                        createLocalReadGraph(orientedReadIds,
+                            uint32_t(leastSquareMaxDistance), false, false, 0., graph);
+
+                        // Iterate, removing one edge at a time
+                        // until all residuals are small.
+                        while(true) {
+
+                            // Perform least square analysis.
+                            vector<double> singularValues;
+                            leastSquareAnalysis(graph, singularValues);
+
+                            // Find the edge with the worst residual absolute value.
+                            double maxResidual = -1.;
+                            LocalReadGraph::edge_iterator it, end, itWorst;
+                            tie(it, end) = edges(graph);
+                            for(; it!=end; ++it) {
+                                const edge_descriptor e = *it;
+                                const vertex_descriptor v0 = source(e, graph);
+                                const vertex_descriptor v1 = target(e, graph);
+                                const double x0 = graph[v0].leastSquarePosition;
+                                const double x1 = graph[v1].leastSquarePosition;
+                                const double residual = abs((x1 - x0) - graph[e].averageAlignmentOffset);
+                                if(residual > maxResidual) {
+                                    maxResidual = residual;
+                                    itWorst = it;
+                                }
+                            }
+                            const edge_descriptor eWorst = *itWorst;
+                            const uint64_t globalEdgeId = graph[eWorst].globalEdgeId;
+                            const uint64_t alignmentId = readGraph.edges[globalEdgeId].alignmentId;
+                            out << "Edge with worst residual " <<
+                                graph[source(eWorst, graph)].orientedReadId << " " <<
+                                graph[target(eWorst, graph)].orientedReadId << " " << maxResidual << endl;
+
+                            // If the residual is small, end the iteration.
+                            if(maxResidual < leastSquareErrorThreshold) {
+                                break;
+                            }
+
+                            // Remove the edge with the worst residual.
+                            out << "Alignment " << alignmentId << " flagged as inconsistent." << endl;
+                            remove_edge(eWorst, graph);
                         }
                     }
                 }

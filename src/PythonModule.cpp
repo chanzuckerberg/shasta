@@ -366,6 +366,7 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::flagInconsistentAlignments,
              arg("triangleErrorThreshold"),
              arg("leastSquareErrorThreshold"),
+             arg("leastSquareMaxDistance"),
              arg("threadCount") = 0)
 
 
