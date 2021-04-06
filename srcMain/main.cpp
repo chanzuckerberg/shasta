@@ -728,14 +728,6 @@ void shasta::main::assemble(
             assemblerOptions.readGraphOptions.maxAlignmentCount,
             assemblerOptions.alignOptions.maxTrim);
 
-        // Flag read graph edges that cross strands.
-        assembler.flagCrossStrandReadGraphEdges(
-            assemblerOptions.readGraphOptions.crossStrandMaxDistance,
-            threadCount);
-
-        // Flag chimeric reads.
-        assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
-        assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else if(assemblerOptions.readGraphOptions.creationMethod == 2) {
         assembler.createReadGraph2(
             assemblerOptions.readGraphOptions.maxAlignmentCount,
@@ -744,18 +736,21 @@ void shasta::main::assemble(
             assemblerOptions.readGraphOptions.maxSkipPercentile,
             assemblerOptions.readGraphOptions.maxDriftPercentile,
             assemblerOptions.readGraphOptions.maxTrimPercentile);
-
-        // Flag read graph edges that cross strands.
-        assembler.flagCrossStrandReadGraphEdges(
-            assemblerOptions.readGraphOptions.crossStrandMaxDistance,
-            threadCount);
-
-        // Flag chimeric reads.
-        assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
-        assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
+
+    // Flag read graph edges that cross strands.
+    assembler.flagCrossStrandReadGraphEdges(
+        assemblerOptions.readGraphOptions.crossStrandMaxDistance,
+        threadCount);
+
+    // Flag chimeric reads.
+    assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
+
+    // Compute connected components of the read graph.
+    // These are currently not used.
+    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
 
 
 
