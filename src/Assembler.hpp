@@ -949,6 +949,32 @@ public:
 
 
 
+    // Triangle and least square analysis of the read graph
+    // to flag inconsistent alignments.
+    void flagInconsistentAlignments(
+        uint64_t triangleErrorThreshold,
+        uint64_t leastSquareErrorThreshold,
+        size_t threadCount);
+private:
+    void flagInconsistentAlignmentsThreadFunction1(size_t threadId);
+    void flagInconsistentAlignmentsThreadFunction2(size_t threadId);
+    class FlagInconsistentAlignmentsData {
+    public:
+
+        // Arguments of flagInconsistentAlignments, stored here
+        // to make them visible to the threads.
+        uint64_t triangleErrorThreshold;
+        uint64_t leastSquareErrorThreshold;
+
+        // The alignment offset for each edge of the read graph,
+        // oriented with the lowest OrientedReadId first.
+        MemoryMapped::Vector<int32_t> edgeOffset;
+    };
+    FlagInconsistentAlignmentsData flagInconsistentAlignmentsData;
+public:
+
+
+
     // Functions and data used with read creation for iterative assembly.
     void createReadGraphUsingPseudoPaths(
         int64_t matchScore,

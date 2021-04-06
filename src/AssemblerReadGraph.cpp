@@ -1601,3 +1601,143 @@ void Assembler::triangleAnalysis(
 
 }
 
+
+
+void Assembler::flagInconsistentAlignments(
+    uint64_t triangleErrorThreshold,
+    uint64_t leastSquareErrorThreshold,
+    size_t threadCount)
+{
+    // Check that we have what we need.
+    SHASTA_ASSERT(alignmentData.isOpenWithWriteAccess);
+    SHASTA_ASSERT(readGraph.edges.isOpenWithWriteAccess);
+    SHASTA_ASSERT(readGraph.connectivity.isOpen());
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    // Store the arguments so they are visible to the threads.
+    flagInconsistentAlignmentsData.triangleErrorThreshold = triangleErrorThreshold;
+    flagInconsistentAlignmentsData.leastSquareErrorThreshold = leastSquareErrorThreshold;
+
+    // Compute the alignment offset for each edge of the read graph,
+    // oriented with the lowest OrientedReadId first.
+    flagInconsistentAlignmentsData.edgeOffset.createNew(
+        largeDataName("tmp-FlagInconsistentAlignmentsDataOffset"), largeDataPageSize);
+    flagInconsistentAlignmentsData.edgeOffset.resize(readGraph.edges.size());
+    setupLoadBalancing(readGraph.edges.size(), 1000);
+    runThreads(&Assembler::flagInconsistentAlignmentsThreadFunction1, threadCount);
+
+    // Loop over triangles in the read graph.
+    const uint64_t readCount = readGraph.connectivity.size() / 2;
+    setupLoadBalancing(readCount, 100);
+    runThreads(&Assembler::flagInconsistentAlignmentsThreadFunction2, threadCount);
+
+    // We no longer need the offsets.
+    flagInconsistentAlignmentsData.edgeOffset.remove();
+}
+
+
+
+void Assembler::flagInconsistentAlignmentsThreadFunction1(size_t threadId)
+{
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all read graph edges assigned to this batch.
+        for(uint64_t edgeId=begin; edgeId!=end; edgeId++) {
+            const ReadGraphEdge& edge = readGraph.edges[edgeId];
+
+            // Make sure the lowest OrientedRead is first.
+            array<OrientedReadId, 2> orientedReadIds = edge.orientedReadIds;
+            if(orientedReadIds[1] < orientedReadIds[0]) {
+                swap(orientedReadIds[0], orientedReadIds[1]);
+            }
+            SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
+
+            // Orient the alignment accordingly.
+            const AlignmentData& ad = alignmentData[edge.alignmentId];
+            const AlignmentInfo alignmentInfo = ad.orient(orientedReadIds[0], orientedReadIds[1]);
+
+            // Store the offset.
+            flagInconsistentAlignmentsData.edgeOffset[edgeId] = alignmentInfo.averageOrdinalOffset;
+        }
+    }
+
+}
+
+
+
+// Here we loop over triangles.
+// We only consider triangles with oriented read ids 012 where:
+// - orientedReadId0 is on strand 0.
+// - orientedReadId0<orientedReadId1<orientedReadId2.
+// This way each pair of reverse complemented triangles gets looked at exactly once.
+// This code is written with a triple loop for each start vertex,
+// but could be made faster if necessary.
+
+void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
+{
+    ofstream out("flagInconsistentAlignmentsThreadFunction2-" + to_string(threadId) + ".log");
+    const uint64_t triangleErrorThreshold = flagInconsistentAlignmentsData.triangleErrorThreshold;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all reads assigned to this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            const OrientedReadId orientedReadId0(readId, 0);
+
+            // Loop over edges of orientedReadId0.
+            const span<uint32_t> edgeIds0 = readGraph.connectivity[orientedReadId0.getValue()];
+            for(uint32_t edgeId01: edgeIds0){
+                const ReadGraphEdge edge01 = readGraph.edges[edgeId01];
+                const OrientedReadId orientedReadId1 = edge01.getOther(orientedReadId0);
+                if(orientedReadId1 < orientedReadId0) {
+                    continue;
+                }
+                const int32_t offset01 = flagInconsistentAlignmentsData.edgeOffset[edgeId01];
+
+                // Loop over edges of orientedReadId1.
+                const span<uint32_t> edgeIds1 = readGraph.connectivity[orientedReadId1.getValue()];
+                for(uint32_t edgeId12: edgeIds1){
+                    const ReadGraphEdge edge12 = readGraph.edges[edgeId12];
+                    const OrientedReadId orientedReadId2 = edge12.getOther(orientedReadId1);
+                    if(orientedReadId2 < orientedReadId1) {
+                        continue;
+                    }
+                    const int32_t offset12 = flagInconsistentAlignmentsData.edgeOffset[edgeId12];
+                    const int32_t offset02 = offset01 + offset12;
+
+                    // Loop over edges of orientedReadId2.
+                    const span<uint32_t> edgeIds2 = readGraph.connectivity[orientedReadId2.getValue()];
+                    for(uint32_t edgeId20: edgeIds2){
+                        const ReadGraphEdge edge20 = readGraph.edges[edgeId20];
+                        if(edge20.getOther(orientedReadId2) != orientedReadId0) {
+                            continue;
+                        }
+                        const int32_t offset20 = -flagInconsistentAlignmentsData.edgeOffset[edgeId20];
+
+                        // We found a triangle.
+                        const int32_t offsetError = offset02 + offset20;
+                        if(abs(offsetError)> triangleErrorThreshold) {
+                            out << orientedReadId0 << ",";
+                            out << orientedReadId1 << ",";
+                            out << orientedReadId2 << ",";
+                            out << offset01 << ",";
+                            out << offset12 << ",";
+                            out << offset20 << ",";
+                            out << offsetError << "\n";
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+}
+

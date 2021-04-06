@@ -297,6 +297,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessCompressedAlignments)
         .def("accessAlignmentData",
             &Assembler::accessAlignmentData)
+        .def("accessAlignmentDataReadWrite",
+            &Assembler::accessAlignmentDataReadWrite)
         .def("analyzeAlignmentMatrix",
             &Assembler::analyzeAlignmentMatrix,
             arg("readId0"),
@@ -360,6 +362,11 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::readGraphClustering)
         .def("writeReadGraphEdges",
              &Assembler::writeReadGraphEdges)
+        .def("flagInconsistentAlignments",
+             &Assembler::flagInconsistentAlignments,
+             arg("triangleErrorThreshold"),
+             arg("leastSquareErrorThreshold"),
+             arg("threadCount") = 0)
 
 
 
