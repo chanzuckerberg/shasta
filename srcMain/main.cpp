@@ -748,6 +748,15 @@ void shasta::main::assemble(
     // Flag chimeric reads.
     assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
 
+    // Flak inconsistent alignments, if requested.
+    if(assemblerOptions.readGraphOptions.flagInconsistentAlignments) {
+        assembler.flagInconsistentAlignments(
+            assemblerOptions.readGraphOptions.flagInconsistentAlignmentsTriangleErrorThreshold,
+            assemblerOptions.readGraphOptions.flagInconsistentAlignmentsLeastSquareErrorThreshold,
+            assemblerOptions.readGraphOptions.flagInconsistentAlignmentsLeastSquareMaxDistance,
+            threadCount);
+    }
+
     // Compute connected components of the read graph.
     // These are currently not used.
     assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
