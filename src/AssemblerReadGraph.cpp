@@ -1634,8 +1634,8 @@ void Assembler::flagInconsistentAlignments(
     runThreads(&Assembler::flagInconsistentAlignmentsThreadFunction1, threadCount);
 
     // Loop over triangles in the read graph.
-    flagInconsistentAlignmentsData.threadAlignmentIds.clear();
-    flagInconsistentAlignmentsData.threadAlignmentIds.resize(threadCount);
+    flagInconsistentAlignmentsData.threadEdgeIds.clear();
+    flagInconsistentAlignmentsData.threadEdgeIds.resize(threadCount);
     const uint64_t readCount = readGraph.connectivity.size() / 2;
     setupLoadBalancing(readCount, 100);
     runThreads(&Assembler::flagInconsistentAlignmentsThreadFunction2, threadCount);
@@ -1643,19 +1643,19 @@ void Assembler::flagInconsistentAlignments(
     // We no longer need the offsets.
     flagInconsistentAlignmentsData.edgeOffset.remove();
 
-    // Gather the inconsistent alignment ids found by all threads.
-    vector<uint64_t> alignmentIds;
+    // Gather the inconsistent edge ids found by all threads.
+    vector<uint64_t> edgeIds;
     for(size_t threadId=0; threadId<threadCount; threadId++) {
-        vector<uint64_t>& threadAlignmentIds = flagInconsistentAlignmentsData.threadAlignmentIds[threadId];
-        copy(threadAlignmentIds.begin(), threadAlignmentIds.end(),
-            back_inserter(alignmentIds));
+        vector<uint64_t>& threadEdgeIds = flagInconsistentAlignmentsData.threadEdgeIds[threadId];
+        copy(threadEdgeIds.begin(), threadEdgeIds.end(),
+            back_inserter(edgeIds));
     }
-    deduplicate(alignmentIds);
-    cout << "Flagged " << alignmentIds.size() << " alignments as inconsistent." << endl;
-    for(const uint64_t alignmentId: alignmentIds) {
-        const AlignmentData& ad = alignmentData[alignmentId];
-        cout << "Alignment " << alignmentId << " " <<
-            ad.readIds[0] << " " << ad.readIds[1] << " " << int(ad.isSameStrand) << endl;
+    deduplicate(edgeIds);
+    cout << "Flagged " << edgeIds.size() << " read graph edges as inconsistent." << endl;
+    for(const uint64_t edgeId: edgeIds) {
+        const ReadGraphEdge& edge = readGraph.edges[edgeId];
+        cout << edge.orientedReadIds[0] << " " <<
+            edge.orientedReadIds[1] << " " << edge.alignmentId << endl;
     }
 }
 
@@ -1710,7 +1710,7 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
     const uint64_t triangleErrorThreshold = flagInconsistentAlignmentsData.triangleErrorThreshold;
     const double leastSquareErrorThreshold = double(flagInconsistentAlignmentsData.leastSquareErrorThreshold);
     const uint64_t leastSquareMaxDistance = flagInconsistentAlignmentsData.leastSquareMaxDistance;
-    vector<uint64_t>& inconsistentAlignmentIds = flagInconsistentAlignmentsData.threadAlignmentIds[threadId];
+    vector<uint64_t>& inconsistentEdgeIds = flagInconsistentAlignmentsData.threadEdgeIds[threadId];
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -1800,8 +1800,7 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                             }
                             const edge_descriptor eWorst = *itWorst;
                             const uint64_t globalEdgeId = graph[eWorst].globalEdgeId;
-                            const uint64_t alignmentId = readGraph.edges[globalEdgeId].alignmentId;
-                            out << "Edge with worst residual " <<
+                             out << "Edge with worst residual " <<
                                 graph[source(eWorst, graph)].orientedReadId << " " <<
                                 graph[target(eWorst, graph)].orientedReadId << " " << maxResidual << endl;
 
@@ -1810,12 +1809,16 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                                 break;
                             }
 
-                            // Remove the edge with the worst residual.
-                            inconsistentAlignmentIds.push_back(alignmentId);
+                            // Remove the edge with the worst residual and its
+                            // reverse complement.
+                            inconsistentEdgeIds.push_back(globalEdgeId);
+                            inconsistentEdgeIds.push_back(readGraph.getReverseComplementEdgeId(globalEdgeId));
+                            /*
                             const AlignmentData& ad = alignmentData[alignmentId];
                             out << "Alignment " << alignmentId << " " <<
                                 ad.readIds[0] << " " << ad.readIds[1] << " " << int(ad.isSameStrand) <<
                                 " flagged as inconsistent." << endl;
+                            */
                             remove_edge(eWorst, graph);
                         }
                     }
@@ -1824,6 +1827,6 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
 
         }
     }
-    deduplicate(inconsistentAlignmentIds);
+    deduplicate(inconsistentEdgeIds);
 }
 
