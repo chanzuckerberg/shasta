@@ -10,7 +10,7 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessAlignmentDataReadWrite()
-a.accessCompressedAlignments()
+# a.accessCompressedAlignments()
 a.accessReadGraphReadWrite()
 a.flagInconsistentAlignments(
     triangleErrorThreshold = 200,
