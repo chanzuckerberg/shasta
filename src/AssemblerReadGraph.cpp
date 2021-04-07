@@ -1749,6 +1749,9 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                 if(edge01.crossesStrands) {
                     continue;
                 }
+                if(edge01.hasInconsistentAlignment) {
+                    continue;
+                }
                 const int32_t offset01 = flagInconsistentAlignmentsData.edgeOffset[edgeId01];
 
                 // Loop over edges of orientedReadId1.
@@ -1765,6 +1768,9 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                     if(edge12.crossesStrands) {
                         continue;
                     }
+                    if(edge12.hasInconsistentAlignment) {
+                        continue;
+                    }
                     const int32_t offset12 = flagInconsistentAlignmentsData.edgeOffset[edgeId12];
                     const int32_t offset02 = offset01 + offset12;
 
@@ -1773,6 +1779,9 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                     for(uint32_t edgeId20: edgeIds2){
                         const ReadGraphEdge edge20 = readGraph.edges[edgeId20];
                         if(edge20.crossesStrands) {
+                            continue;
+                        }
+                        if(edge20.hasInconsistentAlignment) {
                             continue;
                         }
                         if(edge20.getOther(orientedReadId2) != orientedReadId0) {
