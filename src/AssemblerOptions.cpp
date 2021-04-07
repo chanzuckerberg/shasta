@@ -556,6 +556,29 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(0.015, "0.015"),
         "Percentile for maxTrim (only used when creationMethod is 2).")
 
+        ("ReadGraph.flagInconsistentAlignments",
+        bool_switch(&readGraphOptions.flagInconsistentAlignments)->
+        default_value(false),
+        "Flag inconsistent alignments. Experimental.")
+
+        ("ReadGraph.flagInconsistentAlignments.triangleErrorThreshold",
+        value<uint64_t>(&readGraphOptions.flagInconsistentAlignmentsTriangleErrorThreshold)->
+        default_value(200),
+        "Triangle error threshold, in markers, for flagging inconsistent alignments. "
+        "Only used if --ReadGraph.flagInconsistentAlignments is set. Experimental.")
+
+        ("ReadGraph.flagInconsistentAlignments.leastSquareErrorThreshold",
+        value<uint64_t>(&readGraphOptions.flagInconsistentAlignmentsLeastSquareErrorThreshold)->
+        default_value(200),
+        "Least square error threshold, in markers, for flagging inconsistent alignments. "
+        "Only used if --ReadGraph.flagInconsistentAlignments is set. Experimental.")
+
+        ("ReadGraph.flagInconsistentAlignments.leastSquareMaxDistance",
+        value<uint64_t>(&readGraphOptions.flagInconsistentAlignmentsLeastSquareMaxDistance)->
+        default_value(1),
+        "Least square max distance for flagging inconsistent alignments. "
+        "Only used if --ReadGraph.flagInconsistentAlignments is set. Experimental.")
+
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
@@ -880,6 +903,14 @@ void ReadGraphOptions::write(ostream& s) const
     s << "maxSkipPercentile = " << maxSkipPercentile << "\n";
     s << "maxDriftPercentile = " << maxDriftPercentile << "\n";
     s << "maxTrimPercentile = " << maxTrimPercentile << "\n";
+
+    s << "flagInconsistentAlignments = " << convertBoolToPythonString(flagInconsistentAlignments) << "\n";
+    s << "flagInconsistentAlignments.triangleErrorThreshold = " <<
+        flagInconsistentAlignmentsTriangleErrorThreshold << "\n";
+    s << "flagInconsistentAlignments.leastSquareErrorThreshold = " <<
+        flagInconsistentAlignmentsLeastSquareErrorThreshold << "\n";
+    s << "flagInconsistentAlignments.leastSquareMaxDistance = " <<
+        flagInconsistentAlignmentsLeastSquareMaxDistance << "\n";
 }
 
 

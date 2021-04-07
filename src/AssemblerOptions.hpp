@@ -222,6 +222,10 @@ public:
     double maxSkipPercentile;
     double maxDriftPercentile;
     double maxTrimPercentile;
+    bool flagInconsistentAlignments;
+    uint64_t flagInconsistentAlignmentsTriangleErrorThreshold;
+    uint64_t flagInconsistentAlignmentsLeastSquareErrorThreshold;
+    uint64_t flagInconsistentAlignmentsLeastSquareMaxDistance;
     void write(ostream& ) const;
 };
 

@@ -647,12 +647,26 @@ of the read graph to be kept. This is currently ignored.
 Used for chimeric read detection.
 <a class=qm href='ComputationalMethods.html#ReadGraph'/>
 
-<tr id='ReadGraph.removeConflicts'>
-<td><code>--ReadGraph.removeConflicts</code><td class=centered><code>False</code><td>
+<tr id='ReadGraph.flagInconsistentAlignments'>
+<td><code>--ReadGraph.flagInconsistentAlignments</code><td class=centered><code>False</code><td>
 This is a 
 <a href="#BooleanSwitches">Boolean switch</a>.
-Remove conflicts from the read graph.
-Experimental - do not use.
+Flag inconsistent alignments. Experimental.
+
+<tr id='ReadGraph.flagInconsistentAlignments.triangleErrorThreshold'>
+<td><code>--ReadGraph.flagInconsistentAlignments.triangleErrorThreshold</code><td class=centered><code>200</code><td>
+Triangle error threshold, in markers, for flagging inconsistent alignments. 
+Only used if <code>--ReadGraph.flagInconsistentAlignments</code> is set. Experimental.
+
+<tr id='ReadGraph.flagInconsistentAlignments.leastSquareErrorThreshold'>
+<td><code>--ReadGraph.flagInconsistentAlignments.leastSquareErrorThreshold</code><td class=centered><code>200</code><td>
+Least square error threshold, in markers, for flagging inconsistent alignments. 
+Only used if <code>--ReadGraph.flagInconsistentAlignments</code> is set. Experimental.
+
+<tr id='ReadGraph.flagInconsistentAlignments.leastSquareMaxDistance'>
+<td><code>--ReadGraph.flagInconsistentAlignments.leastSquareMaxDistance</code><td class=centered><code>1</code><td>
+Least square max distance for flagging inconsistent alignments. 
+Only used if <code>--ReadGraph.flagInconsistentAlignments</code> is set. Experimental.
 
 <tr id='MarkerGraph.minCoverage'>
 <td><code>--MarkerGraph.minCoverage</code><td class=centered><code>10</code><td>
