@@ -561,6 +561,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             if(readGraphEdge.crossesStrands) {
                 continue;
             }
+
+            // If the edge has an alignment flagged as inconsistent, skip it.
+            if(readGraphEdge.hasInconsistentAlignment) {
+                continue;
+            }
+
             orientedReadIds = readGraphEdge.orientedReadIds;
             SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
 
@@ -569,6 +575,9 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 reads->getFlags(orientedReadIds[1].getReadId()).isChimeric) {
                 continue;
             }
+
+            // Sanity check.
+            SHASTA_ASSERT(alignmentData[alignmentId].info.isInReadGraph);
 
             // Decompress this alignment.
             span<const char> compressedAlignment = storedAlignments[alignmentId];
