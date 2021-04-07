@@ -68,7 +68,11 @@ public:
 class shasta::ReadGraph {
 public:
 
+    // The edges are stored with reverse complemented pairs at
+    // consecutive positions. That way, to get the reverse complement of
+    // an edge id we just reverse its lowest significant bit.
     MemoryMapped::Vector<ReadGraphEdge> edges;
+    uint64_t getReverseComplementEdgeId(uint64_t edgeId) const;
 
     // Connectivity of the read graph.
     // Stores, for each OrientedReadId, indexes into the edges vector

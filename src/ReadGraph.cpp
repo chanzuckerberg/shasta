@@ -40,6 +40,26 @@ void ReadGraph::remove()
 
 
 
+// The edges are stored with reverse complemented pairs at
+// consecutive positions. That way, to get the reverse complement of
+// an edge id we just reverse its lowest significant bit.
+uint64_t ReadGraph::getReverseComplementEdgeId(uint64_t edgeId) const
+{
+    const uint64_t reverseComplementEdgeId = edgeId ^ 1ULL;
+
+    // Sanity check.
+    const ReadGraphEdge& edge = edges[edgeId];
+    array<OrientedReadId, 2> orientedReadIds = edge.orientedReadIds;
+    orientedReadIds[0].flipStrand();
+    orientedReadIds[1].flipStrand();
+    const ReadGraphEdge& reverseComplementEdge = edges[reverseComplementEdgeId];
+    SHASTA_ASSERT(orientedReadIds == reverseComplementEdge.orientedReadIds);
+
+    return reverseComplementEdgeId;
+}
+
+
+
 // Compute a shortest path, disregarding edges flagged as cross-strand edges.
 void ReadGraph::computeShortPath(
     OrientedReadId orientedReadId0,
