@@ -1705,14 +1705,19 @@ void Assembler::flagInconsistentAlignmentsThreadFunction1(size_t threadId)
 // This way each pair of reverse complemented triangles gets looked at exactly once.
 // This code is written with a triple loop for each start vertex,
 // but could be made faster if necessary.
+// In the triple loop, we exclude vertices corresponding to chimeric reads
+// and edges marked as cross-strand edges.
 
 void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
 {
     using vertex_descriptor = LocalReadGraph::vertex_descriptor;
     using edge_descriptor = LocalReadGraph::edge_descriptor;
 
-
-    ofstream out("flagInconsistentAlignments-" + to_string(threadId) + ".log");
+    const bool debug = false;
+    ofstream out;
+    if(debug) {
+        out.open("flagInconsistentAlignments-" + to_string(threadId) + ".log");
+    }
 
     const uint64_t triangleErrorThreshold = flagInconsistentAlignmentsData.triangleErrorThreshold;
     const double leastSquareErrorThreshold = double(flagInconsistentAlignmentsData.leastSquareErrorThreshold);
@@ -1724,8 +1729,11 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
     while(getNextBatch(begin, end)) {
 
         // Loop over all reads assigned to this batch.
-        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            const OrientedReadId orientedReadId0(readId, 0);
+        for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
+            if(reads->getFlags(readId0).isChimeric) {
+                continue;
+            }
+            const OrientedReadId orientedReadId0(readId0, 0);
 
             // Loop over edges of orientedReadId0.
             const span<uint32_t> edgeIds0 = readGraph.connectivity[orientedReadId0.getValue()];
@@ -1733,6 +1741,12 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                 const ReadGraphEdge edge01 = readGraph.edges[edgeId01];
                 const OrientedReadId orientedReadId1 = edge01.getOther(orientedReadId0);
                 if(orientedReadId1 < orientedReadId0) {
+                    continue;
+                }
+                if(reads->getFlags(orientedReadId1.getReadId()).isChimeric) {
+                    continue;
+                }
+                if(edge01.crossesStrands) {
                     continue;
                 }
                 const int32_t offset01 = flagInconsistentAlignmentsData.edgeOffset[edgeId01];
@@ -1745,6 +1759,12 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                     if(orientedReadId2 < orientedReadId1) {
                         continue;
                     }
+                    if(reads->getFlags(orientedReadId2.getReadId()).isChimeric) {
+                        continue;
+                    }
+                    if(edge12.crossesStrands) {
+                        continue;
+                    }
                     const int32_t offset12 = flagInconsistentAlignmentsData.edgeOffset[edgeId12];
                     const int32_t offset02 = offset01 + offset12;
 
@@ -1752,12 +1772,15 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                     const span<uint32_t> edgeIds2 = readGraph.connectivity[orientedReadId2.getValue()];
                     for(uint32_t edgeId20: edgeIds2){
                         const ReadGraphEdge edge20 = readGraph.edges[edgeId20];
+                        if(edge20.crossesStrands) {
+                            continue;
+                        }
                         if(edge20.getOther(orientedReadId2) != orientedReadId0) {
                             continue;
                         }
-                        const int32_t offset20 = -flagInconsistentAlignmentsData.edgeOffset[edgeId20];
 
                         // We found a triangle.
+                        const int32_t offset20 = -flagInconsistentAlignmentsData.edgeOffset[edgeId20];
                         const int32_t offsetError = offset02 + offset20;
 
                         // If the error is small, don't do anything.
@@ -1765,14 +1788,16 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                             continue;
                         }
 
-                        out << "Working on triangle ";
-                        out << orientedReadId0 << " ";
-                        out << orientedReadId1 << " ";
-                        out << orientedReadId2 << " ";
-                        out << offset01 << " ";
-                        out << offset12 << " ";
-                        out << offset20 << " ";
-                        out << offsetError << "\n";
+                        if(debug) {
+                            out << "Working on triangle ";
+                            out << orientedReadId0 << " ";
+                            out << orientedReadId1 << " ";
+                            out << orientedReadId2 << " ";
+                            out << offset01 << " ";
+                            out << offset12 << " ";
+                            out << offset20 << " ";
+                            out << offsetError << "\n";
+                        }
 
                         // Construct a local read graph around this triangle.
                         LocalReadGraph graph;
@@ -1807,9 +1832,11 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                             }
                             const edge_descriptor eWorst = *itWorst;
                             const uint64_t globalEdgeId = graph[eWorst].globalEdgeId;
-                             out << "Edge with worst residual " <<
-                                graph[source(eWorst, graph)].orientedReadId << " " <<
-                                graph[target(eWorst, graph)].orientedReadId << " " << maxResidual << endl;
+                            if(debug) {
+                                 out << "Edge with worst residual " <<
+                                    graph[source(eWorst, graph)].orientedReadId << " " <<
+                                    graph[target(eWorst, graph)].orientedReadId << " " << maxResidual << endl;
+                            }
 
                             // If the residual is small, end the iteration.
                             if(maxResidual < leastSquareErrorThreshold) {
@@ -1820,12 +1847,13 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                             // reverse complement.
                             inconsistentEdgeIds.push_back(globalEdgeId);
                             inconsistentEdgeIds.push_back(readGraph.getReverseComplementEdgeId(globalEdgeId));
-                            /*
-                            const AlignmentData& ad = alignmentData[alignmentId];
-                            out << "Alignment " << alignmentId << " " <<
-                                ad.readIds[0] << " " << ad.readIds[1] << " " << int(ad.isSameStrand) <<
-                                " flagged as inconsistent." << endl;
-                            */
+                            if(debug) {
+                                const ReadGraphEdge& globalEdge = readGraph.edges[globalEdgeId];
+                                const AlignmentData& ad = alignmentData[globalEdge.alignmentId];
+                                out << "Alignment " << globalEdge.alignmentId << " " <<
+                                    ad.readIds[0] << " " << ad.readIds[1] << " " << int(ad.isSameStrand) <<
+                                    " flagged as inconsistent." << endl;
+                                }
                             remove_edge(eWorst, graph);
                         }
                     }
