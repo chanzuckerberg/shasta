@@ -124,7 +124,9 @@ void Assembler::createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignme
 
         // Create the edge corresponding to this alignment.
         ReadGraphEdge edge;
-        edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
+        edge.alignmentId = alignmentId & 0x3fff'ffff'ffff'ffff;
+        edge.crossesStrands = 0;
+        edge.hasInconsistentAlignment = 0;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
         SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
@@ -1651,9 +1653,14 @@ void Assembler::flagInconsistentAlignments(
             back_inserter(edgeIds));
     }
     deduplicate(edgeIds);
+
+    // Flag these edges as inconsistent and the corresponding alignments
+    // as not in the read graph.
     cout << "Flagged " << edgeIds.size() << " read graph edges as inconsistent." << endl;
     for(const uint64_t edgeId: edgeIds) {
-        const ReadGraphEdge& edge = readGraph.edges[edgeId];
+        ReadGraphEdge& edge = readGraph.edges[edgeId];
+        edge.hasInconsistentAlignment = 1;
+        alignmentData[edge.alignmentId].info.isInReadGraph = 0;
         cout << edge.orientedReadIds[0] << " " <<
             edge.orientedReadIds[1] << " " << edge.alignmentId << endl;
     }
