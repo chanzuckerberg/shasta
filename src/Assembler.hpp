@@ -1069,6 +1069,7 @@ private:
             uint32_t maxDistance,   // How far to go from starting oriented read.
             bool allowChimericReads,
             bool allowCrossStrandEdges,
+            bool allowInconsistentAlignmentEdges,
             double timeout,         // Or 0 for no timeout.
             LocalReadGraph&);
 
@@ -1080,6 +1081,7 @@ private:
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
         bool allowCrossStrandEdges,
+        bool allowInconsistentAlignmentEdges,
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 
@@ -1106,7 +1108,8 @@ public:
         Strand,
         uint32_t maxDistance,
         bool allowChimericReads,
-        bool allowCrossStrandEdges);
+        bool allowCrossStrandEdges,
+        bool allowInconsistentAlignmentEdges);
 
 
     // Compute connected components of the read graph.

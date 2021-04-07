@@ -125,6 +125,10 @@ void Assembler::exploreUndirectedReadGraph(
     string allowCrossStrandEdgesString;
     const bool allowCrossStrandEdges = getParameterValue(request, "allowCrossStrandEdges", allowCrossStrandEdgesString);
 
+    string allowInconsistentAlignmentEdgesString;
+    const bool allowInconsistentAlignmentEdges = getParameterValue(request,
+        "allowInconsistentAlignmentEdges", allowInconsistentAlignmentEdgesString);
+
     string layoutMethod = "sfdp";
     getParameterValue(request, "layoutMethod", layoutMethod);
 
@@ -193,6 +197,12 @@ void Assembler::exploreUndirectedReadGraph(
          "<td>Allow cross-strand edges"
          "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
          (allowCrossStrandEdges ? " checked" : "") <<
+         ">"
+
+         "<tr>"
+         "<td>Allow edges with inconsistent alignments"
+         "<td class=centered><input type=checkbox name=allowInconsistentAlignmentEdges" <<
+         (allowInconsistentAlignmentEdges ? " checked" : "") <<
          ">"
 
          "<tr>"
@@ -290,7 +300,9 @@ void Assembler::exploreUndirectedReadGraph(
     // Create the local read graph.
     LocalReadGraph graph;
     if(!createLocalReadGraph(readIds,
-        maxDistance, allowChimericReads, allowCrossStrandEdges, timeout, graph)) {
+        maxDistance,
+        allowChimericReads, allowCrossStrandEdges, allowInconsistentAlignmentEdges,
+        timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }

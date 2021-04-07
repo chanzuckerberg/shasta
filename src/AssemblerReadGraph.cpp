@@ -205,6 +205,7 @@ bool Assembler::createLocalReadGraph(
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
         bool allowCrossStrandEdges,
+        bool allowInconsistentAlignmentEdges,
         double timeout,                 // Or 0 for no timeout.
         LocalReadGraph& graph)
 {
@@ -214,6 +215,7 @@ bool Assembler::createLocalReadGraph(
             maxDistance,           // How far to go from starting oriented read.
             allowChimericReads,
             allowCrossStrandEdges,
+            allowInconsistentAlignmentEdges,
             timeout,                 // Or 0 for no timeout.
             graph
     );
@@ -230,6 +232,7 @@ bool Assembler::createLocalReadGraph(
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
     bool allowCrossStrandEdges,
+    bool allowInconsistentAlignmentEdges,
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
 {
@@ -273,6 +276,9 @@ bool Assembler::createLocalReadGraph(
             const ReadGraphEdge& globalEdge = readGraph.edges[i];
 
             if (!allowCrossStrandEdges && globalEdge.crossesStrands) {
+                continue;
+            }
+            if (!allowInconsistentAlignmentEdges && globalEdge.hasInconsistentAlignment) {
                 continue;
             }
 
@@ -758,7 +764,8 @@ void Assembler::writeLocalReadGraphReads(
     Strand strand,
     uint32_t maxDistance,
     bool allowChimericReads,
-    bool allowCrossStrandEdges)
+    bool allowCrossStrandEdges,
+    bool allowInconsistentAlignmentEdges)
 {
     // Create the requested local read graph.
     LocalReadGraph localReadGraph;
@@ -767,6 +774,7 @@ void Assembler::writeLocalReadGraphReads(
         maxDistance,
         allowChimericReads,
         allowCrossStrandEdges,
+        allowInconsistentAlignmentEdges,
         0.,
         localReadGraph));
 
@@ -1813,7 +1821,7 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
                         const vector<OrientedReadId> orientedReadIds =
                             {orientedReadId0, orientedReadId1, orientedReadId2};
                         createLocalReadGraph(orientedReadIds,
-                            uint32_t(leastSquareMaxDistance), false, false, 0., graph);
+                            uint32_t(leastSquareMaxDistance), false, false, false, 0., graph);
 
                         // Iterate, removing one edge at a time
                         // until all residuals are small.

@@ -12,6 +12,7 @@ parser.add_argument('--strand', type=int, choices=range(2), required=True)
 parser.add_argument('--maxDistance', type=int, required=True)
 parser.add_argument('--allowChimericReads', action='store_true')
 parser.add_argument('--allowCrossStrandEdges', action='store_true')
+parser.add_argument('--allowInconsistentAlignmentEdges', action='store_true')
 arguments = parser.parse_args()
 
 readId = arguments.readId
@@ -19,6 +20,7 @@ strand = arguments.strand
 maxDistance = arguments.maxDistance
 allowChimericReads = arguments.allowChimericReads
 allowCrossStrandEdges = arguments.allowCrossStrandEdges
+allowInconsistentAlignmentEdges = arguments.allowInconsistentAlignmentEdges
 
 a = shasta.Assembler()
 a.accessAlignmentData()
@@ -28,6 +30,7 @@ a.writeLocalReadGraphReads(
     readId=readId, strand=strand, 
     maxDistance=maxDistance, 
     allowChimericReads=allowChimericReads,
-    allowCrossStrandEdges=allowCrossStrandEdges)
+    allowCrossStrandEdges=allowCrossStrandEdges,
+    allowInconsistentAlignmentEdges=allowInconsistentAlignmentEdges)
 
 
