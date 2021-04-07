@@ -617,6 +617,9 @@ void Assembler::computeReadGraphConnectedComponents(
         if(edge.crossesStrands) {
             continue;
         }
+        if(edge.hasInconsistentAlignment) {
+            continue;
+        }
         const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const ReadId readId0 = orientedReadId0.getReadId();
