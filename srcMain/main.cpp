@@ -748,7 +748,7 @@ void shasta::main::assemble(
     // Flag chimeric reads.
     assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
 
-    // Flak inconsistent alignments, if requested.
+    // Flag inconsistent alignments, if requested.
     if(assemblerOptions.readGraphOptions.flagInconsistentAlignments) {
         assembler.flagInconsistentAlignments(
             assemblerOptions.readGraphOptions.flagInconsistentAlignmentsTriangleErrorThreshold,
