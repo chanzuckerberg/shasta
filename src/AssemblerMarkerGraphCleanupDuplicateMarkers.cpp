@@ -498,7 +498,7 @@ void Assembler::cleanupDuplicateMarkersPattern2(
         if((not duplicatesFoundInThisComponent) and
             strandCoverage[0] >= minCoveragePerStrand and
             strandCoverage[1] >= minCoveragePerStrand and
-            (strandCoverage[0] + strandCoverage[1]) >= minCoveragePerStrand) {
+            (strandCoverage[0] + strandCoverage[1]) >= minCoverage) {
 
             // Create a new vertex for this component, plus a second one for the reverse complement.
             const MarkerGraph::VertexId vertexId = cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
@@ -519,7 +519,7 @@ void Assembler::cleanupDuplicateMarkersPattern2(
         // We could not make a new vertex out of this component.
         // Each of this markers either becomes a new vertex on its own,
         // or gets assigned to no vertex.
-        if(minCoverage<=1 and minCoveragePerStrand==0) {
+        if(createNewVertices and minCoverage<=1 and minCoveragePerStrand==0) {
             for(const MarkerDescriptor& markerDescriptor: componentDescriptors) {
                 const MarkerId markerId = getMarkerId(markerDescriptor);
                 const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
