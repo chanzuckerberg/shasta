@@ -48,30 +48,32 @@ if [ "$isLatestOS" == false ]; then
 fi
 
 apt-get update
-apt install -y git
-apt install -y g++
-apt install -y cmake
-apt install -y curl
-apt install -y libboost-system-dev
-apt install -y libboost-program-options-dev
-apt install -y libboost-chrono-dev
-apt install -y libpng-dev
-apt install -y libblas-dev
-apt install -y liblapack-dev
-apt install -y gfortran
+apt-get install --yes \
+    git \
+    g++ \
+    make \
+    cmake \
+    curl \
+    libboost-system-dev \
+    libboost-program-options-dev \
+    libboost-chrono-dev \
+    libpng-dev \
+    libblas-dev \
+    liblapack-dev \
+    gfortran \
+    libseqan2-dev
 
 if [ "$minimalInstall" == false ]; then
     # Install packages required for the HTTP server and Python-C++ bindings.
-    apt install -y libboost-graph-dev
-    apt install -y ncbi-blast+
-    apt install -y graphviz
-    apt install -y gnuplot
-    apt install -y python3
-    apt install -y python3-pip
-    pip3 install pybind11
+    apt-get install --yes \
+        libboost-graph-dev \
+        ncbi-blast+ \
+        graphviz \
+        gnuplot \
+        python3-dev \
+        python3-pip
+        pip3 install pybind11
 fi
-
-apt install -y libseqan2-dev
 
 # The spoa library is not available in the stable Ubuntu repository yet.
 # Download it from GitHub, then install it.
@@ -120,5 +122,3 @@ echo "=============================="
 
 # Make sure the newly created libraries are immediately visible to the loader.
 ldconfig
-
-
