@@ -229,7 +229,8 @@ PYBIND11_MODULE(shasta, module)
 
         // Alignments.
         .def("writeAlignmentCandidates",
-            &Assembler::writeAlignmentCandidates)
+             &Assembler::writeAlignmentCandidates,
+             arg("useReadName") = false)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
@@ -369,7 +370,8 @@ PYBIND11_MODULE(shasta, module)
         .def("readGraphClustering",
              &Assembler::readGraphClustering)
         .def("writeReadGraphEdges",
-             &Assembler::writeReadGraphEdges)
+             &Assembler::writeReadGraphEdges,
+             arg("useReadName") = false)
         .def("flagInconsistentAlignments",
              &Assembler::flagInconsistentAlignments,
              arg("triangleErrorThreshold"),

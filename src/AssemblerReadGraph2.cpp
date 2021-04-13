@@ -23,22 +23,34 @@ using namespace shasta;
 *******************************************************************************/
 
 
-void Assembler::writeReadGraphEdges() const{
+void Assembler::writeReadGraphEdges(bool useReadName) const{
     string path = "ReadGraphEdges.csv";
     path = filesystem::getAbsolutePath(path);
     ofstream file(path);
 
-    if (not file.good()){
+    if(not file.good()){
         throw runtime_error("ERROR: file could not be written: " + path);
     }
 
-    file << "ReadId0,ReadId1,SameStrand\n";
+    if(not useReadName) {
+        file << "ReadId0,ReadId1,SameStrand\n";
 
-    // Loop over readgraph edges
-    for (const ReadGraphEdge& edge: readGraph.edges){
-        file << edge.orientedReadIds[0].getReadId() << ','
-            << edge.orientedReadIds[1].getReadId() << ','
-            << (edge.crossesStrands ? "No" : "Yes") << '\n';
+        // Loop over readgraph edges
+        for (const ReadGraphEdge& edge: readGraph.edges) {
+            file << edge.orientedReadIds[0].getReadId() << ','
+                 << edge.orientedReadIds[1].getReadId() << ','
+                 << (edge.crossesStrands ? "No" : "Yes") << '\n';
+        }
+    }
+    else{
+        file << "ReadName0,ReadName1,SameStrand\n";
+
+        // Loop over readgraph edges
+        for (const ReadGraphEdge& edge: readGraph.edges) {
+            file << reads->getReadName(edge.orientedReadIds[0].getReadId()) << ','
+                 << reads->getReadName(edge.orientedReadIds[1].getReadId()) << ','
+                 << (edge.crossesStrands ? "No" : "Yes") << '\n';
+        }
     }
 }
 

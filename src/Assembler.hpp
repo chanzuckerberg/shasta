@@ -654,7 +654,7 @@ private:
     AlignmentCandidates alignmentCandidates;
 
 public:
-    void writeAlignmentCandidates() const;
+    void writeAlignmentCandidates(bool useReadName=false) const;
 private:
 
 
@@ -989,7 +989,7 @@ public:
     void removeReadGraphBridges(uint64_t maxDistance);
     void analyzeReadGraph();
     void readGraphClustering();
-    void writeReadGraphEdges() const;
+    void writeReadGraphEdges(bool useReadName=false) const;
 
 
 
