@@ -846,6 +846,8 @@ void Assembler::selectKmers4(
     size_t threadCount
 )
 {
+    const bool debug = false;
+
     // Sanity check on the value of k, then store it.
     if(k > Kmer::capacity) {
         throw runtime_error("K-mer capacity exceeded.");
@@ -894,41 +896,43 @@ void Assembler::selectKmers4(
 
 
     // Write out what we found.
-    const uint64_t totalFrequency = std::accumulate(
-        selectKmers4Data.globalFrequency.begin(),
-        selectKmers4Data.globalFrequency.end(), 0);
-    cout << "Total number of k-mer occurrences in all oriented reads is " << totalFrequency << endl;
-    ofstream csv("KmerInfo.csv");
-    csv << "KmerId,Kmer,KmerIdRc,KmerRc,Frequency,FrequencyRc,TotalFrequency,"
-        "MinDist,MinDistRc,MinMinDist\n";
-    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
-        const KmerInfo& info = kmerTable[kmerId];
-        if(!info.isRleKmer) {
-            continue;
+    if(debug) {
+        const uint64_t totalFrequency = std::accumulate(
+            selectKmers4Data.globalFrequency.begin(),
+            selectKmers4Data.globalFrequency.end(), 0ULL);
+        cout << "Total number of k-mer occurrences in all oriented reads is " << totalFrequency << endl;
+        ofstream csv("KmerInfo.csv");
+        csv << "KmerId,Kmer,KmerIdRc,KmerRc,Frequency,FrequencyRc,TotalFrequency,"
+            "MinDist,MinDistRc,MinMinDist\n";
+        for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+            const KmerInfo& info = kmerTable[kmerId];
+            if(!info.isRleKmer) {
+                continue;
+            }
+
+            const uint64_t frequency = selectKmers4Data.globalFrequency[kmerId];
+            const uint64_t frequencyReverseComplement = selectKmers4Data.globalFrequency[info.reverseComplementedKmerId];
+            const uint64_t totalFrequency = frequency + frequencyReverseComplement;
+
+            const uint32_t minimumDistance = selectKmers4Data.minimumDistance[kmerId].second;
+            const uint32_t minimumDistanceReverseComplement =
+                selectKmers4Data.minimumDistance[info.reverseComplementedKmerId].second;
+
+            const Kmer kmer(kmerId, k);
+            const Kmer reverseComplementedKmer(info.reverseComplementedKmerId, k);
+            csv << kmerId << ",";
+            kmer.write(csv, k);
+            csv << ",";
+            csv << info.reverseComplementedKmerId << ",";
+            reverseComplementedKmer.write(csv, k);
+            csv << ",";
+            csv << frequency << ",";
+            csv << frequencyReverseComplement << ",";
+            csv << totalFrequency << ",";
+            csv << minimumDistance << ",";
+            csv << minimumDistanceReverseComplement << ",";
+            csv << min(minimumDistance, minimumDistanceReverseComplement) << "\n";
         }
-
-        const uint64_t frequency = selectKmers4Data.globalFrequency[kmerId];
-        const uint64_t frequencyReverseComplement = selectKmers4Data.globalFrequency[info.reverseComplementedKmerId];
-        const uint64_t totalFrequency = frequency + frequencyReverseComplement;
-
-        const uint32_t minimumDistance = selectKmers4Data.minimumDistance[kmerId].second;
-        const uint32_t minimumDistanceReverseComplement =
-            selectKmers4Data.minimumDistance[info.reverseComplementedKmerId].second;
-
-        const Kmer kmer(kmerId, k);
-        const Kmer reverseComplementedKmer(info.reverseComplementedKmerId, k);
-        csv << kmerId << ",";
-        kmer.write(csv, k);
-        csv << ",";
-        csv << info.reverseComplementedKmerId << ",";
-        reverseComplementedKmer.write(csv, k);
-        csv << ",";
-        csv << frequency << ",";
-        csv << frequencyReverseComplement << ",";
-        csv << totalFrequency << ",";
-        csv << minimumDistance << ",";
-        csv << minimumDistanceReverseComplement << ",";
-        csv << min(minimumDistance, minimumDistanceReverseComplement) << "\n";
     }
 
 
@@ -947,6 +951,15 @@ void Assembler::selectKmers4ThreadFunction(size_t threadId)
 {
     // K-mer length.
     const size_t k = assemblerInfo->k;
+
+    // Initialize globalFrequency for this thread.
+    // Having all threads accumulate atomically on the global frequency vector is too slow.
+    MemoryMapped::Vector<uint64_t> globalFrequency;
+    globalFrequency.createNew(
+        largeDataName("tmp-SelectKmers4-GlobalFrequency-" + to_string(threadId)),
+        largeDataPageSize);
+    globalFrequency.resize(kmerTable.size());
+    fill(globalFrequency.begin(), globalFrequency.end(), 0);
 
     // Vector to hold pairs(KmerId, RLE position) for one read.
     vector< pair<KmerId, uint32_t> > readKmers;
@@ -979,8 +992,8 @@ void Assembler::selectKmers4ThreadFunction(size_t threadId)
                 readKmers.push_back(make_pair(kmerId, position));
 
                 // Update the frequency of this k-mer.
-                __sync_fetch_and_add (&selectKmers4Data.globalFrequency[kmerId], 1);
-                __sync_fetch_and_add (&selectKmers4Data.globalFrequency[kmerTable[kmerId].reverseComplementedKmerId], 1);
+                ++globalFrequency[kmerId];
+                ++globalFrequency[kmerTable[kmerId].reverseComplementedKmerId];
 
                 // Check if we reached the end of the read.
                 if(position+k == read.baseCount) {
@@ -1012,5 +1025,14 @@ void Assembler::selectKmers4ThreadFunction(size_t threadId)
             p.second = min(p.second, distance);
         }
     }
+
+    // Add our globalFrequency to the values computed by the other threads.
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        for(uint64_t kmerId=0; kmerId!=globalFrequency.size(); kmerId++) {
+            selectKmers4Data.globalFrequency[kmerId] += globalFrequency[kmerId];
+        }
+    }
+    globalFrequency.remove();
 }
 
