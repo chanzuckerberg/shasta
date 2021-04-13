@@ -36,20 +36,24 @@ void Assembler::writeReadGraphEdges(bool useReadName) const{
         file << "ReadId0,ReadId1,SameStrand\n";
 
         // Loop over readgraph edges
-        for (const ReadGraphEdge& edge: readGraph.edges) {
-            file << edge.orientedReadIds[0].getReadId() << ','
-                 << edge.orientedReadIds[1].getReadId() << ','
-                 << (edge.crossesStrands ? "No" : "Yes") << '\n';
+        for (auto edge = readGraph.edges.begin(); edge != readGraph.edges.end(); std::advance(edge,2)) {
+            bool isSameStrand = (edge->orientedReadIds[0].getStrand() == edge->orientedReadIds[1].getStrand());
+
+            file << edge->orientedReadIds[0].getReadId() << ','
+                 << edge->orientedReadIds[1].getReadId() << ','
+                 << (isSameStrand ? "No" : "Yes") << '\n';
         }
     }
     else{
         file << "ReadName0,ReadName1,SameStrand\n";
 
         // Loop over readgraph edges
-        for (const ReadGraphEdge& edge: readGraph.edges) {
-            file << reads->getReadName(edge.orientedReadIds[0].getReadId()) << ','
-                 << reads->getReadName(edge.orientedReadIds[1].getReadId()) << ','
-                 << (edge.crossesStrands ? "No" : "Yes") << '\n';
+        for (auto edge = readGraph.edges.begin(); edge != readGraph.edges.end(); std::advance(edge,2)) {
+            bool isSameStrand = (edge->orientedReadIds[0].getStrand() == edge->orientedReadIds[1].getStrand());
+
+            file << reads->getReadName(edge->orientedReadIds[0].getReadId()) << ','
+                 << reads->getReadName(edge->orientedReadIds[1].getReadId()) << ','
+                 << (isSameStrand ? "No" : "Yes") << '\n';
         }
     }
 }
