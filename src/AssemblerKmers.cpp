@@ -818,3 +818,199 @@ void Assembler::selectKmers2ThreadFunction(size_t threadId)
     overenrichedReadCount.remove();
 }
 
+
+
+
+// In this version, marker k-mers are selected randomly, but excluding
+// k-mers that appear repeated at short distances in any oriented read.
+// More precisely, for each k-mer we compute the minimum distance
+// (in RLE bases) at which any two copies of that k-mer appear in any oriented read.
+// K-mers for which this minimum distance is less than distanceThreshold
+// are not used as markers. Marker k-mers are selected randomly among the
+// remaining k-mers, until the desired marker density is achieved.
+void Assembler::selectKmers4(
+
+    // k-mer length.
+    uint64_t k,
+
+    // The desired marker density
+    double markerDensity,
+
+    // Seed for random number generator.
+    uint64_t seed,
+
+    // Exclude k-mers that appear in any read in two copies,
+    // with the two copies closer than this distance (in RLE bases).
+    uint64_t distanceThreshold,
+
+    size_t threadCount
+)
+{
+    // Sanity check on the value of k, then store it.
+    if(k > Kmer::capacity) {
+        throw runtime_error("K-mer capacity exceeded.");
+    }
+    assemblerInfo->k = k;
+
+    // Sanity check.
+    if(markerDensity<0. || markerDensity>1.) {
+        throw runtime_error("Invalid marker density " +
+            to_string(markerDensity) + " requested.");
+    }
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    // Fill in the fields of the k-mer table
+    // that depends only on k.
+    initializeKmerTable();
+
+    // Initialize the global frequency of all k-mers.
+    selectKmers4Data.globalFrequency.createNew(
+        largeDataName("tmp-SelectKmers4-GlobalFrequency"),  largeDataPageSize);
+    selectKmers4Data.globalFrequency.resize(kmerTable.size());
+    fill(
+        selectKmers4Data.globalFrequency.begin(),
+        selectKmers4Data.globalFrequency.end(), 0);
+
+
+    // Initialize the minimumDistance vector, which stores
+    // the minimum RLE distance between any two copies of each k-mer
+    // in any oriented read.
+    selectKmers4Data.minimumDistance.createNew(
+        largeDataName("tmp-selectKmers4-minimumDistance"), largeDataPageSize);
+    const uint64_t kmerCount = kmerTable.size();
+    selectKmers4Data.minimumDistance.resize(kmerCount);
+    for(uint64_t i=0; i<kmerCount; i++) {
+        selectKmers4Data.minimumDistance[i].second = std::numeric_limits<uint32_t>::max();
+    }
+
+    // Compute the minimumDistance vector.
+    setupLoadBalancing(reads->readCount(), 100);
+    runThreads(&Assembler::selectKmers4ThreadFunction, threadCount);
+
+
+
+    // Write out what we found.
+    const uint64_t totalFrequency = std::accumulate(
+        selectKmers4Data.globalFrequency.begin(),
+        selectKmers4Data.globalFrequency.end(), 0);
+    cout << "Total number of k-mer occurrences in all oriented reads is " << totalFrequency << endl;
+    ofstream csv("KmerInfo.csv");
+    csv << "KmerId,Kmer,KmerIdRc,KmerRc,Frequency,FrequencyRc,TotalFrequency,"
+        "MinDist,MinDistRc,MinMinDist\n";
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        const KmerInfo& info = kmerTable[kmerId];
+        if(!info.isRleKmer) {
+            continue;
+        }
+
+        const uint64_t frequency = selectKmers4Data.globalFrequency[kmerId];
+        const uint64_t frequencyReverseComplement = selectKmers4Data.globalFrequency[info.reverseComplementedKmerId];
+        const uint64_t totalFrequency = frequency + frequencyReverseComplement;
+
+        const uint32_t minimumDistance = selectKmers4Data.minimumDistance[kmerId].second;
+        const uint32_t minimumDistanceReverseComplement =
+            selectKmers4Data.minimumDistance[info.reverseComplementedKmerId].second;
+
+        const Kmer kmer(kmerId, k);
+        const Kmer reverseComplementedKmer(info.reverseComplementedKmerId, k);
+        csv << kmerId << ",";
+        kmer.write(csv, k);
+        csv << ",";
+        csv << info.reverseComplementedKmerId << ",";
+        reverseComplementedKmer.write(csv, k);
+        csv << ",";
+        csv << frequency << ",";
+        csv << frequencyReverseComplement << ",";
+        csv << totalFrequency << ",";
+        csv << minimumDistance << ",";
+        csv << minimumDistanceReverseComplement << ",";
+        csv << min(minimumDistance, minimumDistanceReverseComplement) << "\n";
+    }
+
+
+
+    // Clean up.
+    selectKmers4Data.minimumDistance.remove();
+    selectKmers4Data.globalFrequency.remove();
+
+    // Missing code.
+    SHASTA_ASSERT(0);
+}
+
+
+
+void Assembler::selectKmers4ThreadFunction(size_t threadId)
+{
+    // K-mer length.
+    const size_t k = assemblerInfo->k;
+
+    // Vector to hold pairs(KmerId, RLE position) for one read.
+    vector< pair<KmerId, uint32_t> > readKmers;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all reads assigned to this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+
+            // Access the sequence of this read.
+            const LongBaseSequenceView read = reads->getRead(readId);
+
+            // If the read is pathologically short, it has no k-mers.
+            if(read.baseCount < k) {
+                continue;
+            }
+
+            // Loop over k-mers of this read.
+            Kmer kmer;
+            for(size_t position=0; position<k; position++) {
+                kmer.set(position, read[position]);
+            }
+            readKmers.clear();
+            for(uint32_t position=0; /*The check is done later */; position++) {
+
+                // Get the k-mer id.
+                const KmerId kmerId = KmerId(kmer.id(k));
+                readKmers.push_back(make_pair(kmerId, position));
+
+                // Update the frequency of this k-mer.
+                __sync_fetch_and_add (&selectKmers4Data.globalFrequency[kmerId], 1);
+                __sync_fetch_and_add (&selectKmers4Data.globalFrequency[kmerTable[kmerId].reverseComplementedKmerId], 1);
+
+                // Check if we reached the end of the read.
+                if(position+k == read.baseCount) {
+                    break;
+                }
+
+                // Update the k-mer.
+                kmer.shiftLeft();
+                kmer.set(k-1, read[position+k]);
+            }
+        }
+
+        // Sort by k-mer, then by position.
+        sort(readKmers.begin(), readKmers.end());
+
+        // Update minDistance for each pair of repeated k-mers.
+        for(uint64_t i=1; i<readKmers.size(); i++) {
+            const auto& p0 = readKmers[i-1];
+            const auto& p1 = readKmers[i];
+            const KmerId kmerId0 = p0.first;
+            const KmerId kmerId1 = p1.first;
+            if(kmerId0 != kmerId1) {
+                continue;
+            }
+            const uint32_t distance = p1.second - p0.second;
+
+            pair<std::mutex, uint32_t>& p = selectKmers4Data.minimumDistance[kmerId0];
+            std::lock_guard<std::mutex> lock(p.first);;
+            p.second = min(p.second, distance);
+        }
+    }
+}
+

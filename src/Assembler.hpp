@@ -498,6 +498,50 @@ private:
 
 
 
+    // In this version, marker k-mers are selected randomly, but excluding
+    // k-mers that appear repeated at short distances in any oriented read.
+    // More precisely, for each k-mer we compute the minimum distance
+    // (in RLE bases) at which any two copies of that k-mer appear in any oriented read.
+    // K-mers for which this minimum distance is less than distanceThreshold
+    // are not used as markers. Marker k-mers are selected randomly among the
+    // remaining k-mers, until the desired marker density is achieved.
+public:
+    void selectKmers4(
+
+        // k-mer length.
+        uint64_t k,
+
+        // The desired marker density
+        double markerDensity,
+
+        // Seed for random number generator.
+        uint64_t seed,
+
+        // Exclude k-mers that appear in any read in two copies,
+        // with the two copies closer than this distance (in RLE bases).
+        uint64_t distanceThreshold,
+
+        size_t threadCount
+    );
+private:
+    void selectKmers4ThreadFunction(size_t threadId);
+    class SelectKmers4Data {
+    public:
+
+        // The number of times each k-mer appears in an oriented read.
+        // Indexed by KmerId.
+        MemoryMapped::Vector<uint64_t> globalFrequency;
+
+        // The minimum distance at which two copies of each k-mer
+        // appear in any oriented read.
+        // Indexed by KmerId.
+        MemoryMapped::Vector< pair<std::mutex, uint32_t> > minimumDistance;
+
+    };
+    SelectKmers4Data selectKmers4Data;
+
+
+
     // Read the k-mers from file.
 public:
     void readKmersFromFile(uint64_t k, const string& fileName);
