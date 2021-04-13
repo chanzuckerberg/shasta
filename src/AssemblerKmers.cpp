@@ -847,6 +847,7 @@ void Assembler::selectKmers4(
 )
 {
     const bool debug = false;
+    cout << timestamp << "Begin selectKmers4." << endl;
 
     // Sanity check on the value of k, then store it.
     if(k > Kmer::capacity) {
@@ -937,11 +938,89 @@ void Assembler::selectKmers4(
 
 
 
+    // Compute the total number of k-mer occurrences
+    // and the number of RLE kmers.
+    uint64_t totalKmerOccurrences = 0;
+    uint64_t rleKmerCount = 0;
+    for(uint64_t kmerId=0; kmerId!=kmerTable.size(); kmerId++) {
+        const KmerInfo& info = kmerTable[kmerId];
+        if(not info.isRleKmer) {
+            SHASTA_ASSERT(selectKmers4Data.globalFrequency[kmerId] == 0);
+            continue;
+        }
+        totalKmerOccurrences += selectKmers4Data.globalFrequency[kmerId];
+        if(kmerTable[kmerId].isRleKmer) {
+            ++rleKmerCount;
+        }
+    }
+    cout << "K-mer length k " << k << endl;
+    cout << "Distance threshold " << distanceThreshold << " RLE bases." << endl;
+    cout << "Total number of distinct RLE k-mers " << rleKmerCount << endl;
+    cout << "Total number of RLE k-mers in all oriented reads " << totalKmerOccurrences << endl;
+    cout << "Requested marker density " << markerDensity << endl;
+    const uint64_t requiredMarkerOccurrences = uint64_t(markerDensity * double(totalKmerOccurrences));
+    cout << "Required number of marker occurrences in all oriented reads " << requiredMarkerOccurrences << endl;
+
+
+
+    // Gather k-mers for which the minimum distance between two copies
+    // equals at least distanceThreshold.
+    vector<KmerId> candidateKmers;
+    uint64_t candidateCount = 0;
+    uint64_t candidateFrequency = 0;
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        const KmerInfo& info = kmerTable[kmerId];
+        const KmerId kmerIdRc = info.reverseComplementedKmerId;
+        if(not info.isRleKmer) {
+            continue;
+        }
+        if(selectKmers4Data.minimumDistance[kmerId].second < distanceThreshold) {
+            // Too close. skip.
+            continue;
+        }
+        if(selectKmers4Data.minimumDistance[kmerIdRc].second < distanceThreshold) {
+            // Too close. Skip.
+            continue;
+        }
+
+        // Only store the lesser in the pair.
+        if(kmerId <= kmerIdRc) {
+            candidateKmers.push_back(KmerId(kmerId));
+            if(kmerId == kmerIdRc) {
+                // This k-mer is palindromic,so it only generates one candidate.
+                candidateCount += 1;
+                candidateFrequency += selectKmers4Data.globalFrequency[kmerId];
+            } else {
+                // This k-mer is not palindromic, so it generates a candidate pair.
+                candidateCount += 2;
+                candidateFrequency += selectKmers4Data.globalFrequency[kmerId];
+                candidateFrequency += selectKmers4Data.globalFrequency[kmerIdRc];
+            }
+        }
+    }
+    cout << "Markers will be chosen randomly from the a pool of " <<
+        candidateCount << " RLE k-mers." << endl;
+    cout << "RLE k-mers in this pool occur " <<
+        candidateFrequency << " times in all oriented reads." << endl;
+    cout << "This is sufficient to achieve marker density up to " <<
+        double(candidateFrequency) / double(totalKmerOccurrences) << endl;
+
+    // If these candidates don't have sufficient frequency, we
+    // can't achieve the required marker density.
+    if(candidateFrequency < requiredMarkerOccurrences) {
+        throw runtime_error("Cannot achieve required marker density. "
+            "Increase k, or decrease marker density, or decrease distance threshold.");
+    }
+
+
+
+
     // Clean up.
     selectKmers4Data.minimumDistance.remove();
     selectKmers4Data.globalFrequency.remove();
 
     // Missing code.
+    cout << timestamp << "End selectKmers4." << endl;
     SHASTA_ASSERT(0);
 }
 
