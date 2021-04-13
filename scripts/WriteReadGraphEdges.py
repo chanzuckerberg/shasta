@@ -14,7 +14,10 @@ def main(useReadName):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='WriteReadGraphEdges',
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog="Program description:\n\tWrite all read graph edges (pairs of ReadId) to a "
+                                            "file named ReadGraphEdges.csv")
 
     parser.add_argument(
         "--useReadName",

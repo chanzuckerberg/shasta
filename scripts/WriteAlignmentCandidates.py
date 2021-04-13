@@ -15,7 +15,10 @@ def main(useReadName):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='WriteAlignmentCandidates',
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog="Program description:\n\tWrite all alignment candidates (pairs of ReadId) "
+                                            "to a file named AlignmentCandidates.csv")
 
     parser.add_argument(
         "--useReadName",
