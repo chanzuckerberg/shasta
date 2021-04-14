@@ -1121,25 +1121,25 @@ void Assembler::selectKmers4ThreadFunction(size_t threadId)
                 kmer.shiftLeft();
                 kmer.set(k-1, read[position+k]);
             }
-        }
 
-        // Sort by k-mer, then by position.
-        sort(readKmers.begin(), readKmers.end());
+            // Sort by k-mer, then by position.
+            sort(readKmers.begin(), readKmers.end());
 
-        // Update minDistance for each pair of repeated k-mers.
-        for(uint64_t i=1; i<readKmers.size(); i++) {
-            const auto& p0 = readKmers[i-1];
-            const auto& p1 = readKmers[i];
-            const KmerId kmerId0 = p0.first;
-            const KmerId kmerId1 = p1.first;
-            if(kmerId0 != kmerId1) {
-                continue;
+            // Update minDistance for each pair of repeated k-mers.
+            for(uint64_t i=1; i<readKmers.size(); i++) {
+                const auto& p0 = readKmers[i-1];
+                const auto& p1 = readKmers[i];
+                const KmerId kmerId0 = p0.first;
+                const KmerId kmerId1 = p1.first;
+                if(kmerId0 != kmerId1) {
+                    continue;
+                }
+                const uint32_t distance = p1.second - p0.second;
+
+                pair<std::mutex, uint32_t>& p = selectKmers4Data.minimumDistance[kmerId0];
+                std::lock_guard<std::mutex> lock(p.first);;
+                p.second = min(p.second, distance);
             }
-            const uint32_t distance = p1.second - p0.second;
-
-            pair<std::mutex, uint32_t>& p = selectKmers4Data.minimumDistance[kmerId0];
-            std::lock_guard<std::mutex> lock(p.first);;
-            p.second = min(p.second, distance);
         }
     }
 
