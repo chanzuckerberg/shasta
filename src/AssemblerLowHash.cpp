@@ -173,7 +173,7 @@ void Assembler::findAlignmentCandidatesLowHash1(
 
 
 
-void Assembler::writeAlignmentCandidates() const
+void Assembler::writeAlignmentCandidates(bool useReadName) const
 {
 
     // Sanity checks.
@@ -189,16 +189,32 @@ void Assembler::writeAlignmentCandidates() const
 
     // Write out the candidates.
     ofstream csv("AlignmentCandidates.csv");
-    csv << "ReadId0,ReadId1,SameStrand,";
+
+    if(not useReadName){
+        csv << "ReadId0,ReadId1,SameStrand,";
+    }
+    else{
+        csv << "ReadName0,ReadName1,SameStrand,";
+    }
+
     if(alignmentCandidates.featureOrdinals.isOpen()) {
         csv << "FeatureCount,";
     }
     csv << "\n";
 
-    for(uint64_t i=0; i<alignmentCandidates.candidates.size(); i++) {
+
+    for(uint64_t i=0; i<alignmentCandidates.candidates.size(); i++){
         const OrientedReadPair& candidate = alignmentCandidates.candidates[i];
-        csv << candidate.readIds[0] << ",";
-        csv << candidate.readIds[1] << ",";
+
+        if(not useReadName){
+            csv << candidate.readIds[0] << ",";
+            csv << candidate.readIds[1] << ",";
+        }
+        else{
+            csv << reads->getReadName(candidate.readIds[0]) << ",";
+            csv << reads->getReadName(candidate.readIds[1]) << ",";
+        }
+
         csv << (candidate.isSameStrand ? "Yes" : "No") << ",";
         if(alignmentCandidates.featureOrdinals.isOpen()) {
             csv << alignmentCandidates.featureOrdinals.size(i) << ",";
