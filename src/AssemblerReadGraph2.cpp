@@ -41,7 +41,7 @@ void Assembler::writeReadGraphEdges(bool useReadName) const{
 
             file << edge->orientedReadIds[0].getReadId() << ','
                  << edge->orientedReadIds[1].getReadId() << ','
-                 << (isSameStrand ? "No" : "Yes") << '\n';
+                 << (isSameStrand ? "Yes" : "No") << '\n';
         }
     }
     else{
@@ -53,7 +53,7 @@ void Assembler::writeReadGraphEdges(bool useReadName) const{
 
             file << reads->getReadName(edge->orientedReadIds[0].getReadId()) << ','
                  << reads->getReadName(edge->orientedReadIds[1].getReadId()) << ','
-                 << (isSameStrand ? "No" : "Yes") << '\n';
+                 << (isSameStrand ? "Yes" : "No") << '\n';
         }
     }
 }
