@@ -594,9 +594,19 @@ void shasta::main::assemble(
             assemblerOptions.kmersOptions.file);
         break;
 
+    case 4:
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that appear in two copies close to each other
+        // even in a single oriented read.
+        assembler.selectKmers4(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.distanceThreshold, threadCount);
+        break;
+
     default:
         throw runtime_error("Invalid --Kmers generationMethod. "
-            "Specify a value between 0 and 3, inclusive.");
+            "Specify a value between 0 and 4, inclusive.");
     }
 
 #if 0
