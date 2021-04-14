@@ -433,6 +433,10 @@ as defined by
 the value specified as <code>--Kmers.enrichmentThreshold</code>.
 <li>3: Read from file. Use <code>--Kmers.file</code>
 to specify the file.
+<li>4: Random selection, excluding k-mers that appear 
+in two copies close to each other, even in a single read.
+The two k-mer copies are considered close if they occur at a distance from each other less than
+<code>--Kmers.distanceThreshold</code> RLE bases.
 </ul>
 
 <tr id='Kmers.k'>
@@ -451,6 +455,11 @@ This controls the enrichment threshold above which k-mers
 are considered overenriched.
 Enrichment is ratio of k-mer frequency in reads to random.
 Only used if <code>--Kmers.generationMethod</code> is 1 or 2.
+
+<tr id='Kmers.distanceThreshold'>
+<td><code>--Kmers.distanceThreshold</code><td class=centered><code>1000</code><td>
+Distance threshold, in RLE bases, for <code>--Kmers.generationMethod 4</code>.
+Only used if <code>--Kmers.generationMethod</code> is 4.
 
 <tr id='Kmers.file'>
 <td><code>--Kmers.file</code><td class=centered><td>

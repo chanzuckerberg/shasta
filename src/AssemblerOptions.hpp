@@ -33,10 +33,8 @@ ADDING A NEW CONFIGURABLE OPTION
 2. Modify the write function to that class to also write the newly added option.
 3. Modify AssemblerOptions::addCommandLineOnlyOptions to reflect the new option,
    making sure to include a default value and at least a minimal help message.
-4. Add the option to shasta/conf/shasta.conf with a short comment
-   and its default value.
-5. Document the option in shasta/docs/CommandLineOptions.html.
-6. If the option requires validation add it at the appropriate place in
+4. Document the option in shasta/docs/CommandLineOptions.html.
+5. If the option requires validation add it at the appropriate place in
    shasta/srcMain/main.cpp.
 
 For options not ready for end users, it is fine in steps 3 4 5 to use a
@@ -150,6 +148,7 @@ public:
     int k;
     double probability;
     double enrichmentThreshold;
+    uint64_t distanceThreshold;
     string file;
     void write(ostream&) const;
 };

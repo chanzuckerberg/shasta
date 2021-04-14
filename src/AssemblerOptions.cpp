@@ -297,9 +297,10 @@ void AssemblerOptions::addConfigurableOptions()
          default_value(0),
          "Method to generate marker k-mers: "
          "0 = random, "
-         "1 = random, excluding globally overenriched,"
-         "2 = random, excluding overenriched even in a single read,"
-         "3 = read from file.")
+         "1 = random, excluding globally overenriched k-mers,"
+         "2 = random, excluding k-mers overenriched even in a single read,"
+         "3 = read from file."
+         "4 = random, excluding k-mers appearing in two copies close to each other even in a single read.")
 
          ("Kmers.k",
          value<int>(&kmersOptions.k)->
@@ -315,6 +316,11 @@ void AssemblerOptions::addConfigurableOptions()
         value<double>(&kmersOptions.enrichmentThreshold)->
         default_value(100., "100."),
         "Enrichment threshold for Kmers.generationMethod 1 and 2.")
+
+        ("Kmers.distanceThreshold",
+        value<uint64_t>(&kmersOptions.distanceThreshold)->
+        default_value(1000),
+        "Distance threshold, in RLE bases, for Kmers.generationMethod 4")
 
         ("Kmers.file",
         value<string>(&kmersOptions.file),
@@ -836,6 +842,7 @@ void KmersOptions::write(ostream& s) const
     s << "k = " << k << "\n";
     s << "probability = " << probability << "\n";
     s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
+    s << "distanceThreshold = " << distanceThreshold << "\n";
     s << "file = " << file << "\n";
 }
 
