@@ -13,5 +13,5 @@ a = shasta.Assembler()
 a.selectKmers4(
     k = int(config['Kmers']['k']), 
     markerDensity = float(config['Kmers']['probability']),
-    distanceThreshold = int(config['Kmers']['distanceThreshold'])
+    distanceThreshold = int(config['Kmers']['distanceThreshold']))
 
