@@ -74,11 +74,13 @@ const string LocalMarkerGraph::Writer::vertexColorMaxDistance                   
 const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringTransitiveReduction   = "#ff0000";
 const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringPruning               = "#ff00ff";
 const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval    = "#009900";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedAsLowCoverageCrossEdge      = "#c0c000";
 const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedNotAssembled             = "#663300";
 const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedAssembled                = "#000000";
 const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringTransitiveReduction   = "#ff9999";
 const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringPruning               = "#c03280";
 const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval    = "#99ff99";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedAsLowCoverageCrossEdge      = "#e0e000";
 const string LocalMarkerGraph::Writer::edgeLabelColorNotRemovedNotAssembled             = "#996600";
 const string LocalMarkerGraph::Writer::edgeLabelColorNotRemovedAssembled                = "#999999";
 const string& LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& vertex) const
@@ -99,6 +101,8 @@ const string& LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdg
         return edgeArrowColorRemovedDuringPruning;
     } else if (edge.isSuperBubbleEdge) {
         return edgeArrowColorRemovedDuringSuperBubbleRemoval;
+    } else if (edge.isLowCoverageCrossEdge) {
+        return edgeArrowColorRemovedAsLowCoverageCrossEdge;
     } else {
         if(edge.wasAssembled) {
             return edgeArrowColorNotRemovedAssembled;
@@ -115,6 +119,8 @@ const string& LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdg
         return edgeLabelColorRemovedDuringPruning;
     } else if (edge.isSuperBubbleEdge) {
         return edgeLabelColorRemovedDuringSuperBubbleRemoval;
+    } else if (edge.isLowCoverageCrossEdge) {
+        return edgeLabelColorRemovedAsLowCoverageCrossEdge;
     } else {
         if(edge.wasAssembled) {
             return edgeLabelColorNotRemovedAssembled;
@@ -138,24 +144,28 @@ void LocalMarkerGraph::writeColorLegend(ostream& html)
         Writer::vertexColorIntermediateDistance << "'>"
         "<tr><td>Maximum distance<td style='width:50px;background-color:" <<
         Writer::vertexColorMaxDistance << "'>"
-        "<tr><td rowspan=6>Edge<br>arrows"
+        "<tr><td rowspan=7>Edge<br>arrows"
         "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorRemovedDuringTransitiveReduction << "'>"
         "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorRemovedDuringPruning << "'>"
         "<tr><td>Removed during bubble/superbubble removal<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval << "'>"
+        "<tr><td>Removed as low coverage cross edge<td style='width:50px;background-color:" <<
+        Writer::edgeArrowColorRemovedAsLowCoverageCrossEdge << "'>"
         "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
         "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorNotRemovedAssembled << "'>"
-        "<tr><td rowspan=6>Edge<br>labels"
+        "<tr><td rowspan=7>Edge<br>labels"
         "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorRemovedDuringTransitiveReduction << "'>"
         "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorRemovedDuringPruning << "'>"
         "<tr><td>Removed during bubble/superbubble removal<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval << "'>"
+        "<tr><td>Removed as low coverage cross edge<td style='width:50px;background-color:" <<
+        Writer::edgeLabelColorRemovedAsLowCoverageCrossEdge << "'>"
         "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorNotRemovedNotAssembled << "'>"
         "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<

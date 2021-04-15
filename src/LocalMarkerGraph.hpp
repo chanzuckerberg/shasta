@@ -310,11 +310,13 @@ private:
         static const string edgeArrowColorRemovedDuringTransitiveReduction;
         static const string edgeArrowColorRemovedDuringPruning;
         static const string edgeArrowColorRemovedDuringSuperBubbleRemoval;
+        static const string edgeArrowColorRemovedAsLowCoverageCrossEdge;
         static const string edgeArrowColorNotRemovedNotAssembled;
         static const string edgeArrowColorNotRemovedAssembled;
         static const string edgeLabelColorRemovedDuringTransitiveReduction;
         static const string edgeLabelColorRemovedDuringPruning;
         static const string edgeLabelColorRemovedDuringSuperBubbleRemoval;
+        static const string edgeLabelColorRemovedAsLowCoverageCrossEdge;
         static const string edgeLabelColorNotRemovedNotAssembled;
         static const string edgeLabelColorNotRemovedAssembled;
         const string& vertexColor(const LocalMarkerGraphVertex&) const;
