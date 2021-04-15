@@ -2,6 +2,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblyGraph.hpp"
 #include "compressAlignment.hpp"
 #include "ConsensusCaller.hpp"
 #include "InducedAlignment.hpp"
@@ -913,6 +914,19 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         (edge.isSuperBubbleEdge ? "Yes" : "No") <<
         "<tr><th class=left>Removed as a low coverage cross edge?<td class=centered>" <<
         (edge.isLowCoverageCrossEdge ? "Yes" : "No");
+
+    // Usage of this edge in the assembly graph.
+    if(assemblyGraphPointer and assemblyGraphPointer->markerToAssemblyTable.isOpen()) {
+        const auto& locations = assemblyGraphPointer->markerToAssemblyTable[edgeId];
+        for(const pair<AssemblyGraph::EdgeId, uint32_t>& location: locations) {
+            const AssemblyGraph::EdgeId assemblyGraphEdgeId = location.first;
+            const uint32_t positionInAssemblyGraphEdge = location.second;
+            html << "<tr><th class=left>In assembly graph edge<td class=centered>" <<
+                assemblyGraphEdgeId << " at position " <<
+                positionInAssemblyGraphEdge;
+        }
+    }
+
 
     if(edge.wasAssembled) {
         html << "<tr><th class=left>Assembled?<td class=centered>Yes" ;
