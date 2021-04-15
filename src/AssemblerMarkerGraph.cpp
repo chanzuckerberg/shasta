@@ -1538,6 +1538,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
+    bool useLowCoverageCrossEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1548,6 +1549,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         useWeakEdges,
         usePrunedEdges,
         useSuperBubbleEdges,
+        useLowCoverageCrossEdges,
         graph);
 
 }
@@ -1561,6 +1563,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
+    bool useLowCoverageCrossEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1622,6 +1625,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
                 continue;
             }
+            if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
+                continue;
+            }
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
@@ -1656,6 +1662,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
                 graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
                 graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+                graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
                 graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph edge.
@@ -1680,6 +1687,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
+                continue;
+            }
+            if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
                 continue;
             }
 
@@ -1716,6 +1726,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
                 graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
                 graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+                graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
                 graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph vertex.
@@ -1754,6 +1765,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
+                continue;
+            }
+            if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
                 continue;
             }
 
@@ -1797,6 +1811,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
             graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
             graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+            graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
             graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
             // Link to assembly graph vertex.

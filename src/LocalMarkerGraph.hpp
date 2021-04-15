@@ -167,6 +167,9 @@ public:
     // Set if this edge belongs to a bubble/superbubble that was removed.
     uint8_t isSuperBubbleEdge = 0;
 
+    // Set if this edge was removed as a low coverage cross edge
+    uint8_t isLowCoverageCrossEdge = 0;
+
     // Flag that is set if this edge corresponds to a global marker graph
     // edge that was assembled.
     uint8_t wasAssembled = 0;

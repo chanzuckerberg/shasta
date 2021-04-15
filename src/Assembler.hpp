@@ -1510,6 +1510,7 @@ private:
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
+        bool useLowCoverageCrossEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
@@ -1519,6 +1520,7 @@ private:
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
+        bool useLowCoverageCrossEdges,
         LocalMarkerGraph&
         );
 #endif
@@ -2016,6 +2018,7 @@ public:
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useSuperBubbleEdges;
+        bool useLowCoverageCrossEdges;
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
         double vertexScalingFactor;

@@ -77,6 +77,7 @@ void Assembler::exploreMarkerGraph(
         requestParameters.useWeakEdges,
         requestParameters.usePrunedEdges,
         requestParameters.useSuperBubbleEdges,
+        requestParameters.useLowCoverageCrossEdges,
         graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
@@ -186,7 +187,8 @@ void Assembler::exploreMarkerGraph(
             "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
-            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
+            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
+            (requestParameters.useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "");
         html <<
             "element = document.getElementById('vertex" << vertex.vertexId << "');\n"
             "element.onclick = function() {location.href='" << url << "';};\n"
@@ -219,7 +221,8 @@ void Assembler::exploreMarkerGraph(
             "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
-            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
+            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
+            (requestParameters.useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "");
         html <<
             "element = document.getElementById('edge" << edge.edgeId << "');\n"
             "element.onclick = function() {location.href='" << url << "';};\n"
@@ -282,6 +285,10 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     string useSuperBubbleEdgesString;
     parameters.useSuperBubbleEdges = getParameterValue(
         request, "useSuperBubbleEdges", useSuperBubbleEdgesString);
+
+    string useLowCoverageCrossEdgesString;
+    parameters.useLowCoverageCrossEdges = getParameterValue(
+        request, "useLowCoverageCrossEdges", useLowCoverageCrossEdgesString);
 
     parameters.sizePixels = 800;
     parameters.sizePixelsIsPresent = getParameterValue(
@@ -364,6 +371,13 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td class=centered>"
         "<input type=checkbox name=useSuperBubbleEdges" <<
         (useSuperBubbleEdges ? " checked=checked" : "") << ">"
+
+        "<tr title='Check to include in the local marker graph "
+        "edges that were removed as low coverage cross edges'>"
+        "<td>Edges removed as low coverage cross edges"
+        "<td class=centered>"
+        "<input type=checkbox name=useLowCoverageCrossEdges" <<
+        (useLowCoverageCrossEdges ? " checked=checked" : "") << ">"
 
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
