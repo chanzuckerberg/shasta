@@ -467,6 +467,12 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
         }
     }
 
+    const bool debug = false;
+    ofstream out;
+    if(debug) {
+        out.open("LowCoverageCrossEdges.csv");
+    }
+
     // Process assembly graph edges in order of increasing coverage.
     uint64_t removedAssemblyGraphEdgeCount = 0;
     uint64_t removedMarkerGraphEdgeCount = 0;
@@ -507,6 +513,9 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
             // Mark the corresponding marker graph edges.
             for(const MarkerGraph::EdgeId markerGraphEdgeId: assemblyGraph.edgeLists[edgeId]) {
                 markerGraph.edges[markerGraphEdgeId].isLowCoverageCrossEdge = 1;
+                if(debug) {
+                    out << markerGraphEdgeId << "\n";
+                }
                 ++removedMarkerGraphEdgeCount;
             }
 
