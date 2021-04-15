@@ -910,7 +910,9 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         "<tr><th class=left>Removed during pruning?<td class=centered>" <<
         (edge.wasPruned ? "Yes" : "No") <<
         "<tr><th class=left>Removed during bubble/superbubble removal?<td class=centered>" <<
-        (edge.isSuperBubbleEdge ? "Yes" : "No");
+        (edge.isSuperBubbleEdge ? "Yes" : "No") <<
+        "<tr><th class=left>Removed as a low coverage cross edge?<td class=centered>" <<
+        (edge.isLowCoverageCrossEdge ? "Yes" : "No");
 
     if(edge.wasAssembled) {
         html << "<tr><th class=left>Assembled?<td class=centered>Yes" ;
