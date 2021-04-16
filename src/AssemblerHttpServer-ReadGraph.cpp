@@ -82,15 +82,19 @@ void Assembler::addScaleSvgButtons(ostream& html)
         function svgLarger()
         {
             var element = document.getElementsByTagName("svg")[0];
-            element.setAttribute("width", 1.25*element.getAttribute("width"));
-            element.setAttribute("height", 1.25*element.getAttribute("height"));
+            width = element.getAttribute("width");
+            height = element.getAttribute("height");
+            element.setAttribute("width", 1.25*width);
+            element.setAttribute("height", 1.25*height);
             document.getElementById("largerButton").focus();
         }
         function svgSmaller()
         {
             var element = document.getElementsByTagName("svg")[0];
-            element.setAttribute("width", 0.8*element.getAttribute("width"));
-            element.setAttribute("height", 0.8*element.getAttribute("height"));
+            width = element.getAttribute("width");
+            height = element.getAttribute("height");
+            element.setAttribute("width", 0.8*width);
+            element.setAttribute("height", 0.8*height);
             document.getElementById("smallerButton").focus();
         }
         </script>

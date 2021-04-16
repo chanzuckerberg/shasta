@@ -36,7 +36,7 @@ void Assembler::exploreMarkerGraph(
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
     // Write the form and the color legend.
-    html << "<h3>Display a local subgraph of the global marker graph</h3>";
+    html << "<h1>Display a local subgraph of the global marker graph</h3>";
     html << "<div style='clear:both; display:table;'>";
     html << "<div style='float:left;margin:10px;'>";
     requestParameters.writeForm(html, markerGraph.vertexCount());
@@ -165,8 +165,13 @@ void Assembler::exploreMarkerGraph(
     html <<
         "</div>"
         "<script>"
-        "var svgElement = document.getElementsByTagName('svg')[0];"
-        "svgElement.setAttribute('width', " << requestParameters.sizePixels << ");"
+        "var element = document.getElementsByTagName('svg')[0];"
+        "w0 = element.getAttribute('width');"
+        "h0 = element.getAttribute('height');"
+        "element.setAttribute('width', " << requestParameters.sizePixels << ");"
+        "w1 = element.getAttribute('width');"
+        "h1 = element.getAttribute('height');"
+        "element.setAttribute('height', h0 * (w1 / w0));"
         "document.getElementById('svgDiv').setAttribute('style', 'display:block');"
         "</script>";
 
@@ -323,6 +328,8 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
         "<table>"
 
+        "<tr><th class=left colspan=2>Local marker graph creation"
+
         "<tr title='Start vertex id between 0 and " << vertexCount << "'>"
         "<td>Start vertex id"
         "<td><input type=text required name=vertexId size=8 style='text-align:center'"
@@ -334,22 +341,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
         ">"
-
-        "<tr title='Check for to add labels to vertices and edges'>"
-        "<td>Labels"
-        "<td class=centered><input type=checkbox name=addLabels"
-        << (addLabels ? " checked=checked" : "") <<
-        ">"
-
-        "<tr title='Check for to add labels to vertices and edges'>"
-        "<td>Graph layout"
-        "<td>"
-        "<span title='Best for small subgraphs'><input type=radio name=layout value=dot"
-        << (useDotLayout ? " checked=checked" : "") <<
-        ">Dot</span><br>"
-        "<span title='Best for large subgraphs, without labels'><input type=radio name=layout value=sfdp"
-        << (!useDotLayout ? " checked=checked" : "") <<
-        ">Sfdp</span>"
 
         "<tr title='Check to include in the local marker graph "
         "edges that were removed during transitive reduction'>"
@@ -379,12 +370,28 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<input type=checkbox name=useLowCoverageCrossEdges" <<
         (useLowCoverageCrossEdges ? " checked=checked" : "") << ">"
 
-        "<tr title='Graphics size in pixels. "
-        "Changing this works better than zooming. Make it larger if the graph is too crowded."
-        " Ok to make it much larger than screen size.'>"
-        "<td>Graphics size in pixels"
+        "<tr><th class=left colspan=2>Graphics"
+
+        "<tr title='Graphics width in pixels.'>"
+        "<td>Graphics width in pixels"
         "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
+        ">"
+
+        "<tr>"
+        "<td>Graph layout method"
+        "<td class=centered>"
+        "<span title='Best for small subgraphs'><input type=radio name=layout value=dot"
+        << (useDotLayout ? " checked=checked" : "") <<
+        ">Dot</span><br>"
+        "<span title='Best for large subgraphs, without labels'><input type=radio name=layout value=sfdp"
+        << (!useDotLayout ? " checked=checked" : "") <<
+        ">Sfdp</span>"
+
+        "<tr title='Check for to add labels to vertices and edges'>"
+        "<td>Labels"
+        "<td class=centered><input type=checkbox name=addLabels"
+        << (addLabels ? " checked=checked" : "") <<
         ">"
 
         "<tr>"
