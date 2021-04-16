@@ -20,7 +20,7 @@ void LocalMarkerGraph::write(
     const string& fileName,
     int maxDistance,
     bool addLabels,
-    bool useDotLayout,
+    const string& layoutMethod,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double arrowScalingFactor) const
@@ -29,19 +29,19 @@ void LocalMarkerGraph::write(
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance, addLabels, useDotLayout,
+    write(outputFileStream, maxDistance, addLabels, layoutMethod,
         vertexScalingFactor, edgeThicknessScalingFactor, arrowScalingFactor);
 }
 void LocalMarkerGraph::write(
     ostream& s,
     int maxDistance,
     bool addLabels,
-    bool useDotLayout,
+    const string& layoutMethod,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double arrowScalingFactor) const
 {
-    Writer writer(*this, maxDistance, addLabels, useDotLayout,
+    Writer writer(*this, maxDistance, addLabels, layoutMethod,
         vertexScalingFactor, edgeThicknessScalingFactor, arrowScalingFactor);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
@@ -51,14 +51,14 @@ LocalMarkerGraph::Writer::Writer(
     const LocalMarkerGraph& graph,
     int maxDistance,
     bool addLabels,
-    bool useDotLayout,
+    const string& layoutMethod,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double arrowScalingFactor) :
     graph(graph),
     maxDistance(maxDistance),
     addLabels(addLabels),
-    useDotLayout(useDotLayout),
+    layoutMethod(layoutMethod),
     vertexScalingFactor(vertexScalingFactor),
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     arrowScalingFactor(arrowScalingFactor)
@@ -153,7 +153,7 @@ void LocalMarkerGraph::writeColorLegend(ostream& html)
         Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval << "'>"
         "<tr><td>Removed as low coverage cross edge<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorRemovedAsLowCoverageCrossEdge << "'>"
-        "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
+        "<tr><td>Not removed, opposite strand assembled<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
         "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorNotRemovedAssembled << "'>"
@@ -166,7 +166,7 @@ void LocalMarkerGraph::writeColorLegend(ostream& html)
         Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval << "'>"
         "<tr><td>Removed as low coverage cross edge<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorRemovedAsLowCoverageCrossEdge << "'>"
-        "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
+        "<tr><td>Not removed, opposite strand assembled<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorNotRemovedNotAssembled << "'>"
         "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorNotRemovedAssembled << "'>"
@@ -188,12 +188,17 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
         s << "node [shape=point];\n";
     }
 
-    if(useDotLayout) {
+    if(layoutMethod == "dotLr") {
         s << "layout=dot;\n";
         s << "rankdir=LR;\n";
-    } else {
+    } else if(layoutMethod == "dotTb") {
+        s << "layout=dot;\n";
+        s << "rankdir=TB;\n";
+    } else if(layoutMethod == "sfdp") {
         s << "layout=sfdp;\n";
         s << "smoothing=triangle;\n";
+    } else {
+        throw runtime_error("Invalid layout method " + layoutMethod);
     }
 }
 
@@ -322,7 +327,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     // tell graphviz not to use it in constraint assignment.
     // This results in better graph layouts when using dot,
     // because back-edges tend to be low coverage edges.
-    if(useDotLayout && !edge.isDagEdge) {
+    if((layoutMethod=="dotLr" or layoutMethod=="dotTb") and (not edge.isDagEdge)) {
         s << " constraint=false";
     }
 

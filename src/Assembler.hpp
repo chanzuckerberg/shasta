@@ -2020,7 +2020,7 @@ public:
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
         bool addLabels;
-        bool useDotLayout;  // If true, use dot. If false, use sfdp.
+        string layoutMethod;    // dotLr, dotTb, or sfdp
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useSuperBubbleEdges;

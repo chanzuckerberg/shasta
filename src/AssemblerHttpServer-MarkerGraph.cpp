@@ -113,7 +113,7 @@ void Assembler::exploreMarkerGraph(
         dotFileName,
         requestParameters.maxDistance,
         requestParameters.addLabels,
-        requestParameters.useDotLayout,
+        requestParameters.layoutMethod,
         requestParameters.vertexScalingFactor,
         requestParameters.edgeThicknessScalingFactor,
         requestParameters.arrowScalingFactor);
@@ -191,7 +191,7 @@ void Assembler::exploreMarkerGraph(
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
             (requestParameters.addLabels ? "&addLabels=on" : "") +
-            "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
+            "&layout=" + requestParameters.layoutMethod +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
             (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
@@ -225,7 +225,7 @@ void Assembler::exploreMarkerGraph(
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
             (requestParameters.addLabels ? "&addLabels=on" : "") +
-            "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
+            "&layout=" + requestParameters.layoutMethod +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
             (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
@@ -273,13 +273,8 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.addLabels = getParameterValue(
         request, "addLabels", addLabelsString);
 
-    string layoutString;
-    getParameterValue(
-        request, "layout", layoutString);
-    parameters.useDotLayout = true;
-    if(layoutString == "sfdp") {
-        parameters.useDotLayout = false;
-    }
+    parameters.layoutMethod = "dotLr";
+    getParameterValue(request, "layoutMethod", parameters.layoutMethod);
 
     parameters.minVertexCoverage = 0;
     parameters.minVertexCoverageIsPresent = getParameterValue(
@@ -342,25 +337,25 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
         "<tr title='Start vertex id between 0 and " << vertexCount << "'>"
         "<td>Start vertex id"
-        "<td><input type=text required name=vertexId size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=vertexId size=8 style='text-align:center'"
         << (vertexIdIsPresent ? ("value='"+to_string(vertexId)+"'") : "") <<
         ">"
 
         "<tr title='Maximum distance from start vertex (number of edges)'>"
         "<td>Maximum distance"
-        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=maxDistance size=8 style='text-align:center'"
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
         ">"
 
         "<tr>"
         "<td>Minimum vertex coverage"
-        "<td><input type=text required name=minVertexCoverage size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=minVertexCoverage size=8 style='text-align:center'"
         << (minVertexCoverageIsPresent ? ("value='" + to_string(minVertexCoverage)+"'") : " value='0'") <<
         ">"
 
         "<tr>"
         "<td>Minimum edge coverage"
-        "<td><input type=text required name=minEdgeCoverage size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=minEdgeCoverage size=8 style='text-align:center'"
         << (minEdgeCoverageIsPresent ? ("value='" + to_string(minEdgeCoverage)+"'") : " value='0'") <<
         ">"
 
@@ -396,18 +391,21 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
         "<tr title='Graphics width in pixels.'>"
         "<td>Graphics width in pixels"
-        "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=sizePixels size=8 style='text-align:center'"
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
         "<tr>"
         "<td>Graph layout method"
-        "<td class=centered>"
-        "<span title='Best for small subgraphs'><input type=radio name=layout value=dot"
-        << (useDotLayout ? " checked=checked" : "") <<
-        ">Dot</span><br>"
-        "<span title='Best for large subgraphs, without labels'><input type=radio name=layout value=sfdp"
-        << (!useDotLayout ? " checked=checked" : "") <<
+        "<td class=left>"
+        "<span title='Best for small subgraphs'><input type=radio name=layoutMethod value=dotLr"
+        << (layoutMethod=="dotLr" ? " checked=checked" : "") <<
+        ">Dot, left to right</span><br>"
+        "<span title='Best for small subgraphs with labels'><input type=radio name=layoutMethod value=dotTb"
+        << (layoutMethod=="dotTb" ? " checked=checked" : "") <<
+        ">Dot, to to bottom</span><br>"
+        "<span title='Best for large subgraphs, without labels'><input type=radio name=layoutMethod value=sfdp"
+        << (layoutMethod=="sfdp" ? " checked=checked" : "") <<
         ">Sfdp</span>"
 
         "<tr title='Check for to add labels to vertices and edges'>"
@@ -418,22 +416,22 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
         "<tr>"
         "<td>Vertex scaling factor (sfdp only)"
-        "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+        "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
         " value='" + vertexScalingFactorString() + "'>" <<
 
         "<tr>"
         "<td>Edge thickness scaling factor"
-        "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+        "<td class=centered><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
         " value='" + edgeThicknessScalingFactorString() + "'>" <<
 
         "<tr>"
         "<td>Edge arrow scaling factor"
-        "<td><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
+        "<td class=centered><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
         " value='" + arrowScalingFactorString() + "'>" <<
 
         "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
         "<td>Timeout (seconds) for graph creation and layout"
-        "<td><input type=text required name=timeout size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
         ">"
         "</table>"
@@ -611,6 +609,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         "&useWeakEdges=on"
         "&usePrunedEdges=on"
         "&useSuperBubbleEdges=on"
+        "&useLowCoverageCrossEdges=on"
         "&sizePixels=800"
         "&timeout=30";
     html << "<h1>Marker graph vertex <a href='" << titleUrl << "'> "<< vertexId << "</a></h1>";
@@ -935,6 +934,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         "&useWeakEdges=on"
         "&usePrunedEdges=on"
         "&useSuperBubbleEdges=on"
+        "&useLowCoverageCrossEdges=on"
         "&sizePixels=800"
         "&timeout=30";
     html << "<h1>Marker graph edge <a href='" << titleUrl << "'> "<< edgeId << "</a></h1>";

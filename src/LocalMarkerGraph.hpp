@@ -236,7 +236,7 @@ public:
         ostream&,
         int maxDistance,
         bool addLabels,
-        bool useDotLayout,
+        const string& layoutMethod,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double arrowScalingFactor) const;
@@ -244,7 +244,7 @@ public:
         const string& fileName,
         int maxDistance,
         bool addLabels,
-        bool useDotLayout,
+        const string& layoutMethod,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double arrowScalingFactor) const;
@@ -288,7 +288,7 @@ private:
             const LocalMarkerGraph&,
             int maxDistance,
             bool addLabels,
-            bool useDotLayout,
+            const string& layoutMethod,
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
             double arrowScalingFactor);
@@ -298,7 +298,7 @@ private:
         const LocalMarkerGraph& graph;
         int maxDistance;
         bool addLabels;
-        bool useDotLayout;
+        const string& layoutMethod;
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double arrowScalingFactor;
