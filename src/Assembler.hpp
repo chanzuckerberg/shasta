@@ -1507,6 +1507,8 @@ private:
         uint32_t ordinal,
         int distance,
         int timeout,                 // Or 0 for no timeout.
+        uint64_t minVertexCoverage,
+        uint64_t minEdgeCoverage,
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
@@ -1517,6 +1519,8 @@ private:
         MarkerGraph::VertexId,
         int distance,
         int timeout,                 // Or 0 for no timeout.
+        uint64_t minVertexCoverage,
+        uint64_t minEdgeCoverage,
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
@@ -2004,11 +2008,13 @@ public:
         const AlignmentInfo& alignment,
         ostream&) const;
 
-    // Functions and data used by the http server
-    // for display of the local marker graph.
-    void exploreMarkerGraph(const vector<string>&, ostream&);
+
+
+    // Class describing the parameters in the form
+    // in the local marker graph page.
     class LocalMarkerGraphRequestParameters {
     public:
+
         MarkerGraph::VertexId vertexId;
         bool vertexIdIsPresent;
         uint32_t maxDistance;
@@ -2019,6 +2025,12 @@ public:
         bool usePrunedEdges;
         bool useSuperBubbleEdges;
         bool useLowCoverageCrossEdges;
+
+        uint64_t minVertexCoverage;
+        bool minVertexCoverageIsPresent;
+        uint64_t minEdgeCoverage;
+        bool minEdgeCoverageIsPresent;
+
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
         double vertexScalingFactor;
@@ -2032,9 +2044,16 @@ public:
         string arrowScalingFactorString() const;
         int timeout;
         bool timeoutIsPresent;
+
         void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;
         bool hasMissingRequiredParameters() const;
     };
+
+
+
+    // Functions and data used by the http server
+    // for display of the local marker graph.
+    void exploreMarkerGraph(const vector<string>&, ostream&);
     void getLocalMarkerGraphRequestParameters(
         const vector<string>&,
         LocalMarkerGraphRequestParameters&) const;

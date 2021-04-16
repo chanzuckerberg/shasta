@@ -74,6 +74,8 @@ void Assembler::exploreMarkerGraph(
         requestParameters.vertexId,
         requestParameters.maxDistance,
         requestParameters.timeout,
+        requestParameters.minVertexCoverage,
+        requestParameters.minEdgeCoverage,
         requestParameters.useWeakEdges,
         requestParameters.usePrunedEdges,
         requestParameters.useSuperBubbleEdges,
@@ -279,6 +281,14 @@ void Assembler::getLocalMarkerGraphRequestParameters(
         parameters.useDotLayout = false;
     }
 
+    parameters.minVertexCoverage = 0;
+    parameters.minVertexCoverageIsPresent = getParameterValue(
+        request, "minVertexCoverage", parameters.minVertexCoverage);
+
+    parameters.minEdgeCoverage = 0;
+    parameters.minEdgeCoverageIsPresent = getParameterValue(
+        request, "minEdgeCoverage", parameters.minEdgeCoverage);
+
     string useWeakEdgesString;
     parameters.useWeakEdges = getParameterValue(
         request, "useWeakEdges", useWeakEdgesString);
@@ -340,6 +350,18 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
+        ">"
+
+        "<tr>"
+        "<td>Minimum vertex coverage"
+        "<td><input type=text required name=minVertexCoverage size=8 style='text-align:center'"
+        << (minVertexCoverageIsPresent ? ("value='" + to_string(minVertexCoverage)+"'") : " value='0'") <<
+        ">"
+
+        "<tr>"
+        "<td>Minimum edge coverage"
+        "<td><input type=text required name=minEdgeCoverage size=8 style='text-align:center'"
+        << (minEdgeCoverageIsPresent ? ("value='" + to_string(minEdgeCoverage)+"'") : " value='0'") <<
         ">"
 
         "<tr title='Check to include in the local marker graph "

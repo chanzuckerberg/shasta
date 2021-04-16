@@ -1535,6 +1535,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     uint32_t ordinal,
     int distance,
     int timeout,                 // Or 0 for no timeout.
+    uint64_t minVertexCoverage,
+    uint64_t minEdgeCoverage,
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
@@ -1546,6 +1548,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     return extractLocalMarkerGraphUsingStoredConnectivity(
         startVertexId, distance, timeout,
+        minVertexCoverage,
+        minEdgeCoverage,
         useWeakEdges,
         usePrunedEdges,
         useSuperBubbleEdges,
@@ -1560,6 +1564,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     MarkerGraph::VertexId startVertexId,
     int distance,
     int timeout,                 // Or 0 for no timeout.
+    uint64_t minVertexCoverage,
+    uint64_t minEdgeCoverage,
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
@@ -1578,7 +1584,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     // Start a timer.
     const auto startTime = steady_clock::now();
 
-    // Add the start vertex.
+    // Add the start vertex, without regards to coverage.
     if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
@@ -1616,6 +1622,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
+            if(markerGraph.edgeMarkerIntervals[edgeId].size() < minEdgeCoverage) {
+                continue;
+            }
             if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
@@ -1632,6 +1641,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
             SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
+
+            // If vertex coverage is too low, skip it.
+            if(markerGraph.vertexCoverage(vertexId1) < minVertexCoverage) {
+                continue;
+            }
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1680,6 +1694,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
+            if(markerGraph.edgeMarkerIntervals[edgeId].size() < minEdgeCoverage) {
+                continue;
+            }
             if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
@@ -1696,6 +1713,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const MarkerGraph::VertexId vertexId1 = edge.source;
             SHASTA_ASSERT(edge.target == vertexId0);
             SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
+
+            // If vertex coverage is too low, skip it.
+            if(markerGraph.vertexCoverage(vertexId1) < minVertexCoverage) {
+                continue;
+            }
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1758,6 +1780,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
+            if(markerGraph.edgeMarkerIntervals[edgeId].size() < minEdgeCoverage) {
+                continue;
+            }
             if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
