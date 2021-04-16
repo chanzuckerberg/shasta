@@ -51,6 +51,7 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
+    class LocalMarkerGraphRequestParameters;
     class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1505,7 +1506,7 @@ private:
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         OrientedReadId,
         uint32_t ordinal,
-        int distance,
+        uint64_t distance,
         int timeout,                 // Or 0 for no timeout.
         uint64_t minVertexCoverage,
         uint64_t minEdgeCoverage,
@@ -1517,7 +1518,7 @@ private:
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         MarkerGraph::VertexId,
-        int distance,
+        uint64_t distance,
         int timeout,                 // Or 0 for no timeout.
         uint64_t minVertexCoverage,
         uint64_t minEdgeCoverage,
@@ -2007,48 +2008,6 @@ public:
         OrientedReadId orientedReadId1,
         const AlignmentInfo& alignment,
         ostream&) const;
-
-
-
-    // Class describing the parameters in the form
-    // in the local marker graph page.
-    class LocalMarkerGraphRequestParameters {
-    public:
-
-        MarkerGraph::VertexId vertexId;
-        bool vertexIdIsPresent;
-        uint32_t maxDistance;
-        bool maxDistanceIsPresent;
-        bool addLabels;
-        string layoutMethod;    // dotLr, dotTb, or sfdp
-        bool useWeakEdges;
-        bool usePrunedEdges;
-        bool useSuperBubbleEdges;
-        bool useLowCoverageCrossEdges;
-
-        uint64_t minVertexCoverage;
-        bool minVertexCoverageIsPresent;
-        uint64_t minEdgeCoverage;
-        bool minEdgeCoverageIsPresent;
-
-        uint32_t sizePixels;
-        bool sizePixelsIsPresent;
-        double vertexScalingFactor;
-        bool vertexScalingFactorIsPresent;
-        string vertexScalingFactorString() const;
-        double edgeThicknessScalingFactor;
-        bool edgeThicknessScalingFactorIsPresent;
-        string edgeThicknessScalingFactorString() const;
-        double arrowScalingFactor;
-        bool arrowScalingFactorIsPresent;
-        string arrowScalingFactorString() const;
-        int timeout;
-        bool timeoutIsPresent;
-
-        void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;
-        bool hasMissingRequiredParameters() const;
-    };
-
 
 
     // Functions and data used by the http server

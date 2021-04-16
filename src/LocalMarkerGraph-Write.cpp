@@ -18,50 +18,28 @@ using namespace shasta;
 // Write the graph in Graphviz format.
 void LocalMarkerGraph::write(
     const string& fileName,
-    int maxDistance,
-    bool addLabels,
-    const string& layoutMethod,
-    double vertexScalingFactor,
-    double edgeThicknessScalingFactor,
-    double arrowScalingFactor) const
+    const LocalMarkerGraphRequestParameters& localMarkerGraphRequestParameters) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance, addLabels, layoutMethod,
-        vertexScalingFactor, edgeThicknessScalingFactor, arrowScalingFactor);
+    write(outputFileStream, localMarkerGraphRequestParameters);
 }
 void LocalMarkerGraph::write(
     ostream& s,
-    int maxDistance,
-    bool addLabels,
-    const string& layoutMethod,
-    double vertexScalingFactor,
-    double edgeThicknessScalingFactor,
-    double arrowScalingFactor) const
+    const LocalMarkerGraphRequestParameters& localMarkerGraphRequestParameters) const
 {
-    Writer writer(*this, maxDistance, addLabels, layoutMethod,
-        vertexScalingFactor, edgeThicknessScalingFactor, arrowScalingFactor);
+    Writer writer(*this, localMarkerGraphRequestParameters);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
 
 LocalMarkerGraph::Writer::Writer(
     const LocalMarkerGraph& graph,
-    int maxDistance,
-    bool addLabels,
-    const string& layoutMethod,
-    double vertexScalingFactor,
-    double edgeThicknessScalingFactor,
-    double arrowScalingFactor) :
-    graph(graph),
-    maxDistance(maxDistance),
-    addLabels(addLabels),
-    layoutMethod(layoutMethod),
-    vertexScalingFactor(vertexScalingFactor),
-    edgeThicknessScalingFactor(edgeThicknessScalingFactor),
-    arrowScalingFactor(arrowScalingFactor)
+    const LocalMarkerGraphRequestParameters& parameters) :
+    LocalMarkerGraphRequestParameters(parameters),
+    graph(graph)
 {
 }
 
@@ -83,50 +61,110 @@ const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringSuperBubbleRem
 const string LocalMarkerGraph::Writer::edgeLabelColorRemovedAsLowCoverageCrossEdge      = "#e0e000";
 const string LocalMarkerGraph::Writer::edgeLabelColorNotRemovedNotAssembled             = "#996600";
 const string LocalMarkerGraph::Writer::edgeLabelColorNotRemovedAssembled                = "#999999";
-const string& LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& vertex) const
+
+
+
+string LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& vertex) const
 {
-    if(vertex.distance == 0) {
-        return vertexColorZeroDistance;
-    } else if(vertex.distance == maxDistance) {
-        return vertexColorMaxDistance;
+    if(vertexColoring == "none") {
+        return "black";
+
+    } else if(vertexColoring == "byCoverage") {
+
+        const uint64_t coverage = vertex.markerInfos.size();
+        double h = double(coverage - vertexRedCoverage) / double(vertexGreenCoverage - vertexRedCoverage);
+        h = max(h, 0.);
+        h = min(h, 1.);
+        return to_string(h/3.) + ",1.,0.9";
+
+    } else if(vertexColoring == "byDistance") {
+
+        if(vertex.distance == 0) {
+            return vertexColorZeroDistance;
+        } else if(vertex.distance == maxDistance) {
+            return vertexColorMaxDistance;
+        } else {
+            return vertexColorIntermediateDistance;
+        }
+
     } else {
-        return vertexColorIntermediateDistance;
+        throw runtime_error("Invalid vertex coloring " + vertexColoring);
     }
 }
-const string& LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdge& edge) const
+
+
+
+string LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdge& edge) const
 {
-    if(edge.wasRemovedByTransitiveReduction) {
-        return edgeArrowColorRemovedDuringTransitiveReduction;
-    } else if(edge.wasPruned) {
-        return edgeArrowColorRemovedDuringPruning;
-    } else if (edge.isSuperBubbleEdge) {
-        return edgeArrowColorRemovedDuringSuperBubbleRemoval;
-    } else if (edge.isLowCoverageCrossEdge) {
-        return edgeArrowColorRemovedAsLowCoverageCrossEdge;
-    } else {
-        if(edge.wasAssembled) {
-            return edgeArrowColorNotRemovedAssembled;
+
+    if(edgeColoring == "none") {
+        return "black";
+
+    } else if(edgeColoring == "byCoverage") {
+
+        const uint64_t coverage = edge.coverage();
+        double h = (double(coverage) - double(edgeRedCoverage)) / (double(edgeGreenCoverage) - double(edgeRedCoverage));
+        h = max(h, 0.);
+        h = min(h, 1.);
+        return to_string(h/3.) + ",1.,0.9";
+
+    } else if(edgeColoring == "byFlags") {
+
+        if(edge.wasRemovedByTransitiveReduction) {
+            return edgeArrowColorRemovedDuringTransitiveReduction;
+        } else if(edge.wasPruned) {
+            return edgeArrowColorRemovedDuringPruning;
+        } else if (edge.isSuperBubbleEdge) {
+            return edgeArrowColorRemovedDuringSuperBubbleRemoval;
+        } else if (edge.isLowCoverageCrossEdge) {
+            return edgeArrowColorRemovedAsLowCoverageCrossEdge;
         } else {
-            return edgeArrowColorNotRemovedNotAssembled;
+            if(edge.wasAssembled) {
+                return edgeArrowColorNotRemovedAssembled;
+            } else {
+                return edgeArrowColorNotRemovedNotAssembled;
+            }
         }
+    } else {
+        throw runtime_error("Invalid edge coloring " + edgeColoring);
     }
 }
-const string& LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge) const
+
+
+
+string LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge) const
 {
-    if(edge.wasRemovedByTransitiveReduction) {
-        return edgeLabelColorRemovedDuringTransitiveReduction;
-    } else if(edge.wasPruned) {
-        return edgeLabelColorRemovedDuringPruning;
-    } else if (edge.isSuperBubbleEdge) {
-        return edgeLabelColorRemovedDuringSuperBubbleRemoval;
-    } else if (edge.isLowCoverageCrossEdge) {
-        return edgeLabelColorRemovedAsLowCoverageCrossEdge;
-    } else {
-        if(edge.wasAssembled) {
-            return edgeLabelColorNotRemovedAssembled;
+    if(edgeColoring == "none") {
+        return "white";
+
+    } else if(edgeColoring == "byCoverage") {
+
+        const uint64_t coverage = edge.coverage();
+        double h = (double(coverage) - double(edgeRedCoverage)) / (double(edgeGreenCoverage) - double(edgeRedCoverage));
+        h = max(h, 0.);
+        h = min(h, 1.);
+        return to_string(h/3.) + ",1.,0.9";
+
+    } else if(edgeColoring == "byFlags") {
+
+            if(edge.wasRemovedByTransitiveReduction) {
+            return edgeLabelColorRemovedDuringTransitiveReduction;
+        } else if(edge.wasPruned) {
+            return edgeLabelColorRemovedDuringPruning;
+        } else if (edge.isSuperBubbleEdge) {
+            return edgeLabelColorRemovedDuringSuperBubbleRemoval;
+        } else if (edge.isLowCoverageCrossEdge) {
+            return edgeLabelColorRemovedAsLowCoverageCrossEdge;
         } else {
-            return edgeLabelColorNotRemovedNotAssembled;
+            if(edge.wasAssembled) {
+                return edgeLabelColorNotRemovedAssembled;
+            } else {
+                return edgeLabelColorNotRemovedNotAssembled;
+            }
         }
+
+    } else {
+        throw runtime_error("Invalid edge coloring " + edgeColoring);
     }
 }
 
@@ -208,7 +246,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 {
     const LocalMarkerGraphVertex& vertex = graph[v];
     const auto coverage = vertex.markerInfos.size();
-    const string& color = vertexColor(vertex);
+    const string color = vertexColor(vertex);
     SHASTA_ASSERT(coverage > 0);
 
     // Begin vertex attributes.
@@ -240,8 +278,10 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
     } else {
 
         // Color.
-        s << " style=filled";
-        s << " fillcolor=\"" << color << "\"";
+        if(vertexColoring != "none") {
+            s << " style=filled";
+            s << " fillcolor=\"" << color << "\"";
+        }
 
         // Label.
         s << " label=\"";
@@ -289,8 +329,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
     const LocalMarkerGraphEdge& edge = graph[e];
     const size_t coverage = edge.coverage();
-    const string& arrowColor = edgeArrowColor(edge);
-    const string& labelColor = edgeLabelColor(edge);
+    const string arrowColor = edgeArrowColor(edge);
+    const string labelColor = edgeLabelColor(edge);
     SHASTA_ASSERT(coverage > 0);
 
     // Begin edge attributes.

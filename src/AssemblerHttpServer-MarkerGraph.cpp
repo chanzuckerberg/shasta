@@ -109,14 +109,8 @@ void Assembler::exploreMarkerGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
-    graph.write(
-        dotFileName,
-        requestParameters.maxDistance,
-        requestParameters.addLabels,
-        requestParameters.layoutMethod,
-        requestParameters.vertexScalingFactor,
-        requestParameters.edgeThicknessScalingFactor,
-        requestParameters.arrowScalingFactor);
+    graph.write(dotFileName, requestParameters);
+
 
     // Compute layout in svg format.
     const string command =
@@ -320,11 +314,28 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
 
+    parameters.vertexColoring = "byDistance";
+    getParameterValue(request, "vertexColoring", parameters.vertexColoring);
+
+    parameters.edgeColoring = "byFlags";
+    getParameterValue(request, "edgeColoring", parameters.edgeColoring);
+
+    parameters.vertexRedCoverage = 1;
+    getParameterValue(request, "vertexRedCoverage", parameters.vertexRedCoverage);
+
+    parameters.vertexGreenCoverage = 10;
+    getParameterValue(request, "vertexGreenCoverage", parameters.vertexGreenCoverage);
+
+    parameters.edgeRedCoverage = 1;
+    getParameterValue(request, "edgeRedCoverage", parameters.edgeRedCoverage);
+
+    parameters.edgeGreenCoverage = 10;
+    getParameterValue(request, "edgeGreenCoverage", parameters.edgeGreenCoverage);
 }
 
 
 
-void Assembler::LocalMarkerGraphRequestParameters::writeForm(
+void LocalMarkerGraphRequestParameters::writeForm(
     ostream& html,
     MarkerGraph::VertexId vertexCount) const
 {
@@ -434,6 +445,41 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td class=centered><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
         ">"
+
+        "<tr><td>Vertex coloring"
+        "<td>"
+        "<input type=radio name=vertexColoring value=none"
+        << (vertexColoring=="none" ? " checked=checked" : "") <<
+        ">None<br>"
+        "<input type=radio name=vertexColoring value=byCoverage"
+        << (vertexColoring=="byCoverage" ? " checked=checked" : "") <<
+        ">By coverage<br>"
+        "<input type=radio name=vertexColoring value=byDistance"
+        << (vertexColoring=="byDistance" ? " checked=checked" : "") <<
+        ">By distance"
+        "<td><table><tr><th>Coverage<th>Color"
+        "<tr><td class=centered><input type=text name=vertexRedCoverage size=4 style='text-align:center'"
+         " value='" << vertexRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
+        "<tr><td class=centered><input type=text name=vertexGreenCoverage size=4 style='text-align:center'" <<
+        " value='" << vertexGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+
+        "<tr><td>Edge coloring"
+        "<td>"
+        "<input type=radio name=edgeColoring value=none"
+        << (edgeColoring=="none" ? " checked=checked" : "") <<
+        ">None<br>"
+        "<input type=radio name=edgeColoring value=byCoverage"
+        << (edgeColoring=="byCoverage" ? " checked=checked" : "") <<
+        ">By coverage<br>"
+        "<input type=radio name=edgeColoring value=byFlags"
+        << (edgeColoring=="byFlags" ? " checked=checked" : "") <<
+        ">By flags"
+        "<td><table><tr><th>Coverage<th>Color"
+        "<tr><td class=centered><input type=text name=edgeRedCoverage size=4 style='text-align:center'"
+         " value='" << edgeRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
+        "<tr><td class=centered><input type=text name=edgeGreenCoverage size=4 style='text-align:center'" <<
+        " value='" << edgeGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+
         "</table>"
 
 
@@ -444,7 +490,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
 
 
-bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters() const
+bool LocalMarkerGraphRequestParameters::hasMissingRequiredParameters() const
 {
     return
         !vertexIdIsPresent ||
@@ -454,7 +500,7 @@ bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters(
 
 
 
-string Assembler::LocalMarkerGraphRequestParameters::vertexScalingFactorString() const
+string LocalMarkerGraphRequestParameters::vertexScalingFactorString() const
 {
     if(vertexScalingFactorIsPresent) {
         std::ostringstream s;
@@ -467,7 +513,7 @@ string Assembler::LocalMarkerGraphRequestParameters::vertexScalingFactorString()
 
 
 
-string Assembler::LocalMarkerGraphRequestParameters::arrowScalingFactorString() const
+string LocalMarkerGraphRequestParameters::arrowScalingFactorString() const
 {
     if(arrowScalingFactorIsPresent) {
         std::ostringstream s;
@@ -480,7 +526,7 @@ string Assembler::LocalMarkerGraphRequestParameters::arrowScalingFactorString() 
 
 
 
-string Assembler::LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorString() const
+string LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorString() const
 {
     if(edgeThicknessScalingFactorIsPresent) {
         std::ostringstream s;

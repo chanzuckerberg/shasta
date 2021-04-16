@@ -51,7 +51,7 @@ std::pair<bool, LocalMarkerGraph::vertex_descriptor>
 LocalMarkerGraph::vertex_descriptor
     LocalMarkerGraph::addVertex(
     MarkerGraph::VertexId vertexId,
-    int distance,
+    uint64_t distance,
     span<MarkerId> vertexMarkers)
 {
     // Check that the vertex does not already exist.

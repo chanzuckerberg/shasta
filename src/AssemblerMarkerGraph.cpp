@@ -1533,7 +1533,7 @@ void Assembler::writeBadMarkerGraphVertices() const
 bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
-    int distance,
+    uint64_t distance,
     int timeout,                 // Or 0 for no timeout.
     uint64_t minVertexCoverage,
     uint64_t minEdgeCoverage,
@@ -1562,7 +1562,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
 bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     MarkerGraph::VertexId startVertexId,
-    int distance,
+    uint64_t distance,
     int timeout,                 // Or 0 for no timeout.
     uint64_t minVertexCoverage,
     uint64_t minEdgeCoverage,
@@ -1613,8 +1613,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         q.pop();
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
         const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
-        const int distance0 = vertex0.distance;
-        const int distance1 = distance0 + 1;
+        const uint64_t distance0 = vertex0.distance;
+        const uint64_t distance1 = distance0 + 1;
 
         // Loop over the children.
         const auto childEdges = markerGraph.edgesBySource[vertexId0];

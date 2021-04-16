@@ -18,6 +18,7 @@ a group of aligned markers.
 // Shasta.
 #include "AssemblyGraph.hpp"
 #include "Kmer.hpp"
+#include "LocalMarkerGraphRequestParameters.hpp"
 #include "MarkerGraph.hpp"
 #include "Reads.hpp"
 
@@ -39,6 +40,7 @@ namespace shasta {
 
     class CompressedMarker;
     class ConsensusCaller;
+    class LocalMarkerGraphRequestParameters;
     class LongBaseSequences;
 }
 
@@ -52,7 +54,7 @@ public:
     MarkerGraph::VertexId vertexId;
 
     // The distance from the start vertex.
-    int distance;
+    uint64_t distance;
 
     // The markers of this vertex.
     class MarkerInfo {
@@ -65,7 +67,7 @@ public:
 
     LocalMarkerGraphVertex(
         MarkerGraph::VertexId vertexId,
-        int distance) :
+        uint64_t distance) :
         vertexId(vertexId),
         distance(distance)
         {}
@@ -212,7 +214,7 @@ public:
     // A vertex with this MarkerGraph::VertexId must not exist.
     vertex_descriptor addVertex(
         MarkerGraph::VertexId,
-        int distance,
+        uint64_t distance,
         span<MarkerId> markers);
 
     // Get the KmerId for a vertex.
@@ -234,20 +236,10 @@ public:
     // Write in Graphviz format.
     void write(
         ostream&,
-        int maxDistance,
-        bool addLabels,
-        const string& layoutMethod,
-        double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double arrowScalingFactor) const;
+        const LocalMarkerGraphRequestParameters&) const;
     void write(
         const string& fileName,
-        int maxDistance,
-        bool addLabels,
-        const string& layoutMethod,
-        double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double arrowScalingFactor) const;
+        const LocalMarkerGraphRequestParameters&) const;
 
 
     // Approximate topological sort, adding edges
@@ -282,26 +274,16 @@ private:
 
 
     // Class used for graphviz output.
-    class Writer {
+    class Writer : public LocalMarkerGraphRequestParameters {
     public:
         Writer(
             const LocalMarkerGraph&,
-            int maxDistance,
-            bool addLabels,
-            const string& layoutMethod,
-            double vertexScalingFactor,
-            double edgeThicknessScalingFactor,
-            double arrowScalingFactor);
-            void operator()(ostream&) const;
+            const LocalMarkerGraphRequestParameters&);
+
+        void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalMarkerGraph& graph;
-        int maxDistance;
-        bool addLabels;
-        const string& layoutMethod;
-        double vertexScalingFactor;
-        double edgeThicknessScalingFactor;
-        double arrowScalingFactor;
 
         // Vertex and edge colors.
         static const string vertexColorZeroDistance;
@@ -319,9 +301,9 @@ private:
         static const string edgeLabelColorRemovedAsLowCoverageCrossEdge;
         static const string edgeLabelColorNotRemovedNotAssembled;
         static const string edgeLabelColorNotRemovedAssembled;
-        const string& vertexColor(const LocalMarkerGraphVertex&) const;
-        const string& edgeArrowColor(const LocalMarkerGraphEdge&) const;
-        const string& edgeLabelColor(const LocalMarkerGraphEdge&) const;
+        string vertexColor(const LocalMarkerGraphVertex&) const;
+        string edgeArrowColor(const LocalMarkerGraphEdge&) const;
+        string edgeLabelColor(const LocalMarkerGraphEdge&) const;
     };
     friend class Writer;
 
