@@ -184,7 +184,8 @@ void Assembler::exploreMarkerGraph(
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.addLabels ? "&addLabels=on" : "") +
+            "&vertexLabels=" + to_string(requestParameters.vertexLabels) +
+            "&edgeLabels=" + to_string(requestParameters.edgeLabels) +
             "&layout=" + requestParameters.layoutMethod +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
@@ -218,7 +219,8 @@ void Assembler::exploreMarkerGraph(
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.addLabels ? "&addLabels=on" : "") +
+            "&vertexLabels=" + to_string(requestParameters.vertexLabels) +
+            "&edgeLabels=" + to_string(requestParameters.edgeLabels) +
             "&layout=" + requestParameters.layoutMethod +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
@@ -262,10 +264,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.maxDistance = 0;
     parameters.maxDistanceIsPresent = getParameterValue(
         request, "maxDistance", parameters.maxDistance);
-
-    string addLabelsString;
-    parameters.addLabels = getParameterValue(
-        request, "addLabels", addLabelsString);
 
     parameters.layoutMethod = "dotLr";
     getParameterValue(request, "layoutMethod", parameters.layoutMethod);
@@ -313,6 +311,12 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.timeout = 30;
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
+
+    parameters.vertexLabels = 0;
+    getParameterValue(request, "vertexLabels", parameters.vertexLabels);
+
+    parameters.edgeLabels = 0;
+    getParameterValue(request, "edgeLabels", parameters.edgeLabels);
 
     parameters.vertexColoring = "byDistance";
     getParameterValue(request, "vertexColoring", parameters.vertexColoring);
@@ -421,12 +425,6 @@ void LocalMarkerGraphRequestParameters::writeForm(
         << (layoutMethod=="sfdp" ? " checked=checked" : "") <<
         ">Sfdp</span>"
 
-        "<tr title='Check for to add labels to vertices and edges'>"
-        "<td>Labels"
-        "<td class=centered><input type=checkbox name=addLabels"
-        << (addLabels ? " checked=checked" : "") <<
-        ">"
-
         "<tr>"
         "<td>Vertex scaling factor (sfdp only)"
         "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
@@ -447,6 +445,24 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<td class=centered><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
         ">"
+
+        "<tr>"
+        "<td>Vertex labels"
+        "<td><input type=radio name=vertexLabels value=0" <<
+        ((vertexLabels==0) ? " checked=checked" : "") << ">None"
+        "<br><input type=radio name=vertexLabels value=1" <<
+        ((vertexLabels==1) ? " checked=checked" : "") << ">Terse"
+        "<br><input type=radio name=vertexLabels value=2" <<
+        ((vertexLabels==2) ? " checked=checked" : "") << ">Verbose"
+
+        "<tr>"
+        "<td>Edge labels"
+        "<td><input type=radio name=edgeLabels value=0" <<
+        ((edgeLabels==0) ? " checked=checked" : "") << ">None"
+        "<br><input type=radio name=edgeLabels value=1" <<
+        ((edgeLabels==1) ? " checked=checked" : "") << ">Terse"
+        "<br><input type=radio name=edgeLabels value=2" <<
+        ((edgeLabels==2) ? " checked=checked" : "") << ">Verbose"
 
         "<tr><td>Vertex coloring"
         "<td>"

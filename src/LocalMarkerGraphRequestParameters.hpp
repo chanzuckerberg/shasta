@@ -15,12 +15,18 @@ public:
     bool vertexIdIsPresent;
     uint32_t maxDistance;
     bool maxDistanceIsPresent;
-    bool addLabels;
     string layoutMethod;    // dotLr, dotTb, or sfdp
     bool useWeakEdges;
     bool usePrunedEdges;
     bool useSuperBubbleEdges;
     bool useLowCoverageCrossEdges;
+
+    // Vertex and edge label control:
+    // 0 = no label
+    // 1 = terse label
+    // 2 = verbose tabel
+    uint64_t vertexLabels;
+    uint64_t edgeLabels;
 
     uint64_t minVertexCoverage;
     bool minVertexCoverageIsPresent;

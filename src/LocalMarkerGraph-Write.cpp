@@ -218,12 +218,16 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
     // This turns off the tooltip on the graph and the edges.
     s << "tooltip = \" \";\n";
 
-    if(addLabels) {
+    if((vertexLabels > 0) or (edgeLabels > 0)) {
         s << "overlap = false;\n";
+    }
+    if(vertexLabels > 0) {
         s << "node [fontname = \"Courier New\" shape=rectangle];\n";
-        s << "edge [fontname = \"Courier New\"];\n";
     } else {
         s << "node [shape=point];\n";
+    }
+    if(edgeLabels > 0) {
+        s << "edge [fontname = \"Courier New\" shape=rectangle];\n";
     }
 
     if(layoutMethod == "dotLr") {
@@ -263,7 +267,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
 
 
-    if(!addLabels) {
+    if(vertexLabels == 0) {
 
         // Vertex area is proportional to coverage.
         s << " width=\"";
@@ -372,7 +376,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     }
 
     // Label.
-    if(addLabels) {
+    if(edgeLabels > 0) {
 
         s << " label=<<font color=\"black\">";
         s << "<table";
