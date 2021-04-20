@@ -269,6 +269,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
     if(vertexLabels == 0) {
 
+
+
         // Vertex area is proportional to coverage.
         s << " width=\"";
         const auto oldPrecision = s.precision(4);
@@ -279,7 +281,11 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Color.
         s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
 
-    } else {
+    } else if(vertexLabels == 1) {
+
+
+
+        // Vertex terse label.
 
         // Color.
         if(vertexColoring != "none") {
@@ -320,7 +326,45 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
         // End the label.
         s << "\"";
+
+    } else {
+
+        // Vertex verbose label.
+
+        // Color.
+        if(vertexColoring != "none") {
+            s << " style=filled";
+            s << " fillcolor=\"" << color << "\"";
+        }
+
+        // Label.
+        s << " label=<<table border='0' cellborder='0' cellspacing='0'>";
+
+        // Vertex id.
+        s << "<tr><td align='left'>Vertex</td><td>" << vertex.vertexId << "</td></tr>";
+
+        // Coverage.
+        s << "<tr><td align='left'>Coverage</td><td>" << coverage << "</td></tr><hr/>";
+
+        // Marker information.
+        for(const auto& markerInfo: vertex.markerInfos) {
+            s << "<tr><td align='left'>" << markerInfo.orientedReadId <<
+                "</td><td>" << markerInfo.ordinal << "</td></tr>";
+        }
+        s << "<hr/>";
+
+        // Marker sequence (run-length).
+        const size_t k = graph.k;
+        const KmerId kmerId = graph.getKmerId(v);
+        const Kmer kmer(kmerId, k);
+        s << "<tr><td align='left'>Marker</td><td>";
+        kmer.write(s, k);
+        s << "</td></tr>";
+
+        s<< "</table>>";
     }
+
+
 
     // End vertex attributes.
     s << "]";
