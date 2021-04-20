@@ -5,6 +5,7 @@
 #include "ConsensusCaller.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -339,7 +340,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         }
 
         // Label.
-        s << " label=<<table border='0' cellborder='0' cellspacing='0'>";
+        s << " label=<<table border='0' cellborder='0' cellspacing='2'>";
 
         // Vertex id.
         s << "<tr><td align='left'>Vertex</td><td>" << vertex.vertexId << "</td></tr>";
@@ -450,42 +451,77 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << " bgcolor=\"" << labelColor << "\"";
         s << " border=\"1\"";
         s << " cellborder=\"0\"";
-        s << " cellspacing=\"0\"";
+        s << " cellspacing=\"2\"";
         s << ">";
 
         // Edge id.
         SHASTA_ASSERT(edge.edgeId != MarkerGraph::invalidEdgeId);
-        s << "<tr><td>Edge " << edge.edgeId << "</td></tr>";
+        s << "<tr><td align='left'>Edge</td><td>" << edge.edgeId << "</td></tr>";
 
         // Assembly graph locations.
         for(const auto& p: edge.assemblyGraphLocations) {
             const AssemblyGraph::EdgeId edgeId = p.first;
             const uint32_t position = p.second;
-            s << "<tr><td>Assembly " << edgeId << "-" <<
+            s << "<tr><td align='left'>Assembly</td><td>" << edgeId << "-" <<
                 position << "</td></tr>";
         }
 
         // Coverage.
-        s << "<tr><td>Coverage " << coverage << "</td></tr>";
+        s << "<tr><td align='left'>Coverage</td><td>" << coverage << "</td></tr>";
+
+
+
+        // Verbose labels include the detail of all oriented read ids on this edge.
+        if(edgeLabels == 2) {
+
+            vector< pair<OrientedReadId, LocalMarkerGraphEdge::Sequence> > table;
+            for(const auto& info: edge.infos) {
+                const auto& sequence = info.first;
+                const auto& intervals = info.second;
+                for(const auto& interval: intervals) {
+                    table.push_back(make_pair(interval.orientedReadId, sequence));
+                }
+            }
+            sort(table.begin(), table.end(),
+                OrderPairsByFirstOnly<OrientedReadId, LocalMarkerGraphEdge::Sequence>());
+
+            s << "<hr/>";
+            for(const auto& p: table) {
+                s << "<tr><td align='left'>" << p.first << "</td><td>";
+                const auto& sequence = p.second;
+                if(sequence.overlappingBaseCount > 0) {
+                    s << int(sequence.overlappingBaseCount);
+                } else {
+                    for(const auto base: sequence.sequence) {
+                        s << base;
+                    }
+                }
+                s << "</td></tr>";
+            }
+            s << "<hr/>";
+        }
+
+
 
         // Consensus.
-        if(edge.consensusSequence.empty()) {
-            s << "<tr><td>Overlap " << int(edge.consensusOverlappingBaseCount) << "</td></tr>";
+        if(edge.consensusOverlappingBaseCount > 0) {
+            s << "<tr><td align='left'>Consensus overlap</td><td>";
+            s << int(edge.consensusOverlappingBaseCount) << "</td></tr>";
         } else {
             // Consensus sequence (run-length).
-            s << "<tr><td>";
+            s << "<tr><td align='left'>Consensus (RLE)</td><td>";
             for(const Base base: edge.consensusSequence) {
                 s << base;
             }
             s << "</td></tr>";
             // Consensus repeat counts.
-            s << "<tr><td>";
+            s << "<tr><td align='left'>Consensus counts</td><td>";
             for(const int repeatCount: edge.consensusRepeatCounts) {
                 s << repeatCount;
             }
             s << "</td></tr>";
             // Consensus sequence (raw).
-            s << "<tr><td>";
+            s << "<tr><td align='left'>Consensus (raw)</td><td>";
             for(size_t i=0; i<edge.consensusSequence.size(); i++) {
                 const Base base = edge.consensusSequence[i];
                 const int repeatCount = edge.consensusRepeatCounts[i];
