@@ -342,9 +342,9 @@ void LocalMarkerGraphRequestParameters::writeForm(
     html <<
         "<form>"
 
-        "<table>"
 
-        "<tr><th class=left colspan=2>Local marker graph creation"
+        "<h3>Local marker graph creation</h3>"
+        "<table>"
 
         "<tr title='Start vertex id between 0 and " << vertexCount << "'>"
         "<td>Start vertex id"
@@ -398,8 +398,10 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<input type=checkbox name=useLowCoverageCrossEdges" <<
         (useLowCoverageCrossEdges ? " checked=checked" : "") << ">"
 
-        "<tr><th class=left colspan=2>Graphics"
+        "</table>"
+        "<h3>Graphics</h3>"
 
+        "<table>"
         "<tr title='Graphics width in pixels.'>"
         "<td>Graphics width in pixels"
         "<td class=centered><input type=text required name=sizePixels size=8 style='text-align:center'"
