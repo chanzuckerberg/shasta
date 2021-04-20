@@ -306,23 +306,24 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         kmer.write(s, k);
         s << "\\n";
 
-        // Consensus repeat counts.
+        // Consensus, if available.
         if(vertex.storedConsensusRepeatCounts.size() == k) {
+            // Consensus repeat counts.
             for(size_t i=0; i<k; i++) {
                 s << int(vertex.storedConsensusRepeatCounts[i]);
             }
             s << "\\n";
-        }
 
-        // Consensus sequence (raw).
-        for(size_t i=0; i<k; i++) {
-            const Base base = kmer[i];
-            const int repeatCount = int(vertex.storedConsensusRepeatCounts[i]);
-            for(int l=0; l<repeatCount; l++) {
-                s << base;
+            // Consensus sequence (raw).
+            for(size_t i=0; i<k; i++) {
+                const Base base = kmer[i];
+                const int repeatCount = int(vertex.storedConsensusRepeatCounts[i]);
+                for(int l=0; l<repeatCount; l++) {
+                    s << base;
+                }
             }
+            s << "\\n";
         }
-        s << "\\n";
 
         // End the label.
         s << "\"";
