@@ -5,6 +5,7 @@
 #include "AssemblyGraph.hpp"
 #include "compressAlignment.hpp"
 #include "ConsensusCaller.hpp"
+#include "hsv.hpp"
 #include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "MarkerConnectivityGraph.hpp"
@@ -43,8 +44,31 @@ void Assembler::exploreMarkerGraph(
     html << "</div>";
     html << "<div style='float:left;margin:10px;'>";
     LocalMarkerGraph::writeColorLegend(html);
+
+
+
+    // If there are highlighted oriented reads, write a legend with their colors.
+    if(not requestParameters.highlightedOrientedReads.empty()) {
+        double S, L;
+        tie(S, L) = hsvToHsl(requestParameters.S, requestParameters.V);
+        html << "<p><table><tr>";
+        for(const auto& p:requestParameters.highlightedOrientedReads) {
+            html << "<td class=centered>" << p.first;
+        }
+        html << "<tr>";
+        for(const auto& p:requestParameters.highlightedOrientedReads) {
+            const uint64_t hue = uint64_t(p.second * 360.);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+        html << "</table>";
+
+    }
     html << "</div>";
     html << "</div>";
+
+
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -335,6 +359,37 @@ void Assembler::getLocalMarkerGraphRequestParameters(
 
     parameters.edgeGreenCoverage = 10;
     getParameterValue(request, "edgeGreenCoverage", parameters.edgeGreenCoverage);
+
+    getParameterValue(request, "highlightedOrientedReads", parameters.highlightedOrientedReadsString);
+    parameters.parseHighlightedOrientedReads();
+
+}
+
+
+// This parses highlightedOrientedReadsString and creates
+// highlightedOrientedReads. Each oriented read is assigned a hue
+// via hashing of the OrientedReadId. This way, an oriented read
+// is always highlighted in the same color.
+void LocalMarkerGraphRequestParameters::parseHighlightedOrientedReads()
+{
+    highlightedOrientedReads.clear();
+    if(highlightedOrientedReadsString.empty()) {
+        return;
+    }
+
+    vector<string> tokens;
+    boost::algorithm::split(tokens, highlightedOrientedReadsString, boost::algorithm::is_any_of(" "));
+
+    for(const string& token: tokens) {
+        const OrientedReadId orientedReadId = OrientedReadId(token);
+
+        // Hash the OrientedReadId to create a Hue value in (0,1).
+        // This way the same OrientedReadId always gets the same color.
+        const uint32_t hashValue = MurmurHash2(&orientedReadId, sizeof(OrientedReadId), 751);
+        const double hue = double(hashValue) / double(std::numeric_limits<uint32_t>::max());
+
+        highlightedOrientedReads.insert(make_pair(orientedReadId, hue));
+    }
 }
 
 
@@ -497,6 +552,14 @@ void LocalMarkerGraphRequestParameters::writeForm(
          " value='" << edgeRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
         "<tr><td class=centered><input type=text name=edgeGreenCoverage size=4 style='text-align:center'" <<
         " value='" << edgeGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+
+        "<tr>"
+        "<td>Highlight oriented reads<br>"
+        "(Enter one or more oriented reads separated by spaces, "
+        "for example \"432-0 1256-1\")"
+        "<td class=centered><input type=text name=highlightedOrientedReads size=12"
+        << (highlightedOrientedReadsString.empty() ? "" : (" value='" + highlightedOrientedReadsString + "'")) <<
+        "</textarea>"
 
         "</table>"
 

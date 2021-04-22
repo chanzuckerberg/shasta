@@ -420,7 +420,10 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
     // Thickness and weight are determined by coverage.
-    const double thickness = 0.2 * edgeThicknessScalingFactor * double(coverage==0 ? 1 : coverage);
+    double thickness = edgeThicknessScalingFactor;
+    if(highlightedOrientedReads.empty()) {
+        thickness *= 0.2 * double(max(coverage, size_t(1)));
+    }
     s << " penwidth=\"";
     const auto oldPrecision = s.precision(4);
     s <<  thickness;
@@ -430,9 +433,54 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     // Arrow size.
     s << " arrowsize=\"" << arrowScalingFactor << "\"";
 
+
+
     // Color.
-    s << " fillcolor=\"" << arrowColor << "\"";
-    s << " color=\"" << arrowColor << "\"";
+    if(highlightedOrientedReads.empty()) {
+        s << " fillcolor=\"" << arrowColor << "\"";
+        s << " color=\"" << arrowColor << "\"";
+    } else {
+
+        // Highlighting of oriented reads overrides the other color options.
+
+        // Gather the oriented read ids.
+        vector<OrientedReadId> orientedReadIds;
+        for(const auto& info: edge.infos) {
+            const auto& intervals = info.second;
+            for(const auto& interval: intervals) {
+                orientedReadIds.push_back(interval.orientedReadId);
+            }
+        }
+        sort(orientedReadIds.begin(), orientedReadIds.end());
+
+        vector<string> colors;
+        for(const OrientedReadId orientedReadId: orientedReadIds) {
+            auto it = highlightedOrientedReads.find(orientedReadId);
+            if(it == highlightedOrientedReads.end()) {
+                colors.push_back("black");
+            } else {
+                const double H = it->second;
+                colors.push_back(to_string(H) + " " + to_string(S) + " " + to_string(V));
+            }
+        }
+
+
+        if(colors.empty()) {
+            s << " color=\"black\"";
+        } else {
+
+            s << "color=\"";
+            for(uint64_t i=0; i<colors.size(); i++) {
+                if(i > 0) {
+                    s << ":";
+                }
+                s << colors[i];
+            }
+            s << "\"";
+        }
+    }
+
+
 
     // If the edge was not marked as a DAG edge during approximate topological sort,
     // tell graphviz not to use it in constraint assignment.
