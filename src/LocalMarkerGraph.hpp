@@ -308,7 +308,9 @@ private:
     friend class Writer;
 
 public:
-    static void writeColorLegend(ostream&);
+    static void writeColorLegendVerticesByDistance(ostream&);
+    static void writeColorLegendEdgeArrowsByFlags(ostream&);
+    static void writeColorLegendEdgeLabelsByFlags(ostream&);
 };
 
 #endif

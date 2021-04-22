@@ -171,19 +171,25 @@ string LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge
 
 
 
-void LocalMarkerGraph::writeColorLegend(ostream& html)
+void LocalMarkerGraph::writeColorLegendVerticesByDistance(ostream& html)
 {
     html <<
         "<table style='font-size:10px'>"
-        "<tr><th class=centered colspan=3>Marker graph color legend"
-        "<tr><td rowspan=4>Vertices"
         "<tr><td>Zero distance<td style='width:50px;background-color:" <<
         Writer::vertexColorZeroDistance << "'>"
         "<tr><td>Intermediate distances<td style='width:50px;background-color:" <<
         Writer::vertexColorIntermediateDistance << "'>"
         "<tr><td>Maximum distance<td style='width:50px;background-color:" <<
         Writer::vertexColorMaxDistance << "'>"
-        "<tr><td rowspan=7>Edge<br>arrows"
+        "</table>";
+}
+
+
+
+void LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(ostream& html)
+{
+    html <<
+        "<table style='font-size:10px'>"
         "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorRemovedDuringTransitiveReduction << "'>"
         "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
@@ -196,7 +202,16 @@ void LocalMarkerGraph::writeColorLegend(ostream& html)
         Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
         "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorNotRemovedAssembled << "'>"
-        "<tr><td rowspan=7>Edge<br>labels"
+        "</table>";
+
+}
+
+
+
+void LocalMarkerGraph::writeColorLegendEdgeLabelsByFlags(ostream& html)
+{
+    html <<
+        "<table style='font-size:10px'>"
         "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorRemovedDuringTransitiveReduction << "'>"
         "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
@@ -209,7 +224,8 @@ void LocalMarkerGraph::writeColorLegend(ostream& html)
         Writer::edgeLabelColorNotRemovedNotAssembled << "'>"
         "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorNotRemovedAssembled << "'>"
-       "</table>";
+        "</table>";
+
 }
 
 
