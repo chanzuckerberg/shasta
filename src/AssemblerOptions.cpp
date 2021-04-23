@@ -699,7 +699,7 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Assembly.consensusCaller",
         value<string>(&assemblyOptions.consensusCallerString)->
-        default_value("Bayesian:guppy-2.3.5-a"),
+        default_value("Modal"),
         "Selects the consensus caller for repeat counts. "
         "See the documentation for available choices.")
 
