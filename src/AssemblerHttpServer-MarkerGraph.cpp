@@ -331,8 +331,8 @@ void Assembler::exploreMarkerGraph(
             (requestParameters.useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "");
         html <<
             "element = document.getElementById('vertex" << vertex.vertexId << "');\n"
-            "element.onclick = function() {location.href='" << url << "';};\n"
-            "element.style.cursor = \"pointer\";\n";
+            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url << "';};\n"
+            "element.style.cursor = \"default\";\n";
 
         // Add a right click to show details.
         const string detailUrl =
@@ -366,8 +366,8 @@ void Assembler::exploreMarkerGraph(
             (requestParameters.useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "");
         html <<
             "element = document.getElementById('edge" << edge.edgeId << "');\n"
-            "element.onclick = function() {location.href='" << url << "';};\n"
-            "element.style.cursor = \"pointer\";\n";
+            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url << "';};\n"
+            "element.style.cursor = \"default\";\n";
 
         // Add a right click to show details.
         const string detailUrl =

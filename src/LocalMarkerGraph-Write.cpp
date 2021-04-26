@@ -282,7 +282,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
     s << " tooltip=\"";
     s << "Vertex " << vertex.vertexId << ", coverage ";
     s << coverage << ", distance " << vertex.distance;
-    s << ", click to recenter graph here, right click for detail\"";
+    s << ", Ctrl-click to recenter graph here, right click for detail\"";
 
 
 
@@ -432,7 +432,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     const string tooltipText =
         "Edge " + to_string(edge.edgeId) +
         ", coverage " + to_string(coverage) +
-        ", click to recenter graph here, right click for detail";
+        ", Ctrl-click to recenter graph here, right click for detail";
     s << " tooltip=\"" << tooltipText << "\"";
     s << " labeltooltip=\"" << tooltipText << "\"";
     s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
