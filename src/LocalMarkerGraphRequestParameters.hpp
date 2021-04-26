@@ -30,6 +30,8 @@ public:
     // 2 = verbose tabel
     uint64_t vertexLabels;
     uint64_t edgeLabels;
+    string vertexLabelsString() const;
+    string edgeLabelsString() const;
 
     uint64_t minVertexCoverage;
     bool minVertexCoverageIsPresent;
@@ -59,6 +61,9 @@ public:
 
     void writeForm(ostream&, uint64_t vertexCount) const;
     bool hasMissingRequiredParameters() const;
+
+    string url() const;
+    string urlForVertex(uint64_t newVertexId) const;
 
 
 

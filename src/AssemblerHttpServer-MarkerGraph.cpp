@@ -317,18 +317,7 @@ void Assembler::exploreMarkerGraph(
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         const LocalMarkerGraphVertex& vertex = graph[v];
         SHASTA_ASSERT(!vertex.markerInfos.empty());
-        const string url =
-            "exploreMarkerGraph?vertexId=" + to_string(vertex.vertexId) +
-            "&maxDistance=" + to_string(requestParameters.maxDistance) +
-            "&sizePixels=" + to_string(requestParameters.sizePixels) +
-            "&timeout=" + to_string(requestParameters.timeout) +
-            "&vertexLabels=" + to_string(requestParameters.vertexLabels) +
-            "&edgeLabels=" + to_string(requestParameters.edgeLabels) +
-            "&layout=" + requestParameters.layoutMethod +
-            (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
-            (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
-            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
-            (requestParameters.useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "");
+        const string url = requestParameters.urlForVertex(vertex.vertexId);
         html <<
             "element = document.getElementById('vertex" << vertex.vertexId << "');\n"
             "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url << "';};\n"
@@ -352,18 +341,7 @@ void Assembler::exploreMarkerGraph(
         const LocalMarkerGraphEdge& edge = graph[e];
         const LocalMarkerGraph::vertex_descriptor v0 = source(e, graph);
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
-        const string url =
-            "exploreMarkerGraph?vertexId=" + to_string(vertex0.vertexId) +
-            "&maxDistance=" + to_string(requestParameters.maxDistance) +
-            "&sizePixels=" + to_string(requestParameters.sizePixels) +
-            "&timeout=" + to_string(requestParameters.timeout) +
-            "&vertexLabels=" + to_string(requestParameters.vertexLabels) +
-            "&edgeLabels=" + to_string(requestParameters.edgeLabels) +
-            "&layout=" + requestParameters.layoutMethod +
-            (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
-            (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
-            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
-            (requestParameters.useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "");
+        const string url = requestParameters.urlForVertex(vertex0.vertexId);
         html <<
             "element = document.getElementById('edge" << edge.edgeId << "');\n"
             "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url << "';};\n"
@@ -732,6 +710,71 @@ string LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorString() con
     }
 }
 
+
+
+string LocalMarkerGraphRequestParameters::url() const
+{
+    return
+        string("exploreMarkerGraph") +
+        "?vertexId=" + to_string(vertexId) +
+        "&maxDistance=" + to_string(maxDistance) +
+        "&minVertexCoverage=" + to_string(minVertexCoverage) +
+        "&minEdgeCoverage=" + to_string(minEdgeCoverage) +
+        "&sizePixels=" + to_string(sizePixels) +
+        "&layoutMethod=" + layoutMethod +
+        (useWeakEdges ? "&useWeakEdges=on" : "") +
+        (usePrunedEdges ? "&usePrunedEdges=on" : "") +
+        (useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
+        (useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "") +
+        "&vertexScalingFactor=" + to_string(vertexScalingFactor) +
+        "&edgeThicknessScalingFactor=" + to_string(edgeThicknessScalingFactor) +
+        "&arrowScalingFactor=" + to_string(arrowScalingFactor) +
+        "&timeout=" + to_string(timeout) +
+        "&vertexLabels=" + vertexLabelsString() +
+        "&edgeLabels=" + edgeLabelsString() +
+        "&vertexColoring=" + vertexColoring +
+        "&vertexRedCoverage=" + to_string(vertexRedCoverage) +
+        "&vertexGreenCoverage=" + to_string(vertexGreenCoverage) +
+        "&edgeColoring=" + edgeColoring +
+        "&edgeRedCoverage=" + to_string(edgeRedCoverage) +
+        "&edgeGreenCoverage=" + to_string(edgeGreenCoverage) +
+        "&highlightedOrientedReads=" + highlightedOrientedReadsString;
+
+}
+
+
+
+string LocalMarkerGraphRequestParameters::urlForVertex(uint64_t newVertexId) const
+{
+    LocalMarkerGraphRequestParameters newParameters = *this;
+    newParameters.vertexId = newVertexId;
+    return newParameters.url();
+}
+
+
+
+string LocalMarkerGraphRequestParameters::vertexLabelsString() const
+{
+    switch(vertexLabels) {
+        case 0: return "none";
+        case 1: return "terse";
+        case 2: return "verbose";
+        default: SHASTA_ASSERT(0);
+    }
+}
+
+
+
+string LocalMarkerGraphRequestParameters::edgeLabelsString() const
+{
+    switch(edgeLabels) {
+        case 0: return "none";
+        case 1: return "terse";
+        case 2: return "verbose";
+        default: SHASTA_ASSERT(0);
+    }
+
+}
 
 
 void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream& html)
