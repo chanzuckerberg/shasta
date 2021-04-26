@@ -73,7 +73,9 @@ string LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& verte
     } else if(vertexColoring == "byCoverage") {
 
         const uint64_t coverage = vertex.markerInfos.size();
-        double h = double(coverage - vertexRedCoverage) / double(vertexGreenCoverage - vertexRedCoverage);
+        double h =
+            (double(coverage) - double(vertexRedCoverage)) /
+            (double(vertexGreenCoverage) - double(vertexRedCoverage));
         h = max(h, 0.);
         h = min(h, 1.);
         return to_string(h/3.) + ",1.,0.9";
