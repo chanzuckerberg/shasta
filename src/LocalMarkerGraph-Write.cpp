@@ -435,7 +435,11 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         ", Ctrl-click to recenter graph here, right click for detail";
     s << " tooltip=\"" << tooltipText << "\"";
     s << " labeltooltip=\"" << tooltipText << "\"";
-    s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
+
+    // Hack to convince graphviz to not ignore the labeltooltip.
+    // It seems that this is nolonger necessary, and having it makes it
+    // impossible to select text in the edge label.
+    // s << " URL=\"#a\"";
 
     // Thickness and weight are determined by coverage.
     double thickness = edgeThicknessScalingFactor;
