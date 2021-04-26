@@ -284,7 +284,7 @@ void Assembler::exploreMarkerGraph(
         "</h2>";
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    addScaleSvgButtons(html, requestParameters.sizePixels);
 
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
@@ -2087,7 +2087,8 @@ void Assembler::exploreMarkerConnectivity(
     filesystem::remove(dotFileName);
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    const int sizePixels = 800;
+    addScaleSvgButtons(html, sizePixels);
     html << "<br>Found " << num_vertices(graph) << " markers.";
 
     // Display the svg file.
@@ -2098,7 +2099,6 @@ void Assembler::exploreMarkerConnectivity(
     svgFile.close();
 
     // Scale to desired size, then make it visible.
-    const int sizePixels = 800;
     html <<
         "</div>"
         "<script>"

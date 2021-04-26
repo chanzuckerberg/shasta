@@ -111,7 +111,7 @@ void Assembler::exploreAssemblyGraph(
 
     // Buttons to resize the svg locally.
     html << "<br>";
-    addScaleSvgButtons(html);
+    addScaleSvgButtons(html, requestParameters.sizePixels);
 
     // Copy the svg to html.
     const string svgFileName = dotFileName + ".svg";

@@ -477,7 +477,7 @@ void Assembler::exploreAlignmentCandidateGraph(
         )stringDelimiter";
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    addScaleSvgButtons(html, sizePixels);
 
     // Write the graph to svg directly, without using Graphviz rendering.
     ComputeLayoutReturnCode returnCode = graph.computeLayout(layoutMethod, timeout);
@@ -2918,7 +2918,7 @@ void Assembler::exploreAlignmentGraph(
         " vertices and " << num_edges(graph) << " edges.<br>";
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    addScaleSvgButtons(html, sizePixels);
 
     // Write the graph to svg directly, without using Graphviz rendering.
     ComputeLayoutReturnCode returnCode = graph.computeLayout("sfdp", timeout);

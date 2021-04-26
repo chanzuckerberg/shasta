@@ -75,8 +75,10 @@ bool Assembler::parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector
 
 // Write to html buttons to resize the svg locally (in the browser).
 // This assumes that the page contains a single svg object.
-void Assembler::addScaleSvgButtons(ostream& html)
+void Assembler::addScaleSvgButtons(ostream& html, uint64_t pixelSize)
 {
+    html << "<script>var pixelSize = " << pixelSize << ";</script>\n";
+
     html << R"stringDelimiter(
         <script>
         function svgLarger()
@@ -87,6 +89,7 @@ void Assembler::addScaleSvgButtons(ostream& html)
             element.setAttribute("width", 1.25*width);
             element.setAttribute("height", 1.25*height);
             document.getElementById("largerButton").focus();
+            pixelSize = pixelSize * 1.25;
         }
         function svgSmaller()
         {
@@ -96,6 +99,7 @@ void Assembler::addScaleSvgButtons(ostream& html)
             element.setAttribute("width", 0.8*width);
             element.setAttribute("height", 0.8*height);
             document.getElementById("smallerButton").focus();
+            pixelSize = pixelSize * 0.8
         }
         </script>
         <button type="button" id=largerButton onclick='svgLarger()'>Larger</button>
@@ -485,7 +489,7 @@ void Assembler::exploreUndirectedReadGraph(
         )stringDelimiter";
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    addScaleSvgButtons(html, sizePixels);
 
     // Write the graph to svg directly, without using Graphviz rendering.
     ComputeLayoutReturnCode returnCode = graph.computeLayout(layoutMethod, timeout);
