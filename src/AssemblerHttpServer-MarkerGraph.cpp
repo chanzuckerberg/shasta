@@ -49,6 +49,18 @@ void Assembler::exploreMarkerGraph(
         return;
     }
 
+    // Some sanity checks.
+    if(requestParameters.vertexRedCoverage >= requestParameters.vertexGreenCoverage) {
+        html << "</div><span style='color:purple'>"
+            "Red vertex coverage must be less than green vertex coverage.</span></div>";
+        return;
+    }
+    if(requestParameters.edgeRedCoverage >= requestParameters.edgeGreenCoverage) {
+        html << "</div><span style='color:purple'>"
+            "Red edge coverage must be less than green edge coverage.</span></div>";
+        return;
+    }
+
 
     // Start a div to contain the legends.
     html << "<div style='float:left;margin:10px;'>";
