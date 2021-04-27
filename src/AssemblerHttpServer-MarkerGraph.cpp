@@ -311,7 +311,7 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // Make the vertices clickable: left click recenters
+    // Make the vertices clickable: Ctrl-click recenters
     // the graph at that vertex, right click shows vertex details.
     html << "<script>\n";
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
@@ -320,7 +320,8 @@ void Assembler::exploreMarkerGraph(
         const string url = requestParameters.urlForVertex(vertex.vertexId);
         html <<
             "element = document.getElementById('vertex" << vertex.vertexId << "');\n"
-            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url << "';};\n"
+            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url <<
+            "' + '&sizePixels=' + sizePixels;};\n"
             "element.style.cursor = \"default\";\n";
 
         // Add a right click to show details.
@@ -334,7 +335,7 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // Make the edges clickable: left click recenters
+    // Make the edges clickable: Ctrl-click recenters
     // the graph at the source vertex of that edge, right click shows edge details.
     html << "<script>\n";
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
@@ -344,7 +345,8 @@ void Assembler::exploreMarkerGraph(
         const string url = requestParameters.urlForVertex(vertex0.vertexId);
         html <<
             "element = document.getElementById('edge" << edge.edgeId << "');\n"
-            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url << "';};\n"
+            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url <<
+            "' + '&sizePixels=' + sizePixels;};\n"
             "element.style.cursor = \"default\";\n";
 
         // Add a right click to show details.
@@ -720,7 +722,6 @@ string LocalMarkerGraphRequestParameters::url() const
         "&maxDistance=" + to_string(maxDistance) +
         "&minVertexCoverage=" + to_string(minVertexCoverage) +
         "&minEdgeCoverage=" + to_string(minEdgeCoverage) +
-        "&sizePixels=" + to_string(sizePixels) +
         "&layoutMethod=" + layoutMethod +
         (useWeakEdges ? "&useWeakEdges=on" : "") +
         (usePrunedEdges ? "&usePrunedEdges=on" : "") +

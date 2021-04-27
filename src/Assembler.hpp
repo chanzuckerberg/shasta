@@ -1972,7 +1972,7 @@ public:
     void exploreDirectedReadGraph(const vector<string>&, ostream&);
     void exploreCompressedAssemblyGraph(const vector<string>&, ostream&);
     static bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedReadId>& readIds, ostream& html);
-    static void addScaleSvgButtons(ostream&, uint64_t pixelSize);
+    static void addScaleSvgButtons(ostream&, uint64_t sizePixels);
     class HttpServerData {
     public:
         LocalAlignmentCandidateGraph referenceOverlapGraph;
