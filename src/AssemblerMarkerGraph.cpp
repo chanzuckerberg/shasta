@@ -1576,7 +1576,7 @@ void Assembler::vertexCoverageStatisticsByKmerId() const
             continue;
         }
         const vector<uint64_t>& h = histogram[kmerId];
-        hMaxSize = max(hMaxSize, h.size());
+        hMaxSize = max(hMaxSize, uint64_t(h.size()));
     }
 
 
