@@ -1529,6 +1529,103 @@ void Assembler::writeBadMarkerGraphVertices() const
 
 
 
+// Compute marker graph vertex coverage statistics by KmerId.
+void Assembler::vertexCoverageStatisticsByKmerId() const
+{
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+
+    const uint64_t k = assemblerInfo->k;
+
+    // For each KmerId, maintain a histogram by coverage.
+    vector< vector<uint64_t> > histogram(kmerTable.size());
+
+    // Loop over all marker graph vertices.
+    for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertexCount(); vertexId++) {
+
+        // Get the markers for this vertex.
+        const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+        const uint64_t coverage = markerIds.size();
+        SHASTA_ASSERT(coverage > 0);
+
+        // Find the KmerId.
+        const MarkerId firstMarkerId = markerIds.front();
+        const CompressedMarker& compressedMarker = markers.begin()[firstMarkerId];
+        const KmerId kmerId = compressedMarker.kmerId;
+
+        // Increment the histogram.
+        SHASTA_ASSERT(kmerId < histogram.size());
+        vector<uint64_t>& h = histogram[kmerId];
+        if(h.size() <= coverage) {
+            h.resize(coverage + 1, 0ULL);
+        }
+        ++h[coverage];
+    }
+
+
+
+    // Find the maximum histogram size for any k-mer.
+    uint64_t hMaxSize = 0ULL;
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        if(not kmerTable[kmerId].isMarker) {
+            continue;
+        }
+        if(not kmerTable[kmerId].isRleKmer) {
+            continue;
+        }
+        const vector<uint64_t>& h = histogram[kmerId];
+        hMaxSize = max(hMaxSize, h.size());
+    }
+
+
+
+    // Write it out.
+    ofstream csv("VertexCoverageByKmerId.csv");
+    csv << "Kmer,Total,";
+    for(uint64_t coverage=1; coverage<hMaxSize; coverage++) {
+        csv << coverage << ",";
+    }
+    csv << "\n";
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        if(not kmerTable[kmerId].isMarker) {
+            continue;
+        }
+        if(not kmerTable[kmerId].isRleKmer) {
+            continue;
+        }
+        const Kmer kmer(kmerId, k);
+
+        // Compute the total number of markers with this k-mer
+        // that are associated with a vertex.
+        const vector<uint64_t>& h = histogram[kmerId];
+        uint64_t totalMarkerCount = 0ULL;
+        for(uint64_t coverage=1; coverage<hMaxSize; coverage++) {
+            uint64_t vertexCount = 0;
+            if(coverage < h.size()) {
+                vertexCount = h[coverage];
+            }
+            const uint64_t markerCount = coverage * vertexCount;
+            totalMarkerCount += markerCount;
+        }
+
+        kmer.write(csv, k);
+        csv << "," << totalMarkerCount << ",";
+        for(uint64_t coverage=1; coverage<hMaxSize; coverage++) {
+            uint64_t vertexCount = 0;
+            if(coverage < h.size()) {
+                vertexCount = h[coverage];
+            }
+            const uint64_t markerCount = coverage * vertexCount;
+            csv << markerCount << ",";
+        }
+        csv << "\n";
+    }
+}
+
+
+
 #ifdef SHASTA_HTTP_SERVER
 bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     OrientedReadId orientedReadId,

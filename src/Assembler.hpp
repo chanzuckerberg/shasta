@@ -298,6 +298,9 @@ public:
     vector< tuple<ReadId, Strand, uint32_t> >
         getGlobalMarkerGraphVertexMarkers(MarkerGraph::VertexId) const;
 
+    // Compute marker graph vertex coverage statistics by KmerId.
+    void vertexCoverageStatisticsByKmerId() const;
+
 
 
     // Approximate transitive reduction of the marker graph.
