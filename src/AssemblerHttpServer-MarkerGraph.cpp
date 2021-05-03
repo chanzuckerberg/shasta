@@ -208,7 +208,7 @@ void Assembler::exploreMarkerGraph(
         markerGraph.vertexTable,
         *consensusCaller);
     const auto createStartTime = steady_clock::now();
-    if(!extractLocalMarkerGraphUsingStoredConnectivity(
+    if(!extractLocalMarkerGraph(
         requestParameters.vertexId,
         requestParameters.maxDistance,
         requestParameters.timeout,

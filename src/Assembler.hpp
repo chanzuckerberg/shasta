@@ -1575,7 +1575,7 @@ private:
 
 #ifdef SHASTA_HTTP_SERVER
     // Extract a local subgraph of the global marker graph.
-    bool extractLocalMarkerGraphUsingStoredConnectivity(
+    bool extractLocalMarkerGraph(
         OrientedReadId,
         uint32_t ordinal,
         uint64_t distance,
@@ -1588,7 +1588,7 @@ private:
         bool useLowCoverageCrossEdges,
         LocalMarkerGraph&
         );
-    bool extractLocalMarkerGraphUsingStoredConnectivity(
+    bool extractLocalMarkerGraph(
         MarkerGraph::VertexId,
         uint64_t distance,
         int timeout,                 // Or 0 for no timeout.

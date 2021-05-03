@@ -1645,7 +1645,7 @@ void Assembler::vertexCoverageStatisticsByKmerId() const
 
 
 #ifdef SHASTA_HTTP_SERVER
-bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
+bool Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
     uint64_t distance,
@@ -1661,7 +1661,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 {
     const MarkerGraph::VertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-    return extractLocalMarkerGraphUsingStoredConnectivity(
+    return extractLocalMarkerGraph(
         startVertexId, distance, timeout,
         minVertexCoverage,
         minEdgeCoverage,
@@ -1675,7 +1675,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
 
 
-bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
+bool Assembler::extractLocalMarkerGraph(
     MarkerGraph::VertexId startVertexId,
     uint64_t distance,
     int timeout,                 // Or 0 for no timeout.
