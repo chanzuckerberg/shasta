@@ -449,6 +449,11 @@ PYBIND11_MODULE(shasta, module)
         .def("createMarkerGraphEdges",
             &Assembler::createMarkerGraphEdges,
             arg("threadCount") = 0)
+        .def("createMarkerGraphEdgesStrict",
+            &Assembler::createMarkerGraphEdgesStrict,
+            arg("minEdgeCoverage"),
+            arg("minEdgeCoveragePerStrand"),
+            arg("threadCount") = 0)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
             arg("accessEdgesReadWrite") = false)

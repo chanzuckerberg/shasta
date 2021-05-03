@@ -1294,9 +1294,12 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2(size_t thre
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const EdgeId edgeIdReverseComplement =
                 markerGraph.reverseComplementEdge[edgeId];
-            SHASTA_ASSERT(
-                markerGraph.reverseComplementEdge[edgeIdReverseComplement]
-                    == edgeId);
+            if(markerGraph.reverseComplementEdge[edgeIdReverseComplement] != edgeId) {
+                throw runtime_error("Reverse complement edge check failed at edge " +
+                    to_string(edgeId) + ": " +
+                    to_string(edgeIdReverseComplement) + " " +
+                    to_string(markerGraph.reverseComplementEdge[edgeIdReverseComplement]));
+            }
         }
     }
 }
@@ -2065,13 +2068,13 @@ void Assembler::createMarkerGraphEdgesBySourceAndTarget(size_t threadCount)
         largeDataName("GlobalMarkerGraphEdgesByTarget"),
         largeDataPageSize);
 
-    cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
+    // cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
     markerGraph.edgesBySource.beginPass1(markerGraph.vertexCount());
     markerGraph.edgesByTarget.beginPass1(markerGraph.vertexCount());
     setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
-    cout << timestamp << "Create marker graph edges by source and target: pass 2 begins." << endl;
+    // cout << timestamp << "Create marker graph edges by source and target: pass 2 begins." << endl;
     markerGraph.edgesBySource.beginPass2();
     markerGraph.edgesByTarget.beginPass2();
     setupLoadBalancing(markerGraph.edges.size(), 100000);

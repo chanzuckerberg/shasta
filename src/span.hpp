@@ -110,6 +110,14 @@ public:
     {
         return not((*this) == that);
     }
+
+    bool operator<(const span<T>& that) const
+    {
+        return std::lexicographical_compare(
+            dataBegin, dataEnd,
+            that.dataBegin, that.dataEnd);
+    }
+
 private:
     T* dataBegin;
     T* dataEnd;

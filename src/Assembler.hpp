@@ -1311,6 +1311,75 @@ private:
     };
     CreateMarkerGraphEdgesData createMarkerGraphEdgesData;
 
+
+
+    // "Strict" version of createMarkerGraphEdges.
+    // Differences from createMarkerGraphEdges:
+    // - Will only create edges in which all contributing oriented reads have
+    //   exactly the same RLE sequence. If more than one distinct RLE sequence
+    //   is present, the edge is split into two parallel edges.
+    // - Enforces minEdgeCoverage and minEdgeCoveragePerStrand.
+    //   An edge is not generated if the total number of oriented
+    //   reads on the edge is less than minEdgeCoverage,
+    //   of it the number of oriented reads on each strand is less
+    //   than minEdgeCoveragePerStrand.
+    // - The main loop is written differently - it loops over reads
+    //   rather than marker graph vertices.
+    // Because of these strict criteria, this version generates frequent breaks
+    // in contiguity that must later be fixed by other means.
+public:
+    void createMarkerGraphEdgesStrict(
+        uint64_t minEdgeCoverage,
+        uint64_t minEdgeCoveragePerStrand,
+        size_t threadCount);
+private:
+    void createMarkerGraphEdgesStrictPass1(size_t threadId);
+    void createMarkerGraphEdgesStrictPass2(size_t threadId);
+    void createMarkerGraphEdgesStrictPass12(size_t threadId, uint64_t pass);
+    void createMarkerGraphEdgesStrictPass3(size_t threadId);
+    class CreateMarkerGraphEdgesStrictData {
+    public:
+        uint64_t minEdgeCoverage;
+        uint64_t minEdgeCoveragePerStrand;
+
+        // Marker intervals, stored in a VectorOfVectors
+        // indexed by the source vertex id, vertexId0.
+        // Each interval stores the target vertex, vertexId1.
+        class MarkerIntervalInfo {
+        public:
+            MarkerGraph::VertexId vertexId1;
+            OrientedReadId orientedReadId;
+            uint32_t ordinal0;
+            uint32_t ordinal1;
+            bool operator<(const MarkerIntervalInfo& that) const
+            {
+                return tie(vertexId1, orientedReadId, ordinal0, ordinal1) <
+                    tie(that.vertexId1, that.orientedReadId, that.ordinal0, that.ordinal1);
+            }
+        };
+        MemoryMapped::VectorOfVectors<MarkerIntervalInfo, uint64_t> markerIntervalInfos;
+
+        // The edges and corresponding marker intervals found by each thread.
+        vector< shared_ptr< MemoryMapped::Vector<MarkerGraph::Edge> > > threadEdges;
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
+
+        // Class used in createMarkerGraphEdgesStrictPass3.
+        class MarkerIntervalInfo3 {
+        public:
+            MarkerInterval markerInterval;
+            uint32_t overlap;       // The number of overlapping bases between the markers.
+            vector<Base> sequence;  // RLE
+            bool operator<(const MarkerIntervalInfo3& that) const
+            {
+                return tie(overlap, sequence, markerInterval) <
+                    tie(that.overlap, that.sequence, that.markerInterval);
+            }
+        };
+    };
+    CreateMarkerGraphEdgesStrictData createMarkerGraphEdgesStrictData;
+
+
+
 public:
     // Set marker graph edge flags to specified values for all marker graph edges.
     // Specify any value other than 0 or 1 leaves that flag unchanged.
