@@ -37,6 +37,13 @@ public:
         ordinals[1] = ordinal1;
     }
 
+    bool operator==(const MarkerInterval& that) const
+    {
+        return
+            tie(orientedReadId, ordinals[0], ordinals[1])
+            ==
+            tie(that.orientedReadId, that.ordinals[0], that.ordinals[1]);
+    }
     bool operator<(const MarkerInterval& that) const
     {
         return

@@ -1237,46 +1237,61 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
     using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
 
+    vector<MarkerInterval> resortedMarkers;
+
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
             const VertexId v0 = edge.source;
             const VertexId v1 = edge.target;
-            const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
-            const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
-            const EdgeId edgeIdRc = markerGraph.findEdgeId(v1rc, v0rc);
-            markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
+            const VertexId v0Rc = markerGraph.reverseComplementVertex[v0];
+            const VertexId v1Rc = markerGraph.reverseComplementVertex[v1];
+            const span<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
 
-#if 0
-            // Check that marker intervals of the two are consistent.
-            // This check does not work correctly when --MarkerGraph.allowDuplicateMarkers.
-            // An equivalent check was done in findMarkerGraphReverseComplementVertices,
-            // so we can skip this.
-            const span<MarkerInterval> markerIntervals =
-                markerGraph.edgeMarkerIntervals[edgeId];
-            const span<MarkerInterval> markerIntervalsRc =
-                markerGraph.edgeMarkerIntervals[edgeIdRc];
-            SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
-            for (size_t i=0; i<markerIntervals.size(); i++) {
-                const MarkerInterval& markerInterval = markerIntervals[i];
-                const MarkerInterval& markerIntervalRc = markerIntervalsRc[i];
-                SHASTA_ASSERT(
-                    markerInterval.orientedReadId.getReadId()
-                        == markerIntervalRc.orientedReadId.getReadId());
-                SHASTA_ASSERT(
-                    markerInterval.orientedReadId.getStrand()
-                        == 1 - markerIntervalRc.orientedReadId.getStrand());
-                const uint32_t markerCount = uint32_t(
-                    markers.size(markerInterval.orientedReadId.getValue()));
-                SHASTA_ASSERT(
-                    markerInterval.ordinals[0]
-                        == markerCount - 1 - markerIntervalRc.ordinals[1]);
-                SHASTA_ASSERT(
-                    markerInterval.ordinals[1]
-                        == markerCount - 1 - markerIntervalRc.ordinals[0]);
+            // This code need to be resilient to two situations:
+            // - Vertices with more than one marker on the same oriented read id
+            //   (these can occur when using --MarkerGraph.allowDuplicateMarkers).
+            // - Parallel edges (more than one edge with the same source and
+            //   target vertex). These can occur when using createMarkerGraphEdgesStrict.
+
+
+
+            // Look for an edge v1rc->v0rc with identical marker intervals,
+            // after reverse complementing.
+            const span<Uint40> v1rcOutEdges = markerGraph.edgesBySource[v1Rc];
+            bool found = false;
+            for(const Uint40 edgeIdRc: v1rcOutEdges) {
+                const MarkerGraph::Edge& edgeRc = markerGraph.edges[edgeIdRc];
+                SHASTA_ASSERT(edgeRc.source == v1Rc);
+                if(edgeRc.target != v0Rc) {
+                    continue;
+                }
+
+                // Gather the reverse complemented marker intervals,
+                // and reverse complement them.
+                resortedMarkers.clear();
+                const span<MarkerInterval> markerIntervalsRc = markerGraph.edgeMarkerIntervals[edgeIdRc];
+                for(MarkerInterval markerInterval: markerIntervalsRc) {
+                    const uint32_t markerCount = uint32_t(markers.size(markerInterval.orientedReadId.getValue()));
+                    markerInterval.orientedReadId.flipStrand();
+                    markerInterval.ordinals[0] = markerCount - 1 - markerInterval.ordinals[0];
+                    markerInterval.ordinals[1] = markerCount - 1 - markerInterval.ordinals[1];
+                    swap(markerInterval.ordinals[0], markerInterval.ordinals[1]);
+                    resortedMarkers.push_back(markerInterval);
+                }
+                sort(resortedMarkers.begin(), resortedMarkers.end());
+                const span<MarkerInterval> resortedMarkersSpan(&resortedMarkers[0], &resortedMarkers[0]+resortedMarkers.size());
+
+                if(resortedMarkersSpan == markerIntervals) {
+                    // They are equal to what we were looking for.
+                    // We found the reverse complement edge.
+                    markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
+                    found = true;
+                    break;
+                }
             }
-#endif
+            SHASTA_ASSERT(found);
         }
     }
 }
