@@ -2222,7 +2222,7 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
 
 
 
-void Assembler::checkMarkerGraphEdgesIsOpen()
+void Assembler::checkMarkerGraphEdgesIsOpen() const
 {
     SHASTA_ASSERT(markerGraph.edges.isOpen);
     SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());

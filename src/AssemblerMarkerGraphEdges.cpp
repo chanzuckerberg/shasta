@@ -358,3 +358,53 @@ void Assembler::createMarkerGraphEdgesStrictPass3(size_t threadId)
 }
 
 
+
+// Write out the sets of parallel marker graph edges.
+// Only createMarkerGraphedgesStrict can create parallel edges.
+void Assembler::writeParallelMarkerGraphEdges() const
+{
+    checkMarkerGraphEdgesIsOpen();
+    ofstream csv("ParallelMarkerGraphEdges.csv");
+    csv << "v0,v1\n";
+
+    // Vector used to store pairs(v1, e01).
+    vector< pair<uint64_t, uint64_t> > x;
+
+    // Loop over source vertices v0.
+    uint64_t count = 0;
+    for(MarkerGraph::VertexId v0=0; v0!=markerGraph.edgesBySource.size(); v0++) {
+
+        // Gather the target vertices and corresponding edge ids.
+        const span<const Uint40> edgeIds01 = markerGraph.edgesBySource[v0];
+        x.clear();
+        for(const Uint40 e01: edgeIds01) {
+            const MarkerGraph::Edge& edge01 = markerGraph.edges[e01];
+            const uint64_t v1 = uint64_t(edge01.target);
+            x.push_back(make_pair(v1, uint64_t(e01)));
+        }
+
+        // Sort so all the ones with the same v1 are together.
+        sort(x.begin(), x.end());
+
+        // Find streaks with the same v1.
+        for(uint64_t i0=0; i0!=x.size(); /* Increment later */) {
+            uint64_t i1 = i0;
+            while(i1!= x.size() and x[i1].first==x[i0].first) {
+                ++i1;
+            }
+            const uint64_t length = i1 - i0;
+            if(length > 1) {
+                ++count;
+                csv << v0 << "," << x[0].first << ",";
+                for(uint64_t i=i0; i!=i1; i++) {
+                    csv << x[i].second << ",";
+                }
+                csv << "\n";
+            }
+
+            // Point to the next streak.
+            i0 = i1;
+        }
+    }
+    cout << "Found " << count << " sets of parallel marker graph edges." << endl;
+}

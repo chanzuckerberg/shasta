@@ -499,7 +499,8 @@ PYBIND11_MODULE(shasta, module)
             arg("isSuperBubbleEdge"),
             arg("isLowCoverageCrossEdge"),
             arg("wasAssembled"))
-
+        .def("writeParallelMarkerGraphEdges",
+            &Assembler::writeParallelMarkerGraphEdges)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",

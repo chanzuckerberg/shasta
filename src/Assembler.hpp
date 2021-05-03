@@ -1296,7 +1296,7 @@ private:
 public:
     void createMarkerGraphEdges(size_t threadCount);
     void accessMarkerGraphEdges(bool accessEdgesReadWrite);
-    void checkMarkerGraphEdgesIsOpen();
+    void checkMarkerGraphEdgesIsOpen() const;
     void accessMarkerGraphConsensus();
 private:
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
@@ -1377,6 +1377,13 @@ private:
         };
     };
     CreateMarkerGraphEdgesStrictData createMarkerGraphEdgesStrictData;
+
+
+
+    // Write out the sets of parallel marker graph edges.
+    // Only createMarkerGraphedgesStrict can create parallel edges.
+public:
+    void writeParallelMarkerGraphEdges() const;
 
 
 
