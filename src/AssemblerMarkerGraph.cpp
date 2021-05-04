@@ -1710,7 +1710,8 @@ bool Assembler::extractLocalMarkerGraph(
     vector<MarkerInterval> markerIntervals;
 
 
-    // Do the BFS.
+    // Do the BFS to generate the vertices.
+    // Edges will be created later.
     std::queue<vertex_descriptor> q;
     if(distance > 0) {
         q.push(vStart);
@@ -1773,34 +1774,6 @@ bool Assembler::extractLocalMarkerGraph(
                     q.push(v1);
                 }
             }
-
-            // Create the edge v0->v1, if it does not already exist.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            if(!edgeExists) {
-                tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-                SHASTA_ASSERT(edgeExists);
-
-                // Fill in edge information.
-                const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-                markerIntervals.resize(storedMarkerIntervals.size());
-                copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
-                graph.storeEdgeInfo(e, markerIntervals);
-                graph[e].edgeId = edgeId;
-                graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
-                graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
-                graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
-                graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
-                graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
-
-                // Link to assembly graph edge.
-                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
-                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
-                    copy(locations.begin(), locations.end(),
-                        back_inserter(graph[e].assemblyGraphLocations));
-                }
-            }
         }
 
         // Loop over the parents.
@@ -1845,47 +1818,14 @@ bool Assembler::extractLocalMarkerGraph(
                     q.push(v1);
                 }
             }
-
-            // Create the edge v1->v0, if it does not already exist.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v1, v0, graph);
-            if(!edgeExists) {
-                tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
-                SHASTA_ASSERT(edgeExists);
-
-                // Fill in edge information.
-                const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-                markerIntervals.resize(storedMarkerIntervals.size());
-                copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
-                graph.storeEdgeInfo(e, markerIntervals);
-                graph[e].edgeId = edgeId;
-                graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
-                graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
-                graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
-                graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
-                graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
-
-                // Link to assembly graph vertex.
-                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
-                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
-                    copy(locations.begin(), locations.end(),
-                        back_inserter(graph[e].assemblyGraphLocations));
-                }
-            }
         }
-
     }
 
 
-    // The BFS process did not create edges between vertices at maximum distance.
-    // Do it now.
-    // Loop over all vertices at maximum distance.
+
+    // Create edges.
     BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph) {
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
-        if(vertex0.distance != distance) {
-            continue;
-        }
         const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
 
         // Loop over the children that exist in the local marker graph
@@ -1925,22 +1865,11 @@ bool Assembler::extractLocalMarkerGraph(
                 continue;
             }
 
-            // If it is not at maximum distance, skip.
-            const LocalMarkerGraphVertex& vertex1 = graph[v1];
-            if(vertex1.distance != distance) {
-                continue;
-            }
-
-            // There is no way we already created this edge.
-            // Check that this is the case.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            SHASTA_ASSERT(!edgeExists);
-
             // Add the edge.
-            tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-            SHASTA_ASSERT(edgeExists);
+            edge_descriptor e;
+            bool edgeWasAdded = false;
+            tie(e, edgeWasAdded) = boost::add_edge(v0, v1, graph);
+            SHASTA_ASSERT(edgeWasAdded);
 
             // Fill in edge information.
             const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];

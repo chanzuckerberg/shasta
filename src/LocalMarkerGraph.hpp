@@ -31,7 +31,7 @@ namespace shasta {
     class LocalMarkerGraphEdge;
     class LocalMarkerGraph;
     using LocalMarkerGraphBaseClass = boost::adjacency_list<
-        boost::setS,
+        boost::listS,   // Permit parallel edges created by createMarkerGraphEdgesStrict
         boost::listS,
         boost::bidirectionalS,
         LocalMarkerGraphVertex,
