@@ -1065,7 +1065,35 @@ void shasta::main::mode1Assembly(
     const AssemblerOptions& assemblerOptions,
     uint32_t threadCount)
 {
-    throw runtime_error("Assembly mode 1 is not implemented.");
+    // Create marker graph vertices.
+    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.findMarkerGraphReverseComplementVertices(threadCount);
+
+    // Create marker graph edges.
+    assembler.createMarkerGraphEdgesStrict(
+        assemblerOptions.markerGraphOptions.minEdgeCoverage,
+        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand,
+        threadCount);
+    assembler.findMarkerGraphReverseComplementEdges(threadCount);
+
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
+
+    // Assemble.
+    assembler.assembleMarkerGraphVertices(threadCount);
+    assembler.assembleMarkerGraphEdges(
+        threadCount,
+        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.assemblyOptions.storeCoverageData or
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
+        );
+    assembler.assemble(
+        threadCount,
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
+
+    // Write assembly results.
+    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
 }
 
 
