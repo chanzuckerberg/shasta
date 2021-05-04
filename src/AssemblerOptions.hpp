@@ -238,6 +238,8 @@ public:
     int minCoverage;
     int maxCoverage;
     int minCoveragePerStrand;
+    uint64_t minEdgeCoverage;
+    uint64_t minEdgeCoveragePerStrand;
     bool allowDuplicateMarkers;
     bool cleanupDuplicateMarkers;
     double duplicateMarkersPattern1Threshold;
@@ -264,6 +266,7 @@ public:
 // beginning with "Assembly.".
 class shasta::AssemblyOptions {
 public:
+    uint64_t mode;
     int crossEdgeCoverageThreshold;
     int markerGraphEdgeLengthThresholdForConsensus;
     string consensusCallerString;

@@ -10,6 +10,7 @@ a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.createMarkerGraphEdgesStrict(
-    minEdgeCoverage=5, minEdgeCoveragePerStrand=2)
+    minEdgeCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
+    minEdgeCoveragePerStrand = int(config['MarkerGraph']['minEdgeCoveragePerStrand']))
 
 

@@ -605,6 +605,21 @@ void AssemblerOptions::addConfigurableOptions()
         "Minimum coverage (number of supporting oriented reads) "
         "for each strand for a marker graph vertex.")
 
+        ("MarkerGraph.minEdgeCoverage",
+        value<uint64_t>(&markerGraphOptions.minEdgeCoverage)->
+        default_value(6),
+        "Minimum edge coverage (number of supporting oriented reads) "
+        "for a marker graph edge to be created."
+        "Experimental. Only used with --Assembly.mode 1.")
+
+        ("MarkerGraph.minEdgeCoveragePerStrand",
+        value<uint64_t>(&markerGraphOptions.minEdgeCoveragePerStrand)->
+        default_value(2),
+        "Minimum edge coverage (number of supporting oriented reads) "
+        "on each strand "
+        "for a marker graph edge to be created."
+        "Experimental. Only used with --Assembly.mode 1.")
+
         ("MarkerGraph.allowDuplicateMarkers",
         bool_switch(&markerGraphOptions.allowDuplicateMarkers)->
         default_value(false),
@@ -685,6 +700,11 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(2),
         "Used in the automatic selection of --MarkerGraph.minCoverage when "
         "--MarkerGraph.minCoverage is set to 0.")
+
+        ("Assembly.mode",
+        value<uint64_t>(&assemblyOptions.mode)->
+        default_value(0),
+        "Assembly mode (0=default, 1=experimental).")
 
         ("Assembly.crossEdgeCoverageThreshold",
         value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
@@ -928,6 +948,8 @@ void MarkerGraphOptions::write(ostream& s) const
     s << "minCoverage = " << minCoverage << "\n";
     s << "maxCoverage = " << maxCoverage << "\n";
     s << "minCoveragePerStrand = " << minCoveragePerStrand << "\n";
+    s << "minEdgeCoverage = " << minEdgeCoverage << "\n";
+    s << "minEdgeCoveragePerStrand = " << minEdgeCoveragePerStrand << "\n";
     s << "allowDuplicateMarkers = " <<
         convertBoolToPythonString(allowDuplicateMarkers) << "\n";
     s << "cleanupDuplicateMarkers = " <<
@@ -952,6 +974,7 @@ void MarkerGraphOptions::write(ostream& s) const
 void AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
+    s << "mode = " << mode << "\n";
     s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
         markerGraphEdgeLengthThresholdForConsensus << "\n";

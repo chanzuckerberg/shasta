@@ -696,6 +696,18 @@ Vertices with higher coverage are not generated.
 The minimum coverage per strand for a marker graph vertex.
 Vertices with lower coverage on either strand are not generated.
 
+<tr id='MarkerGraph.minEdgeCoverage'>
+<td><code>--MarkerGraph.minEdgeCoverage</code><td class=centered><code>6</code><td>
+Minimum edge coverage (number of supporting oriented reads)
+for a marker graph edge to be created.
+Experimental. Only used with <code>--Assembly.mode 1</code>.
+
+<tr id='MarkerGraph.minEdgeCoveragePerStrand'>
+<td><code>--MarkerGraph.minEdgeCoveragePerStrand</code><td class=centered><code>2</code><td>
+Minimum edge coverage (number of supporting oriented reads)
+on each strand for a marker graph edge to be created.
+Experimental. Only used with <code>--Assembly.mode 1</code>.
+
 <tr id='MarkerGraph.allowDuplicateMarkers'>
 <td><code>--MarkerGraph.allowDuplicateMarkers</code><td class=centered><code>False</code><td>
 This is a 
@@ -793,6 +805,11 @@ Used in the automatic selection of
 <td><code>--MarkerGraph.peakFinder.areaStartIndex</code><td class=centered><code>2</code><td>
 Used in the automatic selection of 
 <code>--MarkerGraph.minCoverage</code> when <code>--MarkerGraph.minCoverage</code> is set to 0.
+
+<tr id='Assembly.mode'>
+<td><code>--Assembly.mode</code>
+<td class=centered><code>0</code><td>
+Assembly mode (0=default, 1=experimental).
 
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
 <td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
