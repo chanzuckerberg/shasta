@@ -1093,7 +1093,11 @@ void shasta::main::mode1Assembly(
         assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
 
     // Write assembly results.
+    assembler.computeAssemblyStatistics();
+    assembler.writeGfa1("Assembly.gfa");
     assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
+    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
+    assembler.writeFasta("Assembly.fasta");
 }
 
 
