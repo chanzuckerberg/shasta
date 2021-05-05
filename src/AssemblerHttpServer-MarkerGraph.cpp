@@ -419,6 +419,9 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.arrowScalingFactorIsPresent = getParameterValue(
         request, "arrowScalingFactor", parameters.arrowScalingFactor);
 
+    parameters.edgeThickness = "byCoverage";
+    getParameterValue(request, "edgeThickness", parameters.edgeThickness);
+
     parameters.timeout = 30;
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
@@ -673,6 +676,16 @@ void LocalMarkerGraphRequestParameters::writeForm(
         " value='" << edgeGreenCoveragePerStrand << "'>"
         "<td class=centered style='background-color:hsl(120,100%,45%)'></table>"
 
+        "<tr>"
+        "<td>Thickness"
+        "<td class=left>"
+        "<input type=radio name=edgeThickness value=constant"
+        << (edgeThickness=="constant" ? " checked=checked" : "") <<
+        ">Constant"
+        "<br>"
+        "<input type=radio name=edgeThickness value=byCoverage"
+        << (edgeThickness=="byCoverage" ? " checked=checked" : "") <<
+        ">Proportional to coverage"
 
         "<tr>"
         "<td >Thickness scaling factor"

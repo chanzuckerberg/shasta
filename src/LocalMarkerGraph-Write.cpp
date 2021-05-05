@@ -466,16 +466,25 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     // impossible to select text in the edge label.
     // s << " URL=\"#a\"";
 
-    // Thickness and weight are determined by coverage.
-    double thickness = edgeThicknessScalingFactor;
-    if(highlightedOrientedReads.empty()) {
-        thickness *= 0.2 * double(max(coverage, size_t(1)));
+    if(edgeThickness == "constant") {
+        const double thickness = edgeThicknessScalingFactor;
+        s << " penwidth=\"";
+        const auto oldPrecision = s.precision(4);
+        s <<  thickness;
+        s.precision(oldPrecision);
+        s << "\"";
+    } else {
+        // Thickness and weight are determined by coverage.
+        double thickness = edgeThicknessScalingFactor;
+        if(highlightedOrientedReads.empty()) {
+            thickness *= 0.2 * double(max(coverage, size_t(1)));
+        }
+        s << " penwidth=\"";
+        const auto oldPrecision = s.precision(4);
+        s <<  thickness;
+        s.precision(oldPrecision);
+        s << "\" weight=" << coverage;
     }
-    s << " penwidth=\"";
-    const auto oldPrecision = s.precision(4);
-    s <<  thickness;
-    s.precision(oldPrecision);
-    s << "\" weight=" << coverage;
 
     // Arrow size.
     s << " arrowsize=\"" << arrowScalingFactor << "\"";

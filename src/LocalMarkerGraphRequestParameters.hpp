@@ -49,6 +49,7 @@ public:
     double arrowScalingFactor;
     bool arrowScalingFactorIsPresent;
     string arrowScalingFactorString() const;
+    string edgeThickness;   // "constant" or "byCoverage"
     int timeout;
     bool timeoutIsPresent;
 
