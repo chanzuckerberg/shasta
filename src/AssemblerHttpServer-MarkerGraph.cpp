@@ -548,8 +548,8 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<h3>Graphics</h3>"
 
         "<table>"
-        "<tr title='Graphics width in pixels.'>"
-        "<td colspan=2>Graphics width in pixels"
+        "<tr>"
+        "<td colspan=2>Width in pixels"
         "<td class=centered><input type=text required name=sizePixels size=8 style='text-align:center'"
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
@@ -568,19 +568,11 @@ void LocalMarkerGraphRequestParameters::writeForm(
         ">Sfdp</span>"
 
         "<tr>"
-        "<td colspan=2>Vertex scaling factor (sfdp only)"
-        "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
-        " value='" + vertexScalingFactorString() + "'>" <<
-
-        "<tr>"
-        "<td colspan=2>Edge thickness scaling factor"
-        "<td class=centered><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
-        " value='" + edgeThicknessScalingFactorString() + "'>" <<
-
-        "<tr>"
-        "<td colspan=2>Edge arrow scaling factor"
-        "<td class=centered><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
-        " value='" + arrowScalingFactorString() + "'>" <<
+        "<td colspan=2>Highlight oriented reads"
+        "<td class=centered><input type=text name=highlightedOrientedReads size=12"
+        << (highlightedOrientedReadsString.empty() ? "" : (" value='" + highlightedOrientedReadsString + "'")) <<
+        " title='Enter one or more oriented reads separated by spaces, for example \"432-0 1256-1\"'"
+        "</textarea>"
 
         "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
         "<td colspan=2>Timeout (seconds) for graph creation and layout"
@@ -589,7 +581,7 @@ void LocalMarkerGraphRequestParameters::writeForm(
         ">"
 
         "<tr>"
-        "<td rowspan=3 class=centered>Vertices"
+        "<td rowspan=4 class=centered>Vertices"
         "<td>Labels"
         "<td><input type=radio name=vertexLabels value=0" <<
         ((vertexLabels==0) ? " checked=checked" : "") << ">None"
@@ -618,7 +610,12 @@ void LocalMarkerGraphRequestParameters::writeForm(
         " value='" << vertexGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
 
         "<tr>"
-        "<td rowspan=3 class=centered>Edges"
+        "<td>Scaling factor"
+        "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+        " value='" + vertexScalingFactorString() + "'>" <<
+
+        "<tr>"
+        "<td rowspan=5 class=centered>Edges"
         "<td>Labels"
         "<td><input type=radio name=edgeLabels value=0" <<
         ((edgeLabels==0) ? " checked=checked" : "") << ">None"
@@ -647,11 +644,14 @@ void LocalMarkerGraphRequestParameters::writeForm(
         " value='" << edgeGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
 
         "<tr>"
-        "<td colspan=2>Highlight oriented reads"
-        "<td class=centered><input type=text name=highlightedOrientedReads size=12"
-        << (highlightedOrientedReadsString.empty() ? "" : (" value='" + highlightedOrientedReadsString + "'")) <<
-        " title='Enter one or more oriented reads separated by spaces, for example \"432-0 1256-1\"'"
-        "</textarea>"
+        "<td >Thickness scaling factor"
+        "<td class=centered><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+        " value='" + edgeThicknessScalingFactorString() + "'>" <<
+
+        "<tr>"
+        "<td>Arrow scaling factor"
+        "<td class=centered><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
+        " value='" + arrowScalingFactorString() + "'>" <<
 
         "</table>"
 
