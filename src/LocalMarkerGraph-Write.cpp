@@ -73,9 +73,16 @@ string LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& verte
     } else if(vertexColoring == "byCoverage") {
 
         const uint64_t coverage = vertex.markerInfos.size();
-        double h =
+        const array<uint64_t, 2> strandCoverage =  vertex.strandCoverage();
+        const uint64_t minStrandCoverage = min(strandCoverage[0], strandCoverage[1]);
+        double hTotal =
             (double(coverage) - double(vertexRedCoverage)) /
             (double(vertexGreenCoverage) - double(vertexRedCoverage));
+        double hStrand =
+            (double(minStrandCoverage) - double(vertexRedCoveragePerStrand)) /
+            (double(vertexGreenCoveragePerStrand) - double(vertexRedCoveragePerStrand));
+        // Color by the worst of the three.
+        double h = min(hTotal, hStrand);
         h = max(h, 0.);
         h = min(h, 1.);
         return to_string(h/3.) + ",1.,0.9";
@@ -106,7 +113,16 @@ string LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdge& edge
     } else if(edgeColoring == "byCoverage") {
 
         const uint64_t coverage = edge.coverage();
-        double h = (double(coverage) - double(edgeRedCoverage)) / (double(edgeGreenCoverage) - double(edgeRedCoverage));
+        const array<uint64_t, 2> strandCoverage =  edge.strandCoverage();
+        const uint64_t minStrandCoverage = min(strandCoverage[0], strandCoverage[1]);
+        double hTotal =
+            (double(coverage) - double(edgeRedCoverage)) /
+            (double(edgeGreenCoverage) - double(edgeRedCoverage));
+        double hStrand =
+            (double(minStrandCoverage) - double(edgeRedCoveragePerStrand)) /
+            (double(edgeGreenCoveragePerStrand) - double(edgeRedCoveragePerStrand));
+        // Color by the worst of the three.
+        double h = min(hTotal, hStrand);
         h = max(h, 0.);
         h = min(h, 1.);
         return to_string(h/3.) + ",1.,0.9";
@@ -143,7 +159,16 @@ string LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge
     } else if(edgeColoring == "byCoverage") {
 
         const uint64_t coverage = edge.coverage();
-        double h = (double(coverage) - double(edgeRedCoverage)) / (double(edgeGreenCoverage) - double(edgeRedCoverage));
+        const array<uint64_t, 2> strandCoverage =  edge.strandCoverage();
+        const uint64_t minStrandCoverage = min(strandCoverage[0], strandCoverage[1]);
+        double hTotal =
+            (double(coverage) - double(edgeRedCoverage)) /
+            (double(edgeGreenCoverage) - double(edgeRedCoverage));
+        double hStrand =
+            (double(minStrandCoverage) - double(edgeRedCoveragePerStrand)) /
+            (double(edgeGreenCoveragePerStrand) - double(edgeRedCoveragePerStrand));
+        // Color by the worst of the three.
+        double h = min(hTotal, hStrand);
         h = max(h, 0.);
         h = min(h, 1.);
         return to_string(h/3.) + ",1.,0.9";

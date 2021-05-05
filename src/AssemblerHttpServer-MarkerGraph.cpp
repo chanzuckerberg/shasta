@@ -441,11 +441,23 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.vertexGreenCoverage = 10;
     getParameterValue(request, "vertexGreenCoverage", parameters.vertexGreenCoverage);
 
+    parameters.vertexRedCoveragePerStrand = 1;
+    getParameterValue(request, "vertexRedCoveragePerStrand", parameters.vertexRedCoveragePerStrand);
+
+    parameters.vertexGreenCoveragePerStrand = 2;
+    getParameterValue(request, "vertexGreenCoveragePerStrand", parameters.vertexGreenCoveragePerStrand);
+
     parameters.edgeRedCoverage = 1;
     getParameterValue(request, "edgeRedCoverage", parameters.edgeRedCoverage);
 
     parameters.edgeGreenCoverage = 10;
     getParameterValue(request, "edgeGreenCoverage", parameters.edgeGreenCoverage);
+
+    parameters.edgeRedCoveragePerStrand = 1;
+    getParameterValue(request, "edgeRedCoveragePerStrand", parameters.edgeRedCoveragePerStrand);
+
+    parameters.edgeGreenCoveragePerStrand = 2;
+    getParameterValue(request, "edgeGreenCoveragePerStrand", parameters.edgeGreenCoveragePerStrand);
 
     getParameterValue(request, "highlightedOrientedReads", parameters.highlightedOrientedReadsString);
     parameters.parseHighlightedOrientedReads();
@@ -603,11 +615,20 @@ void LocalMarkerGraphRequestParameters::writeForm(
         ">By distance"
 
         "<tr><td>Color by coverage"
-        "<td><table style='margin-left:auto;margin-right:auto'><tr><td class=left>Coverage<td class=left>Color"
-        "<tr><td class=centered><input type=text name=vertexRedCoverage size=4 style='text-align:center'"
-         " value='" << vertexRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
-        "<tr><td class=centered><input type=text name=vertexGreenCoverage size=4 style='text-align:center'" <<
-        " value='" << vertexGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+        "<td><table style='margin-left:auto;margin-right:auto'>"
+        "<tr><td class=centered>Total<br>coverage<td class=centered>Strand<br>coverage<td class=left>Color"
+        "<tr>"
+        "<td class=centered><input type=text name=vertexRedCoverage size=4 style='text-align:center'"
+        " value='" << vertexRedCoverage << "'>"
+        "<td class=centered><input type=text name=vertexRedCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << vertexRedCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(0,100%,45%)'>"
+        "<tr>"
+        "<td class=centered><input type=text name=vertexGreenCoverage size=4 style='text-align:center'" <<
+        " value='" << vertexGreenCoverage << "'>"
+        "<td class=centered><input type=text name=vertexGreenCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << vertexGreenCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(120,100%,45%)'></table>"
 
         "<tr>"
         "<td>Scaling factor"
@@ -637,11 +658,21 @@ void LocalMarkerGraphRequestParameters::writeForm(
         ">By flags"
 
         "<tr><td>Color by coverage"
-        "<td><table style='margin-left:auto;margin-right:auto'><tr><td class=centered>Coverage<td class=centered>Color"
-        "<tr><td class=centered><input type=text name=edgeRedCoverage size=4 style='text-align:center'"
-         " value='" << edgeRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
-        "<tr><td class=centered><input type=text name=edgeGreenCoverage size=4 style='text-align:center'" <<
-        " value='" << edgeGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+        "<td><table style='margin-left:auto;margin-right:auto'>"
+        "<tr><td class=centered>Total<br>coverage<td class=centered>Strand<br>coverage<td class=left>Color"
+        "<tr>"
+        "<td class=centered><input type=text name=edgeRedCoverage size=4 style='text-align:center'"
+        " value='" << edgeRedCoverage << "'>"
+        "<td class=centered><input type=text name=edgeRedCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << edgeRedCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(0,100%,45%)'>"
+        "<tr>"
+        "<td class=centered><input type=text name=edgeGreenCoverage size=4 style='text-align:center'" <<
+        " value='" << edgeGreenCoverage << "'>"
+        "<td class=centered><input type=text name=edgeGreenCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << edgeGreenCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+
 
         "<tr>"
         "<td >Thickness scaling factor"

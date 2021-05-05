@@ -56,8 +56,12 @@ public:
     string edgeColoring;
     uint64_t vertexRedCoverage;
     uint64_t vertexGreenCoverage;
+    uint64_t vertexRedCoveragePerStrand;
+    uint64_t vertexGreenCoveragePerStrand;
     uint64_t edgeRedCoverage;
     uint64_t edgeGreenCoverage;
+    uint64_t edgeRedCoveragePerStrand;
+    uint64_t edgeGreenCoveragePerStrand;
 
     void writeForm(ostream&, uint64_t vertexCount) const;
     bool hasMissingRequiredParameters() const;

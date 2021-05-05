@@ -88,6 +88,18 @@ public:
     // Fields used by approximateTopologicalSort.
     uint32_t color = 0;
     size_t rank = 0;
+
+    // Compute coverage for each strand.
+    array<uint64_t, 2> strandCoverage() const
+    {
+        array<uint64_t, 2> c = {0, 0};
+        for(const MarkerInfo& markerInfo: markerInfos) {
+            const Strand strand = markerInfo.orientedReadId.getStrand();
+            ++c[strand];
+        }
+        return c;
+    }
+
 };
 
 
@@ -136,6 +148,20 @@ public:
         size_t c = 0;
         for(const auto& p: infos) {
             c += p.second.size();
+        }
+        return c;
+    }
+
+    // Compute coverage for each strand.
+    array<uint64_t, 2> strandCoverage() const
+    {
+        array<uint64_t, 2> c = {0, 0};
+        for(const auto& info: infos) {
+            for(const MarkerIntervalWithRepeatCounts& interval: info.second) {
+                const Strand strand = interval.orientedReadId.getStrand();
+                ++c[strand];
+            }
+
         }
         return c;
     }
