@@ -36,16 +36,12 @@ void Assembler::exploreMarkerGraph(
     LocalMarkerGraphRequestParameters requestParameters;
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
-    // Write the form and the color legend.
+    // Write the form.
     html << "<h1>Display a local subgraph of the global marker graph</h3>";
-    html << "<div style='clear:both; display:table;'>";
-    html << "<div style='float:left;margin:10px;'>";
     requestParameters.writeForm(html, markerGraph.vertexCount());
-    html << "</div>";
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
-        html << "</div>";
         return;
     }
 
@@ -62,129 +58,6 @@ void Assembler::exploreMarkerGraph(
     }
 
 
-    // Start a div to contain the legends.
-    html << "<div style='float:left;margin:10px;'>";
-
-    // Color legend for vertices when colored by distance.
-    if(requestParameters.vertexColoring == "byDistance") {
-        html << "<h3>Color legend for vertices</h3>";
-        LocalMarkerGraph::writeColorLegendVerticesByDistance(html);
-    }
-
-
-
-    // Color legend for vertices when colored by coverage.
-    if(requestParameters.vertexColoring == "byCoverage") {
-        html <<
-            "<h3>Color legend for vertices</h3><table>"
-            "<tr><th> Coverage";
-        for(uint64_t coverage=requestParameters.vertexRedCoverage;
-            coverage<= requestParameters.vertexGreenCoverage; coverage++) {
-            html << "<td class=centered>";
-            if(coverage == requestParameters.vertexRedCoverage) {
-                html << "&leq;";
-            }
-            if(coverage == requestParameters.vertexGreenCoverage) {
-                html << "&geq;";
-            }
-            html << coverage;
-        }
-        html << "<tr><th>Color";
-        for(uint64_t coverage=requestParameters.vertexRedCoverage;
-            coverage<= requestParameters.vertexGreenCoverage; coverage++) {
-            double h =
-                double(coverage - requestParameters.vertexRedCoverage) /
-                double(requestParameters.vertexGreenCoverage - requestParameters.vertexRedCoverage);
-            h = max(h, 0.);
-            h = min(h, 1.);
-            const double hue = 120. * h;
-            double S, L;
-            tie(S, L) = hsvToHsl(1., 0.9);
-            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
-                uint64_t(100. * S) << "%," <<
-                uint64_t(100. * L) << "%)'>";
-        }
-
-        html << "</table>";
-    }
-
-
-
-    // Color legends for edges when colored by flags.
-    if(requestParameters.edgeColoring == "byFlags") {
-        if(requestParameters.highlightedOrientedReads.empty()) {
-            html << "<h3>Color legend for edges lines and arrows</h3>";
-            LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(html);
-        }
-        if(requestParameters.edgeLabels > 0) {
-            html << "<h3>Color legend for edge labels</h3>";
-            LocalMarkerGraph::writeColorLegendEdgeLabelsByFlags(html);
-        }
-    }
-
-
-
-    // Color legend for edges when colored by coverage.
-    if(requestParameters.edgeColoring == "byCoverage") {
-        html <<
-            "<h3>Color legend for edges</h3><table>"
-            "<tr><th> Coverage";
-        for(uint64_t coverage=requestParameters.edgeRedCoverage;
-            coverage<= requestParameters.edgeGreenCoverage; coverage++) {
-            html << "<td class=centered>";
-            if(coverage == requestParameters.edgeRedCoverage) {
-                html << "&leq;";
-            }
-            if(coverage == requestParameters.edgeGreenCoverage) {
-                html << "&geq;";
-            }
-            html << coverage;
-        }
-        html << "<tr><th>Color";
-        for(uint64_t coverage=requestParameters.edgeRedCoverage;
-            coverage<= requestParameters.edgeGreenCoverage; coverage++) {
-            double h =
-                double(coverage - requestParameters.edgeRedCoverage) /
-                double(requestParameters.edgeGreenCoverage - requestParameters.edgeRedCoverage);
-            h = max(h, 0.);
-            h = min(h, 1.);
-            const double hue = 120. * h;
-            double S, L;
-            tie(S, L) = hsvToHsl(1., 0.9);
-            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
-                uint64_t(100. * S) << "%," <<
-                uint64_t(100. * L) << "%)'>";
-        }
-
-        html << "</table>";
-    }
-
-
-
-    // If there are highlighted oriented reads, write a legend with their colors.
-    if(not requestParameters.highlightedOrientedReads.empty()) {
-        double S, L;
-        tie(S, L) = hsvToHsl(requestParameters.S, requestParameters.V);
-        html << "<h3>Color legend for highlighted oriented reads</h3><table><tr>";
-        for(const auto& p:requestParameters.highlightedOrientedReads) {
-            html << "<td class=centered>" << p.first;
-        }
-        html << "<tr>";
-        for(const auto& p:requestParameters.highlightedOrientedReads) {
-            const uint64_t hue = uint64_t(p.second * 360.);
-            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
-                uint64_t(100. * S) << "%," <<
-                uint64_t(100. * L) << "%)'>";
-        }
-        html << "</table>";
-
-    }
-
-    // End the div containing the legends.
-    html << "</div>";
-
-    // End the div containing the form and the legends.
-    html << "</div>";
 
 
 
@@ -278,12 +151,132 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // Write the graph.
+    // Write the title.
     html <<
         "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
         "</h2>";
 
+
+
+    // Color legend for vertices when colored by distance.
+    if(requestParameters.vertexColoring == "byDistance") {
+        html << "<h3>Color legend for vertices</h3>";
+        LocalMarkerGraph::writeColorLegendVerticesByDistance(html);
+    }
+
+
+
+    // Color legend for vertices when colored by coverage.
+    if(requestParameters.vertexColoring == "byCoverage") {
+        html <<
+            "<h3>Color legend for vertices</h3><table>"
+            "<tr><td class=left>Coverage";
+        for(uint64_t coverage=requestParameters.vertexRedCoverage;
+            coverage<= requestParameters.vertexGreenCoverage; coverage++) {
+            html << "<td class=centered>";
+            if(coverage == requestParameters.vertexRedCoverage) {
+                html << "&leq;";
+            }
+            if(coverage == requestParameters.vertexGreenCoverage) {
+                html << "&geq;";
+            }
+            html << coverage;
+        }
+        html << "<tr><td class=left>Color";
+        for(uint64_t coverage=requestParameters.vertexRedCoverage;
+            coverage<= requestParameters.vertexGreenCoverage; coverage++) {
+            double h =
+                double(coverage - requestParameters.vertexRedCoverage) /
+                double(requestParameters.vertexGreenCoverage - requestParameters.vertexRedCoverage);
+            h = max(h, 0.);
+            h = min(h, 1.);
+            const double hue = 120. * h;
+            double S, L;
+            tie(S, L) = hsvToHsl(1., 0.9);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+
+        html << "</table>";
+    }
+
+
+
+    // Color legends for edges when colored by flags.
+    if(requestParameters.edgeColoring == "byFlags") {
+        if(requestParameters.highlightedOrientedReads.empty()) {
+            html << "<h3>Color legend for edges lines and arrows</h3>";
+            LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(html);
+        }
+        if(requestParameters.edgeLabels > 0) {
+            html << "<h3>Color legend for edge labels</h3>";
+            LocalMarkerGraph::writeColorLegendEdgeLabelsByFlags(html);
+        }
+    }
+
+
+
+    // Color legend for edges when colored by coverage.
+    if(requestParameters.edgeColoring == "byCoverage") {
+        html <<
+            "<h3>Color legend for edges</h3><table>"
+            "<tr><td class=left>Coverage";
+        for(uint64_t coverage=requestParameters.edgeRedCoverage;
+            coverage<= requestParameters.edgeGreenCoverage; coverage++) {
+            html << "<td class=centered>";
+            if(coverage == requestParameters.edgeRedCoverage) {
+                html << "&leq;";
+            }
+            if(coverage == requestParameters.edgeGreenCoverage) {
+                html << "&geq;";
+            }
+            html << coverage;
+        }
+        html << "<tr><td class=left>Color";
+        for(uint64_t coverage=requestParameters.edgeRedCoverage;
+            coverage<= requestParameters.edgeGreenCoverage; coverage++) {
+            double h =
+                double(coverage - requestParameters.edgeRedCoverage) /
+                double(requestParameters.edgeGreenCoverage - requestParameters.edgeRedCoverage);
+            h = max(h, 0.);
+            h = min(h, 1.);
+            const double hue = 120. * h;
+            double S, L;
+            tie(S, L) = hsvToHsl(1., 0.9);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+
+        html << "</table>";
+    }
+
+
+
+    // If there are highlighted oriented reads, write a legend with their colors.
+    if(not requestParameters.highlightedOrientedReads.empty()) {
+        double S, L;
+        tie(S, L) = hsvToHsl(requestParameters.S, requestParameters.V);
+        html << "<h3>Color legend for highlighted oriented reads</h3><table><tr>";
+        for(const auto& p:requestParameters.highlightedOrientedReads) {
+            html << "<td class=centered>" << p.first;
+        }
+        html << "<tr>";
+        for(const auto& p:requestParameters.highlightedOrientedReads) {
+            const uint64_t hue = uint64_t(p.second * 360.);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+        html << "</table>";
+
+    }
+
+
+
     // Buttons to resize the svg locally.
+    html << "<br>";
     addScaleSvgButtons(html, requestParameters.sizePixels);
 
     const string svgFileName = dotFileName + ".svg";

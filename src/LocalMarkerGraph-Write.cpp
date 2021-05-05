@@ -176,7 +176,7 @@ string LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge
 void LocalMarkerGraph::writeColorLegendVerticesByDistance(ostream& html)
 {
     html <<
-        "<table style='font-size:10px'>"
+        "<table>"
         "<tr><td>Zero distance<td style='width:50px;background-color:" <<
         Writer::vertexColorZeroDistance << "'>"
         "<tr><td>Intermediate distances<td style='width:50px;background-color:" <<
@@ -191,7 +191,7 @@ void LocalMarkerGraph::writeColorLegendVerticesByDistance(ostream& html)
 void LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(ostream& html)
 {
     html <<
-        "<table style='font-size:10px'>"
+        "<table>"
         "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
         Writer::edgeArrowColorRemovedDuringTransitiveReduction << "'>"
         "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
@@ -213,7 +213,7 @@ void LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(ostream& html)
 void LocalMarkerGraph::writeColorLegendEdgeLabelsByFlags(ostream& html)
 {
     html <<
-        "<table style='font-size:10px'>"
+        "<table>"
         "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
         Writer::edgeLabelColorRemovedDuringTransitiveReduction << "'>"
         "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
