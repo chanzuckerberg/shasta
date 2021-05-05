@@ -218,7 +218,7 @@ void Assembler::exploreMarkerGraph(
 
 
     // Color legend for edges when colored by coverage.
-    if(requestParameters.edgeColoring == "byCoverage") {
+    if(requestParameters.edgeColoring == "byCoverage" and requestParameters.highlightedOrientedReads.empty()) {
         html <<
             "<h3>Color legend for edges</h3><table>"
             "<tr><td class=left>Coverage";
@@ -549,13 +549,13 @@ void LocalMarkerGraphRequestParameters::writeForm(
 
         "<table>"
         "<tr title='Graphics width in pixels.'>"
-        "<td>Graphics width in pixels"
+        "<td colspan=2>Graphics width in pixels"
         "<td class=centered><input type=text required name=sizePixels size=8 style='text-align:center'"
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
         "<tr>"
-        "<td>Graph layout method"
+        "<td colspan=2>Graph layout method"
         "<td class=left>"
         "<span title='Best for small subgraphs'><input type=radio name=layoutMethod value=dotLr"
         << (layoutMethod=="dotLr" ? " checked=checked" : "") <<
@@ -568,28 +568,29 @@ void LocalMarkerGraphRequestParameters::writeForm(
         ">Sfdp</span>"
 
         "<tr>"
-        "<td>Vertex scaling factor (sfdp only)"
+        "<td colspan=2>Vertex scaling factor (sfdp only)"
         "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
         " value='" + vertexScalingFactorString() + "'>" <<
 
         "<tr>"
-        "<td>Edge thickness scaling factor"
+        "<td colspan=2>Edge thickness scaling factor"
         "<td class=centered><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
         " value='" + edgeThicknessScalingFactorString() + "'>" <<
 
         "<tr>"
-        "<td>Edge arrow scaling factor"
+        "<td colspan=2>Edge arrow scaling factor"
         "<td class=centered><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
         " value='" + arrowScalingFactorString() + "'>" <<
 
         "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
-        "<td>Timeout (seconds) for graph creation and layout"
+        "<td colspan=2>Timeout (seconds) for graph creation and layout"
         "<td class=centered><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
         ">"
 
         "<tr>"
-        "<td>Vertex labels"
+        "<td rowspan=3 class=centered>Vertices"
+        "<td>Labels"
         "<td><input type=radio name=vertexLabels value=0" <<
         ((vertexLabels==0) ? " checked=checked" : "") << ">None"
         "<br><input type=radio name=vertexLabels value=1" <<
@@ -597,16 +598,7 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<br><input type=radio name=vertexLabels value=2" <<
         ((vertexLabels==2) ? " checked=checked" : "") << ">Verbose"
 
-        "<tr>"
-        "<td>Edge labels"
-        "<td><input type=radio name=edgeLabels value=0" <<
-        ((edgeLabels==0) ? " checked=checked" : "") << ">None"
-        "<br><input type=radio name=edgeLabels value=1" <<
-        ((edgeLabels==1) ? " checked=checked" : "") << ">Terse"
-        "<br><input type=radio name=edgeLabels value=2" <<
-        ((edgeLabels==2) ? " checked=checked" : "") << ">Verbose"
-
-        "<tr><td>Vertex coloring"
+        "<tr><td>Coloring"
         "<td>"
         "<input type=radio name=vertexColoring value=none"
         << (vertexColoring=="none" ? " checked=checked" : "") <<
@@ -617,13 +609,25 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<input type=radio name=vertexColoring value=byDistance"
         << (vertexColoring=="byDistance" ? " checked=checked" : "") <<
         ">By distance"
-        "<td><table><tr><th>Coverage<th>Color"
+
+        "<tr><td>Color by coverage"
+        "<td><table style='margin-left:auto;margin-right:auto'><tr><td class=left>Coverage<td class=left>Color"
         "<tr><td class=centered><input type=text name=vertexRedCoverage size=4 style='text-align:center'"
          " value='" << vertexRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
         "<tr><td class=centered><input type=text name=vertexGreenCoverage size=4 style='text-align:center'" <<
         " value='" << vertexGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
 
-        "<tr><td>Edge coloring"
+        "<tr>"
+        "<td rowspan=3 class=centered>Edges"
+        "<td>Labels"
+        "<td><input type=radio name=edgeLabels value=0" <<
+        ((edgeLabels==0) ? " checked=checked" : "") << ">None"
+        "<br><input type=radio name=edgeLabels value=1" <<
+        ((edgeLabels==1) ? " checked=checked" : "") << ">Terse"
+        "<br><input type=radio name=edgeLabels value=2" <<
+        ((edgeLabels==2) ? " checked=checked" : "") << ">Verbose"
+
+        "<tr><td>Coloring"
         "<td>"
         "<input type=radio name=edgeColoring value=none"
         << (edgeColoring=="none" ? " checked=checked" : "") <<
@@ -634,18 +638,19 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<input type=radio name=edgeColoring value=byFlags"
         << (edgeColoring=="byFlags" ? " checked=checked" : "") <<
         ">By flags"
-        "<td><table><tr><th>Coverage<th>Color"
+
+        "<tr><td>Color by coverage"
+        "<td><table style='margin-left:auto;margin-right:auto'><tr><td class=centered>Coverage<td class=centered>Color"
         "<tr><td class=centered><input type=text name=edgeRedCoverage size=4 style='text-align:center'"
          " value='" << edgeRedCoverage << "'><td class=centered style='background-color:hsl(0,100%,45%)'>"
         "<tr><td class=centered><input type=text name=edgeGreenCoverage size=4 style='text-align:center'" <<
         " value='" << edgeGreenCoverage << "'><td class=centered style='background-color:hsl(120,100%,45%)'></table>"
 
         "<tr>"
-        "<td>Highlight oriented reads<br>"
-        "(Enter one or more oriented reads separated by spaces, "
-        "for example \"432-0 1256-1\")"
+        "<td colspan=2>Highlight oriented reads"
         "<td class=centered><input type=text name=highlightedOrientedReads size=12"
         << (highlightedOrientedReadsString.empty() ? "" : (" value='" + highlightedOrientedReadsString + "'")) <<
+        " title='Enter one or more oriented reads separated by spaces, for example \"432-0 1256-1\"'"
         "</textarea>"
 
         "</table>"
