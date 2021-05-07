@@ -1237,6 +1237,18 @@ private:
 
 
 
+    // Given a marker graph vertex, follow all of the contributing oriented
+    // reads to their next vertex.
+    // In the returned vector, each entry correspond to a marker in the given vertex
+    // (in the same order) and gives the next VertexId for that oriented read.
+    // The next VertexId can be invalidVertexId if the oriented read has no vertices
+    // past the starting VertexId.
+    void findNextMarkerGraphVertices(
+        MarkerGraph::VertexId,
+        vector<MarkerGraph::VertexId>&) const;
+
+
+
     // Clean up marker graph vertices that have duplicate markers
     // (more than one marker on the same oriented reads).
     // Such vertices are only generated when using --MarkerGraph.allowDuplicateMarkers.
@@ -1384,6 +1396,17 @@ private:
     // Only createMarkerGraphedgesStrict can create parallel edges.
 public:
     void writeParallelMarkerGraphEdges() const;
+
+
+
+    // Function createMarkerGraphSecondaryEdges can be called after createMarkerGraphEdgesStrict
+    // to create a minimal amount of additional non-strict edges (secondary edges)
+    // sufficient to restore contiguity.
+    void createMarkerGraphSecondaryEdges(
+        uint64_t minEdgeCoverage,
+        uint64_t minEdgeCoveragePerStrand,
+        uint64_t neighborhoodSize,
+        size_t threadCount);
 
 
 

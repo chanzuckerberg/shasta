@@ -5167,3 +5167,37 @@ void Assembler::test()
         cout << endl;
     }
 }
+
+
+
+// Given a marker graph vertex, follow all of the contributing oriented
+// reads to their next vertex.
+// In the returned vector, each entry correspond to a marker in the given vertex
+// (in the same order) and gives the next VertexId for that oriented read.
+// The next VertexId can be invalidVertexId if the oriented read has no vertices
+// past the starting VertexId.
+void Assembler::findNextMarkerGraphVertices(
+    MarkerGraph::VertexId vertexId,
+    vector<MarkerGraph::VertexId>& nextVertices) const
+{
+    nextVertices.clear();
+    const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+    for(const MarkerId markerId: markerIds) {
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        tie(orientedReadId, ordinal) = findMarkerId(markerId);
+        const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+        MarkerGraph::VertexId nextVertexId = MarkerGraph::invalidVertexId;
+        for(++ordinal; ordinal<markerCount; ++ordinal) {
+            const MarkerId nextMarkerId = getMarkerId(orientedReadId, ordinal);
+            const MarkerGraph::CompressedVertexId compressedNextVertexId = markerGraph.vertexTable[nextMarkerId];
+            if(compressedNextVertexId != MarkerGraph::invalidCompressedVertexId) {
+                nextVertexId = MarkerGraph::VertexId(compressedNextVertexId);
+                break;
+            }
+        }
+        nextVertices.push_back(nextVertexId);
+    }
+
+}
+
