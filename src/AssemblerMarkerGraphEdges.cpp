@@ -429,7 +429,7 @@ void Assembler::createMarkerGraphSecondaryEdges(
     using EdgeId = MarkerGraph::EdgeId;
     using Edge = MarkerGraph::Edge;
 
-    const bool debug = true;
+    const bool debug = false;
 
     // Check that we have what we need.
     checkMarkersAreOpen();
@@ -438,6 +438,12 @@ void Assembler::createMarkerGraphSecondaryEdges(
     SHASTA_ASSERT(markerGraph.edges.isOpenWithWriteAccess);
     SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
     SHASTA_ASSERT(markerGraph.edgesByTarget.isOpen());
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
 
     const VertexId vertexCount = markerGraph.vertexCount();
     cout << timestamp << "createMarkerGraphSecondaryEdges begins." << endl;
@@ -526,7 +532,9 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
     // Loop over forward dead ends.
     for(uint64_t i=0; i<deadEnds[0].size(); i++) {
-        cout << "Forward dead end " << i << endl;
+        if(debug) {
+            cout << "Forward dead end " << i << endl;
+        }
 
         // Coverage map for the candidate edges for thjis dead end.
         std::map<pair<VertexId, VertexId>, array<uint64_t, 2> > coverageMap;
@@ -637,12 +645,13 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
         }
 
+        // Add this vertex and its reverse complement to our list.
         const VertexId vertexId = itBest->first.first;
         const VertexId nextVertexId = itBest->first.second;
         secondaryEdges.push_back(make_pair(vertexId, nextVertexId));
         secondaryEdges.push_back(make_pair(
-            markerGraph.reverseComplementVertex[vertexId],
-            markerGraph.reverseComplementVertex[nextVertexId]));
+            markerGraph.reverseComplementVertex[nextVertexId],
+            markerGraph.reverseComplementVertex[vertexId]));
 
 
 
@@ -655,7 +664,51 @@ void Assembler::createMarkerGraphSecondaryEdges(
         }
     }
     deduplicate(secondaryEdges);
-    cout << "Found " << secondaryEdges.size() << " secondary edges." << endl;
+
+
+
+    // Create the secondary edges.
+    vector<MarkerInterval> markerIntervals;
+    for(const pair<MarkerGraph::VertexId, MarkerGraph::VertexId>& p: secondaryEdges) {
+        const VertexId v0 = p.first;
+        const VertexId v1 = p.second;
+        getMarkerIntervals(v0, v1, markerIntervals);
+
+        if(debug) {
+            cout << "Adding edge " << markerGraph.edges.size() <<
+                " " << v0 << "->" << v1 << "\n";
+        }
+
+        // Add the edge.
+        MarkerGraph::Edge edge;
+        edge.source = v0;
+        edge.target = v1;
+        const uint64_t coverage = markerIntervals.size();
+        if(coverage < 256) {
+            edge.coverage = uint8_t(coverage);
+        } else {
+            edge.coverage = 255;
+        }
+        markerGraph.edges.push_back(edge);
+        markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
+    }
+    cout << "Created " << secondaryEdges.size() << " secondary edges." << endl;
+    cout << "After adding secondary edges, the marker graph has " << vertexCount <<
+        " vertices and " << markerGraph.edges.size() << " edges." << endl;
+    SHASTA_ASSERT(markerGraph.edgeMarkerIntervals.size() == markerGraph.edges.size());
+
+
+    // We need to recreate edgesBySource and edgesByTarget.
+    if(markerGraph.edgesBySource.isOpen()) {
+        markerGraph.edgesBySource.close();
+    }
+    if(markerGraph.edgesByTarget.isOpen()) {
+        markerGraph.edgesByTarget.close();
+    }
+    createMarkerGraphEdgesBySourceAndTarget(threadCount);
+
+    // We also need to recompute reverse complement marker graph edges.
+    findMarkerGraphReverseComplementEdges(threadCount);
 
     cout << timestamp << "createMarkerGraphSecondaryEdges ends." << endl;
 

@@ -1307,7 +1307,7 @@ private:
     // Create marker graph edges.
 public:
     void createMarkerGraphEdges(size_t threadCount);
-    void accessMarkerGraphEdges(bool accessEdgesReadWrite);
+    void accessMarkerGraphEdges(bool accessEdgesReadWrite, bool accessConnectivityReadWrite = false);
     void checkMarkerGraphEdgesIsOpen() const;
     void accessMarkerGraphConsensus();
 private:
@@ -1491,9 +1491,20 @@ private:
         vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
         ) const;
 
+    // Given two marker graph vertices, get the marker intervals
+    // that a possible edge between the two vertices would have.
+    void getMarkerIntervals(
+        MarkerGraph::VertexId,
+        MarkerGraph::VertexId,
+        vector<MarkerInterval>&
+        ) const;
+
     // Return true if a vertex of the global marker graph has more than
     // one marker for at least one oriented read id.
     bool isBadMarkerGraphVertex(MarkerGraph::VertexId) const;
+
+    // Write csv files with detailed marker graph information.
+    void debugWriteMarkerGraph(const string& fileNamePrefix = "") const;
 
     // Write a csv file with information on all marker graph vertices for which
     // isBadMarkerGraphVertex returns true.

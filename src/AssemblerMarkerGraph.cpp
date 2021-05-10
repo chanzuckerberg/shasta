@@ -1080,6 +1080,55 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
 
 
+// Given two marker graph vertices, get the marker intervals
+// that a possible edge between the two vertices would have.
+void Assembler::getMarkerIntervals(
+    MarkerGraph::VertexId v0,
+    MarkerGraph::VertexId v1,
+    vector<MarkerInterval>& markerIntervals
+    ) const
+{
+    // Start with no marker intervals.
+    markerIntervals.clear();
+
+    // Loop over the markers of vertex v0.
+    const span<const MarkerId> markerIds0 = markerGraph.getVertexMarkerIds(v0);
+    for(const MarkerId markerId0: markerIds0) {
+
+        // Find the OrientedReadId and ordinal.
+        OrientedReadId orientedReadId;
+        uint32_t ordinal0;
+        tie(orientedReadId, ordinal0) = findMarkerId(markerId0);
+
+        // Find the next marker for this oriented read that is contained in a vertex.
+        const span<const CompressedMarker> markers1 = markers[orientedReadId.getValue()];
+        uint32_t ordinal1 = ordinal0 + 1;
+        for(; ordinal1<markers1.size(); ++ordinal1) {
+
+            // Find the vertex id.
+            const MarkerId markerId1 = getMarkerId(orientedReadId, ordinal1);
+            const MarkerGraph::VertexId v1Check = markerGraph.vertexTable[markerId1];
+            if(v1Check == MarkerGraph::invalidCompressedVertexId) {
+                // There is no vertex on this marker. Try the next ordinal.
+                continue;
+            }
+
+            // If the next vertex is v1, this oriented read generates a marker interval.
+            if(v1Check == v1) {
+                markerIntervals.push_back(MarkerInterval(orientedReadId, ordinal0, ordinal1));
+            }
+
+            // We found the next vertex for this OrientedReadId.
+            break;
+        }
+
+    }
+
+    sort(markerIntervals.begin(), markerIntervals.end());
+}
+
+
+
 // Find the reverse complement of each marker graph vertex.
 void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
 {
@@ -1255,6 +1304,11 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
             // - Parallel edges (more than one edge with the same source and
             //   target vertex). These can occur when using createMarkerGraphEdgesStrict.
 
+#if 0
+            cout << "Looking for reverse complement of " << edgeId << " " <<
+                v0 << "->" << v1 << endl;
+            cout << "Looking for " << v1Rc << "->" << v0Rc << endl;
+#endif
 
 
             // Look for an edge v1rc->v0rc with identical marker intervals,
@@ -1267,6 +1321,8 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
                 if(edgeRc.target != v0Rc) {
                     continue;
                 }
+
+                // cout << "Found " << edgeIdRc << endl;
 
                 // Gather the reverse complemented marker intervals,
                 // and reverse complement them.
@@ -1288,10 +1344,18 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
                     // We found the reverse complement edge.
                     markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
                     found = true;
+                    // cout << "Found with consistent marker intervals." << endl;
                     break;
                 }
             }
-            SHASTA_ASSERT(found);
+            if(not found) {
+                const string message = "Unable to locate reverse complement of marker graph edge " +
+                    to_string(edgeId) + " " + to_string(v0) + "->" + to_string(v1);
+                cout << message << endl;
+                cout << "Writing marker graph details to csv files." <<endl;
+                debugWriteMarkerGraph();
+                throw runtime_error(message);
+            }
         }
     }
 }
@@ -2130,7 +2194,9 @@ void Assembler::createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t p
 }
 
 
-void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
+void Assembler::accessMarkerGraphEdges(
+    bool accessEdgesReadWrite,
+    bool accessConnectivityReadWrite)
 {
     if(accessEdgesReadWrite) {
         markerGraph.edges.accessExistingReadWrite(
@@ -2143,10 +2209,18 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
         markerGraph.edgeMarkerIntervals.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
     }
-    markerGraph.edgesBySource.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphEdgesBySource"));
-    markerGraph.edgesByTarget.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphEdgesByTarget"));
+
+    if(accessConnectivityReadWrite) {
+        markerGraph.edgesBySource.accessExistingReadWrite(
+            largeDataName("GlobalMarkerGraphEdgesBySource"));
+        markerGraph.edgesByTarget.accessExistingReadWrite(
+            largeDataName("GlobalMarkerGraphEdgesByTarget"));
+    } else {
+        markerGraph.edgesBySource.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdgesBySource"));
+        markerGraph.edgesByTarget.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdgesByTarget"));
+    }
 }
 
 
@@ -5201,3 +5275,81 @@ void Assembler::findNextMarkerGraphVertices(
 
 }
 
+
+
+void Assembler::debugWriteMarkerGraph(const string& fileNamePrefix) const
+{
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
+
+
+
+    // Vertices.
+    if(markerGraph.vertices().isOpen()) {
+        ofstream csv(fileNamePrefix + "MarkerGraphVertices.csv");
+        csv << "VertexId,MarkerId,OrientedReadId,Ordinal,\n";
+
+        for(VertexId vertexId=0; vertexId<markerGraph.vertexCount(); vertexId++) {
+            const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+            for(const MarkerId markerId: markerIds) {
+                OrientedReadId orientedReadId;
+                uint32_t ordinal;
+                tie(orientedReadId, ordinal) = findMarkerId(markerId);
+
+                csv << vertexId << ",";
+                csv << markerId << ",";
+                csv << orientedReadId << ",";
+                csv << ordinal << ",";
+                csv << "\n";
+            }
+        }
+    }
+
+
+
+    // Reverse complement vertices.
+    if(markerGraph.reverseComplementVertex.isOpen) {
+        ofstream csv(fileNamePrefix + "MarkerGraphReverseComplementVertices.csv");
+        csv << "VertexId,VertexIdRc,\n";
+
+        for(VertexId vertexId=0; vertexId<markerGraph.vertexCount(); vertexId++) {
+            csv << vertexId << ",";
+            csv << markerGraph.reverseComplementVertex[vertexId] << ",";
+            csv << "\n";
+        }
+    }
+
+
+
+    // Edges.
+    if(markerGraph.edges.isOpen) {
+        ofstream csv(fileNamePrefix + "MarkerGraphEdges.csv");
+        csv << "EdgeId,Source,Target,\n";
+
+        for(EdgeId edgeId=0; edgeId<markerGraph.edges.size(); edgeId++) {
+            const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+
+            csv << edgeId << ",";
+            csv << edge.source << ",";
+            csv << edge.target << ",";
+            csv << "\n";
+        }
+    }
+
+
+
+    // Edges by source.
+    if(markerGraph.edgesBySource.isOpen()) {
+        ofstream csv(fileNamePrefix + "MarkerGraphEdgesBySource.csv");
+        csv << "Source,Target0,Target1,Target2,\n";
+
+        for(VertexId vertexId=0; vertexId<markerGraph.edgesBySource.size(); vertexId++) {
+
+            csv << vertexId << ",";
+            for(const auto& edgeId: markerGraph.edgesBySource[vertexId]) {
+                csv << edgeId << ",";
+            }
+            csv << "\n";
+        }
+    }
+}

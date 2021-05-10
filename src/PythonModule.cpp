@@ -462,7 +462,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
-            arg("accessEdgesReadWrite") = false)
+            arg("accessEdgesReadWrite") = false,
+            arg("accessConnectivityReadWrite") = false)
             .def("transitiveReduction",
             &Assembler::transitiveReduction,
             arg("lowCoverageThreshold"),

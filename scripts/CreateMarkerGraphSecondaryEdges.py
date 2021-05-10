@@ -10,7 +10,7 @@ a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphReverseComplementVertex()
-a.accessMarkerGraphEdges(True)
+a.accessMarkerGraphEdges(True, True)
 
 a.createMarkerGraphSecondaryEdges(
     minEdgeCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
