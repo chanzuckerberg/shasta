@@ -1078,12 +1078,13 @@ void shasta::main::mode1Assembly(
     assembler.createMarkerGraphSecondaryEdges(
         assemblerOptions.markerGraphOptions.minEdgeCoverage,
         assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand,
-        3,  // Neighborhood size - add an an option
+        3,  // Neighborhood size in markers. EXPOSE WHEN CODE STABILIZES.
         threadCount);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
     assembler.createAssemblyGraphVertices();
+    assembler.pruneAssemblyGraph(3);    // Prune length in markers. EXPOSE WHEN CODE STABILIZES.
 
     // Assemble.
     assembler.assembleMarkerGraphVertices(threadCount);

@@ -776,6 +776,26 @@ void Assembler::createMarkerGraphSecondaryEdges(
         edge.isSecondary = 1;
         markerGraph.edges.push_back(edge);
         markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
+
+
+        // Prune edges closer to the dead end.
+        // This can't be done because it can break contiguity.
+        /*
+        for(uint32_t position=0; position<position0; position++) {
+            const VertexId vertexId0 = deadEnds[0][deadEndId0][position+1];
+            const VertexId vertexId1 = deadEnds[0][deadEndId0][position];
+            const EdgeId edgeId = markerGraph.findEdgeId(vertexId0,  vertexId1);
+            cout << "Pruned " << vertexId0 << "->" << vertexId1 << endl;
+            markerGraph.edges[edgeId].wasPruned = 1;
+        }
+        for(uint32_t position=0; position<position1; position++) {
+            const VertexId vertexId0 = deadEnds[1][deadEndId1][position];
+            const VertexId vertexId1 = deadEnds[1][deadEndId1][position+1];
+            const EdgeId edgeId = markerGraph.findEdgeId(vertexId0,  vertexId1);
+            cout << "Pruned " << vertexId0 << "->" << vertexId1 << endl;
+            markerGraph.edges[edgeId].wasPruned = 1;
+        }
+        */
     }
     cout << "Created " << edgeCandidates.size() << " secondary edges." << endl;
     cout << "After adding secondary edges, the marker graph has " << vertexCount <<

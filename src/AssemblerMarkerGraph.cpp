@@ -1374,10 +1374,14 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2(size_t thre
             const EdgeId edgeIdReverseComplement =
                 markerGraph.reverseComplementEdge[edgeId];
             if(markerGraph.reverseComplementEdge[edgeIdReverseComplement] != edgeId) {
-                throw runtime_error("Reverse complement edge check failed at edge " +
+                const string message = "Reverse complement edge check failed at edge " +
                     to_string(edgeId) + ": " +
                     to_string(edgeIdReverseComplement) + " " +
-                    to_string(markerGraph.reverseComplementEdge[edgeIdReverseComplement]));
+                    to_string(markerGraph.reverseComplementEdge[edgeIdReverseComplement]);
+                cout << message << endl;
+                cout << "Writing marker graph details to csv files." <<endl;
+                debugWriteMarkerGraph();
+                throw runtime_error(message);
             }
         }
     }
