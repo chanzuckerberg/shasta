@@ -202,6 +202,9 @@ public:
     // edge that was assembled.
     uint8_t wasAssembled = 0;
 
+    // Flag for secondary edges in assembly mode 1.
+    uint8_t isSecondary = 0;
+
     // Field used by approximateTopologicalSort.
     bool isDagEdge = true;
 

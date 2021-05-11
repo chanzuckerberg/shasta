@@ -489,7 +489,10 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     // Arrow size.
     s << " arrowsize=\"" << arrowScalingFactor << "\"";
 
-
+    // Secondary edges in assembly mode 1 are drawn dashed.
+    if(edge.isSecondary) {
+        s << " style=dashed";
+    }
 
     // Color.
     if(highlightedOrientedReads.empty()) {

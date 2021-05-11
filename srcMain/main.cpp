@@ -1075,6 +1075,11 @@ void shasta::main::mode1Assembly(
         assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand,
         threadCount);
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
+    assembler.createMarkerGraphSecondaryEdges(
+        assemblerOptions.markerGraphOptions.minEdgeCoverage,
+        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand,
+        3,  // Neighborhood size - add an an option
+        threadCount);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();

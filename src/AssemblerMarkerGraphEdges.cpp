@@ -689,6 +689,7 @@ void Assembler::createMarkerGraphSecondaryEdges(
         } else {
             edge.coverage = 255;
         }
+        edge.isSecondary = 1;
         markerGraph.edges.push_back(edge);
         markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
     }
@@ -708,6 +709,9 @@ void Assembler::createMarkerGraphSecondaryEdges(
     createMarkerGraphEdgesBySourceAndTarget(threadCount);
 
     // We also need to recompute reverse complement marker graph edges.
+    if(markerGraph.reverseComplementEdge.isOpen) {
+        markerGraph.reverseComplementEdge.close();
+    }
     findMarkerGraphReverseComplementEdges(threadCount);
 
     cout << timestamp << "createMarkerGraphSecondaryEdges ends." << endl;

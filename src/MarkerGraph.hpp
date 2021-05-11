@@ -216,8 +216,10 @@ public:
         // for this edge are set.
         uint8_t wasAssembled : 1;
 
+        // Flag for secondary edges in assembly mode 1.
+        uint8_t isSecondary;
+
         // Unused.
-        uint8_t flag4 : 1;
         uint8_t flag5 : 1;
         uint8_t flag6 : 1;
 
@@ -228,7 +230,7 @@ public:
             isSuperBubbleEdge = 0;
             isLowCoverageCrossEdge = 0;
             wasAssembled = 0;
-            flag4 = 0;
+            isSecondary = 0;
             flag5 = 0;
             flag6 = 0;
         }

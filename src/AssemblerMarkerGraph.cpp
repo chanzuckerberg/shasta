@@ -1946,6 +1946,7 @@ bool Assembler::extractLocalMarkerGraph(
             graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
             graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
             graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
+            graph[e].isSecondary = markerGraph.edges[edgeId].isSecondary;
 
             // Link to assembly graph vertex.
             if(assemblyGraph.markerToAssemblyTable.isOpen()) {
