@@ -499,16 +499,20 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
 
 
-    // Construct a vector that for each vertex tells us which dead ends
+    // Construct two vectors that for each vertex tell us which dead ends
     // it belongs to, if any.
+    // Each vector stores pairs(deadEndId, vertexPositionInDeadEnd).
     const uint32_t noDeadEnd = std::numeric_limits<uint32_t>::max();
-    vector< array<uint32_t, 2> > vertexDeadEnd(vertexCount, array<uint32_t, 2>({noDeadEnd, noDeadEnd}));
+    const pair<uint32_t, uint32_t> noDeadEndPair = make_pair(noDeadEnd, noDeadEnd);
+    vector< array< pair<uint32_t, uint32_t>, 2> > vertexDeadEnd(vertexCount,
+        array< pair<uint32_t, uint32_t>, 2>({noDeadEndPair, noDeadEndPair}));
     for(uint64_t direction=0; direction<2; direction++) {
         const vector<vector<VertexId> >& v = deadEnds[direction];
-        for(uint64_t i=0; i<v.size(); i++) {
-            const vector<VertexId>& neighborhood = v[i];
-            for(const VertexId vertexId: neighborhood) {
-                vertexDeadEnd[vertexId][direction] = uint32_t(i);
+        for(uint32_t deadEndId=0; deadEndId<uint32_t(v.size()); deadEndId++) {
+            const vector<VertexId>& deadEnd = v[deadEndId];
+            for(uint32_t i=0; i<uint32_t(deadEnd.size()); i++) {
+                const VertexId vertexId = deadEnd[i];
+                vertexDeadEnd[vertexId][direction] = make_pair(deadEndId, i);
             }
         }
     }
@@ -548,12 +552,12 @@ void Assembler::createMarkerGraphSecondaryEdges(
                 }
 
                 // The next vertex must belong to a backward dead end.
-                if(vertexDeadEnd[nextVertexId][1] == noDeadEnd) {
+                if(vertexDeadEnd[nextVertexId][1].first == noDeadEnd) {
                     continue;
                 }
 
                 // The next vertex must not belong to the same forward dead end.
-                if(vertexDeadEnd[nextVertexId][0] == i) {
+                if(vertexDeadEnd[nextVertexId][0].first == i) {
                     continue;
                 }
 
