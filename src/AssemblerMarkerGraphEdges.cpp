@@ -455,34 +455,24 @@ void Assembler::createMarkerGraphSecondaryEdges(
     // Gather the dead ends (0-forward, 1=backward).
     // Go forward/backward to include up to neighborhoodSize
     // for each dead end.
+    // A forward dead end has the same numbering as its
+    // reverse complemented backward dead end.
     array< vector<vector<VertexId> >, 2> deadEnds;
     for(VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
         if(markerGraph.outDegree(vertexId) == 0) {
+            SHASTA_ASSERT(markerGraph.inDegree(markerGraph.reverseComplementVertex[vertexId]) == 0);
             deadEnds[0].push_back(vector<VertexId>());
-            vector<VertexId>& neighborhood = deadEnds[0].back();
+            deadEnds[1].push_back(vector<VertexId>());
             VertexId v = vertexId;
             for(uint64_t i=0; i<neighborhoodSize; i++) {
-                neighborhood.push_back(v);
+                deadEnds[0].back().push_back(v);
+                deadEnds[1].back().push_back(markerGraph.reverseComplementVertex[v]);
                 if(markerGraph.inDegree(v) != 1) {
                     break;
                 }
                 const EdgeId edgeId = EdgeId(markerGraph.edgesByTarget[v][0]);
                 const Edge& edge = markerGraph.edges[edgeId];
                 v = edge.source;
-            }
-        }
-        if(markerGraph.inDegree(vertexId) == 0) {
-            deadEnds[1].push_back(vector<VertexId>());
-            vector<VertexId>& neighborhood = deadEnds[1].back();
-            VertexId v = vertexId;
-            for(uint64_t i=0; i<neighborhoodSize; i++) {
-                neighborhood.push_back(v);
-                if(markerGraph.outDegree(v) != 1) {
-                    break;
-                }
-                const EdgeId edgeId = EdgeId(markerGraph.edgesBySource[v][0]);
-                const Edge& edge = markerGraph.edges[edgeId];
-                v = edge.target;
             }
         }
     }
