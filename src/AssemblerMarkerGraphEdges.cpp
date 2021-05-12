@@ -769,13 +769,11 @@ void Assembler::createMarkerGraphSecondaryEdges(
     cout << "After running though the edge candidate map, there are " << edgeCandidates.size() <<
         " candidates for secondary edges." << endl;
     deduplicate(edgeCandidates);
-    cout << "After final deduplication, there are " << edgeCandidates.size() <<
+    cout << "After this dedupicationstage, there are " << edgeCandidates.size() <<
         " candidates for secondary edges." << endl;
 
-
-
-    // Create the secondary edges.
-    vector<MarkerInterval> markerIntervals;
+    // Now store the edges as vertex pairs and deduplicate again.
+    vector< pair<VertexId, VertexId> > candidateVertexPairs;
     for(const EdgeCandidate& edgeCandidate: edgeCandidates) {
         const uint32_t deadEndId0 = edgeCandidate.deadEndId0;
         const uint32_t position0 = edgeCandidate.position0;
@@ -784,10 +782,21 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
         const VertexId v0 = deadEnds[0][deadEndId0][position0];
         const VertexId v1 = deadEnds[1][deadEndId1][position1];
+        candidateVertexPairs.push_back(make_pair(v0, v1));
+    }
+    deduplicate(candidateVertexPairs);
+
+
+
+    // Create the secondary edges.
+    vector<MarkerInterval> markerIntervals;
+    for(const auto& p: candidateVertexPairs) {
+        const VertexId v0 = p.first;
+        const VertexId v1 = p.second;
         getMarkerIntervals(v0, v1, markerIntervals);
 
         if(debug) {
-            cout << "Adding edge " << markerGraph.edges.size() << " " << edgeCandidate << " " <<
+            cout << "Adding edge " << markerGraph.edges.size() << " " <<
                 " " << v0 << "->" << v1 << "\n";
         }
 
