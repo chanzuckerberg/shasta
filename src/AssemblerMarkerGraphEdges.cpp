@@ -448,6 +448,14 @@ namespace shasta {
             }
 
         };
+
+        ostream& operator<<(ostream& s, const EdgeCandidate& edgeCandidate)
+        {
+            s <<
+                "(" << edgeCandidate.deadEndId0 << "-" << edgeCandidate.position0 << ")->"
+                "(" << edgeCandidate.deadEndId1 << "-" << edgeCandidate.position1 << ")";
+            return s;
+        }
     }
 }
 
@@ -625,20 +633,19 @@ void Assembler::createMarkerGraphSecondaryEdges(
             }
         }
 
-#if 0
         // Write out the candidate edges we found for this forward dead end.
         if(debug) {
             for(const auto& p: coverageMap) {
-                const VertexId vertexId = p.first.first;
-                const VertexId nextVertexId = p.first.second;
+                const EdgeCandidate& edgeCandidate = p.first;
+                const VertexId vertexId0 = deadEnds[0][edgeCandidate.deadEndId0][edgeCandidate.position0];
+                const VertexId vertexId1 = deadEnds[1][edgeCandidate.deadEndId1][edgeCandidate.position1];
                 const uint64_t coverage0 = p.second[0];
                 const uint64_t coverage1 = p.second[1];
                 const uint64_t coverage = coverage0 + coverage1;
-                cout << vertexId << "->" << nextVertexId << " " <<
+                cout << edgeCandidate << " " << vertexId0 << "->" << vertexId1 << " " <<
                     coverage0 << "+" << coverage1 << "=" << coverage << "\n";
             }
         }
-#endif
 
         if(coverageMap.empty()) {
             if(debug) {
@@ -696,25 +703,39 @@ void Assembler::createMarkerGraphSecondaryEdges(
         EdgeCandidate edgeCandidate = itBest->first;
         edgeCandidates.push_back(edgeCandidate);
 
+        if(debug) {
+            const VertexId vertexId0 = deadEnds[0][edgeCandidate.deadEndId0][edgeCandidate.position0];
+            const VertexId vertexId1 = deadEnds[1][edgeCandidate.deadEndId1][edgeCandidate.position1];
+            const uint64_t coverage0 = itBest->second[0];
+            const uint64_t coverage1 = itBest->second[1];
+            const uint64_t coverage = coverage0 + coverage1;
+            cout << "Stored candidate edge " << edgeCandidate << " " << vertexId0 << "->" << vertexId1 << " " <<
+                coverage0 << "+" << coverage1 << "=" << coverage << "\n";
+        }
+
         // Also add its reverse complement.
         edgeCandidate.reverseComplement();
         edgeCandidates.push_back(edgeCandidate);
 
-
-
-#if 0
         if(debug) {
-            const uint64_t coverage0 = itBest->second[0];
-            const uint64_t coverage1 = itBest->second[1];
+            const VertexId vertexId0 = deadEnds[0][edgeCandidate.deadEndId0][edgeCandidate.position0];
+            const VertexId vertexId1 = deadEnds[1][edgeCandidate.deadEndId1][edgeCandidate.position1];
+            const uint64_t coverage0 = itBest->second[1];
+            const uint64_t coverage1 = itBest->second[0];
             const uint64_t coverage = coverage0 + coverage1;
-            cout << "Chose candidate edge " << vertexId << "->" << nextVertexId << " " <<
+            cout << "Reverse complement: stored candidate edge " << edgeCandidate << " " << vertexId0 << "->" << vertexId1 << " " <<
                 coverage0 << "+" << coverage1 << "=" << coverage << "\n";
         }
-#endif
+
+
     }
 
     // Remove duplicates.
+    cout << "Before removing duplicates, there are " << edgeCandidates.size() <<
+        " candidates for secondary edges." << endl;
     deduplicate(edgeCandidates);
+    cout << "After removing duplicates, there are " << edgeCandidates.size() <<
+        " candidates for secondary edges." << endl;
 
 
 
@@ -731,6 +752,8 @@ void Assembler::createMarkerGraphSecondaryEdges(
         }
         edgeCandidateMap[make_pair(deadEndId0, deadEndId1)].push_back(edgeCandidate);
     }
+    cout << "The edge candidate map has " << edgeCandidateMap.size() <<
+        " candidates for secondary edges." << endl;
 
 
 
@@ -743,6 +766,11 @@ void Assembler::createMarkerGraphSecondaryEdges(
         edgeCandidate.reverseComplement();
         edgeCandidates.push_back(edgeCandidate);
     }
+    cout << "After running though the edge candidate map, there are " << edgeCandidates.size() <<
+        " candidates for secondary edges." << endl;
+    deduplicate(edgeCandidates);
+    cout << "After final deduplication, there are " << edgeCandidates.size() <<
+        " candidates for secondary edges." << endl;
 
 
 
@@ -759,7 +787,7 @@ void Assembler::createMarkerGraphSecondaryEdges(
         getMarkerIntervals(v0, v1, markerIntervals);
 
         if(debug) {
-            cout << "Adding edge " << markerGraph.edges.size() <<
+            cout << "Adding edge " << markerGraph.edges.size() << " " << edgeCandidate << " " <<
                 " " << v0 << "->" << v1 << "\n";
         }
 
