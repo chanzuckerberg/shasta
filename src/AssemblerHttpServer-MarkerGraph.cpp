@@ -1235,8 +1235,15 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
     // Access stored consensus for this edge.
-    const int storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
-    const auto storedConsensus = markerGraph.edgeConsensus[edgeId];
+    const bool consensusIsAvailable =
+        markerGraph.edgeConsensus.isOpen() and
+        markerGraph.edgeConsensusOverlappingBaseCount.isOpen;
+    int storedConsensusOverlappingBaseCount = 0;
+    span< pair<Base, uint8_t> > storedConsensus(0, 0);
+    if(consensusIsAvailable)   {
+        storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
+        storedConsensus = markerGraph.edgeConsensus[edgeId];
+    }
 
 
 
