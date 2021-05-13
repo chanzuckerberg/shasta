@@ -266,6 +266,22 @@ public:
     // Indexed by EdgeId.
     MemoryMapped::Vector<EdgeId> reverseComplementEdge;
 
+    // Return total coverage of an edge.
+    uint64_t edgeCoverage(EdgeId edgeId) const
+    {
+        return edgeMarkerIntervals.size(edgeId);
+    }
+
+    // Return coverage for each strand for an edge.
+    array<uint64_t, 2> edgeStrandCoverage(EdgeId edgeId) const
+    {
+        array<uint64_t, 2> coverage = {0, 0};
+        for(const MarkerInterval& markerInterval: edgeMarkerIntervals[edgeId]) {
+            ++coverage[markerInterval.orientedReadId.getStrand()];
+        }
+        return coverage;
+    }
+
     // The consensus repeat counts of each vertex of the marker graph.
     // There are assemblerInfo->k entries for each vertex.
     // The first entry for a vertex is at index vertexId*assemblerInfo->k.
