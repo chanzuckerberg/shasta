@@ -742,7 +742,7 @@ void Assembler::assemble(
     }
     cout << timestamp << "Assembled a total " << totalBaseCount <<
         " bases for " << assemblyGraph.edgeLists.size() << " assembly graph edges of which " <<
-        assembledEdgeCount << " where assembled." << endl;
+        assembledEdgeCount << " were assembled." << endl;
 
 }
 
