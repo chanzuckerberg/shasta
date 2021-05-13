@@ -24,6 +24,7 @@ void Mode1::AssemblyGraph::createVertices(
     uint64_t minEdgeCoveragePerStrand)
 {
     using EdgeId = MarkerGraph::EdgeId;
+    AssemblyGraph& assemblyGraph = *this;
 
     // Check that we have what we need.
     SHASTA_ASSERT(markers.isOpen());
@@ -179,10 +180,28 @@ void Mode1::AssemblyGraph::createVertices(
             }
             totalChainEdgeCount += reverseComplementedChain.size();
         }
+
+
+        // Add a vertex corresponding to this chain.
+        const vertex_descriptor v = add_vertex(assemblyGraph);
+        AssemblyGraphVertex& vertex = assemblyGraph[v];
+        vertex.markerGraphEdgeIds = chain;
+
+        // Also add a vertex for the reverse complemented chain.
+        if(isSelfComplementary) {
+            vertex.vRc = v;
+        } else {
+            const vertex_descriptor vRc = add_vertex(assemblyGraph);
+            AssemblyGraphVertex& vertexRc = assemblyGraph[vRc];
+            vertexRc.markerGraphEdgeIds = reverseComplementedChain;
+            vertexRc.vRc = v;
+            vertex.vRc = vRc;
+        }
     }
 
     cout << "Out of " << edgeCount << " marker graph edges, " << totalChainEdgeCount <<
         " were used to generate the initial assembly graph." << endl;
+    cout << "The assembly graph has " << num_vertices(assemblyGraph) << " vertices." << endl;
 
 }
 

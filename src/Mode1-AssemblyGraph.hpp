@@ -49,6 +49,13 @@ This can result in performance degradation.
 class shasta::Mode1::AssemblyGraphVertex {
 public:
 
+    // Marker graph edge ids of the edges of the marker
+    // graph path corresponding to this vertex.
+    vector<MarkerGraph::EdgeId> markerGraphEdgeIds;
+
+    // The reverse complement of this vertex.
+    AssemblyGraphBaseClass::vertex_descriptor vRc;
+
 };
 
 
