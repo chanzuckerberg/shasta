@@ -1070,40 +1070,12 @@ void shasta::main::mode1Assembly(
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create marker graph edges.
-    assembler.createMarkerGraphEdgesStrict(
-        assemblerOptions.markerGraphOptions.minEdgeCoverage,
-        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand,
-        threadCount);
+    // For assembly mode 1 we use createMarkerGraphEdgesStrict
+    // without limits on edge coverage.
+    assembler.createMarkerGraphEdgesStrict(0,  0, threadCount);
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
-    assembler.createMarkerGraphSecondaryEdges(
-        assemblerOptions.markerGraphOptions.minEdgeCoverage,
-        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand,
-        3,  // Neighborhood size in markers. EXPOSE WHEN CODE STABILIZES.
-        threadCount);
 
-    // Create the assembly graph.
-    assembler.createAssemblyGraphEdges();
-    assembler.createAssemblyGraphVertices();
-    assembler.pruneAssemblyGraph(3);    // Prune length in markers. EXPOSE WHEN CODE STABILIZES.
-
-    // Assemble.
-    assembler.assembleMarkerGraphVertices(threadCount);
-    assembler.assembleMarkerGraphEdges(
-        threadCount,
-        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
-        assemblerOptions.assemblyOptions.storeCoverageData or
-        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
-        );
-    assembler.assemble(
-        threadCount,
-        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
-
-    // Write assembly results.
-    assembler.computeAssemblyStatistics();
-    assembler.writeGfa1("Assembly.gfa");
-    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
-    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
-    assembler.writeFasta("Assembly.fasta");
+    throw runtime_error("Missing code in assembly mode 1 .");
 }
 
 
