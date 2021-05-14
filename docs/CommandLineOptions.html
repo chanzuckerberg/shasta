@@ -433,6 +433,10 @@ as defined by
 the value specified as <code>--Kmers.enrichmentThreshold</code>.
 <li>3: Read from file. Use <code>--Kmers.file</code>
 to specify the file.
+<li>4: Random selection, excluding k-mers that appear 
+in two copies close to each other, even in a single read.
+The two k-mer copies are considered close if they occur at a distance from each other less than
+<code>--Kmers.distanceThreshold</code> RLE bases.
 </ul>
 
 <tr id='Kmers.k'>
@@ -451,6 +455,11 @@ This controls the enrichment threshold above which k-mers
 are considered overenriched.
 Enrichment is ratio of k-mer frequency in reads to random.
 Only used if <code>--Kmers.generationMethod</code> is 1 or 2.
+
+<tr id='Kmers.distanceThreshold'>
+<td><code>--Kmers.distanceThreshold</code><td class=centered><code>1000</code><td>
+Distance threshold, in RLE bases, for <code>--Kmers.generationMethod 4</code>.
+Only used if <code>--Kmers.generationMethod</code> is 4.
 
 <tr id='Kmers.file'>
 <td><code>--Kmers.file</code><td class=centered><td>
@@ -687,6 +696,18 @@ Vertices with higher coverage are not generated.
 The minimum coverage per strand for a marker graph vertex.
 Vertices with lower coverage on either strand are not generated.
 
+<tr id='MarkerGraph.minEdgeCoverage'>
+<td><code>--MarkerGraph.minEdgeCoverage</code><td class=centered><code>6</code><td>
+Minimum edge coverage (number of supporting oriented reads)
+for a marker graph edge to be created.
+Experimental. Only used with <code>--Assembly.mode 1</code>.
+
+<tr id='MarkerGraph.minEdgeCoveragePerStrand'>
+<td><code>--MarkerGraph.minEdgeCoveragePerStrand</code><td class=centered><code>2</code><td>
+Minimum edge coverage (number of supporting oriented reads)
+on each strand for a marker graph edge to be created.
+Experimental. Only used with <code>--Assembly.mode 1</code>.
+
 <tr id='MarkerGraph.allowDuplicateMarkers'>
 <td><code>--MarkerGraph.allowDuplicateMarkers</code><td class=centered><code>False</code><td>
 This is a 
@@ -785,6 +806,11 @@ Used in the automatic selection of
 Used in the automatic selection of 
 <code>--MarkerGraph.minCoverage</code> when <code>--MarkerGraph.minCoverage</code> is set to 0.
 
+<tr id='Assembly.mode'>
+<td><code>--Assembly.mode</code>
+<td class=centered><code>0</code><td>
+Assembly mode (0=default, 1=experimental).
+
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
 <td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
 <td class=centered><code>0</code><td>
@@ -792,7 +818,7 @@ Controls assembly of long marker graph edges.
 
 <tr id='Assembly.consensusCaller'>
 <td><code>--Assembly.consensusCaller</code>
-<td class=centered><code>Bayesian:guppy-2.3.5-a</code><td>
+<td class=centered><code>Modal</code><td>
 Used to select the consensus caller for repeat counts. <a class=qm href='ComputationalMethods.html#RepeatCounts'/>
 
 <tr id='Assembly.storeCoverageData'>

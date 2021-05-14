@@ -20,6 +20,7 @@
 #include "MarkerConnectivityGraph.hpp"
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
+#include "Mode1-AssemblyGraph.hpp"
 #include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "ReadGraph.hpp"
@@ -51,6 +52,7 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
+    class LocalMarkerGraphRequestParameters;
     class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
@@ -303,6 +305,9 @@ public:
     // Returns the markers as tuples(read id, strand, ordinal).
     vector< tuple<ReadId, Strand, uint32_t> >
         getGlobalMarkerGraphVertexMarkers(MarkerGraph::VertexId) const;
+
+    // Compute marker graph vertex coverage statistics by KmerId.
+    void vertexCoverageStatisticsByKmerId() const;
 
 
 
@@ -1250,6 +1255,18 @@ private:
 
 
 
+    // Given a marker graph vertex, follow all of the contributing oriented
+    // reads to their next vertex.
+    // In the returned vector, each entry correspond to a marker in the given vertex
+    // (in the same order) and gives the next VertexId for that oriented read.
+    // The next VertexId can be invalidVertexId if the oriented read has no vertices
+    // past the starting VertexId.
+    void findNextMarkerGraphVertices(
+        MarkerGraph::VertexId,
+        vector<MarkerGraph::VertexId>&) const;
+
+
+
     // Clean up marker graph vertices that have duplicate markers
     // (more than one marker on the same oriented reads).
     // Such vertices are only generated when using --MarkerGraph.allowDuplicateMarkers.
@@ -1308,8 +1325,8 @@ private:
     // Create marker graph edges.
 public:
     void createMarkerGraphEdges(size_t threadCount);
-    void accessMarkerGraphEdges(bool accessEdgesReadWrite);
-    void checkMarkerGraphEdgesIsOpen();
+    void accessMarkerGraphEdges(bool accessEdgesReadWrite, bool accessConnectivityReadWrite = false);
+    void checkMarkerGraphEdgesIsOpen() const;
     void accessMarkerGraphConsensus();
 private:
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
@@ -1323,6 +1340,93 @@ private:
         vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
     };
     CreateMarkerGraphEdgesData createMarkerGraphEdgesData;
+
+
+
+    // "Strict" version of createMarkerGraphEdges.
+    // Differences from createMarkerGraphEdges:
+    // - Will only create edges in which all contributing oriented reads have
+    //   exactly the same RLE sequence. If more than one distinct RLE sequence
+    //   is present, the edge is split into two parallel edges.
+    // - Enforces minEdgeCoverage and minEdgeCoveragePerStrand.
+    //   An edge is not generated if the total number of oriented
+    //   reads on the edge is less than minEdgeCoverage,
+    //   of it the number of oriented reads on each strand is less
+    //   than minEdgeCoveragePerStrand.
+    // - The main loop is written differently - it loops over reads
+    //   rather than marker graph vertices.
+    // Because of these strict criteria, this version generates frequent breaks
+    // in contiguity that must later be fixed by other means.
+public:
+    void createMarkerGraphEdgesStrict(
+        uint64_t minEdgeCoverage,
+        uint64_t minEdgeCoveragePerStrand,
+        size_t threadCount);
+private:
+    void createMarkerGraphEdgesStrictPass1(size_t threadId);
+    void createMarkerGraphEdgesStrictPass2(size_t threadId);
+    void createMarkerGraphEdgesStrictPass12(size_t threadId, uint64_t pass);
+    void createMarkerGraphEdgesStrictPass3(size_t threadId);
+    class CreateMarkerGraphEdgesStrictData {
+    public:
+        uint64_t minEdgeCoverage;
+        uint64_t minEdgeCoveragePerStrand;
+
+        // Marker intervals, stored in a VectorOfVectors
+        // indexed by the source vertex id, vertexId0.
+        // Each interval stores the target vertex, vertexId1.
+        class MarkerIntervalInfo {
+        public:
+            MarkerGraph::VertexId vertexId1;
+            OrientedReadId orientedReadId;
+            uint32_t ordinal0;
+            uint32_t ordinal1;
+            bool operator<(const MarkerIntervalInfo& that) const
+            {
+                return tie(vertexId1, orientedReadId, ordinal0, ordinal1) <
+                    tie(that.vertexId1, that.orientedReadId, that.ordinal0, that.ordinal1);
+            }
+        };
+        MemoryMapped::VectorOfVectors<MarkerIntervalInfo, uint64_t> markerIntervalInfos;
+
+        // The edges and corresponding marker intervals found by each thread.
+        vector< shared_ptr< MemoryMapped::Vector<MarkerGraph::Edge> > > threadEdges;
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
+
+        // Class used in createMarkerGraphEdgesStrictPass3.
+        class MarkerIntervalInfo3 {
+        public:
+            MarkerInterval markerInterval;
+            uint32_t overlap;       // The number of overlapping bases between the markers.
+            vector<Base> sequence;  // RLE
+            bool operator<(const MarkerIntervalInfo3& that) const
+            {
+                return tie(overlap, sequence, markerInterval) <
+                    tie(that.overlap, that.sequence, that.markerInterval);
+            }
+        };
+    };
+    CreateMarkerGraphEdgesStrictData createMarkerGraphEdgesStrictData;
+
+
+
+    // Write out the sets of parallel marker graph edges.
+    // Only createMarkerGraphedgesStrict can create parallel edges.
+public:
+    void writeParallelMarkerGraphEdges() const;
+
+
+
+    // Function createMarkerGraphSecondaryEdges can be called after createMarkerGraphEdgesStrict
+    // to create a minimal amount of additional non-strict edges (secondary edges)
+    // sufficient to restore contiguity.
+    void createMarkerGraphSecondaryEdges(
+        uint64_t minEdgeCoverage,
+        uint64_t minEdgeCoveragePerStrand,
+        uint64_t neighborhoodSize,
+        size_t threadCount);
+
+
 
 public:
     // Set marker graph edge flags to specified values for all marker graph edges.
@@ -1405,9 +1509,20 @@ private:
         vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
         ) const;
 
+    // Given two marker graph vertices, get the marker intervals
+    // that a possible edge between the two vertices would have.
+    void getMarkerIntervals(
+        MarkerGraph::VertexId,
+        MarkerGraph::VertexId,
+        vector<MarkerInterval>&
+        ) const;
+
     // Return true if a vertex of the global marker graph has more than
     // one marker for at least one oriented read id.
     bool isBadMarkerGraphVertex(MarkerGraph::VertexId) const;
+
+    // Write csv files with detailed marker graph information.
+    void debugWriteMarkerGraph(const string& fileNamePrefix = "") const;
 
     // Write a csv file with information on all marker graph vertices for which
     // isBadMarkerGraphVertex returns true.
@@ -1519,23 +1634,29 @@ private:
 
 #ifdef SHASTA_HTTP_SERVER
     // Extract a local subgraph of the global marker graph.
-    bool extractLocalMarkerGraphUsingStoredConnectivity(
+    bool extractLocalMarkerGraph(
         OrientedReadId,
         uint32_t ordinal,
-        int distance,
+        uint64_t distance,
         int timeout,                 // Or 0 for no timeout.
+        uint64_t minVertexCoverage,
+        uint64_t minEdgeCoverage,
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
+        bool useLowCoverageCrossEdges,
         LocalMarkerGraph&
         );
-    bool extractLocalMarkerGraphUsingStoredConnectivity(
+    bool extractLocalMarkerGraph(
         MarkerGraph::VertexId,
-        int distance,
+        uint64_t distance,
         int timeout,                 // Or 0 for no timeout.
+        uint64_t minVertexCoverage,
+        uint64_t minEdgeCoverage,
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
+        bool useLowCoverageCrossEdges,
         LocalMarkerGraph&
         );
 #endif
@@ -1897,6 +2018,22 @@ public:
 
 
 
+    // Mode 1 assembly.
+    void createMode1AssemblyGraph(
+        uint64_t minEdgeCoverage,
+        uint64_t minEdgeCoveragePerStrand);
+
+private:
+
+    class Mode1Data {
+    public:
+        unique_ptr<Mode1::AssemblyGraph> assemblyGraphPointer;
+    };
+    Mode1Data mode1Data;
+
+public:
+
+
 
     // Write a csv file that can be used to color the double-stranded GFA
     // in Bandage based on the presence of two oriented reads
@@ -1982,7 +2119,7 @@ public:
     void exploreDirectedReadGraph(const vector<string>&, ostream&);
     void exploreCompressedAssemblyGraph(const vector<string>&, ostream&);
     static bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedReadId>& readIds, ostream& html);
-    static void addScaleSvgButtons(ostream&);
+    static void addScaleSvgButtons(ostream&, uint64_t sizePixels);
     class HttpServerData {
     public:
         LocalAlignmentCandidateGraph referenceOverlapGraph;
@@ -2019,36 +2156,10 @@ public:
         const AlignmentInfo& alignment,
         ostream&) const;
 
+
     // Functions and data used by the http server
     // for display of the local marker graph.
     void exploreMarkerGraph(const vector<string>&, ostream&);
-    class LocalMarkerGraphRequestParameters {
-    public:
-        MarkerGraph::VertexId vertexId;
-        bool vertexIdIsPresent;
-        uint32_t maxDistance;
-        bool maxDistanceIsPresent;
-        bool addLabels;
-        bool useDotLayout;  // If true, use dot. If false, use sfdp.
-        bool useWeakEdges;
-        bool usePrunedEdges;
-        bool useSuperBubbleEdges;
-        uint32_t sizePixels;
-        bool sizePixelsIsPresent;
-        double vertexScalingFactor;
-        bool vertexScalingFactorIsPresent;
-        string vertexScalingFactorString() const;
-        double edgeThicknessScalingFactor;
-        bool edgeThicknessScalingFactorIsPresent;
-        string edgeThicknessScalingFactorString() const;
-        double arrowScalingFactor;
-        bool arrowScalingFactorIsPresent;
-        string arrowScalingFactorString() const;
-        int timeout;
-        bool timeoutIsPresent;
-        void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;
-        bool hasMissingRequiredParameters() const;
-    };
     void getLocalMarkerGraphRequestParameters(
         const vector<string>&,
         LocalMarkerGraphRequestParameters&) const;

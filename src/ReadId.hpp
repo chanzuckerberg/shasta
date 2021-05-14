@@ -9,6 +9,7 @@
 #include "cstdint.hpp"
 #include "iostream.hpp"
 #include <limits>
+#include "stdexcept.hpp"
 #include "string.hpp"
 
 
@@ -43,15 +44,52 @@ public:
     }
     explicit OrientedReadId(ReadId value) : value(value) {}
 
+
+
     // Constructor from a string of the form readId-strand.
+    // Throws an exception on failure.
     explicit OrientedReadId(const string& s)
     {
+        // Look for the dash.
         const auto dashPosition = s.find_first_of('-');
-        SHASTA_ASSERT(dashPosition != string::npos);
-        const ReadId readId = std::atoi(s.substr(0, dashPosition).c_str());
-        const Strand strand = std::atoi(s.substr(dashPosition+1, s.size()).c_str());
+        if(dashPosition == string::npos) {
+            throw runtime_error("Invalid oriented read id - dash is missing: " + s);
+        }
+
+        // Check that only one character follows the dash.
+        if(dashPosition != s.size()-2) {
+            throw runtime_error("Invalid oriented read id - strand portion is too long: " + s);
+        }
+
+        // Parse the Strand.
+        const char strandCharacter = s[dashPosition+1];
+        Strand strand;
+        switch(strandCharacter) {
+        case '0':
+            strand = 0;
+            break;
+        case '1':
+            strand = 1;
+            break;
+        default:
+            throw runtime_error("Invalid oriented read id - invalid strand: " + s);
+        }
+
+        // Parse the ReadId.
+        const string readIdString = s.substr(0, dashPosition);
+        for(const char c: readIdString) {
+            if(not std::isdigit(c)) {
+                throw runtime_error("Invalid oriented read id - invalid character in ReadId: " + s);
+            }
+        }
+        const ReadId readId = std::atoi(readIdString.c_str());
+
+        // All good. Store it.
         value = (readId<<1) | strand;
     }
+
+
+
     ReadId getReadId() const
     {
         return value >> 1;

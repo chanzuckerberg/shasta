@@ -75,23 +75,31 @@ bool Assembler::parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector
 
 // Write to html buttons to resize the svg locally (in the browser).
 // This assumes that the page contains a single svg object.
-void Assembler::addScaleSvgButtons(ostream& html)
+void Assembler::addScaleSvgButtons(ostream& html, uint64_t sizePixels)
 {
+    html << "<script>var sizePixels = " << sizePixels << ";</script>\n";
+
     html << R"stringDelimiter(
         <script>
         function svgLarger()
         {
             var element = document.getElementsByTagName("svg")[0];
-            element.setAttribute("width", 1.25*element.getAttribute("width"));
-            element.setAttribute("height", 1.25*element.getAttribute("height"));
+            width = element.getAttribute("width");
+            height = element.getAttribute("height");
+            element.setAttribute("width", 1.25*width);
+            element.setAttribute("height", 1.25*height);
             document.getElementById("largerButton").focus();
+            sizePixels = sizePixels * 1.25;
         }
         function svgSmaller()
         {
             var element = document.getElementsByTagName("svg")[0];
-            element.setAttribute("width", 0.8*element.getAttribute("width"));
-            element.setAttribute("height", 0.8*element.getAttribute("height"));
+            width = element.getAttribute("width");
+            height = element.getAttribute("height");
+            element.setAttribute("width", 0.8*width);
+            element.setAttribute("height", 0.8*height);
             document.getElementById("smallerButton").focus();
+            sizePixels = sizePixels * 0.8
         }
         </script>
         <button type="button" id=largerButton onclick='svgLarger()'>Larger</button>
@@ -481,7 +489,7 @@ void Assembler::exploreUndirectedReadGraph(
         )stringDelimiter";
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    addScaleSvgButtons(html, sizePixels);
 
     // Write the graph to svg directly, without using Graphviz rendering.
     ComputeLayoutReturnCode returnCode = graph.computeLayout(layoutMethod, timeout);

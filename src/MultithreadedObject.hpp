@@ -200,6 +200,8 @@ template<class T> inline void shasta::MultithreadedObject<T>::startThreads(
     size_t threadCount,
     const string& logFileNamePrefix)
 {
+    SHASTA_ASSERT(threadCount > 0);
+
     if(!threads.empty()) {
         throw runtime_error("Unsupported attempt to start new threads while other threads have not been joined.");
     }

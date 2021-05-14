@@ -18,6 +18,7 @@ a group of aligned markers.
 // Shasta.
 #include "AssemblyGraph.hpp"
 #include "Kmer.hpp"
+#include "LocalMarkerGraphRequestParameters.hpp"
 #include "MarkerGraph.hpp"
 #include "Reads.hpp"
 
@@ -30,7 +31,7 @@ namespace shasta {
     class LocalMarkerGraphEdge;
     class LocalMarkerGraph;
     using LocalMarkerGraphBaseClass = boost::adjacency_list<
-        boost::setS,
+        boost::listS,   // Permit parallel edges created by createMarkerGraphEdgesStrict
         boost::listS,
         boost::bidirectionalS,
         LocalMarkerGraphVertex,
@@ -39,6 +40,7 @@ namespace shasta {
 
     class CompressedMarker;
     class ConsensusCaller;
+    class LocalMarkerGraphRequestParameters;
     class LongBaseSequences;
 }
 
@@ -52,7 +54,7 @@ public:
     MarkerGraph::VertexId vertexId;
 
     // The distance from the start vertex.
-    int distance;
+    uint64_t distance;
 
     // The markers of this vertex.
     class MarkerInfo {
@@ -65,7 +67,7 @@ public:
 
     LocalMarkerGraphVertex(
         MarkerGraph::VertexId vertexId,
-        int distance) :
+        uint64_t distance) :
         vertexId(vertexId),
         distance(distance)
         {}
@@ -86,6 +88,18 @@ public:
     // Fields used by approximateTopologicalSort.
     uint32_t color = 0;
     size_t rank = 0;
+
+    // Compute coverage for each strand.
+    array<uint64_t, 2> strandCoverage() const
+    {
+        array<uint64_t, 2> c = {0, 0};
+        for(const MarkerInfo& markerInfo: markerInfos) {
+            const Strand strand = markerInfo.orientedReadId.getStrand();
+            ++c[strand];
+        }
+        return c;
+    }
+
 };
 
 
@@ -138,6 +152,20 @@ public:
         return c;
     }
 
+    // Compute coverage for each strand.
+    array<uint64_t, 2> strandCoverage() const
+    {
+        array<uint64_t, 2> c = {0, 0};
+        for(const auto& info: infos) {
+            for(const MarkerIntervalWithRepeatCounts& interval: info.second) {
+                const Strand strand = interval.orientedReadId.getStrand();
+                ++c[strand];
+            }
+
+        }
+        return c;
+    }
+
     // Look for the ordinals for a given oriented read id.
     // If found, returns true.
     // If more than an ordinal pairs is found, the first one is returned.
@@ -167,9 +195,15 @@ public:
     // Set if this edge belongs to a bubble/superbubble that was removed.
     uint8_t isSuperBubbleEdge = 0;
 
+    // Set if this edge was removed as a low coverage cross edge
+    uint8_t isLowCoverageCrossEdge = 0;
+
     // Flag that is set if this edge corresponds to a global marker graph
     // edge that was assembled.
     uint8_t wasAssembled = 0;
+
+    // Flag for secondary edges in assembly mode 1.
+    uint8_t isSecondary = 0;
 
     // Field used by approximateTopologicalSort.
     bool isDagEdge = true;
@@ -209,7 +243,7 @@ public:
     // A vertex with this MarkerGraph::VertexId must not exist.
     vertex_descriptor addVertex(
         MarkerGraph::VertexId,
-        int distance,
+        uint64_t distance,
         span<MarkerId> markers);
 
     // Get the KmerId for a vertex.
@@ -231,20 +265,10 @@ public:
     // Write in Graphviz format.
     void write(
         ostream&,
-        int maxDistance,
-        bool addLabels,
-        bool useDotLayout,
-        double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double arrowScalingFactor) const;
+        const LocalMarkerGraphRequestParameters&) const;
     void write(
         const string& fileName,
-        int maxDistance,
-        bool addLabels,
-        bool useDotLayout,
-        double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double arrowScalingFactor) const;
+        const LocalMarkerGraphRequestParameters&) const;
 
 
     // Approximate topological sort, adding edges
@@ -279,26 +303,16 @@ private:
 
 
     // Class used for graphviz output.
-    class Writer {
+    class Writer : public LocalMarkerGraphRequestParameters {
     public:
         Writer(
             const LocalMarkerGraph&,
-            int maxDistance,
-            bool addLabels,
-            bool useDotLayout,
-            double vertexScalingFactor,
-            double edgeThicknessScalingFactor,
-            double arrowScalingFactor);
-            void operator()(ostream&) const;
+            const LocalMarkerGraphRequestParameters&);
+
+        void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalMarkerGraph& graph;
-        int maxDistance;
-        bool addLabels;
-        bool useDotLayout;
-        double vertexScalingFactor;
-        double edgeThicknessScalingFactor;
-        double arrowScalingFactor;
 
         // Vertex and edge colors.
         static const string vertexColorZeroDistance;
@@ -307,21 +321,25 @@ private:
         static const string edgeArrowColorRemovedDuringTransitiveReduction;
         static const string edgeArrowColorRemovedDuringPruning;
         static const string edgeArrowColorRemovedDuringSuperBubbleRemoval;
+        static const string edgeArrowColorRemovedAsLowCoverageCrossEdge;
         static const string edgeArrowColorNotRemovedNotAssembled;
         static const string edgeArrowColorNotRemovedAssembled;
         static const string edgeLabelColorRemovedDuringTransitiveReduction;
         static const string edgeLabelColorRemovedDuringPruning;
         static const string edgeLabelColorRemovedDuringSuperBubbleRemoval;
+        static const string edgeLabelColorRemovedAsLowCoverageCrossEdge;
         static const string edgeLabelColorNotRemovedNotAssembled;
         static const string edgeLabelColorNotRemovedAssembled;
-        const string& vertexColor(const LocalMarkerGraphVertex&) const;
-        const string& edgeArrowColor(const LocalMarkerGraphEdge&) const;
-        const string& edgeLabelColor(const LocalMarkerGraphEdge&) const;
+        string vertexColor(const LocalMarkerGraphVertex&) const;
+        string edgeArrowColor(const LocalMarkerGraphEdge&) const;
+        string edgeLabelColor(const LocalMarkerGraphEdge&) const;
     };
     friend class Writer;
 
 public:
-    static void writeColorLegend(ostream&);
+    static void writeColorLegendVerticesByDistance(ostream&);
+    static void writeColorLegendEdgeArrowsByFlags(ostream&);
+    static void writeColorLegendEdgeLabelsByFlags(ostream&);
 };
 
 #endif

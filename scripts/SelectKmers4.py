@@ -6,11 +6,12 @@ import shasta
 import GetConfig
 config = GetConfig.getConfig()
 
+# Create the assembler.
 a = shasta.Assembler()
 
-# For now, use a hardwired distance threshold.
+# select k-mers.
 a.selectKmers4(
     k = int(config['Kmers']['k']), 
     markerDensity = float(config['Kmers']['probability']),
-    distanceThreshold = 1000)
+    distanceThreshold = int(config['Kmers']['distanceThreshold']))
 

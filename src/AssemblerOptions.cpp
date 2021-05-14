@@ -297,9 +297,10 @@ void AssemblerOptions::addConfigurableOptions()
          default_value(0),
          "Method to generate marker k-mers: "
          "0 = random, "
-         "1 = random, excluding globally overenriched,"
-         "2 = random, excluding overenriched even in a single read,"
-         "3 = read from file.")
+         "1 = random, excluding globally overenriched k-mers,"
+         "2 = random, excluding k-mers overenriched even in a single read,"
+         "3 = read from file."
+         "4 = random, excluding k-mers appearing in two copies close to each other even in a single read.")
 
          ("Kmers.k",
          value<int>(&kmersOptions.k)->
@@ -315,6 +316,11 @@ void AssemblerOptions::addConfigurableOptions()
         value<double>(&kmersOptions.enrichmentThreshold)->
         default_value(100., "100."),
         "Enrichment threshold for Kmers.generationMethod 1 and 2.")
+
+        ("Kmers.distanceThreshold",
+        value<uint64_t>(&kmersOptions.distanceThreshold)->
+        default_value(1000),
+        "Distance threshold, in RLE bases, for Kmers.generationMethod 4")
 
         ("Kmers.file",
         value<string>(&kmersOptions.file),
@@ -599,6 +605,21 @@ void AssemblerOptions::addConfigurableOptions()
         "Minimum coverage (number of supporting oriented reads) "
         "for each strand for a marker graph vertex.")
 
+        ("MarkerGraph.minEdgeCoverage",
+        value<uint64_t>(&markerGraphOptions.minEdgeCoverage)->
+        default_value(6),
+        "Minimum edge coverage (number of supporting oriented reads) "
+        "for a marker graph edge to be created."
+        "Experimental. Only used with --Assembly.mode 1.")
+
+        ("MarkerGraph.minEdgeCoveragePerStrand",
+        value<uint64_t>(&markerGraphOptions.minEdgeCoveragePerStrand)->
+        default_value(2),
+        "Minimum edge coverage (number of supporting oriented reads) "
+        "on each strand "
+        "for a marker graph edge to be created."
+        "Experimental. Only used with --Assembly.mode 1.")
+
         ("MarkerGraph.allowDuplicateMarkers",
         bool_switch(&markerGraphOptions.allowDuplicateMarkers)->
         default_value(false),
@@ -680,6 +701,11 @@ void AssemblerOptions::addConfigurableOptions()
         "Used in the automatic selection of --MarkerGraph.minCoverage when "
         "--MarkerGraph.minCoverage is set to 0.")
 
+        ("Assembly.mode",
+        value<uint64_t>(&assemblyOptions.mode)->
+        default_value(0),
+        "Assembly mode (0=default, 1=experimental).")
+
         ("Assembly.crossEdgeCoverageThreshold",
         value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
         default_value(3),
@@ -693,7 +719,7 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Assembly.consensusCaller",
         value<string>(&assemblyOptions.consensusCallerString)->
-        default_value("Bayesian:guppy-2.3.5-a"),
+        default_value("Modal"),
         "Selects the consensus caller for repeat counts. "
         "See the documentation for available choices.")
 
@@ -836,6 +862,7 @@ void KmersOptions::write(ostream& s) const
     s << "k = " << k << "\n";
     s << "probability = " << probability << "\n";
     s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
+    s << "distanceThreshold = " << distanceThreshold << "\n";
     s << "file = " << file << "\n";
 }
 
@@ -921,6 +948,8 @@ void MarkerGraphOptions::write(ostream& s) const
     s << "minCoverage = " << minCoverage << "\n";
     s << "maxCoverage = " << maxCoverage << "\n";
     s << "minCoveragePerStrand = " << minCoveragePerStrand << "\n";
+    s << "minEdgeCoverage = " << minEdgeCoverage << "\n";
+    s << "minEdgeCoveragePerStrand = " << minEdgeCoveragePerStrand << "\n";
     s << "allowDuplicateMarkers = " <<
         convertBoolToPythonString(allowDuplicateMarkers) << "\n";
     s << "cleanupDuplicateMarkers = " <<
@@ -945,6 +974,7 @@ void MarkerGraphOptions::write(ostream& s) const
 void AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
+    s << "mode = " << mode << "\n";
     s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
         markerGraphEdgeLengthThresholdForConsensus << "\n";

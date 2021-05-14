@@ -2,8 +2,10 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblyGraph.hpp"
 #include "compressAlignment.hpp"
 #include "ConsensusCaller.hpp"
+#include "hsv.hpp"
 #include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "MarkerConnectivityGraph.hpp"
@@ -34,21 +36,31 @@ void Assembler::exploreMarkerGraph(
     LocalMarkerGraphRequestParameters requestParameters;
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
-    // Write the form and the color legend.
-    html << "<h3>Display a local subgraph of the global marker graph</h3>";
-    html << "<div style='clear:both; display:table;'>";
-    html << "<div style='float:left;margin:10px;'>";
+    // Write the form.
+    html << "<h1>Display a local subgraph of the global marker graph</h3>";
     requestParameters.writeForm(html, markerGraph.vertexCount());
-    html << "</div>";
-    html << "<div style='float:left;margin:10px;'>";
-    LocalMarkerGraph::writeColorLegend(html);
-    html << "</div>";
-    html << "</div>";
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
         return;
     }
+
+    // Some sanity checks.
+    if(requestParameters.vertexRedCoverage >= requestParameters.vertexGreenCoverage) {
+        html << "</div><span style='color:purple'>"
+            "Red vertex coverage must be less than green vertex coverage.</span></div>";
+        return;
+    }
+    if(requestParameters.edgeRedCoverage >= requestParameters.edgeGreenCoverage) {
+        html << "</div><span style='color:purple'>"
+            "Red edge coverage must be less than green edge coverage.</span></div>";
+        return;
+    }
+
+
+
+
+
 
 
 
@@ -69,13 +81,16 @@ void Assembler::exploreMarkerGraph(
         markerGraph.vertexTable,
         *consensusCaller);
     const auto createStartTime = steady_clock::now();
-    if(!extractLocalMarkerGraphUsingStoredConnectivity(
+    if(!extractLocalMarkerGraph(
         requestParameters.vertexId,
         requestParameters.maxDistance,
         requestParameters.timeout,
+        requestParameters.minVertexCoverage,
+        requestParameters.minEdgeCoverage,
         requestParameters.useWeakEdges,
         requestParameters.usePrunedEdges,
         requestParameters.useSuperBubbleEdges,
+        requestParameters.useLowCoverageCrossEdges,
         graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
@@ -105,14 +120,8 @@ void Assembler::exploreMarkerGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
-    graph.write(
-        dotFileName,
-        requestParameters.maxDistance,
-        requestParameters.addLabels,
-        requestParameters.useDotLayout,
-        requestParameters.vertexScalingFactor,
-        requestParameters.edgeThicknessScalingFactor,
-        requestParameters.arrowScalingFactor);
+    graph.write(dotFileName, requestParameters);
+
 
     // Compute layout in svg format.
     const string command =
@@ -142,13 +151,133 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // Write the graph.
+    // Write the title.
     html <<
         "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
         "</h2>";
 
+
+
+    // Color legend for vertices when colored by distance.
+    if(requestParameters.vertexColoring == "byDistance") {
+        html << "<h3>Color legend for vertices</h3>";
+        LocalMarkerGraph::writeColorLegendVerticesByDistance(html);
+    }
+
+
+
+    // Color legend for vertices when colored by coverage.
+    if(requestParameters.vertexColoring == "byCoverage") {
+        html <<
+            "<h3>Color legend for vertices</h3><table>"
+            "<tr><td class=left>Coverage";
+        for(uint64_t coverage=requestParameters.vertexRedCoverage;
+            coverage<= requestParameters.vertexGreenCoverage; coverage++) {
+            html << "<td class=centered>";
+            if(coverage == requestParameters.vertexRedCoverage) {
+                html << "&leq;";
+            }
+            if(coverage == requestParameters.vertexGreenCoverage) {
+                html << "&geq;";
+            }
+            html << coverage;
+        }
+        html << "<tr><td class=left>Color";
+        for(uint64_t coverage=requestParameters.vertexRedCoverage;
+            coverage<= requestParameters.vertexGreenCoverage; coverage++) {
+            double h =
+                double(coverage - requestParameters.vertexRedCoverage) /
+                double(requestParameters.vertexGreenCoverage - requestParameters.vertexRedCoverage);
+            h = max(h, 0.);
+            h = min(h, 1.);
+            const double hue = 120. * h;
+            double S, L;
+            tie(S, L) = hsvToHsl(1., 0.9);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+
+        html << "</table>";
+    }
+
+
+
+    // Color legends for edges when colored by flags.
+    if(requestParameters.edgeColoring == "byFlags") {
+        if(requestParameters.highlightedOrientedReads.empty()) {
+            html << "<h3>Color legend for edges lines and arrows</h3>";
+            LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(html);
+        }
+        if(requestParameters.edgeLabels > 0) {
+            html << "<h3>Color legend for edge labels</h3>";
+            LocalMarkerGraph::writeColorLegendEdgeLabelsByFlags(html);
+        }
+    }
+
+
+
+    // Color legend for edges when colored by coverage.
+    if(requestParameters.edgeColoring == "byCoverage" and requestParameters.highlightedOrientedReads.empty()) {
+        html <<
+            "<h3>Color legend for edges</h3><table>"
+            "<tr><td class=left>Coverage";
+        for(uint64_t coverage=requestParameters.edgeRedCoverage;
+            coverage<= requestParameters.edgeGreenCoverage; coverage++) {
+            html << "<td class=centered>";
+            if(coverage == requestParameters.edgeRedCoverage) {
+                html << "&leq;";
+            }
+            if(coverage == requestParameters.edgeGreenCoverage) {
+                html << "&geq;";
+            }
+            html << coverage;
+        }
+        html << "<tr><td class=left>Color";
+        for(uint64_t coverage=requestParameters.edgeRedCoverage;
+            coverage<= requestParameters.edgeGreenCoverage; coverage++) {
+            double h =
+                double(coverage - requestParameters.edgeRedCoverage) /
+                double(requestParameters.edgeGreenCoverage - requestParameters.edgeRedCoverage);
+            h = max(h, 0.);
+            h = min(h, 1.);
+            const double hue = 120. * h;
+            double S, L;
+            tie(S, L) = hsvToHsl(1., 0.9);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+
+        html << "</table>";
+    }
+
+
+
+    // If there are highlighted oriented reads, write a legend with their colors.
+    if(not requestParameters.highlightedOrientedReads.empty()) {
+        double S, L;
+        tie(S, L) = hsvToHsl(requestParameters.S, requestParameters.V);
+        html << "<h3>Color legend for highlighted oriented reads</h3><table><tr>";
+        for(const auto& p:requestParameters.highlightedOrientedReads) {
+            html << "<td class=centered>" << p.first;
+        }
+        html << "<tr>";
+        for(const auto& p:requestParameters.highlightedOrientedReads) {
+            const uint64_t hue = uint64_t(p.second * 360.);
+            html << "<td style='height:15px;background-color:hsl(" << hue << "," <<
+                uint64_t(100. * S) << "%," <<
+                uint64_t(100. * L) << "%)'>";
+        }
+        html << "</table>";
+
+    }
+
+
+
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    html << "<br>";
+    addScaleSvgButtons(html, requestParameters.sizePixels);
 
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
@@ -163,33 +292,30 @@ void Assembler::exploreMarkerGraph(
     html <<
         "</div>"
         "<script>"
-        "var svgElement = document.getElementsByTagName('svg')[0];"
-        "svgElement.setAttribute('width', " << requestParameters.sizePixels << ");"
+        "var element = document.getElementsByTagName('svg')[0];"
+        "w0 = element.getAttribute('width');"
+        "h0 = element.getAttribute('height');"
+        "element.setAttribute('width', " << requestParameters.sizePixels << ");"
+        "w1 = element.getAttribute('width');"
+        "h1 = element.getAttribute('height');"
+        "element.setAttribute('height', h0 * (w1 / w0));"
         "document.getElementById('svgDiv').setAttribute('style', 'display:block');"
         "</script>";
 
 
 
-    // Make the vertices clickable: left click recenters
+    // Make the vertices clickable: Ctrl-click recenters
     // the graph at that vertex, right click shows vertex details.
     html << "<script>\n";
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         const LocalMarkerGraphVertex& vertex = graph[v];
         SHASTA_ASSERT(!vertex.markerInfos.empty());
-        const string url =
-            "exploreMarkerGraph?vertexId=" + to_string(vertex.vertexId) +
-            "&maxDistance=" + to_string(requestParameters.maxDistance) +
-            "&sizePixels=" + to_string(requestParameters.sizePixels) +
-            "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.addLabels ? "&addLabels=on" : "") +
-            "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
-            (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
-            (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
-            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
+        const string url = requestParameters.urlForVertex(vertex.vertexId);
         html <<
             "element = document.getElementById('vertex" << vertex.vertexId << "');\n"
-            "element.onclick = function() {location.href='" << url << "';};\n"
-            "element.style.cursor = \"pointer\";\n";
+            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url <<
+            "' + '&sizePixels=' + sizePixels;};\n"
+            "element.style.cursor = \"default\";\n";
 
         // Add a right click to show details.
         const string detailUrl =
@@ -202,27 +328,19 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // Make the edges clickable: left click recenters
+    // Make the edges clickable: Ctrl-click recenters
     // the graph at the source vertex of that edge, right click shows edge details.
     html << "<script>\n";
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         const LocalMarkerGraphEdge& edge = graph[e];
         const LocalMarkerGraph::vertex_descriptor v0 = source(e, graph);
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
-        const string url =
-            "exploreMarkerGraph?vertexId=" + to_string(vertex0.vertexId) +
-            "&maxDistance=" + to_string(requestParameters.maxDistance) +
-            "&sizePixels=" + to_string(requestParameters.sizePixels) +
-            "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.addLabels ? "&addLabels=on" : "") +
-            "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
-            (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
-            (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
-            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
+        const string url = requestParameters.urlForVertex(vertex0.vertexId);
         html <<
             "element = document.getElementById('edge" << edge.edgeId << "');\n"
-            "element.onclick = function() {location.href='" << url << "';};\n"
-            "element.style.cursor = \"pointer\";\n";
+            "element.onclick = function() {if(!event.ctrlKey) {return;} location.href='" << url <<
+            "' + '&sizePixels=' + sizePixels;};\n"
+            "element.style.cursor = \"default\";\n";
 
         // Add a right click to show details.
         const string detailUrl =
@@ -258,17 +376,16 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.maxDistanceIsPresent = getParameterValue(
         request, "maxDistance", parameters.maxDistance);
 
-    string addLabelsString;
-    parameters.addLabels = getParameterValue(
-        request, "addLabels", addLabelsString);
+    parameters.layoutMethod = "dotLr";
+    getParameterValue(request, "layoutMethod", parameters.layoutMethod);
 
-    string layoutString;
-    getParameterValue(
-        request, "layout", layoutString);
-    parameters.useDotLayout = true;
-    if(layoutString == "sfdp") {
-        parameters.useDotLayout = false;
-    }
+    parameters.minVertexCoverage = 0;
+    parameters.minVertexCoverageIsPresent = getParameterValue(
+        request, "minVertexCoverage", parameters.minVertexCoverage);
+
+    parameters.minEdgeCoverage = 0;
+    parameters.minEdgeCoverageIsPresent = getParameterValue(
+        request, "minEdgeCoverage", parameters.minEdgeCoverage);
 
     string useWeakEdgesString;
     parameters.useWeakEdges = getParameterValue(
@@ -281,6 +398,10 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     string useSuperBubbleEdgesString;
     parameters.useSuperBubbleEdges = getParameterValue(
         request, "useSuperBubbleEdges", useSuperBubbleEdgesString);
+
+    string useLowCoverageCrossEdgesString;
+    parameters.useLowCoverageCrossEdges = getParameterValue(
+        request, "useLowCoverageCrossEdges", useLowCoverageCrossEdgesString);
 
     parameters.sizePixels = 800;
     parameters.sizePixelsIsPresent = getParameterValue(
@@ -298,50 +419,117 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.arrowScalingFactorIsPresent = getParameterValue(
         request, "arrowScalingFactor", parameters.arrowScalingFactor);
 
+    parameters.edgeThickness = "byCoverage";
+    getParameterValue(request, "edgeThickness", parameters.edgeThickness);
+
     parameters.timeout = 30;
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
 
+    parameters.vertexLabels = 0;
+    getParameterValue(request, "vertexLabels", parameters.vertexLabels);
+
+    parameters.edgeLabels = 0;
+    getParameterValue(request, "edgeLabels", parameters.edgeLabels);
+
+    parameters.vertexColoring = "byDistance";
+    getParameterValue(request, "vertexColoring", parameters.vertexColoring);
+
+    parameters.edgeColoring = "byFlags";
+    getParameterValue(request, "edgeColoring", parameters.edgeColoring);
+
+    parameters.vertexRedCoverage = 1;
+    getParameterValue(request, "vertexRedCoverage", parameters.vertexRedCoverage);
+
+    parameters.vertexGreenCoverage = 10;
+    getParameterValue(request, "vertexGreenCoverage", parameters.vertexGreenCoverage);
+
+    parameters.vertexRedCoveragePerStrand = 1;
+    getParameterValue(request, "vertexRedCoveragePerStrand", parameters.vertexRedCoveragePerStrand);
+
+    parameters.vertexGreenCoveragePerStrand = 2;
+    getParameterValue(request, "vertexGreenCoveragePerStrand", parameters.vertexGreenCoveragePerStrand);
+
+    parameters.edgeRedCoverage = 1;
+    getParameterValue(request, "edgeRedCoverage", parameters.edgeRedCoverage);
+
+    parameters.edgeGreenCoverage = 10;
+    getParameterValue(request, "edgeGreenCoverage", parameters.edgeGreenCoverage);
+
+    parameters.edgeRedCoveragePerStrand = 1;
+    getParameterValue(request, "edgeRedCoveragePerStrand", parameters.edgeRedCoveragePerStrand);
+
+    parameters.edgeGreenCoveragePerStrand = 2;
+    getParameterValue(request, "edgeGreenCoveragePerStrand", parameters.edgeGreenCoveragePerStrand);
+
+    getParameterValue(request, "highlightedOrientedReads", parameters.highlightedOrientedReadsString);
+    parameters.parseHighlightedOrientedReads();
+
+}
+
+
+// This parses highlightedOrientedReadsString and creates
+// highlightedOrientedReads. Each oriented read is assigned a hue
+// via hashing of the OrientedReadId. This way, an oriented read
+// is always highlighted in the same color.
+void LocalMarkerGraphRequestParameters::parseHighlightedOrientedReads()
+{
+    highlightedOrientedReads.clear();
+    if(highlightedOrientedReadsString.empty()) {
+        return;
+    }
+
+    vector<string> tokens;
+    boost::algorithm::split(tokens, highlightedOrientedReadsString, boost::algorithm::is_any_of(" "));
+
+    for(const string& token: tokens) {
+        const OrientedReadId orientedReadId = OrientedReadId(token);
+
+        // Hash the OrientedReadId to create a Hue value in (0,1).
+        // This way the same OrientedReadId always gets the same color.
+        const uint32_t hashValue = MurmurHash2(&orientedReadId, sizeof(OrientedReadId), 751);
+        const double hue = double(hashValue) / double(std::numeric_limits<uint32_t>::max());
+
+        highlightedOrientedReads.insert(make_pair(orientedReadId, hue));
+    }
 }
 
 
 
-void Assembler::LocalMarkerGraphRequestParameters::writeForm(
+void LocalMarkerGraphRequestParameters::writeForm(
     ostream& html,
     MarkerGraph::VertexId vertexCount) const
 {
     html <<
         "<form>"
 
+
+        "<h3>Local marker graph creation</h3>"
         "<table>"
 
         "<tr title='Start vertex id between 0 and " << vertexCount << "'>"
         "<td>Start vertex id"
-        "<td><input type=text required name=vertexId size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=vertexId size=8 style='text-align:center'"
         << (vertexIdIsPresent ? ("value='"+to_string(vertexId)+"'") : "") <<
         ">"
 
         "<tr title='Maximum distance from start vertex (number of edges)'>"
         "<td>Maximum distance"
-        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=maxDistance size=8 style='text-align:center'"
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
         ">"
 
-        "<tr title='Check for to add labels to vertices and edges'>"
-        "<td>Labels"
-        "<td class=centered><input type=checkbox name=addLabels"
-        << (addLabels ? " checked=checked" : "") <<
+        "<tr>"
+        "<td>Minimum vertex coverage"
+        "<td class=centered><input type=text required name=minVertexCoverage size=8 style='text-align:center'"
+        << (minVertexCoverageIsPresent ? ("value='" + to_string(minVertexCoverage)+"'") : " value='0'") <<
         ">"
 
-        "<tr title='Check for to add labels to vertices and edges'>"
-        "<td>Graph layout"
-        "<td>"
-        "<span title='Best for small subgraphs'><input type=radio name=layout value=dot"
-        << (useDotLayout ? " checked=checked" : "") <<
-        ">Dot</span><br>"
-        "<span title='Best for large subgraphs, without labels'><input type=radio name=layout value=sfdp"
-        << (!useDotLayout ? " checked=checked" : "") <<
-        ">Sfdp</span>"
+        "<tr>"
+        "<td>Minimum edge coverage"
+        "<td class=centered><input type=text required name=minEdgeCoverage size=8 style='text-align:center'"
+        << (minEdgeCoverageIsPresent ? ("value='" + to_string(minEdgeCoverage)+"'") : " value='0'") <<
+        ">"
 
         "<tr title='Check to include in the local marker graph "
         "edges that were removed during transitive reduction'>"
@@ -364,34 +552,151 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<input type=checkbox name=useSuperBubbleEdges" <<
         (useSuperBubbleEdges ? " checked=checked" : "") << ">"
 
-        "<tr title='Graphics size in pixels. "
-        "Changing this works better than zooming. Make it larger if the graph is too crowded."
-        " Ok to make it much larger than screen size.'>"
-        "<td>Graphics size in pixels"
-        "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
+        "<tr title='Check to include in the local marker graph "
+        "edges that were removed as low coverage cross edges'>"
+        "<td>Edges removed as low coverage cross edges"
+        "<td class=centered>"
+        "<input type=checkbox name=useLowCoverageCrossEdges" <<
+        (useLowCoverageCrossEdges ? " checked=checked" : "") << ">"
+
+        "</table>"
+        "<h3>Graphics</h3>"
+
+        "<table>"
+        "<tr>"
+        "<td colspan=2>Width in pixels"
+        "<td class=centered><input type=text required name=sizePixels size=8 style='text-align:center'"
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
         "<tr>"
-        "<td>Vertex scaling factor (sfdp only)"
-        "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+        "<td colspan=2>Graph layout method"
+        "<td class=left>"
+        "<span title='Best for small subgraphs'><input type=radio name=layoutMethod value=dotLr"
+        << (layoutMethod=="dotLr" ? " checked=checked" : "") <<
+        ">Dot, left to right</span><br>"
+        "<span title='Best for small subgraphs with labels'><input type=radio name=layoutMethod value=dotTb"
+        << (layoutMethod=="dotTb" ? " checked=checked" : "") <<
+        ">Dot, top to bottom</span><br>"
+        "<span title='Best for large subgraphs, without labels'><input type=radio name=layoutMethod value=sfdp"
+        << (layoutMethod=="sfdp" ? " checked=checked" : "") <<
+        ">Sfdp</span>"
+
+        "<tr>"
+        "<td colspan=2>Highlight oriented reads"
+        "<td class=centered><input type=text name=highlightedOrientedReads size=12"
+        << (highlightedOrientedReadsString.empty() ? "" : (" value='" + highlightedOrientedReadsString + "'")) <<
+        " title='Enter one or more oriented reads separated by spaces, for example \"432-0 1256-1\"'"
+        "</textarea>"
+
+        "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
+        "<td colspan=2>Timeout (seconds) for graph creation and layout"
+        "<td class=centered><input type=text required name=timeout size=8 style='text-align:center'"
+        << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
+        ">"
+
+        "<tr>"
+        "<td rowspan=4 class=centered>Vertices"
+        "<td>Labels"
+        "<td><input type=radio name=vertexLabels value=0" <<
+        ((vertexLabels==0) ? " checked=checked" : "") << ">None"
+        "<br><input type=radio name=vertexLabels value=1" <<
+        ((vertexLabels==1) ? " checked=checked" : "") << ">Terse"
+        "<br><input type=radio name=vertexLabels value=2" <<
+        ((vertexLabels==2) ? " checked=checked" : "") << ">Verbose"
+
+        "<tr><td>Coloring"
+        "<td>"
+        "<input type=radio name=vertexColoring value=none"
+        << (vertexColoring=="none" ? " checked=checked" : "") <<
+        ">None<br>"
+        "<input type=radio name=vertexColoring value=byCoverage"
+        << (vertexColoring=="byCoverage" ? " checked=checked" : "") <<
+        ">By coverage<br>"
+        "<input type=radio name=vertexColoring value=byDistance"
+        << (vertexColoring=="byDistance" ? " checked=checked" : "") <<
+        ">By distance"
+
+        "<tr><td>Color by coverage"
+        "<td><table style='margin-left:auto;margin-right:auto'>"
+        "<tr><td class=centered>Total<br>coverage<td class=centered>Strand<br>coverage<td class=left>Color"
+        "<tr>"
+        "<td class=centered><input type=text name=vertexRedCoverage size=4 style='text-align:center'"
+        " value='" << vertexRedCoverage << "'>"
+        "<td class=centered><input type=text name=vertexRedCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << vertexRedCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(0,100%,45%)'>"
+        "<tr>"
+        "<td class=centered><input type=text name=vertexGreenCoverage size=4 style='text-align:center'" <<
+        " value='" << vertexGreenCoverage << "'>"
+        "<td class=centered><input type=text name=vertexGreenCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << vertexGreenCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+
+        "<tr>"
+        "<td>Scaling factor"
+        "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
         " value='" + vertexScalingFactorString() + "'>" <<
 
         "<tr>"
-        "<td>Edge thickness scaling factor"
-        "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+        "<td rowspan=5 class=centered>Edges"
+        "<td>Labels"
+        "<td><input type=radio name=edgeLabels value=0" <<
+        ((edgeLabels==0) ? " checked=checked" : "") << ">None"
+        "<br><input type=radio name=edgeLabels value=1" <<
+        ((edgeLabels==1) ? " checked=checked" : "") << ">Terse"
+        "<br><input type=radio name=edgeLabels value=2" <<
+        ((edgeLabels==2) ? " checked=checked" : "") << ">Verbose"
+
+        "<tr><td>Coloring"
+        "<td>"
+        "<input type=radio name=edgeColoring value=none"
+        << (edgeColoring=="none" ? " checked=checked" : "") <<
+        ">None<br>"
+        "<input type=radio name=edgeColoring value=byCoverage"
+        << (edgeColoring=="byCoverage" ? " checked=checked" : "") <<
+        ">By coverage<br>"
+        "<input type=radio name=edgeColoring value=byFlags"
+        << (edgeColoring=="byFlags" ? " checked=checked" : "") <<
+        ">By flags"
+
+        "<tr><td>Color by coverage"
+        "<td><table style='margin-left:auto;margin-right:auto'>"
+        "<tr><td class=centered>Total<br>coverage<td class=centered>Strand<br>coverage<td class=left>Color"
+        "<tr>"
+        "<td class=centered><input type=text name=edgeRedCoverage size=4 style='text-align:center'"
+        " value='" << edgeRedCoverage << "'>"
+        "<td class=centered><input type=text name=edgeRedCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << edgeRedCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(0,100%,45%)'>"
+        "<tr>"
+        "<td class=centered><input type=text name=edgeGreenCoverage size=4 style='text-align:center'" <<
+        " value='" << edgeGreenCoverage << "'>"
+        "<td class=centered><input type=text name=edgeGreenCoveragePerStrand size=4 style='text-align:center'"
+        " value='" << edgeGreenCoveragePerStrand << "'>"
+        "<td class=centered style='background-color:hsl(120,100%,45%)'></table>"
+
+        "<tr>"
+        "<td>Thickness"
+        "<td class=left>"
+        "<input type=radio name=edgeThickness value=constant"
+        << (edgeThickness=="constant" ? " checked=checked" : "") <<
+        ">Constant"
+        "<br>"
+        "<input type=radio name=edgeThickness value=byCoverage"
+        << (edgeThickness=="byCoverage" ? " checked=checked" : "") <<
+        ">Proportional to coverage"
+
+        "<tr>"
+        "<td >Thickness scaling factor"
+        "<td class=centered><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
         " value='" + edgeThicknessScalingFactorString() + "'>" <<
 
         "<tr>"
-        "<td>Edge arrow scaling factor"
-        "<td><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
+        "<td>Arrow scaling factor"
+        "<td class=centered><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
         " value='" + arrowScalingFactorString() + "'>" <<
 
-        "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
-        "<td>Timeout (seconds) for graph creation and layout"
-        "<td><input type=text required name=timeout size=8 style='text-align:center'"
-        << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
-        ">"
         "</table>"
 
 
@@ -402,7 +707,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
 
 
-bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters() const
+bool LocalMarkerGraphRequestParameters::hasMissingRequiredParameters() const
 {
     return
         !vertexIdIsPresent ||
@@ -412,7 +717,7 @@ bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters(
 
 
 
-string Assembler::LocalMarkerGraphRequestParameters::vertexScalingFactorString() const
+string LocalMarkerGraphRequestParameters::vertexScalingFactorString() const
 {
     if(vertexScalingFactorIsPresent) {
         std::ostringstream s;
@@ -425,7 +730,7 @@ string Assembler::LocalMarkerGraphRequestParameters::vertexScalingFactorString()
 
 
 
-string Assembler::LocalMarkerGraphRequestParameters::arrowScalingFactorString() const
+string LocalMarkerGraphRequestParameters::arrowScalingFactorString() const
 {
     if(arrowScalingFactorIsPresent) {
         std::ostringstream s;
@@ -438,7 +743,7 @@ string Assembler::LocalMarkerGraphRequestParameters::arrowScalingFactorString() 
 
 
 
-string Assembler::LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorString() const
+string LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorString() const
 {
     if(edgeThicknessScalingFactorIsPresent) {
         std::ostringstream s;
@@ -449,6 +754,70 @@ string Assembler::LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorS
     }
 }
 
+
+
+string LocalMarkerGraphRequestParameters::url() const
+{
+    return
+        string("exploreMarkerGraph") +
+        "?vertexId=" + to_string(vertexId) +
+        "&maxDistance=" + to_string(maxDistance) +
+        "&minVertexCoverage=" + to_string(minVertexCoverage) +
+        "&minEdgeCoverage=" + to_string(minEdgeCoverage) +
+        "&layoutMethod=" + layoutMethod +
+        (useWeakEdges ? "&useWeakEdges=on" : "") +
+        (usePrunedEdges ? "&usePrunedEdges=on" : "") +
+        (useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "") +
+        (useLowCoverageCrossEdges ? "&useLowCoverageCrossEdges=on" : "") +
+        "&vertexScalingFactor=" + to_string(vertexScalingFactor) +
+        "&edgeThicknessScalingFactor=" + to_string(edgeThicknessScalingFactor) +
+        "&arrowScalingFactor=" + to_string(arrowScalingFactor) +
+        "&timeout=" + to_string(timeout) +
+        "&vertexLabels=" + vertexLabelsString() +
+        "&edgeLabels=" + edgeLabelsString() +
+        "&vertexColoring=" + vertexColoring +
+        "&vertexRedCoverage=" + to_string(vertexRedCoverage) +
+        "&vertexGreenCoverage=" + to_string(vertexGreenCoverage) +
+        "&edgeColoring=" + edgeColoring +
+        "&edgeRedCoverage=" + to_string(edgeRedCoverage) +
+        "&edgeGreenCoverage=" + to_string(edgeGreenCoverage) +
+        "&highlightedOrientedReads=" + highlightedOrientedReadsString;
+
+}
+
+
+
+string LocalMarkerGraphRequestParameters::urlForVertex(uint64_t newVertexId) const
+{
+    LocalMarkerGraphRequestParameters newParameters = *this;
+    newParameters.vertexId = newVertexId;
+    return newParameters.url();
+}
+
+
+
+string LocalMarkerGraphRequestParameters::vertexLabelsString() const
+{
+    switch(vertexLabels) {
+        case 0: return "none";
+        case 1: return "terse";
+        case 2: return "verbose";
+        default: SHASTA_ASSERT(0);
+    }
+}
+
+
+
+string LocalMarkerGraphRequestParameters::edgeLabelsString() const
+{
+    switch(edgeLabels) {
+        case 0: return "none";
+        case 1: return "terse";
+        case 2: return "verbose";
+        default: SHASTA_ASSERT(0);
+    }
+
+}
 
 
 void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream& html)
@@ -518,28 +887,31 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
 
     // Compute consensus repeat counts at each of the k positions.
+    const bool consensusIsAvailable = markerGraph.vertexRepeatCounts.isOpen;
     vector<size_t> consensusRepeatCounts(k);
-    const auto storedConsensusRepeatCounts =
-        markerGraph.vertexRepeatCounts.begin() + k * vertexId;
-    for(size_t i=0; i<k; i++) {
+    if(consensusIsAvailable) {
+        const auto storedConsensusRepeatCounts =
+            markerGraph.vertexRepeatCounts.begin() + k * vertexId;
+        for(size_t i=0; i<k; i++) {
 
-        Coverage coverage;
-        for(size_t j=0; j<markerCount; j++) {
-            coverage.addRead(
-                AlignedBase(kmer[i]),
-                orientedReadIds[j].getStrand(),
-                repeatCounts[j][i]);
-        }
+            Coverage coverage;
+            for(size_t j=0; j<markerCount; j++) {
+                coverage.addRead(
+                    AlignedBase(kmer[i]),
+                    orientedReadIds[j].getStrand(),
+                    repeatCounts[j][i]);
+            }
 
-        const Consensus consensus = (*consensusCaller)(coverage);
-        SHASTA_ASSERT(Base(consensus.base) == kmer[i]);
-        consensusRepeatCounts[i] = consensus.repeatCount;
+            const Consensus consensus = (*consensusCaller)(coverage);
+            SHASTA_ASSERT(Base(consensus.base) == kmer[i]);
+            consensusRepeatCounts[i] = consensus.repeatCount;
 
-        // Check that this repeat count agrees with what was
-        // computed during the assembly.
-        if(consensusRepeatCounts[i] != storedConsensusRepeatCounts[i]) {
-            html << "<p><b>Stored consensus repeat counts do not agree with "
-                "the values computed on the fly.</b>" << endl;
+            // Check that this repeat count agrees with what was
+            // computed during the assembly.
+            if(consensusRepeatCounts[i] != storedConsensusRepeatCounts[i]) {
+                html << "<p><b>Stored consensus repeat counts do not agree with "
+                    "the values computed on the fly.</b>" << endl;
+            }
         }
     }
 
@@ -549,12 +921,14 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
     // Compute concordant and discordant coverage at each position.
     vector<size_t> concordantCoverage(k, 0);
     vector<size_t> discordantCoverage(k, 0);
-    for(size_t i=0; i<k; i++) {
-        for(size_t j=0; j<markerCount; j++) {
-            if(repeatCounts[j][i] == consensusRepeatCounts[i]) {
-                ++concordantCoverage[i];
-            } else {
-                ++discordantCoverage[i];
+    if(consensusIsAvailable) {
+        for(size_t i=0; i<k; i++) {
+            for(size_t j=0; j<markerCount; j++) {
+                if(repeatCounts[j][i] == consensusRepeatCounts[i]) {
+                    ++concordantCoverage[i];
+                } else {
+                    ++discordantCoverage[i];
+                }
             }
         }
     }
@@ -567,6 +941,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         "&useWeakEdges=on"
         "&usePrunedEdges=on"
         "&useSuperBubbleEdges=on"
+        "&useLowCoverageCrossEdges=on"
         "&sizePixels=800"
         "&timeout=30";
     html << "<h1>Marker graph vertex <a href='" << titleUrl << "'> "<< vertexId << "</a></h1>";
@@ -581,30 +956,35 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         "<td class=centered style='font-family:monospace'>";
     kmer.write(html, assemblerInfo->k);
 
-    // Write a row with consensus repeat counts.
-    html <<
-        "<tr><th class=left>Consensus repeat counts"
-        "<td class=centered style='font-family:monospace'>";
-    for(size_t i=0; i<k; i++) {
-        const size_t repeatCount = consensusRepeatCounts[i];
-        if(repeatCount < 10) {
-            html << repeatCount;
-        } else {
-            html << "*";
+
+    if(consensusIsAvailable) {
+        // Write a row with consensus repeat counts.
+        html <<
+            "<tr><th class=left>Consensus repeat counts"
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<k; i++) {
+            const size_t repeatCount = consensusRepeatCounts[i];
+            if(repeatCount < 10) {
+                html << repeatCount;
+            } else {
+                html << "*";
+            }
+        }
+
+        // Write a row with the consensus raw sequence.
+        html <<
+            "<tr><th class=left>Consensus raw sequence"
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<k; i++) {
+            const Base base = kmer[i];
+            const size_t repeatCount = consensusRepeatCounts[i];
+            for(size_t r=0; r<repeatCount; r++) {
+                html << base;
+            }
         }
     }
 
-    // Write a row with the consensus raw sequence.
-    html <<
-        "<tr><th class=left>Consensus raw sequence"
-        "<td class=centered style='font-family:monospace'>";
-    for(size_t i=0; i<k; i++) {
-        const Base base = kmer[i];
-        const size_t repeatCount = consensusRepeatCounts[i];
-        for(size_t r=0; r<repeatCount; r++) {
-            html << base;
-        }
-    }
+
 
     // Write a row with outgoing edges.
     html <<
@@ -682,17 +1062,18 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
     }
 
 
-
-    // Write a row with consensus repeat counts.
-    html <<
-        "<tr><th colspan=2 class=left>Consensus repeat counts"
-        "<td class=centered style='font-family:monospace'>";
-    for(size_t i=0; i<k; i++) {
-        const size_t repeatCount = consensusRepeatCounts[i];
-        if(repeatCount < 10) {
-            html << repeatCount;
-        } else {
-            html << "*";
+    if(consensusIsAvailable) {
+        // Write a row with consensus repeat counts.
+        html <<
+            "<tr><th colspan=2 class=left>Consensus repeat counts"
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<k; i++) {
+            const size_t repeatCount = consensusRepeatCounts[i];
+            if(repeatCount < 10) {
+                html << repeatCount;
+            } else {
+                html << "*";
+            }
         }
     }
 
@@ -707,21 +1088,40 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
 
     // Write rows with coverage information for each represented repeat value.
-    for(size_t repeatCount: repeatCountsSet) {
-        html <<
-            "<tr><th colspan=2 class=left>Coverage for repeat count " << repeatCount <<
-            "<td class=centered style='font-family:monospace'>";
-        for(size_t i=0; i<k; i++) {
+    if(consensusIsAvailable) {
+        for(size_t repeatCount: repeatCountsSet) {
+            html <<
+                "<tr><th colspan=2 class=left>Coverage for repeat count " << repeatCount <<
+                "<td class=centered style='font-family:monospace'>";
+            for(size_t i=0; i<k; i++) {
 
-            // Compute coverage for this repeat count, at this position.
-            size_t coverage = 0;
-            for(size_t j=0; j<markerCount; j++) {
-                if(repeatCounts[j][i] == repeatCount) {
-                    coverage++;
+                // Compute coverage for this repeat count, at this position.
+                size_t coverage = 0;
+                for(size_t j=0; j<markerCount; j++) {
+                    if(repeatCounts[j][i] == repeatCount) {
+                        coverage++;
+                    }
+                }
+
+                // Write it out.
+                if(coverage == 0) {
+                    html << ".";
+                } else if(coverage < 10) {
+                    html << coverage;
+                } else {
+                    html << "*";
                 }
             }
+        }
 
-            // Write it out.
+
+
+        // Write a row with concordant coverage.
+        html <<
+            "<tr><th colspan=2 class=left>Concordant repeat count coverage"
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<assemblerInfo->k; i++) {
+            const size_t coverage = concordantCoverage[i];
             if(coverage == 0) {
                 html << ".";
             } else if(coverage < 10) {
@@ -730,53 +1130,36 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
                 html << "*";
             }
         }
-    }
 
 
 
-    // Write a row with concordant coverage.
-    html <<
-        "<tr><th colspan=2 class=left>Concordant repeat count coverage"
-        "<td class=centered style='font-family:monospace'>";
-    for(size_t i=0; i<assemblerInfo->k; i++) {
-        const size_t coverage = concordantCoverage[i];
-        if(coverage == 0) {
-            html << ".";
-        } else if(coverage < 10) {
-            html << coverage;
-        } else {
-            html << "*";
+        // Write a row with discordant coverage.
+        html <<
+            "<tr><th colspan=2 class=left>Discordant repeat count coverage"
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<assemblerInfo->k; i++) {
+            const size_t coverage = discordantCoverage[i];
+            if(coverage == 0) {
+                html << ".";
+            } else if(coverage < 10) {
+                html << coverage;
+            } else {
+                html << "*";
+            }
         }
-    }
 
 
 
-    // Write a row with discordant coverage.
-    html <<
-        "<tr><th colspan=2 class=left>Discordant repeat count coverage"
-        "<td class=centered style='font-family:monospace'>";
-    for(size_t i=0; i<assemblerInfo->k; i++) {
-        const size_t coverage = discordantCoverage[i];
-        if(coverage == 0) {
-            html << ".";
-        } else if(coverage < 10) {
-            html << coverage;
-        } else {
-            html << "*";
-        }
-    }
-
-
-
-    // Write a row with the consensus raw sequence.
-    html <<
-        "<tr><th colspan=2 class=left>Consensus raw sequence"
-        "<td class=centered style='font-family:monospace'>";
-    for(size_t i=0; i<k; i++) {
-        const Base base = kmer[i];
-        const size_t repeatCount = consensusRepeatCounts[i];
-        for(size_t r=0; r<repeatCount; r++) {
-            html << base;
+        // Write a row with the consensus raw sequence.
+        html <<
+            "<tr><th colspan=2 class=left>Consensus raw sequence"
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<k; i++) {
+            const Base base = kmer[i];
+            const size_t repeatCount = consensusRepeatCounts[i];
+            for(size_t r=0; r<repeatCount; r++) {
+                html << base;
+            }
         }
     }
 
@@ -852,8 +1235,15 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
     // Access stored consensus for this edge.
-    const int storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
-    const auto storedConsensus = markerGraph.edgeConsensus[edgeId];
+    const bool consensusIsAvailable =
+        markerGraph.edgeConsensus.isOpen() and
+        markerGraph.edgeConsensusOverlappingBaseCount.isOpen;
+    int storedConsensusOverlappingBaseCount = 0;
+    span< pair<Base, uint8_t> > storedConsensus(0, 0);
+    if(consensusIsAvailable)   {
+        storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
+        storedConsensus = markerGraph.edgeConsensus[edgeId];
+    }
 
 
 
@@ -891,6 +1281,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         "&useWeakEdges=on"
         "&usePrunedEdges=on"
         "&useSuperBubbleEdges=on"
+        "&useLowCoverageCrossEdges=on"
         "&sizePixels=800"
         "&timeout=30";
     html << "<h1>Marker graph edge <a href='" << titleUrl << "'> "<< edgeId << "</a></h1>";
@@ -910,7 +1301,22 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         "<tr><th class=left>Removed during pruning?<td class=centered>" <<
         (edge.wasPruned ? "Yes" : "No") <<
         "<tr><th class=left>Removed during bubble/superbubble removal?<td class=centered>" <<
-        (edge.isSuperBubbleEdge ? "Yes" : "No");
+        (edge.isSuperBubbleEdge ? "Yes" : "No") <<
+        "<tr><th class=left>Removed as a low coverage cross edge?<td class=centered>" <<
+        (edge.isLowCoverageCrossEdge ? "Yes" : "No");
+
+    // Usage of this edge in the assembly graph.
+    if(assemblyGraphPointer and assemblyGraphPointer->markerToAssemblyTable.isOpen()) {
+        const auto& locations = assemblyGraphPointer->markerToAssemblyTable[edgeId];
+        for(const pair<AssemblyGraph::EdgeId, uint32_t>& location: locations) {
+            const AssemblyGraph::EdgeId assemblyGraphEdgeId = location.first;
+            const uint32_t positionInAssemblyGraphEdge = location.second;
+            html << "<tr><th class=left>In assembly graph edge<td class=centered>" <<
+                assemblyGraphEdgeId << " at position " <<
+                positionInAssemblyGraphEdge;
+        }
+    }
+
 
     if(edge.wasAssembled) {
         html << "<tr><th class=left>Assembled?<td class=centered>Yes" ;
@@ -1744,7 +2150,8 @@ void Assembler::exploreMarkerConnectivity(
     filesystem::remove(dotFileName);
 
     // Buttons to resize the svg locally.
-    addScaleSvgButtons(html);
+    const int sizePixels = 800;
+    addScaleSvgButtons(html, sizePixels);
     html << "<br>Found " << num_vertices(graph) << " markers.";
 
     // Display the svg file.
@@ -1755,7 +2162,6 @@ void Assembler::exploreMarkerConnectivity(
     svgFile.close();
 
     // Scale to desired size, then make it visible.
-    const int sizePixels = 800;
     html <<
         "</div>"
         "<script>"

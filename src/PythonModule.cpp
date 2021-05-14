@@ -443,15 +443,28 @@ PYBIND11_MODULE(shasta, module)
             arg("pattern2CreateNewVertices"))
         .def("getMarkerGraphMinCoverageUsed",
             &Assembler::getMarkerGraphMinCoverageUsed)
-
+        .def("vertexCoverageStatisticsByKmerId",
+            &Assembler::vertexCoverageStatisticsByKmerId)
 
         // Edges of the global marker graph.
         .def("createMarkerGraphEdges",
             &Assembler::createMarkerGraphEdges,
             arg("threadCount") = 0)
+        .def("createMarkerGraphEdgesStrict",
+            &Assembler::createMarkerGraphEdgesStrict,
+            arg("minEdgeCoverage"),
+            arg("minEdgeCoveragePerStrand"),
+            arg("threadCount") = 0)
+        .def("createMarkerGraphSecondaryEdges",
+            &Assembler::createMarkerGraphSecondaryEdges,
+            arg("minEdgeCoverage"),
+            arg("minEdgeCoveragePerStrand"),
+            arg("neighborhoodSize"),
+            arg("threadCount") = 0)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
-            arg("accessEdgesReadWrite") = false)
+            arg("accessEdgesReadWrite") = false,
+            arg("accessConnectivityReadWrite") = false)
             .def("transitiveReduction",
             &Assembler::transitiveReduction,
             arg("lowCoverageThreshold"),
@@ -494,7 +507,8 @@ PYBIND11_MODULE(shasta, module)
             arg("isSuperBubbleEdge"),
             arg("isLowCoverageCrossEdge"),
             arg("wasAssembled"))
-
+        .def("writeParallelMarkerGraphEdges",
+            &Assembler::writeParallelMarkerGraphEdges)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",
@@ -589,6 +603,15 @@ PYBIND11_MODULE(shasta, module)
         .def("colorCompressedAssemblyGraph",
             &Assembler::colorCompressedAssemblyGraph,
             arg("gfaId"))
+
+
+
+        // Mode 1 assembly.
+        .def("createMode1AssemblyGraph",
+            &Assembler::createMode1AssemblyGraph,
+            arg("minEdgeCoverage"),
+            arg("minEdgeCoveragePerStrand"))
+
 
 
         .def("test", &Assembler::test)

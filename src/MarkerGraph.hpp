@@ -216,8 +216,10 @@ public:
         // for this edge are set.
         uint8_t wasAssembled : 1;
 
+        // Flag for secondary edges in assembly mode 1.
+        uint8_t isSecondary;
+
         // Unused.
-        uint8_t flag4 : 1;
         uint8_t flag5 : 1;
         uint8_t flag6 : 1;
 
@@ -228,7 +230,7 @@ public:
             isSuperBubbleEdge = 0;
             isLowCoverageCrossEdge = 0;
             wasAssembled = 0;
-            flag4 = 0;
+            isSecondary = 0;
             flag5 = 0;
             flag6 = 0;
         }
@@ -263,6 +265,22 @@ public:
     // The reverse complement of each edge.
     // Indexed by EdgeId.
     MemoryMapped::Vector<EdgeId> reverseComplementEdge;
+
+    // Return total coverage of an edge.
+    uint64_t edgeCoverage(EdgeId edgeId) const
+    {
+        return edgeMarkerIntervals.size(edgeId);
+    }
+
+    // Return coverage for each strand for an edge.
+    array<uint64_t, 2> edgeStrandCoverage(EdgeId edgeId) const
+    {
+        array<uint64_t, 2> coverage = {0, 0};
+        for(const MarkerInterval& markerInterval: edgeMarkerIntervals[edgeId]) {
+            ++coverage[markerInterval.orientedReadId.getStrand()];
+        }
+        return coverage;
+    }
 
     // The consensus repeat counts of each vertex of the marker graph.
     // There are assemblerInfo->k entries for each vertex.

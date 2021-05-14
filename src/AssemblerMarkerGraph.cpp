@@ -1080,6 +1080,55 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
 
 
+// Given two marker graph vertices, get the marker intervals
+// that a possible edge between the two vertices would have.
+void Assembler::getMarkerIntervals(
+    MarkerGraph::VertexId v0,
+    MarkerGraph::VertexId v1,
+    vector<MarkerInterval>& markerIntervals
+    ) const
+{
+    // Start with no marker intervals.
+    markerIntervals.clear();
+
+    // Loop over the markers of vertex v0.
+    const span<const MarkerId> markerIds0 = markerGraph.getVertexMarkerIds(v0);
+    for(const MarkerId markerId0: markerIds0) {
+
+        // Find the OrientedReadId and ordinal.
+        OrientedReadId orientedReadId;
+        uint32_t ordinal0;
+        tie(orientedReadId, ordinal0) = findMarkerId(markerId0);
+
+        // Find the next marker for this oriented read that is contained in a vertex.
+        const span<const CompressedMarker> markers1 = markers[orientedReadId.getValue()];
+        uint32_t ordinal1 = ordinal0 + 1;
+        for(; ordinal1<markers1.size(); ++ordinal1) {
+
+            // Find the vertex id.
+            const MarkerId markerId1 = getMarkerId(orientedReadId, ordinal1);
+            const MarkerGraph::VertexId v1Check = markerGraph.vertexTable[markerId1];
+            if(v1Check == MarkerGraph::invalidCompressedVertexId) {
+                // There is no vertex on this marker. Try the next ordinal.
+                continue;
+            }
+
+            // If the next vertex is v1, this oriented read generates a marker interval.
+            if(v1Check == v1) {
+                markerIntervals.push_back(MarkerInterval(orientedReadId, ordinal0, ordinal1));
+            }
+
+            // We found the next vertex for this OrientedReadId.
+            break;
+        }
+
+    }
+
+    sort(markerIntervals.begin(), markerIntervals.end());
+}
+
+
+
 // Find the reverse complement of each marker graph vertex.
 void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
 {
@@ -1237,46 +1286,76 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
     using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
 
+    vector<MarkerInterval> resortedMarkers;
+
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
             const VertexId v0 = edge.source;
             const VertexId v1 = edge.target;
-            const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
-            const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
-            const EdgeId edgeIdRc = markerGraph.findEdgeId(v1rc, v0rc);
-            markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
+            const VertexId v0Rc = markerGraph.reverseComplementVertex[v0];
+            const VertexId v1Rc = markerGraph.reverseComplementVertex[v1];
+            const span<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+
+            // This code need to be resilient to two situations:
+            // - Vertices with more than one marker on the same oriented read id
+            //   (these can occur when using --MarkerGraph.allowDuplicateMarkers).
+            // - Parallel edges (more than one edge with the same source and
+            //   target vertex). These can occur when using createMarkerGraphEdgesStrict.
 
 #if 0
-            // Check that marker intervals of the two are consistent.
-            // This check does not work correctly when --MarkerGraph.allowDuplicateMarkers.
-            // An equivalent check was done in findMarkerGraphReverseComplementVertices,
-            // so we can skip this.
-            const span<MarkerInterval> markerIntervals =
-                markerGraph.edgeMarkerIntervals[edgeId];
-            const span<MarkerInterval> markerIntervalsRc =
-                markerGraph.edgeMarkerIntervals[edgeIdRc];
-            SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
-            for (size_t i=0; i<markerIntervals.size(); i++) {
-                const MarkerInterval& markerInterval = markerIntervals[i];
-                const MarkerInterval& markerIntervalRc = markerIntervalsRc[i];
-                SHASTA_ASSERT(
-                    markerInterval.orientedReadId.getReadId()
-                        == markerIntervalRc.orientedReadId.getReadId());
-                SHASTA_ASSERT(
-                    markerInterval.orientedReadId.getStrand()
-                        == 1 - markerIntervalRc.orientedReadId.getStrand());
-                const uint32_t markerCount = uint32_t(
-                    markers.size(markerInterval.orientedReadId.getValue()));
-                SHASTA_ASSERT(
-                    markerInterval.ordinals[0]
-                        == markerCount - 1 - markerIntervalRc.ordinals[1]);
-                SHASTA_ASSERT(
-                    markerInterval.ordinals[1]
-                        == markerCount - 1 - markerIntervalRc.ordinals[0]);
-            }
+            cout << "Looking for reverse complement of " << edgeId << " " <<
+                v0 << "->" << v1 << endl;
+            cout << "Looking for " << v1Rc << "->" << v0Rc << endl;
 #endif
+
+
+            // Look for an edge v1rc->v0rc with identical marker intervals,
+            // after reverse complementing.
+            const span<Uint40> v1rcOutEdges = markerGraph.edgesBySource[v1Rc];
+            bool found = false;
+            for(const Uint40 edgeIdRc: v1rcOutEdges) {
+                const MarkerGraph::Edge& edgeRc = markerGraph.edges[edgeIdRc];
+                SHASTA_ASSERT(edgeRc.source == v1Rc);
+                if(edgeRc.target != v0Rc) {
+                    continue;
+                }
+
+                // cout << "Found " << edgeIdRc << endl;
+
+                // Gather the reverse complemented marker intervals,
+                // and reverse complement them.
+                resortedMarkers.clear();
+                const span<MarkerInterval> markerIntervalsRc = markerGraph.edgeMarkerIntervals[edgeIdRc];
+                for(MarkerInterval markerInterval: markerIntervalsRc) {
+                    const uint32_t markerCount = uint32_t(markers.size(markerInterval.orientedReadId.getValue()));
+                    markerInterval.orientedReadId.flipStrand();
+                    markerInterval.ordinals[0] = markerCount - 1 - markerInterval.ordinals[0];
+                    markerInterval.ordinals[1] = markerCount - 1 - markerInterval.ordinals[1];
+                    swap(markerInterval.ordinals[0], markerInterval.ordinals[1]);
+                    resortedMarkers.push_back(markerInterval);
+                }
+                sort(resortedMarkers.begin(), resortedMarkers.end());
+                const span<MarkerInterval> resortedMarkersSpan(&resortedMarkers[0], &resortedMarkers[0]+resortedMarkers.size());
+
+                if(resortedMarkersSpan == markerIntervals) {
+                    // They are equal to what we were looking for.
+                    // We found the reverse complement edge.
+                    markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
+                    found = true;
+                    // cout << "Found with consistent marker intervals." << endl;
+                    break;
+                }
+            }
+            if(not found) {
+                const string message = "Unable to locate reverse complement of marker graph edge " +
+                    to_string(edgeId) + " " + to_string(v0) + "->" + to_string(v1);
+                cout << message << endl;
+                cout << "Writing marker graph details to csv files." <<endl;
+                debugWriteMarkerGraph();
+                throw runtime_error(message);
+            }
         }
     }
 }
@@ -1294,9 +1373,16 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2(size_t thre
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const EdgeId edgeIdReverseComplement =
                 markerGraph.reverseComplementEdge[edgeId];
-            SHASTA_ASSERT(
-                markerGraph.reverseComplementEdge[edgeIdReverseComplement]
-                    == edgeId);
+            if(markerGraph.reverseComplementEdge[edgeIdReverseComplement] != edgeId) {
+                const string message = "Reverse complement edge check failed at edge " +
+                    to_string(edgeId) + ": " +
+                    to_string(edgeIdReverseComplement) + " " +
+                    to_string(markerGraph.reverseComplementEdge[edgeIdReverseComplement]);
+                cout << message << endl;
+                cout << "Writing marker graph details to csv files." <<endl;
+                debugWriteMarkerGraph();
+                throw runtime_error(message);
+            }
         }
     }
 }
@@ -1529,38 +1615,144 @@ void Assembler::writeBadMarkerGraphVertices() const
 
 
 
+// Compute marker graph vertex coverage statistics by KmerId.
+void Assembler::vertexCoverageStatisticsByKmerId() const
+{
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+
+    const uint64_t k = assemblerInfo->k;
+
+    // For each KmerId, maintain a histogram by coverage.
+    vector< vector<uint64_t> > histogram(kmerTable.size());
+
+    // Loop over all marker graph vertices.
+    for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertexCount(); vertexId++) {
+
+        // Get the markers for this vertex.
+        const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+        const uint64_t coverage = markerIds.size();
+        SHASTA_ASSERT(coverage > 0);
+
+        // Find the KmerId.
+        const MarkerId firstMarkerId = markerIds.front();
+        const CompressedMarker& compressedMarker = markers.begin()[firstMarkerId];
+        const KmerId kmerId = compressedMarker.kmerId;
+
+        // Increment the histogram.
+        SHASTA_ASSERT(kmerId < histogram.size());
+        vector<uint64_t>& h = histogram[kmerId];
+        if(h.size() <= coverage) {
+            h.resize(coverage + 1, 0ULL);
+        }
+        ++h[coverage];
+    }
+
+
+
+    // Find the maximum histogram size for any k-mer.
+    uint64_t hMaxSize = 0ULL;
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        if(not kmerTable[kmerId].isMarker) {
+            continue;
+        }
+        if(not kmerTable[kmerId].isRleKmer) {
+            continue;
+        }
+        const vector<uint64_t>& h = histogram[kmerId];
+        hMaxSize = max(hMaxSize, uint64_t(h.size()));
+    }
+
+
+
+    // Write it out.
+    ofstream csv("VertexCoverageByKmerId.csv");
+    csv << "Kmer,Total,";
+    for(uint64_t coverage=1; coverage<hMaxSize; coverage++) {
+        csv << coverage << ",";
+    }
+    csv << "\n";
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        if(not kmerTable[kmerId].isMarker) {
+            continue;
+        }
+        if(not kmerTable[kmerId].isRleKmer) {
+            continue;
+        }
+        const Kmer kmer(kmerId, k);
+
+        // Compute the total number of markers with this k-mer
+        // that are associated with a vertex.
+        const vector<uint64_t>& h = histogram[kmerId];
+        uint64_t totalMarkerCount = 0ULL;
+        for(uint64_t coverage=1; coverage<hMaxSize; coverage++) {
+            uint64_t vertexCount = 0;
+            if(coverage < h.size()) {
+                vertexCount = h[coverage];
+            }
+            const uint64_t markerCount = coverage * vertexCount;
+            totalMarkerCount += markerCount;
+        }
+
+        kmer.write(csv, k);
+        csv << "," << totalMarkerCount << ",";
+        for(uint64_t coverage=1; coverage<hMaxSize; coverage++) {
+            uint64_t vertexCount = 0;
+            if(coverage < h.size()) {
+                vertexCount = h[coverage];
+            }
+            const uint64_t markerCount = coverage * vertexCount;
+            csv << markerCount << ",";
+        }
+        csv << "\n";
+    }
+}
+
+
+
 #ifdef SHASTA_HTTP_SERVER
-bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
+bool Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
-    int distance,
+    uint64_t distance,
     int timeout,                 // Or 0 for no timeout.
+    uint64_t minVertexCoverage,
+    uint64_t minEdgeCoverage,
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
+    bool useLowCoverageCrossEdges,
     LocalMarkerGraph& graph
     )
 {
     const MarkerGraph::VertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-    return extractLocalMarkerGraphUsingStoredConnectivity(
+    return extractLocalMarkerGraph(
         startVertexId, distance, timeout,
+        minVertexCoverage,
+        minEdgeCoverage,
         useWeakEdges,
         usePrunedEdges,
         useSuperBubbleEdges,
+        useLowCoverageCrossEdges,
         graph);
 
 }
 
 
 
-bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
+bool Assembler::extractLocalMarkerGraph(
     MarkerGraph::VertexId startVertexId,
-    int distance,
+    uint64_t distance,
     int timeout,                 // Or 0 for no timeout.
+    uint64_t minVertexCoverage,
+    uint64_t minEdgeCoverage,
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
+    bool useLowCoverageCrossEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1575,7 +1767,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     // Start a timer.
     const auto startTime = steady_clock::now();
 
-    // Add the start vertex.
+    // Add the start vertex, without regards to coverage.
     if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
@@ -1586,7 +1778,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     vector<MarkerInterval> markerIntervals;
 
 
-    // Do the BFS.
+    // Do the BFS to generate the vertices.
+    // Edges will be created later.
     std::queue<vertex_descriptor> q;
     if(distance > 0) {
         q.push(vStart);
@@ -1604,8 +1797,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         q.pop();
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
         const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
-        const int distance0 = vertex0.distance;
-        const int distance1 = distance0 + 1;
+        const uint64_t distance0 = vertex0.distance;
+        const uint64_t distance1 = distance0 + 1;
 
         // Loop over the children.
         const auto childEdges = markerGraph.edgesBySource[vertexId0];
@@ -1613,6 +1806,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
+            if(markerGraph.edgeMarkerIntervals[edgeId].size() < minEdgeCoverage) {
+                continue;
+            }
             if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
@@ -1622,10 +1818,18 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
                 continue;
             }
+            if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
+                continue;
+            }
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
             SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
+
+            // If vertex coverage is too low, skip it.
+            if(markerGraph.vertexCoverage(vertexId1) < minVertexCoverage) {
+                continue;
+            }
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1636,33 +1840,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                     vertexId1, distance1, markerGraph.getVertexMarkerIds(vertexId1));
                 if(distance1 < distance) {
                     q.push(v1);
-                }
-            }
-
-            // Create the edge v0->v1, if it does not already exist.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            if(!edgeExists) {
-                tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-                SHASTA_ASSERT(edgeExists);
-
-                // Fill in edge information.
-                const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-                markerIntervals.resize(storedMarkerIntervals.size());
-                copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
-                graph.storeEdgeInfo(e, markerIntervals);
-                graph[e].edgeId = edgeId;
-                graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
-                graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
-                graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
-                graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
-
-                // Link to assembly graph edge.
-                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
-                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
-                    copy(locations.begin(), locations.end(),
-                        back_inserter(graph[e].assemblyGraphLocations));
                 }
             }
         }
@@ -1673,6 +1850,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
+            if(markerGraph.edgeMarkerIntervals[edgeId].size() < minEdgeCoverage) {
+                continue;
+            }
             if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
@@ -1682,10 +1862,18 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
                 continue;
             }
+            if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
+                continue;
+            }
 
             const MarkerGraph::VertexId vertexId1 = edge.source;
             SHASTA_ASSERT(edge.target == vertexId0);
             SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
+
+            // If vertex coverage is too low, skip it.
+            if(markerGraph.vertexCoverage(vertexId1) < minVertexCoverage) {
+                continue;
+            }
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1698,46 +1886,14 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                     q.push(v1);
                 }
             }
-
-            // Create the edge v1->v0, if it does not already exist.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v1, v0, graph);
-            if(!edgeExists) {
-                tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
-                SHASTA_ASSERT(edgeExists);
-
-                // Fill in edge information.
-                const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-                markerIntervals.resize(storedMarkerIntervals.size());
-                copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
-                graph.storeEdgeInfo(e, markerIntervals);
-                graph[e].edgeId = edgeId;
-                graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
-                graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
-                graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
-                graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
-
-                // Link to assembly graph vertex.
-                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
-                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
-                    copy(locations.begin(), locations.end(),
-                        back_inserter(graph[e].assemblyGraphLocations));
-                }
-            }
         }
-
     }
 
 
-    // The BFS process did not create edges between vertices at maximum distance.
-    // Do it now.
-    // Loop over all vertices at maximum distance.
+
+    // Create edges.
     BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph) {
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
-        if(vertex0.distance != distance) {
-            continue;
-        }
         const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
 
         // Loop over the children that exist in the local marker graph
@@ -1747,6 +1903,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
+            if(markerGraph.edgeMarkerIntervals[edgeId].size() < minEdgeCoverage) {
+                continue;
+            }
             if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
@@ -1754,6 +1913,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
+                continue;
+            }
+            if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
                 continue;
             }
 
@@ -1771,22 +1933,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
 
-            // If it is not at maximum distance, skip.
-            const LocalMarkerGraphVertex& vertex1 = graph[v1];
-            if(vertex1.distance != distance) {
-                continue;
-            }
-
-            // There is no way we already created this edge.
-            // Check that this is the case.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            SHASTA_ASSERT(!edgeExists);
-
             // Add the edge.
-            tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-            SHASTA_ASSERT(edgeExists);
+            edge_descriptor e;
+            bool edgeWasAdded = false;
+            tie(e, edgeWasAdded) = boost::add_edge(v0, v1, graph);
+            SHASTA_ASSERT(edgeWasAdded);
 
             // Fill in edge information.
             const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
@@ -1797,7 +1948,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
             graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
             graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+            graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
             graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
+            graph[e].isSecondary = markerGraph.edges[edgeId].isSecondary;
 
             // Link to assembly graph vertex.
             if(assemblyGraph.markerToAssemblyTable.isOpen()) {
@@ -1928,13 +2081,13 @@ void Assembler::createMarkerGraphEdgesBySourceAndTarget(size_t threadCount)
         largeDataName("GlobalMarkerGraphEdgesByTarget"),
         largeDataPageSize);
 
-    cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
+    // cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
     markerGraph.edgesBySource.beginPass1(markerGraph.vertexCount());
     markerGraph.edgesByTarget.beginPass1(markerGraph.vertexCount());
     setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
-    cout << timestamp << "Create marker graph edges by source and target: pass 2 begins." << endl;
+    // cout << timestamp << "Create marker graph edges by source and target: pass 2 begins." << endl;
     markerGraph.edgesBySource.beginPass2();
     markerGraph.edgesByTarget.beginPass2();
     setupLoadBalancing(markerGraph.edges.size(), 100000);
@@ -2046,7 +2199,9 @@ void Assembler::createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t p
 }
 
 
-void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
+void Assembler::accessMarkerGraphEdges(
+    bool accessEdgesReadWrite,
+    bool accessConnectivityReadWrite)
 {
     if(accessEdgesReadWrite) {
         markerGraph.edges.accessExistingReadWrite(
@@ -2059,15 +2214,23 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
         markerGraph.edgeMarkerIntervals.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
     }
-    markerGraph.edgesBySource.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphEdgesBySource"));
-    markerGraph.edgesByTarget.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphEdgesByTarget"));
+
+    if(accessConnectivityReadWrite) {
+        markerGraph.edgesBySource.accessExistingReadWrite(
+            largeDataName("GlobalMarkerGraphEdgesBySource"));
+        markerGraph.edgesByTarget.accessExistingReadWrite(
+            largeDataName("GlobalMarkerGraphEdgesByTarget"));
+    } else {
+        markerGraph.edgesBySource.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdgesBySource"));
+        markerGraph.edgesByTarget.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdgesByTarget"));
+    }
 }
 
 
 
-void Assembler::checkMarkerGraphEdgesIsOpen()
+void Assembler::checkMarkerGraphEdgesIsOpen() const
 {
     SHASTA_ASSERT(markerGraph.edges.isOpen);
     SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
@@ -5081,5 +5244,117 @@ void Assembler::test()
         cout << "Marker graph path: ";;
         copy(path.begin(), path.end(), ostream_iterator<MarkerGraph::EdgeId>(cout, " "));
         cout << endl;
+    }
+}
+
+
+
+// Given a marker graph vertex, follow all of the contributing oriented
+// reads to their next vertex.
+// In the returned vector, each entry correspond to a marker in the given vertex
+// (in the same order) and gives the next VertexId for that oriented read.
+// The next VertexId can be invalidVertexId if the oriented read has no vertices
+// past the starting VertexId.
+void Assembler::findNextMarkerGraphVertices(
+    MarkerGraph::VertexId vertexId,
+    vector<MarkerGraph::VertexId>& nextVertices) const
+{
+    nextVertices.clear();
+    const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+    for(const MarkerId markerId: markerIds) {
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        tie(orientedReadId, ordinal) = findMarkerId(markerId);
+        const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+        MarkerGraph::VertexId nextVertexId = MarkerGraph::invalidVertexId;
+        for(++ordinal; ordinal<markerCount; ++ordinal) {
+            const MarkerId nextMarkerId = getMarkerId(orientedReadId, ordinal);
+            const MarkerGraph::CompressedVertexId compressedNextVertexId = markerGraph.vertexTable[nextMarkerId];
+            if(compressedNextVertexId != MarkerGraph::invalidCompressedVertexId) {
+                nextVertexId = MarkerGraph::VertexId(compressedNextVertexId);
+                break;
+            }
+        }
+        nextVertices.push_back(nextVertexId);
+    }
+
+}
+
+
+
+void Assembler::debugWriteMarkerGraph(const string& fileNamePrefix) const
+{
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
+
+
+
+    // Vertices.
+    if(markerGraph.vertices().isOpen()) {
+        ofstream csv(fileNamePrefix + "MarkerGraphVertices.csv");
+        csv << "VertexId,MarkerId,OrientedReadId,Ordinal,\n";
+
+        for(VertexId vertexId=0; vertexId<markerGraph.vertexCount(); vertexId++) {
+            const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+            for(const MarkerId markerId: markerIds) {
+                OrientedReadId orientedReadId;
+                uint32_t ordinal;
+                tie(orientedReadId, ordinal) = findMarkerId(markerId);
+
+                csv << vertexId << ",";
+                csv << markerId << ",";
+                csv << orientedReadId << ",";
+                csv << ordinal << ",";
+                csv << "\n";
+            }
+        }
+    }
+
+
+
+    // Reverse complement vertices.
+    if(markerGraph.reverseComplementVertex.isOpen) {
+        ofstream csv(fileNamePrefix + "MarkerGraphReverseComplementVertices.csv");
+        csv << "VertexId,VertexIdRc,\n";
+
+        for(VertexId vertexId=0; vertexId<markerGraph.vertexCount(); vertexId++) {
+            csv << vertexId << ",";
+            csv << markerGraph.reverseComplementVertex[vertexId] << ",";
+            csv << "\n";
+        }
+    }
+
+
+
+    // Edges.
+    if(markerGraph.edges.isOpen) {
+        ofstream csv(fileNamePrefix + "MarkerGraphEdges.csv");
+        csv << "EdgeId,Source,Target,\n";
+
+        for(EdgeId edgeId=0; edgeId<markerGraph.edges.size(); edgeId++) {
+            const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+
+            csv << edgeId << ",";
+            csv << edge.source << ",";
+            csv << edge.target << ",";
+            csv << "\n";
+        }
+    }
+
+
+
+    // Edges by source.
+    if(markerGraph.edgesBySource.isOpen()) {
+        ofstream csv(fileNamePrefix + "MarkerGraphEdgesBySource.csv");
+        csv << "Source,Target0,Target1,Target2,\n";
+
+        for(VertexId vertexId=0; vertexId<markerGraph.edgesBySource.size(); vertexId++) {
+
+            csv << vertexId << ",";
+            for(const auto& edgeId: markerGraph.edgesBySource[vertexId]) {
+                csv << edgeId << ",";
+            }
+            csv << "\n";
+        }
     }
 }

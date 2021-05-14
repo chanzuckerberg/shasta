@@ -27,6 +27,15 @@ namespace shasta {
             const AssemblerOptions&,
             uint32_t threadCount);
 
+        void mode0Assembly(
+            Assembler&,
+            const AssemblerOptions&,
+            uint32_t threadCount);
+        void mode1Assembly(
+            Assembler&,
+            const AssemblerOptions&,
+            uint32_t threadCount);
+
         void setupRunDirectory(
             const string& memoryMode,
             const string& memoryBacking,
@@ -594,9 +603,19 @@ void shasta::main::assemble(
             assemblerOptions.kmersOptions.file);
         break;
 
+    case 4:
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that appear in two copies close to each other
+        // even in a single oriented read.
+        assembler.selectKmers4(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.distanceThreshold, threadCount);
+        break;
+
     default:
         throw runtime_error("Invalid --Kmers generationMethod. "
-            "Specify a value between 0 and 3, inclusive.");
+            "Specify a value between 0 and 4, inclusive.");
     }
 
 #if 0
@@ -762,6 +781,68 @@ void shasta::main::assemble(
     assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
 
 
+
+    // Do the rest of the assembly using the selected assembly mode.
+    switch(assemblerOptions.assemblyOptions.mode) {
+    case 0:
+        mode0Assembly(assembler, assemblerOptions, threadCount);
+        break;
+    case 1:
+        mode1Assembly(assembler, assemblerOptions, threadCount);
+        break;
+    default:
+        throw runtime_error("Invalid value specified for --Assembly.mode. "
+            "Valid values are 0 (default) and 1 (experimental), but " +
+            to_string(assemblerOptions.assemblyOptions.mode) +
+            " was specified.");
+    }
+
+
+    // Store elapsed time for assembly.
+    const auto steadyClock1 = std::chrono::steady_clock::now();
+    const auto userClock1 = boost::chrono::process_user_cpu_clock::now();
+    const auto systemClock1 = boost::chrono::process_system_cpu_clock::now();
+    const double elapsedTime = 1.e-9 * double((
+        std::chrono::duration_cast<std::chrono::nanoseconds>(steadyClock1 - steadyClock0)).count());
+    const double userTime = 1.e-9 * double((
+        boost::chrono::duration_cast<boost::chrono::nanoseconds>(userClock1 - userClock0)).count());
+    const double systemTime = 1.e-9 * double((
+        boost::chrono::duration_cast<boost::chrono::nanoseconds>(systemClock1 - systemClock0)).count());
+    const double averageCpuUtilization =
+        (userTime + systemTime) / (double(std::thread::hardware_concurrency()) * elapsedTime);
+    assembler.storeAssemblyTime(elapsedTime, averageCpuUtilization);
+
+    // Store peak memory usage.
+    uint64_t peakMemoryUsage = shasta::getPeakMemoryUsage();
+    assembler.storePeakMemoryUsage(peakMemoryUsage);
+
+    // Write a summary of read information.
+    assembler.writeReadsSummary();
+
+    // Write the assembly summary.
+    ofstream html("AssemblySummary.html");
+    assembler.writeAssemblySummary(html);
+    ofstream json("AssemblySummary.json");
+    assembler.writeAssemblySummaryJson(json);
+    ofstream htmlIndex("index.html");
+    assembler.writeAssemblyIndex(htmlIndex);
+
+    cout << timestamp << endl;
+    cout << "Assembly time statistics:\n"
+        "    Elapsed seconds: " << elapsedTime << "\n"
+        "    Elapsed minutes: " << elapsedTime/60. << "\n"
+        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
+    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
+    cout << "Peak Memory usage (bytes): " << peakMemoryUsage << endl;
+}
+
+
+
+void shasta::main::mode0Assembly(
+    Assembler& assembler,
+    const AssemblerOptions& assemblerOptions,
+    uint32_t threadCount)
+{
 
     // Iterative assembly, if requested (experimental).
     if(assemblerOptions.assemblyOptions.iterative) {
@@ -968,20 +1049,6 @@ void shasta::main::assemble(
     assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
     assembler.writeFasta("Assembly.fasta");
 
-    // Store elapsed time for assembly.
-    const auto steadyClock1 = std::chrono::steady_clock::now();
-    const auto userClock1 = boost::chrono::process_user_cpu_clock::now();
-    const auto systemClock1 = boost::chrono::process_system_cpu_clock::now();
-    const double elapsedTime = 1.e-9 * double((
-        std::chrono::duration_cast<std::chrono::nanoseconds>(steadyClock1 - steadyClock0)).count());
-    const double userTime = 1.e-9 * double((
-        boost::chrono::duration_cast<boost::chrono::nanoseconds>(userClock1 - userClock0)).count());
-    const double systemTime = 1.e-9 * double((
-        boost::chrono::duration_cast<boost::chrono::nanoseconds>(systemClock1 - systemClock0)).count());
-    const double averageCpuUtilization =
-        (userTime + systemTime) / (double(std::thread::hardware_concurrency()) * elapsedTime);
-    assembler.storeAssemblyTime(elapsedTime, averageCpuUtilization);
-
     // If requested, write out the oriented reads that were used to assemble
     // each assembled segment.
     if(assemblerOptions.assemblyOptions.writeReadsByAssembledSegment) {
@@ -989,29 +1056,28 @@ void shasta::main::assemble(
         assembler.gatherOrientedReadsByAssemblyGraphEdge(threadCount);
         assembler.writeOrientedReadsByAssemblyGraphEdge();
     }
-
-    uint64_t peakMemoryUsage = shasta::getPeakMemoryUsage();
-    assembler.storePeakMemoryUsage(peakMemoryUsage);
-   
-    // Write the assembly summary.
-    ofstream html("AssemblySummary.html");
-    assembler.writeAssemblySummary(html);
-    ofstream json("AssemblySummary.json");
-    assembler.writeAssemblySummaryJson(json);
-    ofstream htmlIndex("index.html");
-    assembler.writeAssemblyIndex(htmlIndex);
-
-    // Also write a summary of read information.
-    assembler.writeReadsSummary();
-
-    cout << timestamp << endl;
-    cout << "Assembly time statistics:\n"
-        "    Elapsed seconds: " << elapsedTime << "\n"
-        "    Elapsed minutes: " << elapsedTime/60. << "\n"
-        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
-    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
-    cout << "Peak Memory usage (bytes): " << peakMemoryUsage << endl;
 }
+
+
+
+void shasta::main::mode1Assembly(
+    Assembler& assembler,
+    const AssemblerOptions& assemblerOptions,
+    uint32_t threadCount)
+{
+    // Create marker graph vertices.
+    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.findMarkerGraphReverseComplementVertices(threadCount);
+
+    // Create marker graph edges.
+    // For assembly mode 1 we use createMarkerGraphEdgesStrict
+    // without limits on edge coverage.
+    assembler.createMarkerGraphEdgesStrict(0,  0, threadCount);
+    assembler.findMarkerGraphReverseComplementEdges(threadCount);
+
+    throw runtime_error("Missing code in assembly mode 1 .");
+}
+
 
 
 

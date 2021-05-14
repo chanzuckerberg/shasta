@@ -964,14 +964,21 @@ void Assembler::selectKmers4(
 
 
     // Gather k-mers for which the minimum distance between two copies
-    // equals at least distanceThreshold.
+    // equals at least distanceThreshold. Exclude palindromic k-mers.
     vector<KmerId> candidateKmers;
-    uint64_t candidateCount = 0;
     uint64_t candidateFrequency = 0;
     for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
         const KmerInfo& info = kmerTable[kmerId];
         const KmerId kmerIdRc = info.reverseComplementedKmerId;
         if(not info.isRleKmer) {
+            continue;
+        }
+        if(kmerIdRc == kmerId) {
+            // Palindromic. Exclude.
+            continue;
+        }
+        // Only store the lower KmerId in the pair.
+        if(kmerId > kmerIdRc) {
             continue;
         }
         if(selectKmers4Data.minimumDistance[kmerId].second < distanceThreshold) {
@@ -983,23 +990,12 @@ void Assembler::selectKmers4(
             continue;
         }
 
-        // Only store the lesser in the pair.
-        if(kmerId <= kmerIdRc) {
-            candidateKmers.push_back(KmerId(kmerId));
-            if(kmerId == kmerIdRc) {
-                // This k-mer is palindromic,so it only generates one candidate.
-                candidateCount += 1;
-                candidateFrequency += selectKmers4Data.globalFrequency[kmerId];
-            } else {
-                // This k-mer is not palindromic, so it generates a candidate pair.
-                candidateCount += 2;
-                candidateFrequency += selectKmers4Data.globalFrequency[kmerId];
-                candidateFrequency += selectKmers4Data.globalFrequency[kmerIdRc];
-            }
-        }
+        candidateKmers.push_back(KmerId(kmerId));
+        candidateFrequency += selectKmers4Data.globalFrequency[kmerId];
+        candidateFrequency += selectKmers4Data.globalFrequency[kmerIdRc];
     }
     cout << "Markers will be chosen randomly from the a pool of " <<
-        candidateCount << " RLE k-mers." << endl;
+        2*candidateKmers.size() << " RLE k-mers." << endl;
     cout << "RLE k-mers in this pool occur " <<
         candidateFrequency << " times in all oriented reads." << endl;
     cout << "This is sufficient to achieve marker density up to " <<
@@ -1012,6 +1008,49 @@ void Assembler::selectKmers4(
             "Increase k, or decrease marker density, or decrease distance threshold.");
     }
 
+    // Flag all k-mers as not markers.
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        kmerTable[kmerId].isMarker = false;
+    }
+
+
+
+    // Randomly pick markers in this vector of candidate k-mers.
+    std::mt19937_64 randomSource(seed);
+    std::uniform_real_distribution<> uniformDistribution;
+    uint64_t markerOccurrencesCount = 0;
+    uint64_t markerCount = 0;
+    while(true) {
+
+        // Pick a random index in the candidateKmers vector.
+        const double x = uniformDistribution(randomSource);  // In [0,1)
+        const uint64_t i = uint64_t(x * double(candidateKmers.size()));
+        SHASTA_ASSERT(i < candidateKmers.size());
+
+        // This KmerId and its reverse complement  will be used as markers.
+        const KmerId kmerId = candidateKmers[i];
+        const KmerId kmerIdRc = kmerTable[kmerId].reverseComplementedKmerId;
+
+        kmerTable[kmerId].isMarker = true;
+        kmerTable[kmerIdRc].isMarker = true;
+
+        // Increment counters.
+        markerCount += 2;
+        markerOccurrencesCount += selectKmers4Data.globalFrequency[kmerId];
+        markerOccurrencesCount += selectKmers4Data.globalFrequency[kmerIdRc];
+
+        // Remove kmerId from the vector of candidates.
+        if(i != candidateKmers.size()-1) {
+            candidateKmers[i] = candidateKmers.back();
+        }
+        candidateKmers.resize(candidateKmers.size() - 1);
+
+        if(markerOccurrencesCount >= requiredMarkerOccurrences) {
+            break;
+        }
+    }
+    cout << "Selected " << markerCount << " k-mers as markers." << endl;
+    cout << "Actual marker density " << double(markerOccurrencesCount) / double(totalKmerOccurrences) << endl;
 
 
 
@@ -1019,9 +1058,8 @@ void Assembler::selectKmers4(
     selectKmers4Data.minimumDistance.remove();
     selectKmers4Data.globalFrequency.remove();
 
-    // Missing code.
+    // Done.
     cout << timestamp << "End selectKmers4." << endl;
-    SHASTA_ASSERT(0);
 }
 
 
@@ -1083,25 +1121,25 @@ void Assembler::selectKmers4ThreadFunction(size_t threadId)
                 kmer.shiftLeft();
                 kmer.set(k-1, read[position+k]);
             }
-        }
 
-        // Sort by k-mer, then by position.
-        sort(readKmers.begin(), readKmers.end());
+            // Sort by k-mer, then by position.
+            sort(readKmers.begin(), readKmers.end());
 
-        // Update minDistance for each pair of repeated k-mers.
-        for(uint64_t i=1; i<readKmers.size(); i++) {
-            const auto& p0 = readKmers[i-1];
-            const auto& p1 = readKmers[i];
-            const KmerId kmerId0 = p0.first;
-            const KmerId kmerId1 = p1.first;
-            if(kmerId0 != kmerId1) {
-                continue;
+            // Update minDistance for each pair of repeated k-mers.
+            for(uint64_t i=1; i<readKmers.size(); i++) {
+                const auto& p0 = readKmers[i-1];
+                const auto& p1 = readKmers[i];
+                const KmerId kmerId0 = p0.first;
+                const KmerId kmerId1 = p1.first;
+                if(kmerId0 != kmerId1) {
+                    continue;
+                }
+                const uint32_t distance = p1.second - p0.second;
+
+                pair<std::mutex, uint32_t>& p = selectKmers4Data.minimumDistance[kmerId0];
+                std::lock_guard<std::mutex> lock(p.first);;
+                p.second = min(p.second, distance);
             }
-            const uint32_t distance = p1.second - p0.second;
-
-            pair<std::mutex, uint32_t>& p = selectKmers4Data.minimumDistance[kmerId0];
-            std::lock_guard<std::mutex> lock(p.first);;
-            p.second = min(p.second, distance);
         }
     }
 
