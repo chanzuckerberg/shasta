@@ -1,7 +1,10 @@
 #include "Mode1-AssemblyGraph.hpp"
+#include "Marker.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace shasta;
 using namespace Mode1;
+
+#include <boost/graph/iteration_macros.hpp>
 
 
 Mode1::AssemblyGraph::AssemblyGraph(
@@ -15,6 +18,8 @@ Mode1::AssemblyGraph::AssemblyGraph(
     markerGraph(markerGraph)
 {
     createVertices(minEdgeCoverage, minEdgeCoveragePerStrand);
+    createMarkerGraphToAssemblyGraphTable();
+    computePseudoPaths();
 }
 
 
@@ -323,5 +328,131 @@ MarkerGraph::EdgeId Mode1::AssemblyGraph::getMarkerGraphUniquePreviousEdge(
 
     // If getting here, we only found one.
     return previousEdgeId;
+}
+
+
+
+
+// For each marker graph edge, store the Mode1::AssemblyGraph vertex
+// that it is on. Can be null_vertex() for marker graph edges not associated
+// with a Mode1::AssemblyGraph vertex.
+// Indexed by MarkerGraph::EdgeId.
+void Mode1::AssemblyGraph::createMarkerGraphToAssemblyGraphTable()
+{
+    const AssemblyGraph& graph = *this;
+
+    markerGraphToAssemblyGraphTable.clear();
+    markerGraphToAssemblyGraphTable.resize(markerGraph.edges.size(), null_vertex());
+
+    BGL_FORALL_VERTICES(v, graph, AssemblyGraph) {
+        const AssemblyGraphVertex& vertex = graph[v];
+        for(const MarkerGraph::EdgeId edgeId: vertex.markerGraphEdgeIds) {
+            SHASTA_ASSERT(markerGraphToAssemblyGraphTable[edgeId] == null_vertex());
+            markerGraphToAssemblyGraphTable[edgeId] = v;
+        }
+    }
+}
+
+
+
+void Mode1::AssemblyGraph::computePseudoPaths()
+{
+    // Get the number of reads and oriented reads.
+    const ReadId orientedReadCount = ReadId(markers.size());
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
+    const ReadId readCount = orientedReadCount / 2;
+
+    // Start with empty pseudo-paths.
+    pseudoPaths.clear();
+    pseudoPaths.resize(orientedReadCount);
+
+    // Conmpute pseudo-paths of all oriented reads.
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+            computePseudoPath(orientedReadId, pseudoPath);
+        }
+    }
+}
+
+
+
+void Mode1::AssemblyGraph::computePseudoPath(
+    OrientedReadId orientedReadId,
+    PseudoPath& pseudoPath)
+{
+
+    // Start with an empty pseudo-path.
+    pseudoPath.clear();
+
+    // Access the markers for this oriented read.
+    const span<const CompressedMarker> orientedReadMarkers = markers[orientedReadId.getValue()];
+    const uint32_t markerCount = uint32_t(orientedReadMarkers.size());
+
+    // The first MarkerId for this oriented read.
+    const MarkerId markerIdOffset = orientedReadMarkers.begin() - markers.begin();
+
+    // Loop over markers of this oriented read.
+    vertex_descriptor vPrevious = null_vertex();
+    for(uint32_t ordinal0=0; ordinal0<markerCount; /*increment later*/) {
+        const MarkerId markerId0 = markerIdOffset + ordinal0;
+        const MarkerGraph::VertexId v0 = markerGraph.vertexTable[markerId0];
+
+        // If there is no vertex for this marker, do nothing and try the next ordinal.
+        if(v0 == MarkerGraph::invalidCompressedVertexId) {
+            ++ordinal0;
+            continue;
+        }
+
+        // We found the marker graph vertex corresponding to this marker.
+        // Amount its outgoing edges, found the one followed by this oriented read.
+        const auto edgeIds = markerGraph.edgesBySource[v0];
+        MarkerGraph::EdgeId edgeId01 = MarkerGraph::invalidEdgeId;
+        uint32_t ordinal1 = std::numeric_limits<uint32_t>::max();
+        for(const MarkerGraph::EdgeId e01: edgeIds) {
+            const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[e01];
+            for(const MarkerInterval& markerInterval: markerIntervals) {
+                if((markerInterval.orientedReadId == orientedReadId) and
+                    markerInterval.ordinals[0] == ordinal0) {
+                    // We found it.
+                    edgeId01 = e01;
+                    ordinal1 = markerInterval.ordinals[1];
+                    break;
+                }
+            }
+            if(edgeId01 != MarkerGraph::invalidEdgeId) {
+                break;
+            }
+        }
+
+        // If we did not find it, we must have reached the end of the oriented read.
+        // Check that there are no more marker graph vertices on this oriented read.
+        if(edgeId01 == MarkerGraph::invalidEdgeId) {
+            for(uint32_t ordinal1=ordinal0+1; ordinal1<markerCount; ordinal1++) {
+                const MarkerId markerId1 = markerIdOffset + ordinal1;
+                const MarkerGraph::VertexId v1 = markerGraph.vertexTable[markerId1];
+                SHASTA_ASSERT(v1 == MarkerGraph::invalidCompressedVertexId);
+            }
+            break;
+        }
+
+        // If getting here, we know that marker graph edge edgeId01 contains the
+        // marker interval (ordinal0, ordinal1) for this oriented read.
+        // Find the Mode1::AssemblyGraph vertecx that this marker graph edge is on
+        // and add it to the pseudo-path ,if different from the previous one.
+        const vertex_descriptor v = markerGraphToAssemblyGraphTable[edgeId01];
+        if(v != null_vertex()) {
+            if(v != vPrevious) {
+                pseudoPath.push_back(v);
+                vPrevious = v;
+            }
+
+        }
+
+        // Continue the loop on ordinals.
+        ordinal0 = ordinal1;
+
+    }
 }
 
