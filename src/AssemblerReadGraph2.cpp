@@ -59,7 +59,7 @@ void Assembler::writeReadGraphEdges(bool useReadName) const{
 }
 
 
-bool Assembler::passesReadGraph2Criteria(const AlignmentInfo& info){
+bool Assembler::passesReadGraph2Criteria(const AlignmentInfo& info) const{
     const auto trims = info.computeTrim();
     const auto trim = max(trims.first, trims.second);
 

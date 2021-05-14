@@ -4,13 +4,18 @@ import shasta
 import sys
 
 
-def main(useReadName):
+def main(useReadName, verbose):
     a = shasta.Assembler()
     print("Accessing data ...")
     a.accessMarkers()
     a.accessAlignmentCandidates()
+
+    if verbose:
+        a.accessAlignmentData()
+        a.accessReadGraph()
+
     print("Writing to AlignmentCandidates.csv ...")
-    a.writeAlignmentCandidates(useReadName)
+    a.writeAlignmentCandidates(useReadName, verbose)
     print("Done")
 
 
@@ -28,8 +33,17 @@ if __name__ == "__main__":
              " from the input sequence file will be written instead of the ID"
     )
 
+    parser.add_argument(
+        "--verbose",
+        dest="verbose",
+        action="store_true",
+        help="If this boolean flag is specified, the result of filtering the"
+             " candidate will also be written to the csv"
+    )
+
     args = parser.parse_args()
 
     main(
-        useReadName=args.useReadName
+        useReadName=args.useReadName,
+        verbose=args.verbose
     )

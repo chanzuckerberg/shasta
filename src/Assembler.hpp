@@ -133,11 +133,11 @@ public:
     uint64_t isolatedReadBaseCount = 0;
 
     // Alignment criteria for readGraph creation method 2
-    double automatedAlignedFractionThreshold;
-    double automatedMarkerCountThreshold;
-    double automatedMaxDriftThreshold;
-    double automatedMaxSkipThreshold;
-    double automatedMaxTrimThreshold;
+    double automatedAlignedFractionThreshold = 0;
+    double automatedMarkerCountThreshold = 0;
+    double automatedMaxDriftThreshold = 0;
+    double automatedMaxSkipThreshold = 0;
+    double automatedMaxTrimThreshold = 0;
 
     // Marker graph statistics.
     size_t markerGraphVerticesNotIsolatedCount = 0;
@@ -661,7 +661,7 @@ private:
     AlignmentCandidates alignmentCandidates;
 
 public:
-    void writeAlignmentCandidates(bool useReadName=false) const;
+    void writeAlignmentCandidates(bool useReadName=false, bool verbose=false) const;
 private:
 
 
@@ -999,7 +999,7 @@ public:
             double maxDriftPercentile,
             double maxTrimPercentile);
 
-    bool passesReadGraph2Criteria(const AlignmentInfo& info);
+    bool passesReadGraph2Criteria(const AlignmentInfo& info) const;
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
