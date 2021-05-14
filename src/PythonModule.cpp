@@ -230,7 +230,8 @@ PYBIND11_MODULE(shasta, module)
         // Alignments.
         .def("writeAlignmentCandidates",
              &Assembler::writeAlignmentCandidates,
-             arg("useReadName") = false)
+             arg("useReadName") = false,
+             arg("verbose") = false)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)

@@ -173,7 +173,7 @@ void Assembler::findAlignmentCandidatesLowHash1(
 
 
 
-void Assembler::writeAlignmentCandidates(bool useReadName) const
+void Assembler::writeAlignmentCandidates(bool useReadName, bool verbose) const
 {
 
     // Sanity checks.
@@ -195,6 +195,10 @@ void Assembler::writeAlignmentCandidates(bool useReadName) const
     }
     else{
         csv << "ReadName0,ReadName1,SameStrand,";
+    }
+
+    if(verbose){
+        csv << "passesReadGraph2Criteria,inReadGraph,";
     }
 
     if(alignmentCandidates.featureOrdinals.isOpen()) {
@@ -219,6 +223,40 @@ void Assembler::writeAlignmentCandidates(bool useReadName) const
         if(alignmentCandidates.featureOrdinals.isOpen()) {
             csv << alignmentCandidates.featureOrdinals.size(i) << ",";
         }
+
+        if (verbose){
+            auto orientedReadId0 = OrientedReadId(candidate.readIds[0], 0);
+            auto orientedReadId1 = OrientedReadId(candidate.readIds[1], !candidate.isSameStrand);
+
+            bool isPassingReadGraph2Criteria = false;
+            bool inReadGraph = false;
+
+            // Search the AlignmentTable to see if this pair exists
+            for(const ReadId alignmentIndex: alignmentTable[orientedReadId0.getValue()]) {
+                const AlignmentData& a = alignmentData[alignmentIndex];
+
+                // Check if the pair matches the current candidate pair of interest
+                if (a.getOther(orientedReadId0) == orientedReadId1){
+                    if (passesReadGraph2Criteria(a.info)){
+                        isPassingReadGraph2Criteria = true;
+                    }
+                }
+            }
+
+            // Search the ReadGraph to see if this pair exists
+            for(const ReadId readGraphIndex: readGraph.connectivity[orientedReadId0.getValue()]) {
+                const ReadGraphEdge& e = readGraph.edges[readGraphIndex];
+
+                // Check if the pair matches the current candidate pair of interest
+                if (e.getOther(orientedReadId0) == orientedReadId1){
+                    inReadGraph = true;
+                }
+            }
+
+            csv << (isPassingReadGraph2Criteria ? "Yes" : "No") << ",";
+            csv << (inReadGraph ? "Yes" : "No") << ",";
+        }
+
         csv << "\n";
     }
 
