@@ -62,7 +62,9 @@ public:
 
 class shasta::Mode1::AssemblyGraphEdge {
 public:
-
+    AssemblyGraphEdge(const vector<OrientedReadId>& orientedReadIds) :
+        orientedReadIds(orientedReadIds) {}
+    vector<OrientedReadId> orientedReadIds;
 };
 
 
@@ -135,6 +137,10 @@ private:
     vector<PseudoPath> pseudoPaths;
     void computePseudoPaths();
     void computePseudoPath(OrientedReadId, PseudoPath&);
+
+
+    // Use pseudo-paths to create edges.
+    void createEdges();
 };
 
 #endif

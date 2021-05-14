@@ -6,6 +6,8 @@ using namespace Mode1;
 
 #include <boost/graph/iteration_macros.hpp>
 
+#include <map>
+
 
 Mode1::AssemblyGraph::AssemblyGraph(
     uint64_t minEdgeCoverage,
@@ -20,6 +22,10 @@ Mode1::AssemblyGraph::AssemblyGraph(
     createVertices(minEdgeCoverage, minEdgeCoveragePerStrand);
     createMarkerGraphToAssemblyGraphTable();
     computePseudoPaths();
+    createEdges();
+
+    cout << "The assembly graph has " << num_vertices(*this) <<
+        " vertices and " << num_edges(*this) << " edges." << endl;
 }
 
 
@@ -206,7 +212,6 @@ void Mode1::AssemblyGraph::createVertices(
 
     cout << "Out of " << edgeCount << " marker graph edges, " << totalChainEdgeCount <<
         " were used to generate the initial assembly graph." << endl;
-    cout << "The assembly graph has " << num_vertices(assemblyGraph) << " vertices." << endl;
 
 }
 
@@ -456,3 +461,38 @@ void Mode1::AssemblyGraph::computePseudoPath(
     }
 }
 
+
+
+void Mode1::AssemblyGraph::createEdges()
+{
+    // Get the number of reads and oriented reads.
+    const ReadId orientedReadCount = ReadId(markers.size());
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
+    const ReadId readCount = orientedReadCount / 2;
+
+    // Loop over oriented reads.
+    // Look at pseudo-path transitions.
+    std::map< pair<vertex_descriptor, vertex_descriptor>, vector<OrientedReadId> > pathMap;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+
+            // Get its pseudo-path.
+            const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+
+            for(uint64_t i=1; i<pseudoPath.size(); i++) {
+                const vertex_descriptor v0 = pseudoPath[i-1];
+                const vertex_descriptor v1 = pseudoPath[i];
+                pathMap[make_pair(v0,v1)].push_back(orientedReadId);
+            }
+        }
+    }
+
+    // Each entry in the pathMap generates an edge.
+    for(const auto& p: pathMap) {
+        const vertex_descriptor v0 = p.first.first;
+        const vertex_descriptor v1 = p.first.second;
+        const vector<OrientedReadId>& orientedReadIds = p.second;
+        add_edge(v0, v1, AssemblyGraphEdge(orientedReadIds), *this);
+    }
+}
