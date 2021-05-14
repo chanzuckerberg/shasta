@@ -1,10 +1,9 @@
 #include "Mode1-AssemblyGraph.hpp"
+#include "approximateTopologicalSort.hpp"
 #include "Marker.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace shasta;
 using namespace Mode1;
-
-#include <boost/graph/iteration_macros.hpp>
 
 #include <map>
 
@@ -23,9 +22,12 @@ Mode1::AssemblyGraph::AssemblyGraph(
     createMarkerGraphToAssemblyGraphTable();
     computePseudoPaths();
     createEdges();
-
     cout << "The assembly graph has " << num_vertices(*this) <<
         " vertices and " << num_edges(*this) << " edges." << endl;
+    approximateTopologicalSort();
+
+    writeGraphviz("Mode1-AssemblyGraph.dot");
+
 }
 
 
@@ -495,4 +497,83 @@ void Mode1::AssemblyGraph::createEdges()
         const vector<OrientedReadId>& orientedReadIds = p.second;
         add_edge(v0, v1, AssemblyGraphEdge(orientedReadIds), *this);
     }
+}
+
+
+
+void Mode1::AssemblyGraph::approximateTopologicalSort()
+{
+    Mode1::AssemblyGraph& graph = *this;
+
+    vector<pair<uint64_t, edge_descriptor> > edgeTable;
+    BGL_FORALL_EDGES(e, graph, AssemblyGraph) {
+        edgeTable.push_back(make_pair(graph[e].orientedReadIds.size(), e));
+    }
+    sort(edgeTable.begin(), edgeTable.end(),
+        std::greater< pair<uint64_t, edge_descriptor> >());
+
+    vector<edge_descriptor> sortedEdges;
+    for(const auto& p: edgeTable) {
+        sortedEdges.push_back(p.second);
+    }
+
+    shasta::approximateTopologicalSort(graph, sortedEdges);
+
+}
+
+
+
+/*
+Output in Graphviz format.
+To display the neighborhood of a vertex:
+CreateLocalSubgraph.py Mode1-AssemblyGraph.dot 4024 10
+dot -O -T svg LocalSubgraph-Mode1-AssemblyGraph.dot
+
+The first parameter is the Mode1::AssemblyGraph vertex id
+(same as the first marker graph edge id).
+The second parameter is the distance.
+*/
+
+void Mode1::AssemblyGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream graphOut(fileName);
+    writeGraphviz(graphOut);
+}
+void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
+{
+    using Graph = AssemblyGraph;
+    const Graph& graph = *this;
+
+    s << "digraph Mode1AssemblyGraph{\n";
+
+    // Vertices.
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const AssemblyGraphVertex& vertex = graph[v];
+        s << getFirstMarkerGraphEdgeId(v) << " [width=\"" <<
+            0.1*sqrt(double(vertex.markerGraphEdgeIds.size())) <<
+            "\" label=\"" <<
+            vertex.markerGraphEdgeIds.front() << "\\n" <<
+            vertex.markerGraphEdgeIds.back() << "\\n" <<
+            vertex.markerGraphEdgeIds.size() <<
+            "\"];\n";
+    }
+
+    // Edges.
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+
+        s << getFirstMarkerGraphEdgeId(v0) << "->" <<
+            getFirstMarkerGraphEdgeId(v1) << " [penwidth=\"" <<
+            0.3*double(graph[e].orientedReadIds.size()) <<
+            "\" label=\"" << graph[e].orientedReadIds.size();
+
+        if(not graph[e].isDagEdge) {
+            s << " constraint=false";
+        }
+
+        s << "\"];\n";
+    }
+
+    s << "}\n";
 }

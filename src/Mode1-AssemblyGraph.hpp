@@ -5,6 +5,7 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/iteration_macros.hpp>
 
 namespace shasta {
     namespace Mode1 {
@@ -52,9 +53,18 @@ public:
     // Marker graph edge ids of the edges of the marker
     // graph path corresponding to this vertex.
     vector<MarkerGraph::EdgeId> markerGraphEdgeIds;
+    MarkerGraph::EdgeId getFirstMarkerGraphEdgeId() const
+    {
+        SHASTA_ASSERT(not markerGraphEdgeIds.empty());
+        return markerGraphEdgeIds.front();
+    }
 
     // The reverse complement of this vertex.
     AssemblyGraphBaseClass::vertex_descriptor vRc;
+
+    // Fields used by approximateTopologicalSort.
+    uint64_t color;
+    uint64_t rank;
 
 };
 
@@ -65,6 +75,9 @@ public:
     AssemblyGraphEdge(const vector<OrientedReadId>& orientedReadIds) :
         orientedReadIds(orientedReadIds) {}
     vector<OrientedReadId> orientedReadIds;
+
+    // Field used by approximateTopologicalSort.
+    bool isDagEdge = false;
 };
 
 
@@ -138,9 +151,20 @@ private:
     void computePseudoPaths();
     void computePseudoPath(OrientedReadId, PseudoPath&);
 
-
     // Use pseudo-paths to create edges.
     void createEdges();
+
+    // Approximate topological sort is used for better Graphviz layouts.
+    void approximateTopologicalSort();
+
+    // Write the entire graph in Graphviz format.
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+
+    MarkerGraph::EdgeId getFirstMarkerGraphEdgeId(vertex_descriptor v) const
+    {
+        return (*this)[v].getFirstMarkerGraphEdgeId();
+    }
 };
 
 #endif
