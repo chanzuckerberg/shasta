@@ -569,19 +569,32 @@ void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
     using Graph = AssemblyGraph;
     const Graph& graph = *this;
 
-    s << "digraph Mode1AssemblyGraph{\n";
+    s << "digraph Mode1AssemblyGraph{\n"
+        "node [shape=rectangle]";
+
 
     // Vertices.
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const AssemblyGraphVertex& vertex = graph[v];
+        const MarkerGraph::EdgeId firstMarkerGraphEdgeId = vertex.markerGraphEdgeIds.front();
+        const MarkerGraph::EdgeId lastMarkerGraphEdgeId  = vertex.markerGraphEdgeIds.back();
+        const MarkerGraph::Edge& firstMarkerGraphEdge = markerGraph.edges[firstMarkerGraphEdgeId];
+        const MarkerGraph::Edge& lastMarkerGraphEdge  = markerGraph.edges[lastMarkerGraphEdgeId];
+        const MarkerGraph::VertexId firstMarkerGraphVertex = firstMarkerGraphEdge.source;
+        const MarkerGraph::VertexId lastMarkerGraphVertex  = lastMarkerGraphEdge.target;
+
         s << getFirstMarkerGraphEdgeId(v) << " [width=\"" <<
             0.1*sqrt(double(vertex.markerGraphEdgeIds.size())) <<
             "\" label=\"" <<
-            vertex.markerGraphEdgeIds.front() << "\\n" <<
-            vertex.markerGraphEdgeIds.back() << "\\n" <<
-            vertex.markerGraphEdgeIds.size() <<
+            "v0 " << firstMarkerGraphVertex << "\\n" <<
+            "v1 " << lastMarkerGraphVertex << "\\n" <<
+            "e0 " << firstMarkerGraphEdgeId << "\\n" <<
+            "e1 " << lastMarkerGraphEdgeId << "\\n" <<
+            "n " << vertex.markerGraphEdgeIds.size() <<
             "\"];\n";
     }
+
+
 
     // Edges.
     BGL_FORALL_EDGES(e, graph, Graph) {
