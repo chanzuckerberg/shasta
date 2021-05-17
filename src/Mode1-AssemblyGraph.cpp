@@ -598,7 +598,7 @@ void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
         const MarkerGraph::VertexId firstMarkerGraphVertex = firstMarkerGraphEdge.source;
         const MarkerGraph::VertexId lastMarkerGraphVertex  = lastMarkerGraphEdge.target;
 
-        s << getFirstMarkerGraphEdgeId(v) << " [width=\"" <<
+        s << getVertexId(v) << " [width=\"" <<
             0.1*sqrt(double(vertex.markerGraphEdgeIds.size())) <<
             "\" label=\"" <<
             "v0 " << firstMarkerGraphVertex << "\\n" <<
@@ -616,8 +616,8 @@ void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
 
-        s << getFirstMarkerGraphEdgeId(v0) << "->" <<
-            getFirstMarkerGraphEdgeId(v1) << " [penwidth=\"" <<
+        s << getVertexId(v0) << "->" <<
+            getVertexId(v1) << " [penwidth=\"" <<
             0.3*double(graph[e].orientedReadIds.size()) <<
             "\" label=\"" << graph[e].orientedReadIds.size() << "\"";
 

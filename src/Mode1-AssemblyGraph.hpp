@@ -53,7 +53,11 @@ public:
     // Marker graph edge ids of the edges of the marker
     // graph path corresponding to this vertex.
     vector<MarkerGraph::EdgeId> markerGraphEdgeIds;
-    MarkerGraph::EdgeId getFirstMarkerGraphEdgeId() const
+
+    // We use as the vertex id for debugging purposes the MarkerGraph::EdgeId
+    // of the first marker graph edge in the path corresponding to the given
+    // assembly graph vertex.
+    MarkerGraph::EdgeId getId() const
     {
         SHASTA_ASSERT(not markerGraphEdgeIds.empty());
         return markerGraphEdgeIds.front();
@@ -167,9 +171,12 @@ private:
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;
 
-    MarkerGraph::EdgeId getFirstMarkerGraphEdgeId(vertex_descriptor v) const
+    // We use as the vertex id for debugging purposes the MarkerGraph::EdgeId
+    // of the first marker graph edge in the path corresponding to the given
+    // assembly graph vertex.
+    MarkerGraph::EdgeId getVertexId(vertex_descriptor v) const
     {
-        return (*this)[v].getFirstMarkerGraphEdgeId();
+        return (*this)[v].getId();
     }
 };
 
