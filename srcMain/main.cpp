@@ -1075,6 +1075,9 @@ void shasta::main::mode1Assembly(
     assembler.createMarkerGraphEdgesStrict(0,  0, threadCount);
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
 
+    // Coverage histograms for vertices and edges of the marker graph.
+    assembler.computeMarkerGraphCoverageHistogram();
+
     throw runtime_error("Missing code in assembly mode 1 .");
 }
 
