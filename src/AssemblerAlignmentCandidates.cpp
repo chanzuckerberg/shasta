@@ -125,7 +125,7 @@ bool Assembler::createLocalReferenceGraph(
 
 
 // Write a FASTA file containing all reads that appear in
-// the local read graph.
+// the local alignment candidate graph.
 void Assembler::writeLocalAlignmentCandidateReads(
         ReadId readId,
         Strand strand,
@@ -136,7 +136,7 @@ void Assembler::writeLocalAlignmentCandidateReads(
 {
     vector<OrientedReadId> starts = {OrientedReadId(readId, strand)};
 
-    // Create the requested local read graph.
+    // Create the requested local candidate graph.
     LocalAlignmentCandidateGraph localCandidateGraph;
     SHASTA_ASSERT(createLocalAlignmentCandidateGraph(
             starts,
