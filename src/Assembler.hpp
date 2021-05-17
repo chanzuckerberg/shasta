@@ -698,6 +698,7 @@ public:
     );
     void markAlignmentCandidatesAllPairs();
     void accessAlignmentCandidates();
+    void accessAlignmentCandidateTable();
     vector<OrientedReadPair> getAlignmentCandidates() const;
 private:
     void checkAlignmentCandidatesAreOpen() const;
@@ -719,7 +720,8 @@ private:
         double timeout,                     // Or 0 for no timeout.
         bool inGoodAlignmentsRequired,      // Only add an edge to the local graph if it's in the "good" alignments
         bool inReadgraphRequired,           // Only add an edge to the local graph if it's in the ReadGraph
-        LocalAlignmentCandidateGraph& graph);
+        LocalAlignmentCandidateGraph& graph
+    );
 
     // This method is used as an alternative to createLocalAlignmentCandidateGraph, in the case that the user
     // wants to see only the edges that are inferred from the PAF, and none others. Coloring/labelling w.r.t.
@@ -729,8 +731,20 @@ private:
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
         double timeout,                 // Or 0 for no timeout.
-        LocalAlignmentCandidateGraph& graph);
-
+        LocalAlignmentCandidateGraph& graph
+    );
+public:
+    // Construct a subgraph around a read in the candidate graph
+    // and write all subgraph reads to a Fasta file.
+    void writeLocalAlignmentCandidateReads(
+            ReadId readId,
+            Strand strand,
+            uint32_t maxDistance,
+            bool allowChimericReads,
+            bool allowCrossStrandEdges,
+            bool allowInconsistentAlignmentEdges
+    );
+private:
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
         OrientedReadId,

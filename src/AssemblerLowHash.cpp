@@ -61,6 +61,11 @@ void Assembler::accessAlignmentCandidates()
     alignmentCandidates.candidates.accessExistingReadOnly(largeDataName("AlignmentCandidates"));
 }
 
+void Assembler::accessAlignmentCandidateTable()
+{
+    alignmentCandidates.candidateTable.accessExistingReadOnly(largeDataName("CandidateTable"));
+}
+
 void Assembler::accessReadLowHashStatistics()
 {
     readLowHashStatistics.accessExistingReadOnly(largeDataName("ReadLowHashStatistics"));

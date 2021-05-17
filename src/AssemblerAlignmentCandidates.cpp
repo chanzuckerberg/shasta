@@ -124,6 +124,74 @@ bool Assembler::createLocalReferenceGraph(
 }
 
 
+// Write a FASTA file containing all reads that appear in
+// the local read graph.
+void Assembler::writeLocalAlignmentCandidateReads(
+        ReadId readId,
+        Strand strand,
+        uint32_t maxDistance,
+        bool allowChimericReads,
+        bool allowCrossStrandEdges,
+        bool allowInconsistentAlignmentEdges)
+{
+    vector<OrientedReadId> starts = {OrientedReadId(readId, strand)};
+
+    // Create the requested local read graph.
+    LocalAlignmentCandidateGraph localCandidateGraph;
+    SHASTA_ASSERT(createLocalAlignmentCandidateGraph(
+            starts,
+            maxDistance,
+            allowChimericReads,
+            allowCrossStrandEdges,
+            allowInconsistentAlignmentEdges,
+            0.,
+            localCandidateGraph));
+
+    // Gather the reads.
+    std::set<ReadId> readsSet;
+    BGL_FORALL_VERTICES(v, localCandidateGraph, LocalReadGraph) {
+            const auto& vertex = localCandidateGraph[v];
+            const OrientedReadId orientedReadId = OrientedReadId(vertex.orientedReadId);
+            readsSet.insert(orientedReadId.getReadId());
+        }
+
+
+
+    // Write the fasta file.
+    const string fileName = "LocalAlignmentCandidateGraph_" + to_string(readId) + "-" + to_string(strand) + ".fasta";
+    ofstream fasta(fileName);
+    for(const ReadId readId: readsSet) {
+
+        // Write the header line with the read name.
+        const auto readName = reads->getReadName(readId);
+        fasta << ">" << readId << " ";
+        copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+        const auto metaData = reads->getReadMetaData(readId);
+        if(metaData.size() > 0) {
+            fasta << " ";
+            copy(metaData.begin(), metaData.end(), ostream_iterator<char>(fasta));
+        }
+        fasta << "\n";
+
+        // Write the sequence.
+        const auto& sequence = reads->getRead(readId);
+        const auto& counts = reads->getReadRepeatCounts(readId);
+        const size_t n = sequence.baseCount;
+        SHASTA_ASSERT(counts.size() == n);
+        for(size_t i=0; i<n; i++) {
+            const Base base = sequence[i];
+            const uint8_t count = counts[i];
+            for(size_t k=0; k<count; k++) {
+                fasta << base;
+            }
+        }
+        fasta << "\n";
+    }
+    cout << "Wrote " << readsSet.size() << " reads to " << fileName << endl;
+
+
+}
+
 
 bool Assembler::createLocalAlignmentCandidateGraph(
         vector<OrientedReadId>& starts,
@@ -156,8 +224,9 @@ bool Assembler::createLocalAlignmentCandidateGraph(
     while(!q.empty()) {
 
         // See if we exceeded the timeout.
-        if(seconds(steady_clock::now() - startTime) > timeout) {
+        if(timeout > 0 and seconds(steady_clock::now() - startTime) > timeout) {
             graph.clear();
+            cout << "Exceeded timeout\n";
             return false;
         }
 
