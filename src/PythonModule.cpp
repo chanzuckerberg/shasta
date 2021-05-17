@@ -208,6 +208,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("accessAlignmentCandidates",
             &Assembler::accessAlignmentCandidates)
+        .def("accessAlignmentCandidateTable",
+            &Assembler::accessAlignmentCandidateTable)
         .def("getAlignmentCandidates",
             &Assembler::getAlignmentCandidates)
         .def("writeOverlappingReads",
@@ -232,6 +234,14 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::writeAlignmentCandidates,
              arg("useReadName") = false,
              arg("verbose") = false)
+        .def("writeLocalAlignmentCandidateReads",
+             &Assembler::writeLocalAlignmentCandidateReads,
+             arg("readId"),
+             arg("strand"),
+             arg("maxDistance"),
+             arg("allowChimericReads"),
+             arg("allowCrossStrandEdges"),
+             arg("allowInconsistentAlignmentEdges"))
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
