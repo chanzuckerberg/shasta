@@ -154,6 +154,12 @@ private:
     // Use pseudo-paths to create edges.
     void createEdges();
 
+    // Given an edge e01 v0->v1, return true if the edge corresponds to a "jump"
+    // in the marker graph. This is the case if the last marker graph vertex
+    // of the v0 marker graph path is not the same as the first marker graph edge of
+    // the v1 marker graph path.
+    bool isMarkerGraphJump(edge_descriptor) const;
+
     // Approximate topological sort is used for better Graphviz layouts.
     void approximateTopologicalSort();
 

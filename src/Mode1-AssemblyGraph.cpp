@@ -501,6 +501,31 @@ void Mode1::AssemblyGraph::createEdges()
 
 
 
+// Given an edge e01 v0->v1, return true if the edge corresponds to a "jump"
+// in the marker graph. This is the case if the last marker graph vertex
+// of the v0 marker graph path is not the same as the first marker graph edge of
+// the v1 marker graph path.
+bool Mode1::AssemblyGraph::isMarkerGraphJump(edge_descriptor e01) const
+{
+    const AssemblyGraph& graph = *this;
+
+    // Access the assembly graph vertices.
+    const vertex_descriptor v0 = source(e01, graph);
+    const vertex_descriptor v1 = target(e01, graph);
+    const AssemblyGraphVertex vertex0 = graph[v0];
+    const AssemblyGraphVertex vertex1 = graph[v1];
+
+    // Access the marker graph edges we need to check.
+    const MarkerGraph::EdgeId lastMarkerGraphEdgeId0  = vertex0.markerGraphEdgeIds.back();
+    const MarkerGraph::EdgeId firstMarkerGraphEdgeId1 = vertex1.markerGraphEdgeIds.front();
+    const MarkerGraph::Edge lastMarkerGraphEdge0  = markerGraph.edges[lastMarkerGraphEdgeId0];
+    const MarkerGraph::Edge firstMarkerGraphEdge1 = markerGraph.edges[firstMarkerGraphEdgeId1];
+
+    // Now it's easy to know if we have a jump.
+    return lastMarkerGraphEdge0.target != firstMarkerGraphEdge1.source;
+}
+
+
 void Mode1::AssemblyGraph::approximateTopologicalSort()
 {
     Mode1::AssemblyGraph& graph = *this;
@@ -566,13 +591,17 @@ void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
         s << getFirstMarkerGraphEdgeId(v0) << "->" <<
             getFirstMarkerGraphEdgeId(v1) << " [penwidth=\"" <<
             0.3*double(graph[e].orientedReadIds.size()) <<
-            "\" label=\"" << graph[e].orientedReadIds.size();
+            "\" label=\"" << graph[e].orientedReadIds.size() << "\"";
 
         if(not graph[e].isDagEdge) {
             s << " constraint=false";
         }
 
-        s << "\"];\n";
+        if(isMarkerGraphJump(e)) {
+            s << " color=red";
+        }
+
+        s << "];\n";
     }
 
     s << "}\n";
