@@ -113,7 +113,8 @@ void Mode1::AssemblyGraph::createVertices(
             }
             nextEdges.push_back(edgeId);
             if(debug) {
-                cout << "Forward " << edgeId << endl;
+                cout << "Forward " << edgeId << " (" <<
+                    markerGraph.reverseComplementEdge[edgeId] << ")\n";
             }
 
             // Mark it as used.
@@ -141,7 +142,8 @@ void Mode1::AssemblyGraph::createVertices(
                 }
                 previousEdges.push_back(edgeId);
                 if(debug) {
-                    cout << "Backward " << edgeId << endl;
+                    cout << "Backward " << edgeId << " (" <<
+                        markerGraph.reverseComplementEdge[edgeId] << ")\n";
                 }
 
                 // Mark it as used.
@@ -158,6 +160,13 @@ void Mode1::AssemblyGraph::createVertices(
         copy(nextEdges.begin(), nextEdges.end(), back_inserter< vector<EdgeId> >(chain));
         totalChainEdgeCount += chain.size();
 
+        if(debug) {
+            for(const EdgeId edgeId: chain) {
+                cout << "Chain " << edgeId <<  " (" <<
+                    markerGraph.reverseComplementEdge[edgeId] << ")\n";
+            }
+        }
+
 
         // Also construct the reverse complemented chain.
         reverseComplementedChain.clear();
@@ -166,6 +175,12 @@ void Mode1::AssemblyGraph::createVertices(
         }
         std::reverse(reverseComplementedChain.begin(), reverseComplementedChain.end());
 
+        if(debug) {
+            for(const EdgeId edgeId: reverseComplementedChain) {
+                cout << "Reverse complemented chain " << edgeId <<
+                    " (" << markerGraph.reverseComplementEdge[edgeId] << ")\n";
+            }
+        }
 
 
         // Figure out if the reverse complemented chain is the same
