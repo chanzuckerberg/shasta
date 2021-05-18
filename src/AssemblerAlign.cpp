@@ -1028,7 +1028,7 @@ uint32_t Assembler::countCommonMarkersWithOffsetIn(
 void Assembler::writeAlignmentDetails() const
 {
     string directoryName = "Alignments/";
-    string header = "kmerId,ordinal0,ordinal1,position0,position1,";
+    string header = "kmerId,ordinal0,ordinal1,rlePosition0,rlePosition1,";
 
     filesystem::createDirectory(directoryName);
 
