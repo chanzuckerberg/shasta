@@ -590,7 +590,7 @@ void CompressedAssemblyGraph::writeCsvOrientedReads() const
         const vector<edge_descriptor>& edges = orientedReadTable[orientedReadId];
         for(const edge_descriptor e: edges) {
             const CompressedAssemblyGraphEdge& edge = graph[e];
-            csv << OrientedReadId(orientedReadId) << ",";
+            csv << OrientedReadId::fromValue(orientedReadId) << ",";
             csv << edge.id << ",";
             csv << edge.gfaId() << "\n";
         }
