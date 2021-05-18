@@ -1285,7 +1285,7 @@ void Assembler::readGraphClustering()
         "tooltip=\" \"";
     const ReadId vertexCount = ReadId(readGraph.connectivity.size());
     for(ReadId vertexId=0; vertexId<vertexCount; vertexId++) {
-        const OrientedReadId orientedReadId = OrientedReadId(vertexId);
+        const OrientedReadId orientedReadId = OrientedReadId::fromValue(vertexId);
         graphOut << "\"" << orientedReadId << "\"[" <<
             " tooltip=\"" << orientedReadId << "\""
             "];\n";

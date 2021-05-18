@@ -151,7 +151,7 @@ void Assembler::writeLocalAlignmentCandidateReads(
     std::set<ReadId> readsSet;
     BGL_FORALL_VERTICES(v, localCandidateGraph, LocalReadGraph) {
             const auto& vertex = localCandidateGraph[v];
-            const OrientedReadId orientedReadId = OrientedReadId(vertex.orientedReadId);
+            const OrientedReadId orientedReadId = OrientedReadId::fromValue(vertex.orientedReadId);
             readsSet.insert(orientedReadId.getReadId());
         }
 

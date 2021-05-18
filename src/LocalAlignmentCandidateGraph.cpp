@@ -66,7 +66,7 @@ void LocalAlignmentCandidateGraph::getAdjacentReadIds(OrientedReadId id, vector<
         const vertex_descriptor v = it->second;
 
         BGL_FORALL_ADJ(v, v2, graph, LocalAlignmentCandidateGraph){
-            OrientedReadId otherId(graph[v2].orientedReadId);
+            OrientedReadId otherId = OrientedReadId::fromValue(graph[v2].orientedReadId);
             adjacentReadIds.push_back(otherId);
 
         }
@@ -147,7 +147,7 @@ void LocalAlignmentCandidateGraph::Writer::operator()(std::ostream& s) const
 void LocalAlignmentCandidateGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
     const LocalAlignmentCandidateGraphVertex& vertex = graph[v];
-    const OrientedReadId orientedReadId(vertex.orientedReadId);
+    const OrientedReadId orientedReadId = OrientedReadId::fromValue(vertex.orientedReadId);
 
     s << "[";
     s << " tooltip=\"" << orientedReadId << " length " << vertex.baseCount << " distance " << vertex.distance << "\"";
@@ -173,8 +173,8 @@ void LocalAlignmentCandidateGraph::Writer::operator()(std::ostream& s, edge_desc
     const LocalAlignmentCandidateGraphVertex& vertex1 = graph[v1];
 
     s << "[";
-    s << "tooltip=\"" << OrientedReadId(vertex0.orientedReadId) << " ";
-    s << OrientedReadId(vertex1.orientedReadId) << "\"";
+    s << "tooltip=\"" << OrientedReadId::fromValue(vertex0.orientedReadId) << " ";
+    s << OrientedReadId::fromValue(vertex1.orientedReadId) << "\"";
     s << "]";
 }
 
@@ -278,7 +278,7 @@ void LocalAlignmentCandidateGraph::writeSvg(
     std::map<vertex_descriptor, VertexAttributes> vertexAttributes;
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const auto& vertex = graph[v];
-        const OrientedReadId orientedReadId = OrientedReadId(vertex.orientedReadId);
+        const OrientedReadId orientedReadId = OrientedReadId::fromValue(vertex.orientedReadId);
         VertexAttributes attributes;
 
         attributes.radius = vertexScalingFactor * 0.03;
@@ -327,8 +327,8 @@ void LocalAlignmentCandidateGraph::writeSvg(
         }
 
         attributes.tooltip =
-            OrientedReadId(vertex0.orientedReadId).getString() + " " +
-            OrientedReadId(vertex1.orientedReadId).getString();
+            OrientedReadId::fromValue(vertex0.orientedReadId).getString() + " " +
+            OrientedReadId::fromValue(vertex1.orientedReadId).getString();
 
         edgeAttributes.insert(make_pair(e, attributes));
     }

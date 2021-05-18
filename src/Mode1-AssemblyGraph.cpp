@@ -1,10 +1,11 @@
 #include "Mode1-AssemblyGraph.hpp"
+#include "approximateTopologicalSort.hpp"
 #include "Marker.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace shasta;
 using namespace Mode1;
 
-#include <boost/graph/iteration_macros.hpp>
+#include <map>
 
 
 Mode1::AssemblyGraph::AssemblyGraph(
@@ -20,6 +21,13 @@ Mode1::AssemblyGraph::AssemblyGraph(
     createVertices(minEdgeCoverage, minEdgeCoveragePerStrand);
     createMarkerGraphToAssemblyGraphTable();
     computePseudoPaths();
+    createEdges();
+    cout << "The assembly graph has " << num_vertices(*this) <<
+        " vertices and " << num_edges(*this) << " edges." << endl;
+    approximateTopologicalSort();
+
+    writeGraphviz("Mode1-AssemblyGraph.dot");
+
 }
 
 
@@ -105,7 +113,8 @@ void Mode1::AssemblyGraph::createVertices(
             }
             nextEdges.push_back(edgeId);
             if(debug) {
-                cout << "Forward " << edgeId << endl;
+                cout << "Forward " << edgeId << " (" <<
+                    markerGraph.reverseComplementEdge[edgeId] << ")\n";
             }
 
             // Mark it as used.
@@ -133,7 +142,8 @@ void Mode1::AssemblyGraph::createVertices(
                 }
                 previousEdges.push_back(edgeId);
                 if(debug) {
-                    cout << "Backward " << edgeId << endl;
+                    cout << "Backward " << edgeId << " (" <<
+                        markerGraph.reverseComplementEdge[edgeId] << ")\n";
                 }
 
                 // Mark it as used.
@@ -150,6 +160,13 @@ void Mode1::AssemblyGraph::createVertices(
         copy(nextEdges.begin(), nextEdges.end(), back_inserter< vector<EdgeId> >(chain));
         totalChainEdgeCount += chain.size();
 
+        if(debug) {
+            for(const EdgeId edgeId: chain) {
+                cout << "Chain " << edgeId <<  " (" <<
+                    markerGraph.reverseComplementEdge[edgeId] << ")\n";
+            }
+        }
+
 
         // Also construct the reverse complemented chain.
         reverseComplementedChain.clear();
@@ -158,6 +175,12 @@ void Mode1::AssemblyGraph::createVertices(
         }
         std::reverse(reverseComplementedChain.begin(), reverseComplementedChain.end());
 
+        if(debug) {
+            for(const EdgeId edgeId: reverseComplementedChain) {
+                cout << "Reverse complemented chain " << edgeId <<
+                    " (" << markerGraph.reverseComplementEdge[edgeId] << ")\n";
+            }
+        }
 
 
         // Figure out if the reverse complemented chain is the same
@@ -206,7 +229,6 @@ void Mode1::AssemblyGraph::createVertices(
 
     cout << "Out of " << edgeCount << " marker graph edges, " << totalChainEdgeCount <<
         " were used to generate the initial assembly graph." << endl;
-    cout << "The assembly graph has " << num_vertices(assemblyGraph) << " vertices." << endl;
 
 }
 
@@ -456,3 +478,159 @@ void Mode1::AssemblyGraph::computePseudoPath(
     }
 }
 
+
+
+void Mode1::AssemblyGraph::createEdges()
+{
+    // Get the number of reads and oriented reads.
+    const ReadId orientedReadCount = ReadId(markers.size());
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
+    const ReadId readCount = orientedReadCount / 2;
+
+    // Loop over oriented reads.
+    // Look at pseudo-path transitions.
+    std::map< pair<vertex_descriptor, vertex_descriptor>, vector<OrientedReadId> > pathMap;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+
+            // Get its pseudo-path.
+            const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+
+            for(uint64_t i=1; i<pseudoPath.size(); i++) {
+                const vertex_descriptor v0 = pseudoPath[i-1];
+                const vertex_descriptor v1 = pseudoPath[i];
+                pathMap[make_pair(v0,v1)].push_back(orientedReadId);
+            }
+        }
+    }
+
+    // Each entry in the pathMap generates an edge.
+    for(const auto& p: pathMap) {
+        const vertex_descriptor v0 = p.first.first;
+        const vertex_descriptor v1 = p.first.second;
+        const vector<OrientedReadId>& orientedReadIds = p.second;
+        add_edge(v0, v1, AssemblyGraphEdge(orientedReadIds), *this);
+    }
+}
+
+
+
+// Given an edge e01 v0->v1, return true if the edge corresponds to a "jump"
+// in the marker graph. This is the case if the last marker graph vertex
+// of the v0 marker graph path is not the same as the first marker graph edge of
+// the v1 marker graph path.
+bool Mode1::AssemblyGraph::isMarkerGraphJump(edge_descriptor e01) const
+{
+    const AssemblyGraph& graph = *this;
+
+    // Access the assembly graph vertices.
+    const vertex_descriptor v0 = source(e01, graph);
+    const vertex_descriptor v1 = target(e01, graph);
+    const AssemblyGraphVertex vertex0 = graph[v0];
+    const AssemblyGraphVertex vertex1 = graph[v1];
+
+    // Access the marker graph edges we need to check.
+    const MarkerGraph::EdgeId lastMarkerGraphEdgeId0  = vertex0.markerGraphEdgeIds.back();
+    const MarkerGraph::EdgeId firstMarkerGraphEdgeId1 = vertex1.markerGraphEdgeIds.front();
+    const MarkerGraph::Edge lastMarkerGraphEdge0  = markerGraph.edges[lastMarkerGraphEdgeId0];
+    const MarkerGraph::Edge firstMarkerGraphEdge1 = markerGraph.edges[firstMarkerGraphEdgeId1];
+
+    // Now it's easy to know if we have a jump.
+    return lastMarkerGraphEdge0.target != firstMarkerGraphEdge1.source;
+}
+
+
+void Mode1::AssemblyGraph::approximateTopologicalSort()
+{
+    Mode1::AssemblyGraph& graph = *this;
+
+    vector<pair<uint64_t, edge_descriptor> > edgeTable;
+    BGL_FORALL_EDGES(e, graph, AssemblyGraph) {
+        edgeTable.push_back(make_pair(graph[e].orientedReadIds.size(), e));
+    }
+    sort(edgeTable.begin(), edgeTable.end(),
+        std::greater< pair<uint64_t, edge_descriptor> >());
+
+    vector<edge_descriptor> sortedEdges;
+    for(const auto& p: edgeTable) {
+        sortedEdges.push_back(p.second);
+    }
+
+    shasta::approximateTopologicalSort(graph, sortedEdges);
+
+}
+
+
+
+/*
+Output in Graphviz format.
+To display the neighborhood of a vertex:
+CreateLocalSubgraph.py Mode1-AssemblyGraph.dot 4024 10
+dot -O -T svg LocalSubgraph-Mode1-AssemblyGraph.dot
+
+The first parameter is the Mode1::AssemblyGraph vertex id
+(same as the first marker graph edge id).
+The second parameter is the distance.
+*/
+
+void Mode1::AssemblyGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream graphOut(fileName);
+    writeGraphviz(graphOut);
+}
+void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
+{
+    using Graph = AssemblyGraph;
+    const Graph& graph = *this;
+
+    s << "digraph Mode1AssemblyGraph{\n"
+        "node [shape=rectangle]";
+
+
+    // Vertices.
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const AssemblyGraphVertex& vertex = graph[v];
+        const MarkerGraph::EdgeId firstMarkerGraphEdgeId = vertex.markerGraphEdgeIds.front();
+        const MarkerGraph::EdgeId lastMarkerGraphEdgeId  = vertex.markerGraphEdgeIds.back();
+        const MarkerGraph::Edge& firstMarkerGraphEdge = markerGraph.edges[firstMarkerGraphEdgeId];
+        const MarkerGraph::Edge& lastMarkerGraphEdge  = markerGraph.edges[lastMarkerGraphEdgeId];
+        const MarkerGraph::VertexId firstMarkerGraphVertex = firstMarkerGraphEdge.source;
+        const MarkerGraph::VertexId lastMarkerGraphVertex  = lastMarkerGraphEdge.target;
+
+        s << getVertexId(v) << " [width=\"" <<
+            0.1*sqrt(double(vertex.markerGraphEdgeIds.size())) <<
+            "\" label=\"" <<
+            "v0 " << firstMarkerGraphVertex << "\\n" <<
+            "v1 " << lastMarkerGraphVertex << "\\n" <<
+            "e0 " << firstMarkerGraphEdgeId << "\\n" <<
+            "e1 " << lastMarkerGraphEdgeId << "\\n" <<
+            "n " << vertex.markerGraphEdgeIds.size() <<
+            "\"];\n";
+    }
+
+
+
+    // Edges.
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+
+        s << getVertexId(v0) << "->" <<
+            getVertexId(v1) << " [penwidth=\"" <<
+            0.3*double(graph[e].orientedReadIds.size()) <<
+            "\" label=\"" << graph[e].orientedReadIds.size() << "\"";
+
+        if(not graph[e].isDagEdge) {
+            s << " constraint=false";
+        }
+
+        if(isMarkerGraphJump(e)) {
+            s << " color=red";
+        }
+
+        s << "];\n";
+    }
+
+    s << "}\n";
+}

@@ -396,7 +396,7 @@ void ReadGraph::clustering(
 
         // Randomly pick a vertex to update.
         const ReadId vertexId0 = uniformDistribution(randomSource);
-        const OrientedReadId orientedReadId0 = OrientedReadId(vertexId0);
+        const OrientedReadId orientedReadId0 = OrientedReadId::fromValue(vertexId0);
 
         // Get the clusters of its neighbors.
         neighborLabels.clear();
@@ -500,7 +500,7 @@ void ReadGraph::clustering(
     graphOut << "graph ReadGraph {\n"
         "tooltip=\" \"";
     for(ReadId vertexId=0; vertexId<vertexCount; vertexId++) {
-        const OrientedReadId orientedReadId = OrientedReadId(vertexId);
+        const OrientedReadId orientedReadId = OrientedReadId::fromValue(vertexId);
         const ReadId vertexLabel = cluster[vertexId];
         graphOut << "\"" << orientedReadId << "\"[" <<
             " tooltip=\"" << orientedReadId << " " << vertexLabel << "\""

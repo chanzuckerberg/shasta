@@ -5,6 +5,7 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/iteration_macros.hpp>
 
 namespace shasta {
     namespace Mode1 {
@@ -53,8 +54,21 @@ public:
     // graph path corresponding to this vertex.
     vector<MarkerGraph::EdgeId> markerGraphEdgeIds;
 
+    // We use as the vertex id for debugging purposes the MarkerGraph::EdgeId
+    // of the first marker graph edge in the path corresponding to the given
+    // assembly graph vertex.
+    MarkerGraph::EdgeId getId() const
+    {
+        SHASTA_ASSERT(not markerGraphEdgeIds.empty());
+        return markerGraphEdgeIds.front();
+    }
+
     // The reverse complement of this vertex.
     AssemblyGraphBaseClass::vertex_descriptor vRc;
+
+    // Fields used by approximateTopologicalSort.
+    uint64_t color;
+    uint64_t rank;
 
 };
 
@@ -62,7 +76,12 @@ public:
 
 class shasta::Mode1::AssemblyGraphEdge {
 public:
+    AssemblyGraphEdge(const vector<OrientedReadId>& orientedReadIds) :
+        orientedReadIds(orientedReadIds) {}
+    vector<OrientedReadId> orientedReadIds;
 
+    // Field used by approximateTopologicalSort.
+    bool isDagEdge = false;
 };
 
 
@@ -135,6 +154,30 @@ private:
     vector<PseudoPath> pseudoPaths;
     void computePseudoPaths();
     void computePseudoPath(OrientedReadId, PseudoPath&);
+
+    // Use pseudo-paths to create edges.
+    void createEdges();
+
+    // Given an edge e01 v0->v1, return true if the edge corresponds to a "jump"
+    // in the marker graph. This is the case if the last marker graph vertex
+    // of the v0 marker graph path is not the same as the first marker graph edge of
+    // the v1 marker graph path.
+    bool isMarkerGraphJump(edge_descriptor) const;
+
+    // Approximate topological sort is used for better Graphviz layouts.
+    void approximateTopologicalSort();
+
+    // Write the entire graph in Graphviz format.
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+
+    // We use as the vertex id for debugging purposes the MarkerGraph::EdgeId
+    // of the first marker graph edge in the path corresponding to the given
+    // assembly graph vertex.
+    MarkerGraph::EdgeId getVertexId(vertex_descriptor v) const
+    {
+        return (*this)[v].getId();
+    }
 };
 
 #endif

@@ -18,6 +18,7 @@
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
 #include "testSpoa.hpp"
+#include "shortestPathBoundedDistance.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 using namespace shasta;
 
@@ -719,6 +720,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testLapack",
         testLapack
+        );
+    module.def("testShortestPathBoundedDistance",
+        testShortestPathBoundedDistance
         );
 }
 

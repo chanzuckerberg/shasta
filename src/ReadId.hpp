@@ -42,7 +42,16 @@ public:
     {
         SHASTA_ASSERT(strand < 2);
     }
-    explicit OrientedReadId(ReadId value) : value(value) {}
+
+    // This constructor is confusing so I am removing it
+    // and replacing it with fromValue.
+    OrientedReadId(ReadId) = delete;
+    static OrientedReadId fromValue(ReadId value)
+    {
+        OrientedReadId orientedReadId;
+        orientedReadId.value = value;
+        return orientedReadId;
+    }
 
 
 

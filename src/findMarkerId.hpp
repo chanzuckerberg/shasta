@@ -29,7 +29,7 @@ inline std::pair<shasta::OrientedReadId, uint32_t>
     OrientedReadId::Int orientedReadIdValue;
     uint32_t ordinal;
     tie(orientedReadIdValue, ordinal) = markers.find(markerId);
-    return make_pair(OrientedReadId(orientedReadIdValue), ordinal);
+    return make_pair(OrientedReadId::fromValue(orientedReadIdValue), ordinal);
 }
 
 
