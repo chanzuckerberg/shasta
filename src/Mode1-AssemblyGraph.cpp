@@ -1,7 +1,9 @@
 #include "Mode1-AssemblyGraph.hpp"
 #include "approximateTopologicalSort.hpp"
 #include "Marker.hpp"
+#include "orderPairs.hpp"
 #include "SHASTA_ASSERT.hpp"
+#include "shortestPathBoundedDistance.hpp"
 using namespace shasta;
 using namespace Mode1;
 
@@ -22,12 +24,16 @@ Mode1::AssemblyGraph::AssemblyGraph(
     createMarkerGraphToAssemblyGraphTable();
     computePseudoPaths();
     createEdges();
-    cout << "The assembly graph has " << num_vertices(*this) <<
+    cout << "The initial assembly graph has " << num_vertices(*this) <<
         " vertices and " << num_edges(*this) << " edges." << endl;
+
+    uint64_t maxDistanceMarkers = 30;   // EXPOSE WHEN CODE STABILIZES
+    transitiveReduction(maxDistanceMarkers);
+    cout << "After transitive reduction, the assembly graph has " << num_vertices(*this) <<
+        " vertices and " << num_edges(*this) << " edges." << endl;
+
     approximateTopologicalSort();
-
     writeGraphviz("Mode1-AssemblyGraph.dot");
-
 }
 
 
@@ -539,6 +545,101 @@ bool Mode1::AssemblyGraph::isMarkerGraphJump(edge_descriptor e01) const
     // Now it's easy to know if we have a jump.
     return lastMarkerGraphEdge0.target != firstMarkerGraphEdge1.source;
 }
+
+
+
+// Transitive reduction up to the specified distance, expressed in markers.
+void Mode1::AssemblyGraph::transitiveReduction(uint64_t maxDistanceMarkers)
+{
+    AssemblyGraph& graph = *this;
+    const bool debug = true;
+
+    // Gather the edges in order of increasing coverage.
+    vector< pair<edge_descriptor, uint64_t> > sortedEdges;
+    BGL_FORALL_EDGES(e, graph, AssemblyGraph) {
+        sortedEdges.push_back(make_pair(e, graph[e].orientedReadIds.size()));
+    }
+    sort(sortedEdges.begin(), sortedEdges.end(),
+        OrderPairsBySecondOnly<edge_descriptor, uint64_t>());
+
+    // Create an edgeLength map containing for each edge the number of marker graph edges
+    // corresponding to the source vertex of that assembly graph edge.
+    // This map will be used to find shortest paths below.
+    std::map<edge_descriptor, uint64_t> edgeLength;
+    BGL_FORALL_EDGES(e, graph, AssemblyGraph) {
+        const vertex_descriptor v0 = source(e, graph);
+        edgeLength.insert(make_pair(e, graph[v0].markerGraphEdgeIds.size()));
+    }
+
+    // Process the edges in order of increasing coverage.
+    vector<edge_descriptor> path;
+    std::set<edge_descriptor> removedEdges;
+    for(const auto& p: sortedEdges) {
+        const edge_descriptor e = p.first;
+        if(removedEdges.find(e) != removedEdges.end()) {
+            continue;
+        }
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        if(debug) {
+            cout << "Working on edge " << getVertexId(v0) << "->" << getVertexId(v1) << "\n";
+        }
+
+        // Temporary changes to the edgeLength map.
+        BGL_FORALL_OUTEDGES(v0, e01, graph, AssemblyGraph) {
+            edgeLength[e01] = 0;
+        }
+        edgeLength[e] = std::numeric_limits<uint64_t>::max();
+
+        // Compute the shortest path from v0 to v1, excluding this edge.
+        const uint64_t pathLength =
+            shortestPathBoundedDistance(graph, v0, v1, maxDistanceMarkers, edgeLength, path);
+        if(debug) {
+            cout << "Found a path with " << path.size() << " edges and length " << pathLength << ":\n";
+            for(const edge_descriptor e: path) {
+                const vertex_descriptor v0 = source(e, graph);
+                const vertex_descriptor v1 = target(e, graph);
+                cout << getVertexId(v0) << "->" << getVertexId(v1) << "\n";
+            }
+        }
+
+        // Restore the edgeLength.
+        BGL_FORALL_OUTEDGES(v0, e01, graph, AssemblyGraph) {
+            edgeLength[e01] = graph[v0].markerGraphEdgeIds.size();
+        }
+
+        // If we found a path, remove this edge and its reverse complement.
+        if(not path.empty()) {
+            boost::remove_edge(e, graph);
+            removedEdges.insert(e);
+            const edge_descriptor eRc = getReverseComplementEdge(e);
+            if(eRc != e) {
+                boost::remove_edge(eRc, graph);
+                removedEdges.insert(eRc);
+            }
+        }
+
+    }
+    cout << "Transitive reduction removed " << removedEdges.size() << " edges." << endl;
+}
+
+// Return the reverse complement of an edge.
+Mode1::AssemblyGraph::edge_descriptor Mode1::AssemblyGraph::getReverseComplementEdge(
+    edge_descriptor e) const
+{
+    const AssemblyGraph& graph = *this;
+    const vertex_descriptor v0 = source(e, graph);
+    const vertex_descriptor v1 = target(e, graph);
+    const vertex_descriptor v0Rc = graph[v0].vRc;
+    const vertex_descriptor v1Rc = graph[v1].vRc;
+
+    edge_descriptor eRc;
+    bool wasFound = false;
+    tie(eRc, wasFound) = edge(v1Rc, v0Rc, graph);
+    SHASTA_ASSERT(wasFound);
+    return eRc;
+}
+
 
 
 void Mode1::AssemblyGraph::approximateTopologicalSort()

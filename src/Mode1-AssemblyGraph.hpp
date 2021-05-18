@@ -164,6 +164,12 @@ private:
     // the v1 marker graph path.
     bool isMarkerGraphJump(edge_descriptor) const;
 
+    // Return the reverse complement of an edge.
+    edge_descriptor getReverseComplementEdge(edge_descriptor) const;
+
+    // Transitive reduction up to the specified distance, expressed in markers.
+    void transitiveReduction(uint64_t maxDistanceMarkers);
+
     // Approximate topological sort is used for better Graphviz layouts.
     void approximateTopologicalSort();
 
