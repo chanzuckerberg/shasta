@@ -234,6 +234,8 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::writeAlignmentCandidates,
              arg("useReadName") = false,
              arg("verbose") = false)
+        .def("writeAlignmentDetails",
+             &Assembler::writeAlignmentDetails)
         .def("writeLocalAlignmentCandidateReads",
              &Assembler::writeLocalAlignmentCandidateReads,
              arg("readId"),
