@@ -1,5 +1,6 @@
 #include "Mode1-AssemblyGraph.hpp"
 #include "approximateTopologicalSort.hpp"
+#include "findMarkerId.hpp"
 #include "Marker.hpp"
 #include "orderPairs.hpp"
 #include "SHASTA_ASSERT.hpp"
@@ -20,18 +21,27 @@ Mode1::AssemblyGraph::AssemblyGraph(
     markers(markers),
     markerGraph(markerGraph)
 {
+    // Create the vertices.
     createVertices(minEdgeCoverage, minEdgeCoveragePerStrand);
     createMarkerGraphToAssemblyGraphTable();
+
+    // Create the edges.
     computePseudoPaths();
     createEdges();
     cout << "The initial assembly graph has " << num_vertices(*this) <<
         " vertices and " << num_edges(*this) << " edges." << endl;
 
-    uint64_t maxDistanceMarkers = 30;   // EXPOSE WHEN CODE STABILIZES
+    // Handle jumps.
+    const uint64_t maxSkip = 60;   // EXPOSE WHEN CODE STABILIZES
+    handleJumps(uint32_t(maxSkip));
+
+    // Transitive reduction.
+    uint64_t maxDistanceMarkers = 60;   // EXPOSE WHEN CODE STABILIZES
     transitiveReduction(maxDistanceMarkers);
     cout << "After transitive reduction, the assembly graph has " << num_vertices(*this) <<
         " vertices and " << num_edges(*this) << " edges." << endl;
 
+    // Graphviz output.
     approximateTopologicalSort();
     writeGraphviz("Mode1-AssemblyGraph.dot");
 }
@@ -552,7 +562,7 @@ bool Mode1::AssemblyGraph::isMarkerGraphJump(edge_descriptor e01) const
 void Mode1::AssemblyGraph::transitiveReduction(uint64_t maxDistanceMarkers)
 {
     AssemblyGraph& graph = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     // Gather the edges in order of increasing coverage.
     vector< pair<edge_descriptor, uint64_t> > sortedEdges;
@@ -664,6 +674,157 @@ void Mode1::AssemblyGraph::approximateTopologicalSort()
 
 
 
+// For edges that correspond to jumps in the marker graph,
+// compute marker intervals for a possible secondary marker graph edge.
+void Mode1::AssemblyGraph::handleJumps(uint32_t maxSkip)
+{
+    AssemblyGraph& graph = *this;
+    const bool debug = false;
+
+    // Use "a" suffixes for assembly graph vertices and edges.
+    // Use "m" suffixes for marker graph vertices and edges.
+
+    // Loop over all edges.
+    BGL_FORALL_EDGES(e01a, graph, AssemblyGraph) {
+
+        // If not a marker graph jump, skip it.
+        if(not isMarkerGraphJump(e01a)) {
+            continue;
+        }
+        AssemblyGraphEdge& edge01a = graph[e01a];
+        edge01a.isMarkerGraphJump = true;
+
+        // Compute marker intervals for a possible secondary marker graph edge.
+
+        // Access the assembly graph vertices.
+        const vertex_descriptor v0a = source(e01a, graph);
+        const vertex_descriptor v1a = target(e01a, graph);
+        const AssemblyGraphVertex& vertex0a = graph[v0a];
+        const AssemblyGraphVertex& vertex1a = graph[v1a];
+
+        // Access the marker graph vertices.
+        const MarkerGraph::EdgeId edgeId0m = vertex0a.markerGraphEdgeIds.back();
+        const MarkerGraph::EdgeId edgeId1m = vertex1a.markerGraphEdgeIds.front();
+        const MarkerGraph::Edge& edge0m = markerGraph.edges[edgeId0m];
+        const MarkerGraph::Edge& edge1m = markerGraph.edges[edgeId1m];
+        const MarkerGraph::VertexId vertexId0m = edge0m.target;
+        const MarkerGraph::VertexId vertexId1m = edge1m.source;
+
+        // debug = (vertexId0m == 239798) and (vertexId1m == 235325);
+
+        // Access the markers for the two marker graph vertices.
+        const span<const MarkerId> markers0 = markerGraph.getVertexMarkerIds(vertexId0m);
+        const span<const MarkerId> markers1 = markerGraph.getVertexMarkerIds(vertexId1m);
+        const auto begin0 = markers0.begin();
+        const auto begin1 = markers1.begin();
+        const auto end0 = markers0.end();
+        const auto end1 = markers1.end();
+
+        if(debug) {
+            cout << "Working on assembly graph edge " <<
+                getVertexId(v0a) << "->" << getVertexId(v1a) << "\n";
+            cout << "Marker graph vertices: " << vertexId0m << " " << vertexId1m << "\n";
+        }
+
+
+
+        // Create marker intervals.
+        // For each vertex, the markers are sorted by OrientedReadId and ordinal.
+        auto it0 = begin0;
+        auto it1 = begin1;
+        while((it0!=end0) and (it1!=end1)) {
+
+            // Find the oriented read ids.
+            OrientedReadId orientedReadId0;
+            OrientedReadId orientedReadId1;
+            tie(orientedReadId0, ignore) = findMarkerId(*it0, markers);
+            tie(orientedReadId1, ignore) = findMarkerId(*it1, markers);
+
+            // If not the same oriented read id, increment the iterator
+            // corresponding to the lower oriented read id.
+            if(orientedReadId0 < orientedReadId1) {
+                ++it0;
+                continue;
+            }
+            if(orientedReadId1 < orientedReadId0) {
+                ++it1;
+                continue;
+            }
+            SHASTA_ASSERT(orientedReadId0 == orientedReadId1);
+            const OrientedReadId orientedReadId = orientedReadId0;
+
+            // Each of the two vertices can have more than one marker on the same oriented read.
+            // Find the streaks with this oriented read id in markers0 and marker1.
+            auto streakBegin0 = it0;
+            auto streakEnd0 = streakBegin0 + 1;
+            while(streakEnd0 != end0) {
+                OrientedReadId o;
+                tie(o, ignore) = findMarkerId(*streakEnd0, markers);
+                if(o != orientedReadId) {
+                    break;
+                }
+                ++streakEnd0;
+            }
+            auto streakBegin1 = it1;
+            auto streakEnd1 = streakBegin1 + 1;
+            while(streakEnd1 != end1) {
+                OrientedReadId o;
+                tie(o, ignore) = findMarkerId(*streakEnd1, markers);
+                if(o != orientedReadId) {
+                    break;
+                }
+                ++streakEnd1;
+            }
+
+
+            // In most cases the streaks are going to be a single marker,
+            // but we have to be prepared to handle the general case.
+            for(auto jt0=streakBegin0; jt0!=streakEnd0; ++jt0) {
+                uint32_t ordinal0;
+                tie(ignore, ordinal0) = findMarkerId(*jt0, markers);
+
+                // Find the best ordinal1 for this ordinal0.
+                uint32_t bestOrdinal1 = std::numeric_limits<uint32_t>::max();
+                for(auto jt1=streakBegin1; jt1!=streakEnd1; ++jt1) {
+                    uint32_t ordinal1;
+                    tie(ignore, ordinal1) = findMarkerId(*jt1, markers);
+                    if(ordinal1 <= ordinal0) {
+                        continue;
+                    }
+                    if(ordinal1 > ordinal0 + maxSkip) {
+                        continue;
+                    }
+                    if(ordinal1 < bestOrdinal1) {
+                        bestOrdinal1 = ordinal1;
+                    }
+                }
+                if(bestOrdinal1 == std::numeric_limits<uint32_t>::max()) {
+                    continue;
+                }
+                const uint32_t ordinal1 = bestOrdinal1;
+                edge01a.markerIntervals.push_back(MarkerInterval(orientedReadId, ordinal0, ordinal1));
+                if(debug) {
+                    cout << orientedReadId << " " << ordinal0 << " " << ordinal1 << "\n";
+                }
+            }
+
+            // Point the iterators to the end of the streaks.
+            it0 = streakEnd0;
+            it1 = streakEnd1;
+        }
+
+        if(debug and edge01a.markerIntervals.empty()) {
+            cout << "Unable to add secondary edge at assembly graph vertices " <<
+                getVertexId(v0a) << " " << getVertexId(v1a) <<
+                " marker graph vertices " <<
+                vertexId0m << " " << vertexId1m << endl;
+        }
+
+    }
+
+}
+
+
 /*
 Output in Graphviz format.
 To display the neighborhood of a vertex:
@@ -714,20 +875,36 @@ void Mode1::AssemblyGraph::writeGraphviz(ostream& s) const
 
     // Edges.
     BGL_FORALL_EDGES(e, graph, Graph) {
+        const AssemblyGraphEdge& edge = graph[e];
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
 
         s << getVertexId(v0) << "->" <<
             getVertexId(v1) << " [penwidth=\"" <<
             0.3*double(graph[e].orientedReadIds.size()) <<
-            "\" label=\"" << graph[e].orientedReadIds.size() << "\"";
+            "\" label=\"" << graph[e].orientedReadIds.size();
+        for(uint64_t i=0; i<edge.orientedReadIds.size(); i++) {
+            const OrientedReadId orientedReadId = edge.orientedReadIds[i];
+            if((i % 4) == 0) {
+                s << "\\n";
+            } else {
+                s << " ";
+            }
+            s << orientedReadId;
+
+        }
+        s<< "\"";
 
         if(not graph[e].isDagEdge) {
             s << " constraint=false";
         }
 
-        if(isMarkerGraphJump(e)) {
-            s << " color=red";
+        if(edge.isMarkerGraphJump) {
+            if(edge.markerIntervals.empty()) {
+                s << " color=red";
+            } else {
+                s << " color=cyan";
+            }
         }
 
         s << "];\n";
