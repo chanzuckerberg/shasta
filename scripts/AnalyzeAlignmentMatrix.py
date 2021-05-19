@@ -5,7 +5,7 @@ import GetConfig
 import sys
 
 helpMessage = """
-This canalyzes the alignment matrix of two oriented reads.
+This analyzes the alignment matrix of two oriented reads.
 
 Invoke with four arguments: readId0, strand0, readId1, strand1.
 """
@@ -14,10 +14,10 @@ Invoke with four arguments: readId0, strand0, readId1, strand1.
 if not len(sys.argv) == 5:
     print(helpMessage)
     exit(1)
-readId0 = int(sys.argv[1]);
-strand0 = int(sys.argv[2]);
-readId1 = int(sys.argv[3]);
-strand1 = int(sys.argv[4]);
+readId0 = int(sys.argv[1])
+strand0 = int(sys.argv[2])
+readId1 = int(sys.argv[3])
+strand1 = int(sys.argv[4])
 
 # Read the config file.
 config = GetConfig.getConfig()

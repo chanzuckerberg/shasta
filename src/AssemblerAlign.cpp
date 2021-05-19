@@ -7,6 +7,7 @@
 #include "Align4.hpp"
 #include "AssemblerOptions.hpp"
 #include "compressAlignment.hpp"
+#include "span.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
@@ -1023,6 +1024,70 @@ uint32_t Assembler::countCommonMarkersWithOffsetIn(
     return count;
 }
 
+
+void Assembler::writeAlignmentDetails() const
+{
+    string directoryName = "Alignments/";
+    string header = "kmerId,ordinal0,ordinal1,rlePosition0,rlePosition1,";
+
+    filesystem::createDirectory(directoryName);
+
+    for (uint32_t alignmentIndex=0; alignmentIndex<alignmentData.size(); alignmentIndex++){
+        // Access the stored information we have about this alignment.
+        AlignmentData alignmentDatum = alignmentData[alignmentIndex];
+        span<const char> compressedAlignment = compressedAlignments[alignmentIndex];
+
+        Alignment alignment;
+        decompress(compressedAlignment, alignment);
+        OrientedReadId orientedReadId0 = OrientedReadId(alignmentDatum.readIds[0], 0);
+        OrientedReadId orientedReadId1 = OrientedReadId(alignmentDatum.readIds[1], alignmentDatum.isSameStrand ? 0 : 1);
+
+        string name0 = string(reads->getReadName(orientedReadId0.getReadId()).begin(),
+                              reads->getReadName(orientedReadId0.getReadId()).end());
+
+        string name1 = string(reads->getReadName(orientedReadId1.getReadId()).begin(),
+                              reads->getReadName(orientedReadId1.getReadId()).end());
+
+        string filename = name0 + "_" + name1 + "_" + (alignmentDatum.isSameStrand ? "1" : "0") + ".csv";
+
+        // Create a writeable a csv file
+        ofstream csv(directoryName + filename);
+        if (not (csv.is_open() and csv.good())){
+            throw runtime_error("ERROR: file could not be written: " + directoryName + filename);
+        }
+
+        csv << header << '\n';
+
+        // Access the markers for the two oriented reads.
+        const auto markers0 = markers[orientedReadId0.getValue()];
+        const auto markers1 = markers[orientedReadId1.getValue()];
+
+        // Compute the raw position corresponding to each RLE position.
+        const vector<uint32_t> rawPositions0 = reads->getRawPositions(orientedReadId0);
+        const vector<uint32_t> rawPositions1 = reads->getRawPositions(orientedReadId1);
+
+        // Loop over all markers.
+        for(const auto& ordinals: alignment.ordinals) {
+            const auto ordinal0 = ordinals[0];
+            const auto ordinal1 = ordinals[1];
+
+            const auto& marker0 = markers0[ordinal0];
+            const auto& marker1 = markers1[ordinal1];
+
+            const uint32_t rlePosition0 = marker0.position;
+            const uint32_t rlePosition1 = marker1.position;
+
+            const auto kmerId = marker0.kmerId;
+            SHASTA_ASSERT(marker1.kmerId == kmerId);
+
+            csv << kmerId << ','
+                << ordinal0 << ','
+                << ordinal1 << ','
+                << rlePosition0 << ','
+                << rlePosition1 << ',' << '\n';
+        }
+    }
+}
 
 
 // Check if an alignment between two reads should be suppressed,
