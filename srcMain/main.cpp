@@ -1074,8 +1074,10 @@ void shasta::main::mode1Assembly(
 
     // Create marker graph edges.
     // For assembly mode 1 we use createMarkerGraphEdgesStrict
-    // without limits on edge coverage.
-    assembler.createMarkerGraphEdgesStrict(0,  0, threadCount);
+    // with minimum edge coverage (total and per satrand).
+    assembler.createMarkerGraphEdgesStrict(
+        assemblerOptions.markerGraphOptions.minEdgeCoverage,
+        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
 
     // Coverage histograms for vertices and edges of the marker graph.

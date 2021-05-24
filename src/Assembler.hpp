@@ -1434,6 +1434,10 @@ public:
     void writeParallelMarkerGraphEdges() const;
 
 
+    // Analyze branches in the marker graph.
+    void analyzeMarkerGraphBranches();
+
+
 
     // Function createMarkerGraphSecondaryEdges can be called after createMarkerGraphEdgesStrict
     // to create a minimal amount of additional non-strict edges (secondary edges)

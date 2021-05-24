@@ -82,6 +82,10 @@ public:
 
     // Field used by approximateTopologicalSort.
     bool isDagEdge = false;
+
+    // Marker inntervals for a possible secondary edge in the marker graph.
+    bool isMarkerGraphJump = false;
+    vector<MarkerInterval> markerIntervals;
 };
 
 
@@ -163,6 +167,16 @@ private:
     // of the v0 marker graph path is not the same as the first marker graph edge of
     // the v1 marker graph path.
     bool isMarkerGraphJump(edge_descriptor) const;
+
+    // For edges that correspond to jumps in the marker graph,
+    // compute marker intervals for a possible secondary marker graph edge.
+    void handleJumps(uint32_t maxSkip);
+
+    // Return the reverse complement of an edge.
+    edge_descriptor getReverseComplementEdge(edge_descriptor) const;
+
+    // Transitive reduction up to the specified distance, expressed in markers.
+    void transitiveReduction(uint64_t maxDistanceMarkers);
 
     // Approximate topological sort is used for better Graphviz layouts.
     void approximateTopologicalSort();
