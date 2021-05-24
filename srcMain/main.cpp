@@ -733,6 +733,9 @@ void shasta::main::assemble(
     }
 
 
+    // For http server and debugging/development purposes, generate an exhaustive table of candidates
+    assembler.computeCandidateTable();
+
 
     // Compute alignments.
     assembler.computeAlignments(

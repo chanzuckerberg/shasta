@@ -701,6 +701,8 @@ public:
     void accessAlignmentCandidates();
     void accessAlignmentCandidateTable();
     vector<OrientedReadPair> getAlignmentCandidates() const;
+    void computeCandidateTable();
+
 private:
     void checkAlignmentCandidatesAreOpen() const;
 
@@ -741,6 +743,7 @@ public:
             ReadId readId,
             Strand strand,
             uint32_t maxDistance,
+            bool useReadName,
             bool allowChimericReads,
             bool allowCrossStrandEdges,
             bool allowInconsistentAlignmentEdges
