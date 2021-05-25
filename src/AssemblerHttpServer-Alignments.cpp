@@ -392,14 +392,6 @@ void Assembler::exploreAlignmentCandidateGraph(
         }
     }
 
-    // As of yet the candidate table is not used during assembly, so it may need to be created
-    if (not alignmentCandidates.candidateTable.isOpen()){
-        alignmentCandidates.computeCandidateTable(
-                reads->readCount(),
-                largeDataName("CandidateTable"),
-                largeDataPageSize);
-    }
-
 
     bool inAlignmentsRequired = false;
     bool inReadgraphRequired = false;

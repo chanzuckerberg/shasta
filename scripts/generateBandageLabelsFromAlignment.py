@@ -100,14 +100,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='generateBandageLabelsFromAlignment',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      epilog="Program description:\n\tuse a PAF alignment tsv to generate a  "
-                                            "karyotpe-style coloring and labeling for Bandage")
+                                            "karyotype-style coloring and labeling for Bandage")
 
     parser.add_argument(
         "--input","-i",
         required=True,
         type=str,
         help="Path to any PAF formatted TSV that was generated from minimap2/winnowmap for the shasta contigs."
-             "Only chromosomes with names chr1-22 or chrX/Y will be labeled"
+             "Only chromosomes with names chr1-22 or chrX/Y will be colored"
     )
 
     args = parser.parse_args()
