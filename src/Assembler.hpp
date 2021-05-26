@@ -1790,7 +1790,6 @@ public:
     void accessAssemblyGraphEdges();
     void accessAssemblyGraphOrientedReadsByEdge();
     void writeAssemblyGraph(const string& fileName) const;
-    void findAssemblyGraphBubbles();
     void pruneAssemblyGraph(uint64_t pruneLength);
 
     // Gather and write out all reads that contributed to

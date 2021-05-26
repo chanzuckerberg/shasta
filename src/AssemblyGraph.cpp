@@ -1,5 +1,4 @@
 #include "AssemblyGraph.hpp"
-#include "BubbleGraph.hpp"
 #include "deduplicate.hpp"
 using namespace shasta;
 
@@ -64,10 +63,6 @@ void AssemblyGraph::close()
         edgeLists.close();
     }
 
-    if(bubbles.isOpen) {
-        bubbles.close();
-    }
-
     if(markerToAssemblyTable.isOpen()) {
         markerToAssemblyTable.close();
     }
@@ -115,10 +110,6 @@ void AssemblyGraph::remove()
 
     if(edgeLists.isOpen()) {
         edgeLists.remove();
-    }
-
-    if(bubbles.isOpen) {
-        bubbles.remove();
     }
 
     if(markerToAssemblyTable.isOpen()) {
@@ -429,103 +420,6 @@ void AssemblyGraph::writeGfa1BothStrandsNoSequence(ostream& gfa) const
     }
 
 
-}
-
-
-
-// Find bubbles in the assembly graph.
-// A bubble is a set of two vertices v0, v1,
-// such that the outgoing edges of v0 are the same
-// as the outgoing edges of v1, and
-// out-degree(v0) = in-degree(v1) > 1.
-// v0 is called the bubble source.
-// v1 is called the bubble target.
-// In defining and detecting bubbles, edges
-// that were removed are considered to not exist.
-// This assumes that the bubble Vector was already initialized.
-void AssemblyGraph::findBubbles()
-{
-    // Define vectors here to reduce memory allocation overhead.
-    vector<EdgeId> v0OutEdges;
-    vector<EdgeId> v1InEdges;
-
-    // Histogram of number of bubbles by ploidy.
-    vector<EdgeId> histogram;
-
-    // Loop over possible source vertices for a bubble.
-    bubbles.clear();
-    for(VertexId v0=0; v0<vertices.size(); v0++) {
-
-        // Find the out-edges of v0.
-        findOutEdges(v0, v0OutEdges);
-
-        // If less than 2 out-edges, v0 is not a bubble source.
-        if(v0OutEdges.size() < 2) {
-            continue;
-        }
-
-        // Find the ossible bubble target.
-        const VertexId v1 = edges[v0OutEdges.front()].target;
-
-        // Check if all out-edges of v0 have the same target.
-        bool isBubble = true;
-        for(const EdgeId e: v0OutEdges) {
-            if(edges[e].target != v1) {
-                isBubble = false;
-                break;
-            }
-        }
-        if(!isBubble) {
-            continue;
-        }
-
-        // Find the in-edges of v1.
-        findInEdges(v1, v1InEdges);
-
-        // For this to be a bubble, the in-edges of v1
-        // must be the same as the out-edges of v0.
-        if(v1InEdges != v0OutEdges) {
-            continue;
-        }
-
-        // Store this bubble.
-        bubbles.push_back(Bubble(v0, v1));
-
-        // Update the histogram by ploidy.
-        const uint64_t ploidy = v0OutEdges.size();
-        if(histogram.size() <= ploidy) {
-            histogram.resize(ploidy+1, 0);
-        }
-        ++histogram[ploidy];
-
-    }
-    VertexId bubbleCount = 0;
-    VertexId bubbleEdgeCount = 0;
-    for(uint64_t ploidy=0; ploidy<histogram.size(); ploidy++) {
-        const uint64_t frequency = histogram[ploidy];
-        if(frequency) {
-            bubbleCount += frequency;
-            bubbleEdgeCount += frequency * ploidy;
-            cout << "Found " << frequency << " bubbles with ploidy " << ploidy << endl;
-        }
-    }
-    cout << "Total number of bubbles is " << bubbleCount << "." << endl;
-
-    // Edge statistics.
-    const AssemblyGraph::EdgeId totalEdgeCount = edgeCount();
-    cout << "Assembly graph edge statistics:" << endl;
-    cout << "Total number of edges is " << totalEdgeCount << "." << endl;
-    cout << "Total number of bubble edges is " << bubbleEdgeCount << "." << endl;
-    cout << "Total number of non-bubble edges is " << totalEdgeCount-bubbleEdgeCount << "." << endl;
-}
-
-
-
-void AssemblyGraph::findBubbleChains()
-{
-    BubbleGraph graph(*this);
-    graph.findLinearChains();
-    graph.writeLinearChains("BubbleChains.csv", *this);
 }
 
 

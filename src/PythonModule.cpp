@@ -539,8 +539,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessAssemblyGraphOrientedReadsByEdge)
         .def("accessAssemblyGraphVertices",
             &Assembler::accessAssemblyGraphVertices)
-        .def("findAssemblyGraphBubbles",
-            &Assembler::findAssemblyGraphBubbles)
         .def("writeAssemblyGraph",
             &Assembler::writeAssemblyGraph)
         .def("assemble",
