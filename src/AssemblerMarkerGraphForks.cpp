@@ -1,10 +1,17 @@
 #include "Assembler.hpp"
-#include "deduplicate.hpp"
-#include "orderPairs.hpp"
-#include "shastaLapack.hpp"
+#include "Forks.hpp"
 using namespace shasta;
 
-#include "boost/graph/iteration_macros.hpp"
+
+void Assembler::analyzeMarkerGraphForks()
+{
+    Forks forks(markers, markerGraph);
+}
+
+
+
+#if 0
+
 
 
 // Class used only in Assembler::analyzeMarkerGraphBranches.
@@ -402,3 +409,4 @@ void Assembler::analyzeMarkerGraphBranches()
 }
 
 
+#endif

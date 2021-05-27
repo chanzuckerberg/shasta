@@ -8,6 +8,6 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphEdges()
-a.analyzeMarkerGraphBranches()
+a.analyzeMarkerGraphForks()
 
 

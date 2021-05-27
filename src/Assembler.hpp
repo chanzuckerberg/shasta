@@ -1434,8 +1434,8 @@ public:
     void writeParallelMarkerGraphEdges() const;
 
 
-    // Analyze branches in the marker graph.
-    void analyzeMarkerGraphBranches();
+    // Analyze forks in the marker graph.
+    void analyzeMarkerGraphForks();
 
 
 
