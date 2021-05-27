@@ -110,7 +110,7 @@ public:
     public:
         const EdgeInfo* edgeInfo;
         array<uint32_t, 2> ordinals;
-        bool operator<(const OrientedReadEdgeInfo& that)
+        bool operator<(const OrientedReadEdgeInfo& that) const
         {
             return ordinals[0]+ordinals[1] < that.ordinals[0]+that.ordinals[1];
         }
