@@ -1,4 +1,5 @@
 #include "Forks.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 
 
@@ -196,3 +197,133 @@ void Forks::constructOrientedReadEdgeInfos()
     }
 }
 
+
+
+
+void Forks::analyze(
+    VertexId vertexId,
+    ForkDirection direction,
+    uint32_t maxDistance) const
+{
+    // Locate the Fork.
+    const Fork* fork0Pointer = findFork(vertexId, direction);
+    if(fork0Pointer == 0) {
+        throw runtime_error("Fork not found.");
+    }
+    const Fork& fork0 = *fork0Pointer;
+
+    // Write it out.
+    fork0.write(cout);
+
+    // Find nearby Forks.
+    vector< pair<const Fork*, int32_t> > nearbyForks;
+    findNearbyForks(fork0, maxDistance, nearbyForks);
+
+    cout << "Nearby forks:" << endl;
+    for(const auto& p: nearbyForks) {
+        const Fork* fork1 = p.first;
+        const int32_t offset = p.second;
+        cout << fork1->vertexId << " " << directionString(fork1->direction) <<  " "
+            << offset << endl;
+    }
+
+}
+
+
+
+const Forks::Fork* Forks::findFork(VertexId vertexId, ForkDirection direction) const
+{
+    for(const Fork& fork: forks) {
+        if(fork.vertexId == vertexId and fork.direction == direction) {
+            return &fork;
+        }
+    }
+    return 0;
+}
+
+
+
+void Forks::Fork::write(ostream& s) const
+{
+    s << ((direction == ForkDirection::Forward) ? "Forward" : "Backward") <<
+        " fork at vertex " << vertexId << "\n";
+    for(const Branch& branch: branches) {
+        branch.write(s);
+    }
+
+
+    s << flush;
+}
+
+
+void Forks::Branch::write(ostream& s) const
+{
+    s << "Branch at edge " << edgeId << "\n";
+    for(const MarkerInterval& markerInterval: markerIntervals) {
+        s << markerInterval.orientedReadId << " " <<
+            markerInterval.ordinals[0] << " " <<
+            markerInterval.ordinals[1] << "\n";
+    }
+}
+
+
+
+// Find Forks that are close to a given Fork,
+// and return them with their approximate marker offsets.
+void Forks::findNearbyForks(
+    const Fork& fork0,                              // Our starting Fork
+    uint32_t maxDistance,                           // The maximum distance in markers
+    vector< pair<const Fork*, int32_t> >& nearbyForks     // pairs(Fork, marker offset)
+    ) const
+{
+    const int32_t doubleMaxDistance = 2 * maxDistance;
+
+    std::map<const Fork*, vector<int32_t> > doubleOffsetMap;
+
+    // Follow all the reads in this fork.
+    for(const Branch& branch0: fork0.branches) {
+        for(const MarkerInterval& markerInterval0: branch0.markerIntervals) {
+            const OrientedReadId orientedReadId = markerInterval0.orientedReadId;
+            cout << "Following " << orientedReadId << endl;
+            const int32_t doubleOrdinal0 = markerInterval0.ordinals[0] + markerInterval0.ordinals[1];
+
+            // Loop over the OrientedReadEdgeInfos for this oriented read.
+            const vector<OrientedReadEdgeInfo>& infos = orientedReadEdgeInfos[orientedReadId.getValue()];
+            for(const OrientedReadEdgeInfo& info: infos) {
+                const int32_t doubleOrdinal1 = info.ordinals[0] + info.ordinals[1];
+                const int32_t doubleOffset = doubleOrdinal1 - doubleOrdinal0;
+
+                // Check the distance.
+                if(abs(doubleOffset) > doubleMaxDistance) {
+                    continue;
+                }
+
+                const Fork* fork1 = info.edgeInfo->fork;
+                if(fork1 == &fork0) {
+                    continue;
+                }
+                doubleOffsetMap[fork1].push_back(doubleOffset);
+            }
+        }
+    }
+
+
+
+    // For each of the Forks we found, compute an average offset.
+    nearbyForks.clear();
+    for(const auto& p: doubleOffsetMap) {
+        const Fork* fork1 = p.first;
+
+        // Compute average offset.
+        const auto& v = p.second;
+        int64_t sum = 0;
+        for(const auto& x: v) {
+            sum += x;
+        }
+        const uint64_t n = v.size();
+        const int32_t offset = int32_t(std::round(double(sum)/(double(2*n))));
+        nearbyForks.push_back(make_pair(fork1, offset));
+    }
+    sort(nearbyForks.begin(), nearbyForks.end(),
+        OrderPairsBySecondOnly<const Fork*, int32_t>());
+}

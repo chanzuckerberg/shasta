@@ -41,6 +41,14 @@ public:
         Forward = 0,
         Backward = 1
     };
+    static string directionString(ForkDirection direction)
+    {
+        switch(direction) {
+        case ForkDirection::Forward: return "Forward";
+        case ForkDirection::Backward: return "Backward";
+        default: SHASTA_ASSERT(0);
+        }
+    }
 
     class Branch {
     public:
@@ -53,6 +61,8 @@ public:
 
         // Constructor.
         Branch(EdgeId, const MarkerGraph&);
+
+        void write(ostream&) const;
     };
 
 
@@ -73,6 +83,8 @@ public:
 
         // Constructor.
         Fork(VertexId, ForkDirection, const MarkerGraph&);
+
+        void write(ostream&) const;
     };
 
     // All of the forks in the marker graph.
@@ -133,6 +145,20 @@ public:
     Forks(
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
+
+    // Analyze a single Fork.
+    void analyze(VertexId, ForkDirection, uint32_t maxDistance) const;
+
+    // Find a Fork with a given VertexId and direction.
+    const Fork* findFork(VertexId, ForkDirection) const;
+
+    // Find Forks that are close to a given Fork,
+    // and return them with their approximate marker offsets.
+    void findNearbyForks(
+        const Fork&,                    // Our starting Fork
+        uint32_t maxDistance,           // The maximum distance in markers
+        vector< pair<const Fork*, int32_t> >& // pairs(Fork, marker offset)
+        ) const;
 };
 
 
