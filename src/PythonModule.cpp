@@ -459,8 +459,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::getMarkerGraphMinCoverageUsed)
         .def("vertexCoverageStatisticsByKmerId",
             &Assembler::vertexCoverageStatisticsByKmerId)
-        .def("analyzeMarkerGraphBranches",
-            &Assembler::analyzeMarkerGraphBranches)
+        .def("analyzeMarkerGraphForks",
+            &Assembler::analyzeMarkerGraphForks)
 
         // Edges of the global marker graph.
         .def("createMarkerGraphEdges",
@@ -539,8 +539,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessAssemblyGraphOrientedReadsByEdge)
         .def("accessAssemblyGraphVertices",
             &Assembler::accessAssemblyGraphVertices)
-        .def("findAssemblyGraphBubbles",
-            &Assembler::findAssemblyGraphBubbles)
         .def("writeAssemblyGraph",
             &Assembler::writeAssemblyGraph)
         .def("assemble",

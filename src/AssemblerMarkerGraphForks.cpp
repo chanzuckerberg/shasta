@@ -1,9 +1,30 @@
 #include "Assembler.hpp"
-#include "deduplicate.hpp"
-#include "orderPairs.hpp"
+#include "Forks.hpp"
 using namespace shasta;
 
-#include "boost/graph/iteration_macros.hpp"
+
+void Assembler::analyzeMarkerGraphForks()
+{
+    Forks forks(markers, markerGraph);
+    const uint32_t maxDistance = 1000;
+
+    // while(true) {
+        try {
+            cout << "Enter a VertexId and direction (0=forward, 1=backward):" << endl;
+            MarkerGraph::VertexId vertexId;
+            uint64_t direction;
+            std::cin >> vertexId >> direction;
+            forks.analyze(vertexId, Forks::ForkDirection(direction), maxDistance);
+        } catch(exception& e) {
+            cout << e.what() << endl;
+        }
+    // }
+}
+
+
+
+#if 0
+
 
 
 // Class used only in Assembler::analyzeMarkerGraphBranches.
@@ -58,7 +79,7 @@ void Assembler::analyzeMarkerGraphBranches()
     using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
 
-    // Sanity checkts.
+    // Sanity checks.
     SHASTA_ASSERT(markers.isOpen());
     SHASTA_ASSERT(markerGraph.edges.isOpen);
     SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
@@ -67,12 +88,21 @@ void Assembler::analyzeMarkerGraphBranches()
     SHASTA_ASSERT(markerGraph.edgesByTarget.size() == vertexCount);
 
     // Find the branches.
+    // For now only keep diploid branches.
     vector<Branch> branches;
     for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
         const auto outgoingEdges = markerGraph.edgesBySource[vertexId];
-        if(outgoingEdges.size() > 1) {
+        if(outgoingEdges.size() == 2) {
             Branch branch;
             for(const EdgeId edgeId: outgoingEdges) {
+                branch.edges.push_back(edgeId);
+            }
+            branches.push_back(branch);
+        }
+        const auto incomingEdges = markerGraph.edgesByTarget[vertexId];
+        if(incomingEdges.size() == 2) {
+            Branch branch;
+            for(const EdgeId edgeId: incomingEdges) {
                 branch.edges.push_back(edgeId);
             }
             branches.push_back(branch);
@@ -147,7 +177,87 @@ void Assembler::analyzeMarkerGraphBranches()
     }
 
 
+    // Create a matrix with a row for each oriented read and a column for each branch.
+    // Rows are indexed by OrientedReadId::getValue() and the matrix is stored
+    // in Fortran storage scheme (that is, by columns).
+    // An element is set to +1 if the oriented read appears in the first side of the branch
+    // and to -1 if the oriented read appears on the second side of the branch.
+    // All other matrix elements are setv to 0.
+    const uint64_t readCount = getReads().readCount();
+    const uint64_t orientedReadCount = 2 * readCount;
+    vector<double> A(orientedReadCount * branches.size(), 0.);
+    for(uint64_t branchId=0; branchId<branches.size(); branchId++) {
+        const Branch& branch = branches[branchId];
+        for(uint64_t i=0; i<branch.orientedReadIds.size(); i++) {
+            const vector<OrientedReadId>& v = branch.orientedReadIds[i];
+            for(const OrientedReadId orientedReadId: v) {
+                double& matrixElement = A[branchId * orientedReadCount + uint64_t(orientedReadId.getValue())];
+                if(i ==0) {
+                    matrixElement = 1.;
+                } else if (i==1) {
+                    matrixElement = -1.;
+                } else {
+                    SHASTA_ASSERT(0);
+                }
+            }
+        }
+    }
 
+
+
+    // Compute the SVD.
+    const int M = int(orientedReadCount);
+    const int N = int(branches.size());
+    const string JOBU = "A";
+    const string JOBVT = "A";
+    const int LDA = M;
+    vector<double> S(min(M, N));
+    vector<double> U(M*M);
+    const int LDU = M;
+    vector<double> VT(N*N);
+    const int LDVT = N;
+    const int LWORK = 10 * max(M, N);
+    vector<double> WORK(LWORK);
+    int INFO = 0;
+    cout << timestamp << "Computing the svd. Matrix is " << M << " by " << N << endl;
+    dgesvd_(
+        JOBU.data(), JOBVT.data(),
+        M, N,
+        &A[0], LDA, &S[0], &U[0], LDU, &VT[0], LDVT, &WORK[0], LWORK, INFO);
+    cout << timestamp << "Done computing the svd." << endl;
+    if(INFO != 0) {
+        throw runtime_error("Error " + to_string(INFO) +
+            " computing SVD decomposition of local read graph.");
+    }
+
+
+
+    // Write out the component of the first k left vector for each oriented read.
+    {
+        const uint64_t k = 40;
+        ofstream csv("U.csv");
+        cout << "Singular values: " << endl;
+        csv << "OrientedReadId,";
+        for(uint64_t i=0; i<k; i++) {
+            cout << i << " " << S[i] << endl;
+            csv << "U" << i << ",";
+        }
+        csv << "\n";
+        for(ReadId readId=0; readId<readCount; readId++) {
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
+                csv << orientedReadId << ",";
+                for(uint64_t i=0; i<k; i++) {
+                    csv << U[i*orientedReadCount + orientedReadId.getValue()] << ",";
+                }
+                csv << "\n";
+            }
+        }
+    }
+
+
+
+#if 0
     // Now for each pair of oriented reads count how many times they appear
     // on the same edge or on different edges of a branch.
     // The map is keyed by the pair of OrientedReadIds, with the lowest one first.
@@ -308,6 +418,8 @@ void Assembler::analyzeMarkerGraphBranches()
         }
         out << "}\n";
     }
+#endif
 }
 
 
+#endif

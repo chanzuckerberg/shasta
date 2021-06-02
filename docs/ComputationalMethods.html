@@ -1384,6 +1384,10 @@ requests a Bayesian algorithm to determine the most likely repeat count.
         the Guppy 3.6.5 base caller.
     <li><code>r10-guppy-3.4.8-a</code> to use a Bayesian model optimized for
         r10 reads and the Guppy 3.4.8 base caller.
+    <li><code>bonito-0.3.1-a</code> to use a Bayesian model optimized for
+        the Bonito 0.3.1 base caller.
+    <li><code>guppy-5.0.7-a</code> to use a Bayesian model optimized for
+        the Guppy 5.0.7 base caller.
   </ul>
   <li>The name of a configuration file
 describing the Bayesian model to be used,
@@ -1396,7 +1400,7 @@ They are named <code>SimpleBayesianConsensusCaller-*.csv</code>.
 </ul>
 </ul>
 
-The default is <code>--Assembly.consensusCaller Bayesian:guppy-2.3.5-a</code>.
+The default is <code>--Assembly.Modal</code>.
 Some testing showed a significant decrease of false positive indels
 in assembled sequence compared to Shasta 0.1.0 behavior, corresponding to
 <code>--Assembly.consensusCaller Modal</code>. This testing was done

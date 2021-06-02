@@ -138,38 +138,6 @@ public:
 
 
 
-    // Bubbles in the assembly graph.
-    // A bubble is a set of two vertices v0, v1
-    // such that the outgoing edges of v0 are the same
-    // as the outgoing edges of v1, and
-    // out-degree(v0) = in-degree(v1) > 1.
-    // v0 is called the bubble source.
-    // v1 is called the bubble target.
-    // In defining and detecting bubbles, edges
-    // that were removed are considered to not exist.
-    class Bubble {
-    public:
-        VertexId v0;
-        VertexId v1;
-        Bubble() {}
-        Bubble(VertexId v0, VertexId v1) : v0(v0), v1(v1) {}
-    };
-    MemoryMapped::Vector<Bubble> bubbles;
-    void findBubbles(); // Assumes bubble was already initialized.
-
-
-
-    // Bubble chains. A bubble chain is a linear sequence of bubbles.
-    // Each pair of consecutive bubbles in the sequence may be separated by
-    // a homozygous segment, but the bubble can also be
-    // immediately adjacent (v1 of thr first bubble is the same
-    // as v0 of the second bubble).
-    // For each bubble chain, we store the bubble ids (indexes in
-    // the bubbles vector above).
-    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> bubbleChains;
-    void findBubbleChains(); // Assumes bubbleChains was already initialized.
-
-
     // A table that can be used to find the locations of a marker graph
     // edge in the assembly graph, if any.
     // Note that, before detangling,or if detangling is not used,
