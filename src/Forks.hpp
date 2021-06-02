@@ -63,6 +63,7 @@ public:
         Branch(EdgeId, const MarkerGraph&);
 
         void write(ostream&) const;
+        void writeHtml(ostream&) const;
     };
 
 
@@ -85,6 +86,7 @@ public:
         Fork(VertexId, ForkDirection, const MarkerGraph&);
 
         void write(ostream&) const;
+        void writeHtml(ostream&) const;
     };
 
     // All of the forks in the marker graph.

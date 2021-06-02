@@ -46,7 +46,8 @@ void shasta::writeStyle(ostream& html)
         border-collapse: collapse;
     }
     th, td {
-        border: 1px dashed #b8b5c7d9;
+        border: 1px solid #b8b5c7d9;
+        padding: 2px;
     }
     th {
         font-weight: bold;

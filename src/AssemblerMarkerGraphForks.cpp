@@ -6,9 +6,9 @@ using namespace shasta;
 void Assembler::analyzeMarkerGraphForks()
 {
     Forks forks(markers, markerGraph);
-    const uint32_t maxDistance = 100;
+    const uint32_t maxDistance = 1000;
 
-    while(true) {
+    // while(true) {
         try {
             cout << "Enter a VertexId and direction (0=forward, 1=backward):" << endl;
             MarkerGraph::VertexId vertexId;
@@ -18,7 +18,7 @@ void Assembler::analyzeMarkerGraphForks()
         } catch(exception& e) {
             cout << e.what() << endl;
         }
-    }
+    // }
 }
 
 

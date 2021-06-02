@@ -1,6 +1,9 @@
 #include "Forks.hpp"
+#include "html.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
+
+#include <set>
 
 
 Forks::Forks(
@@ -205,6 +208,14 @@ void Forks::analyze(
     ForkDirection direction,
     uint32_t maxDistance) const
 {
+    const bool debug = true;
+    ofstream html;
+    if(debug) {
+        html.open("Fork.html");
+        writeHtmlBegin(html,"Marker graph fork analysis");
+        html << "<body>";
+    }
+
     // Locate the Fork.
     const Fork* fork0Pointer = findFork(vertexId, direction);
     if(fork0Pointer == 0) {
@@ -212,21 +223,154 @@ void Forks::analyze(
     }
     const Fork& fork0 = *fork0Pointer;
 
-    // Write it out.
-    fork0.write(cout);
+    // Debug output.
+    if(debug) {
+        fork0.writeHtml(html);
+    }
 
     // Find nearby Forks.
+    // The position of a Fork in  this vector will be used as the local Fork index.
     vector< pair<const Fork*, int32_t> > nearbyForks;
     findNearbyForks(fork0, maxDistance, nearbyForks);
 
-    cout << "Nearby forks:" << endl;
-    for(const auto& p: nearbyForks) {
-        const Fork* fork1 = p.first;
-        const int32_t offset = p.second;
-        cout << fork1->vertexId << " " << directionString(fork1->direction) <<  " "
-            << offset << endl;
+    // Debug output.
+    if(debug) {
+        html << "<h2>Nearby forks</h2>"
+            "<p>There are " << nearbyForks.size() << " forks within a maximum distance of " << maxDistance <<
+            " markers from this fork."
+            "<table><tr><th>Index<th>Direction<th>VertexId<th>Marker<br>offset";
+        for(uint64_t id=0; id<nearbyForks.size(); id++) {
+            const auto& p = nearbyForks[id];
+            const Fork* fork1 = p.first;
+            const int32_t offset = p.second;
+            html << "<tr>"
+                "<td class=centered>" << id <<
+                "<td class=centered>" << directionString(fork1->direction) <<
+                "<td class=centered>" << fork1->vertexId <<
+                "<td class=centered>" << offset << endl;
+        }
+        html << "</table>";
     }
 
+
+
+    // Gather the oriented reads in the nearby forks.
+    std::set<OrientedReadId> nearbyForksOrientedReadIdsSet;
+    for(const auto& p: nearbyForks) {
+        const Fork* fork1 = p.first;
+        for(const Branch& branch: fork1->branches) {
+            for(const MarkerInterval& markerInterval: branch.markerIntervals) {
+                nearbyForksOrientedReadIdsSet.insert(markerInterval.orientedReadId);
+            }
+        }
+    }
+
+    // Convert to a sorted vector.
+    // The position of an oriented read in this vector will be used as the local
+    // oriented read id index.
+    vector<OrientedReadId> nearbyForksOrientedReadIds;
+    copy(
+        nearbyForksOrientedReadIdsSet.begin(),
+        nearbyForksOrientedReadIdsSet.end(),
+        back_inserter(nearbyForksOrientedReadIds));
+
+    // Debug output.
+    if(debug) {
+        html << "<h2>Oriented reads in nearby forks</h2>" << endl;
+        html << "<p>There are " << nearbyForksOrientedReadIds.size() <<
+            " oriented reads in nearby forks." <<
+            "<table><tr><th>Index<th>Oriented<br>Read Id";
+        for(uint64_t id=0; id<nearbyForksOrientedReadIds.size(); id++) {
+            const OrientedReadId orientedReadId = nearbyForksOrientedReadIds[id];
+            html << "<tr><td class=centered>" << id <<
+                "<td class=centered>" << orientedReadId;
+        }
+        html << "</table>";
+    }
+
+
+
+    // Create a table that tells us, for each oriented read, which branch
+    // of which forks the oriented read appears in.
+    // Indexed by [local oriented read id index][local Fork index]
+    // (see above for definitionof those).
+    // Contains the branch index (position in fork.branches or noBranch).
+    const uint64_t noBranch = std::numeric_limits<uint64_t>::max();
+    vector< vector<uint64_t> > branchTable(
+        nearbyForksOrientedReadIds.size(),
+        vector<uint64_t>(nearbyForks.size(), noBranch));
+    for(uint64_t forkIndex=0; forkIndex<nearbyForks.size(); forkIndex++) {
+        const Fork& fork = *nearbyForks[forkIndex].first;
+        for(uint64_t branchIndex=0; branchIndex<fork.branches.size(); branchIndex++) {
+            const Branch& branch = fork.branches[branchIndex];
+            for(const MarkerInterval& markerInterval: branch.markerIntervals) {
+                const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+                auto it = std::lower_bound(
+                    nearbyForksOrientedReadIds.begin(),
+                    nearbyForksOrientedReadIds.end(),
+                    orientedReadId);
+                SHASTA_ASSERT(it != nearbyForksOrientedReadIds.end());
+                if(*it != orientedReadId) {
+                    cout << "Assertion at " << forkIndex << " " << branchIndex << " " << orientedReadId << endl;
+                }
+                SHASTA_ASSERT(*it == orientedReadId);
+                const uint64_t orientedReadIndex = it - nearbyForksOrientedReadIds.begin();
+                SHASTA_ASSERT(branchTable[orientedReadIndex][forkIndex] == noBranch);
+                branchTable[orientedReadIndex][forkIndex] = branchIndex;
+            }
+        }
+    }
+
+
+
+    // Debug output.
+    if(debug) {
+        const string symbol = "&#11044;";
+        html << "<h2>Branch table</h2>"
+            "<table>";
+
+        // Header.
+        html << "<tr><td><td>";
+        for(uint64_t forkIndex=0; forkIndex<nearbyForks.size(); forkIndex++) {
+            const Fork* fork1 = nearbyForks[forkIndex].first;
+            html << "<td class=centered style='transform:rotate(270deg);";
+            if(fork1 == &fork0) {
+                html << "background-color:Beige'";
+            }
+            html << "'>" << forkIndex;
+        }
+
+        // Table body.
+        for(uint64_t orientedReadIndex=0; orientedReadIndex<branchTable.size(); orientedReadIndex++) {
+            const auto& v = branchTable[orientedReadIndex];
+            html << "<tr><td class=centered>" << orientedReadIndex <<
+                "<td class=centered>" <<
+                nearbyForksOrientedReadIds[orientedReadIndex];
+            for(uint64_t forkIndex=0; forkIndex<v.size(); forkIndex++) {
+                html << "<td class=centered";
+                if(nearbyForks[forkIndex].first == &fork0) {
+                    html << " style='background-color:Beige'";
+                }
+                html << ">";
+                const uint64_t branchIndex = branchTable[orientedReadIndex][forkIndex];
+                if(branchIndex != noBranch) {
+                    const string color = "hsl(" + to_string(branchIndex*90) + ",100%, 50%)" ;
+                    html << "<span style='color:" << color << "'>" << symbol;
+                }
+
+            }
+        }
+        html << "</table>";
+
+    }
+
+
+
+    // Debug output.
+    if(debug) {
+        html << "<body>";
+        writeHtmlEnd(html);
+    }
 }
 
 
@@ -256,6 +400,19 @@ void Forks::Fork::write(ostream& s) const
 }
 
 
+void Forks::Fork::writeHtml(ostream& html) const
+{
+    html <<
+        "<h1>" << directionString(direction) <<
+        " fork at vertex " << vertexId << "</h1>"
+        "<p>This fork has " << branches.size() << " branches.";
+
+    for(const Branch& branch: branches) {
+        branch.writeHtml(html);
+    }
+}
+
+
 void Forks::Branch::write(ostream& s) const
 {
     s << "Branch at edge " << edgeId << "\n";
@@ -264,6 +421,21 @@ void Forks::Branch::write(ostream& s) const
             markerInterval.ordinals[0] << " " <<
             markerInterval.ordinals[1] << "\n";
     }
+}
+
+
+
+void Forks::Branch::writeHtml(ostream& html) const
+{
+    html << "<h2>Branch at edge " << edgeId << "</h2>"
+        "<p>This branch has " << markerIntervals.size() << " oriented reads."
+        "<table><tr><th>Oriented<br>Read id<th>Ordinal0<th>Ordinal1";
+    for(const MarkerInterval& markerInterval: markerIntervals) {
+        html << "<tr><td class=centered>" << markerInterval.orientedReadId <<
+            "<td class=centered>" << markerInterval.ordinals[0] <<
+            "<td class=centered>" << markerInterval.ordinals[1];
+    }
+    html << "</table>";
 }
 
 
@@ -284,7 +456,7 @@ void Forks::findNearbyForks(
     for(const Branch& branch0: fork0.branches) {
         for(const MarkerInterval& markerInterval0: branch0.markerIntervals) {
             const OrientedReadId orientedReadId = markerInterval0.orientedReadId;
-            cout << "Following " << orientedReadId << endl;
+            // cout << "Following " << orientedReadId << endl;
             const int32_t doubleOrdinal0 = markerInterval0.ordinals[0] + markerInterval0.ordinals[1];
 
             // Loop over the OrientedReadEdgeInfos for this oriented read.
@@ -292,16 +464,15 @@ void Forks::findNearbyForks(
             for(const OrientedReadEdgeInfo& info: infos) {
                 const int32_t doubleOrdinal1 = info.ordinals[0] + info.ordinals[1];
                 const int32_t doubleOffset = doubleOrdinal1 - doubleOrdinal0;
+                // cout << info.ordinals[0] << " " << info.ordinals[1] << endl;
 
                 // Check the distance.
                 if(abs(doubleOffset) > doubleMaxDistance) {
+                    // cout << "Too far." << endl;
                     continue;
                 }
 
                 const Fork* fork1 = info.edgeInfo->fork;
-                if(fork1 == &fork0) {
-                    continue;
-                }
                 doubleOffsetMap[fork1].push_back(doubleOffset);
             }
         }
