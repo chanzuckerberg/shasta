@@ -565,7 +565,7 @@ void Assembler::HttpServerData::createGraphEdgesFromOverlapMap(const ReferenceOv
 void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath)
 {
     // TODO: parameterize this? add browser field?
-    uint32_t minQuality = 50;
+    uint32_t minQuality = 0;
 
     ifstream pafFile(alignmentsPafFileAbsolutePath);
 
