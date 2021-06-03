@@ -1815,6 +1815,7 @@ public:
         uint64_t minEdgeCount);
 
 
+    void analyzeAssemblyGraphBubbles();
 
     // Compute consensus repeat counts for each vertex of the marker graph.
     void assembleMarkerGraphVertices(size_t threadCount);

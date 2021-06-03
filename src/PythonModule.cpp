@@ -604,6 +604,8 @@ PYBIND11_MODULE(shasta, module)
             arg("offDiagonalRatio"))
         .def("alignPseudoPaths",
             &Assembler::alignPseudoPaths)
+        .def("analyzeAssemblyGraphBubbles",
+            &Assembler::analyzeAssemblyGraphBubbles)
 
 
 

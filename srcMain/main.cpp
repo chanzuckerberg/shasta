@@ -1083,6 +1083,11 @@ void shasta::main::mode1Assembly(
     // Coverage histograms for vertices and edges of the marker graph.
     assembler.computeMarkerGraphCoverageHistogram();
 
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
+    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
+
     throw runtime_error("Missing code in assembly mode 1 .");
 }
 
