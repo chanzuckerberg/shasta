@@ -11,7 +11,8 @@ void Assembler::analyzeAssemblyGraphBubbles()
     SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
     SHASTA_ASSERT(assemblyGraph.edges.isOpen);
     SHASTA_ASSERT(assemblyGraph.edgesBySource.isOpen());
+    SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
 
     // Create the Bubbles.
-    Bubbles bubbles(assemblyGraph);
+    Bubbles bubbles(*this);
 }

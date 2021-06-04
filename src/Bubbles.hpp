@@ -13,13 +13,14 @@ Class to describe an analyze bubbles in the assembly graph.
 
 namespace shasta {
     class Bubbles;
+    class Assembler;
 }
 
 class shasta::Bubbles {
 public:
 
     Bubbles(
-        const AssemblyGraph&
+        const Assembler&
     );
 
 private:
@@ -39,7 +40,7 @@ private:
     vector<Bubble> bubbles;
     void findBubbles();
 
-    const AssemblyGraph& assemblyGraph;
+    const Assembler& assembler;
 
 };
 
