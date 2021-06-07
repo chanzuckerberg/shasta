@@ -9,6 +9,8 @@ Class to describe an analyze bubbles in the assembly graph.
 
 #include "AssemblyGraph.hpp"
 
+#include <boost/graph/adjacency_list.hpp>
+
 #include "vector.hpp"
 
 namespace shasta {
@@ -65,6 +67,7 @@ private:
     };
     vector<Bubble> bubbles;
     void findBubbles();
+    void writeBubbles();
 
 
     // A data structure that tells us, for each OrientedReadId,
@@ -83,6 +86,49 @@ private:
     static bool isShortRepeatCopyNumberDifference(
         const vector<Base>&,
         const vector<Base>&);
+
+
+
+    // Bubble graph.
+    // An undirected graph in which each vertex represents a Bubble.
+    // Two vertices are joined by an undirected edge if the corresponding Bubbles
+    // have one or more common OrientedReadIds.
+    class BubbleGraphVertex {
+    public:
+    };
+    class BubbleGraphEdge {
+    public:
+
+        // Store the number of common oriented reads for each pair of
+        // branches in the two bubbles.
+        // matrix[sideA][sideB] stores the number of OrientedReadIds
+        // that appear on sideA of the "first" bubble and on
+        // sideB of the "second" bubble of this edge.
+        // The "first" bubble of the edge is the lowered numbered.
+        array<array<uint64_t, 2>, 2> matrix;
+
+        BubbleGraphEdge()
+        {
+            for(uint64_t sideA=0; sideA<2; sideA++) {
+                for(uint64_t sideB=0; sideB<2; sideB++) {
+                    matrix[sideA][sideB] = 0;
+                }
+            }
+        }
+    };
+    // We use boost::vecS for thew vertices, so vertex_descriptors are the same
+    // as bubble ids (indices into the bubbles vector).
+    using BubbleGraphBaseClass =
+        boost::adjacency_list<boost::listS, boost::vecS, boost::undirectedS,
+        BubbleGraphVertex, BubbleGraphEdge>;
+    class BubbleGraph: public BubbleGraphBaseClass {
+    public:
+        void writeGraphviz();
+    };
+    BubbleGraph bubbleGraph;
+    void createBubbleGraph();
+
+
 
     const Assembler& assembler;
 

@@ -3,16 +3,24 @@
 #include "prefixLength.hpp"
 using namespace shasta;
 
+#include <boost/graph/iteration_macros.hpp>
+
 
 Bubbles::Bubbles(
     const Assembler& assembler) :
     assembler(assembler)
 {
     findBubbles();
+    writeBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
 
     fillOrientedReadsTable();
     writeOrientedReadsTable();
+
+    createBubbleGraph();
+    bubbleGraph.writeGraphviz();
+    cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 }
 
 
@@ -97,6 +105,22 @@ void Bubbles::findBubbles()
     cout << suppressedDueToRepeats << " bubbles were suppressed due to 2- or 3-base repeats." << endl;
 }
 
+
+
+void Bubbles::writeBubbles()
+{
+    ofstream csv("Bubbles.csv");
+    csv << "BubbleId,VertexId0,VertexId1,CoverageA,CoverageB\n";
+
+    for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
+        const Bubble& bubble = bubbles[bubbleId];
+        csv << bubbleId << ",";
+        csv << bubble.mv0 << ",";
+        csv << bubble.mv1 << ",";
+        csv << bubble.orientedReadIds[0].size() << ",";
+        csv << bubble.orientedReadIds[1].size() << "\n";
+    }
+}
 
 
 // Figure out if two sequences differ only by copy numbers in
@@ -300,6 +324,7 @@ void Bubbles::fillOrientedReadsTable()
 }
 
 
+
 void Bubbles::writeOrientedReadsTable()
 {
     ofstream csv("OrientedReadsTable.csv");
@@ -318,3 +343,93 @@ void Bubbles::writeOrientedReadsTable()
 
 
 
+void Bubbles::createBubbleGraph()
+{
+    // Create the vertices.
+    for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
+        add_vertex(bubbleGraph);
+    }
+
+
+    // Create the edges.
+    for(uint64_t bubbleIdA=0; bubbleIdA<bubbles.size(); bubbleIdA++) {
+        const Bubble& bubbleA = bubbles[bubbleIdA];
+
+        for(uint64_t sideA=0; sideA<2; sideA++) {
+            const vector<OrientedReadId>& orientedReadIds = bubbleA.orientedReadIds[sideA];
+
+            for(const OrientedReadId orientedReadId: orientedReadIds) {
+                const auto& v = orientedReadsTable[orientedReadId.getValue()];
+
+                for(const auto& p: v) {
+                    const uint64_t bubbleIdB = p.first;
+                    if(bubbleIdB <= bubbleIdA) {
+                        continue;
+                    }
+                    const uint64_t sideB = p.second;
+
+                    // Locate the edge between these two bubbles,
+                    // creating it if necessary.
+                    BubbleGraph::edge_descriptor e;
+                    bool edgeWasFound = false;
+                    tie(e, edgeWasFound) = edge(bubbleIdA, bubbleIdB, bubbleGraph);
+                    if(not edgeWasFound) {
+                        tie(e, edgeWasFound) = add_edge(bubbleIdA, bubbleIdB, bubbleGraph);
+                    }
+                    SHASTA_ASSERT(edgeWasFound);
+
+                    // Update the matrix.
+                    BubbleGraphEdge& edge = bubbleGraph[e];
+                    ++edge.matrix[sideA][sideB];
+                }
+            }
+        }
+    }
+
+
+
+    ofstream csv("BubbleGraphEdges.csv");
+    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        csv << source(e, bubbleGraph) << ",";
+        csv << target(e, bubbleGraph) << ",";
+        csv << edge.matrix[0][0] << ",";
+        csv << edge.matrix[1][1] << ",";
+        csv << edge.matrix[0][1] << ",";
+        csv << edge.matrix[1][0] << "\n";
+    }
+}
+
+
+
+void Bubbles::BubbleGraph::writeGraphviz()
+{
+    const BubbleGraph& bubbleGraph = *this;
+
+    ofstream out("BubbleGraph.dot");
+    out << "graph G{\n"
+        "node [shape=point];\n";
+
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        const uint64_t bubbleIdA = source(e, bubbleGraph);
+        const uint64_t bubbleIdB = target(e, bubbleGraph);
+
+        const uint64_t diagonal = edge.matrix[0][0] + edge.matrix[1][1];
+        const uint64_t offDiagonal = edge.matrix[0][1] + edge.matrix[1][0];
+        const uint64_t total = diagonal + offDiagonal;
+
+        // The concordantRatio is 1 if all is good and 0.5 in the worst case.
+        const double concordantRatio = double(max(diagonal, offDiagonal)) / double(total);
+        const double hue = (concordantRatio - 0.5) * 0.6666667;
+
+        out << bubbleIdA << "--" << bubbleIdB <<
+            " ["
+            "penwidth=" << 0.1*double(total) <<
+            " color=\"" << hue << ",1.,1.\""
+            "];\n";
+    }
+
+    out << "}\n";
+}
