@@ -10,6 +10,9 @@ Bubbles::Bubbles(
 {
     findBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
+
+    fillOrientedReadsTable();
+    writeOrientedReadsTable();
 }
 
 
@@ -87,7 +90,7 @@ void Bubbles::findBubbles()
         }
 
         // We have a diploid bubble.
-        bubbles.push_back(Bubble());
+        bubbles.push_back(Bubble(v0, v1, eA, eB, assembler.markerGraph, assemblyGraph));
 
     }
 
@@ -225,4 +228,93 @@ bool Bubbles::isShortRepeatCopyNumberDifference(
     // None of the k values we tried worked.
     return false;
 }
+
+
+
+Bubbles::Bubble::Bubble(
+    AssemblyGraph::VertexId av0,
+    AssemblyGraph::VertexId av1,
+    AssemblyGraph::EdgeId eA,
+    AssemblyGraph::EdgeId eB,
+    const MarkerGraph& markerGraph,
+    const AssemblyGraph& assemblyGraph) :
+    av0(av0),
+    av1(av1),
+    aEdgeIds({eA, eB}),
+    mv0(assemblyGraph.vertices[av0]),
+    mv1(assemblyGraph.vertices[av1])
+{
+    fillInOrientedReadIds(markerGraph, assemblyGraph);
+}
+
+
+
+void Bubbles::Bubble::fillInOrientedReadIds(
+    const MarkerGraph& markerGraph,
+    const AssemblyGraph& assemblyGraph)
+{
+
+    // Loop over both sides of the bubble.
+    array<std::set<OrientedReadId>, 2> orientedReadIdSets;
+    for(uint64_t i=0; i<2; i++) {
+        const AssemblyGraph::EdgeId aEdgeId = aEdgeIds[i];
+
+        // Loop over marker graph edges of this side.
+        const span<const MarkerGraph::EdgeId> mEdgeIds = assemblyGraph.edgeLists[aEdgeId];
+        for(const MarkerGraph::EdgeId mEdgeId : mEdgeIds) {
+
+            // Loop over MarkerIntervals of this marker graph edge.
+            const span<const MarkerInterval> markerIntervals =
+                markerGraph.edgeMarkerIntervals[mEdgeId];
+            for(const MarkerInterval& markerInterval: markerIntervals) {
+                orientedReadIdSets[i].insert(markerInterval.orientedReadId);
+            }
+        }
+    }
+
+    // Now store them, discarding the ones that appear on both sides.
+    for(uint64_t i=0; i<2; i++) {
+        const std::set<OrientedReadId>& x = orientedReadIdSets[i];
+        const std::set<OrientedReadId>& y = orientedReadIdSets[1-i];
+        for(const OrientedReadId orientedReadId: x) {
+            if(y.find(orientedReadId) == y.end()) {
+                orientedReadIds[i].push_back(orientedReadId);
+            }
+        }
+    }
+}
+
+
+
+void Bubbles::fillOrientedReadsTable()
+{
+    orientedReadsTable.resize(2* assembler.getReads().readCount());
+    for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
+        const Bubble& bubble = bubbles[bubbleId];
+        for(uint64_t side=0; side<2; side++) {
+            for(const OrientedReadId orientedReadId: bubble.orientedReadIds[side]) {
+                orientedReadsTable[orientedReadId.getValue()].push_back(make_pair(bubbleId, side));
+            }
+        }
+    }
+}
+
+
+void Bubbles::writeOrientedReadsTable()
+{
+    ofstream csv("OrientedReadsTable.csv");
+    csv << "OrientedReadId,Bubble,Side\n";
+    for(ReadId readId=0; readId<assembler.getReads().readCount(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            for(const auto& v: orientedReadsTable[orientedReadId.getValue()]) {
+                csv << orientedReadId << ",";
+                csv << v.first << ",";
+                csv << v.second << "\n";
+            }
+        }
+    }
+}
+
+
 
