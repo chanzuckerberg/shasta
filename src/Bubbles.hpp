@@ -40,6 +40,12 @@ private:
     vector<Bubble> bubbles;
     void findBubbles();
 
+    // Figure out if two sequences differ only by copy numbers in
+    // a 2- or 3-base repeat.
+    static bool isShortRepeatCopyNumberDifference(
+        const vector<Base>&,
+        const vector<Base>&);
+
     const Assembler& assembler;
 
 };
