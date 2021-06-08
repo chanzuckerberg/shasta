@@ -426,8 +426,8 @@ void Bubbles::BubbleGraph::writeGraphviz()
 
         out << bubbleIdA << "--" << bubbleIdB <<
             " ["
-            "penwidth=" << 0.1*double(total) <<
-            " color=\"" << hue << ",1.,1.\""
+            // "penwidth=" << 0.1*double(total) <<
+            " color=\"" << hue << ",1.,0.8\""
             "];\n";
     }
 
