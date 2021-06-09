@@ -11,6 +11,7 @@ Class to describe an analyze bubbles in the assembly graph.
 
 #include <boost/graph/adjacency_list.hpp>
 
+#include <limits>
 #include "vector.hpp"
 
 namespace shasta {
@@ -103,6 +104,10 @@ private:
     // have one or more common OrientedReadIds.
     class BubbleGraphVertex {
     public:
+        uint64_t bubbleId;
+        BubbleGraphVertex(uint64_t bubbleId) :
+            bubbleId(bubbleId) {}
+        BubbleGraphVertex() : bubbleId(std::numeric_limits<uint64_t>::max()) {}
     };
     class BubbleGraphEdge {
     public:
@@ -127,10 +132,16 @@ private:
     // We use boost::vecS for thew vertices, so vertex_descriptors are the same
     // as bubble ids (indices into the bubbles vector).
     using BubbleGraphBaseClass =
-        boost::adjacency_list<boost::listS, boost::vecS, boost::undirectedS,
+        boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
         BubbleGraphVertex, BubbleGraphEdge>;
     class BubbleGraph: public BubbleGraphBaseClass {
     public:
+        // The vertex descriptor corresponding to each bubbleId.
+        vector<vertex_descriptor> vertexTable;
+        vertex_descriptor vertexDescriptor(uint64_t bubbleId) const
+        {
+            return vertexTable[bubbleId];
+        }
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph();
@@ -138,6 +149,7 @@ private:
 
     // Use the BubbleGraph to flag bad bubbles.
     void flagBadBubbles();
+    void removeBadBubbles(double discordantRatioThreshold);
 
 
 

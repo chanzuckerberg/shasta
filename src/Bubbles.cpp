@@ -10,6 +10,11 @@ Bubbles::Bubbles(
     const Assembler& assembler) :
     assembler(assembler)
 {
+    // Bubbles with discordant ratio greater than this value
+    // are considered bad and will be removed.
+    const double discordantRatioThreshold = 0.1;
+
+
     findBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
 
@@ -18,6 +23,7 @@ Bubbles::Bubbles(
 
     createBubbleGraph();
     flagBadBubbles();
+    removeBadBubbles(discordantRatioThreshold);
     writeBubbles();
     writeBubbleGraphGraphviz();
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
@@ -352,13 +358,14 @@ void Bubbles::createBubbleGraph()
 {
     // Create the vertices.
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
-        add_vertex(bubbleGraph);
+        bubbleGraph.vertexTable.push_back(add_vertex(BubbleGraphVertex(bubbleId), bubbleGraph));
     }
 
 
     // Create the edges.
     for(uint64_t bubbleIdA=0; bubbleIdA<bubbles.size(); bubbleIdA++) {
         const Bubble& bubbleA = bubbles[bubbleIdA];
+        const BubbleGraph::vertex_descriptor vA = bubbleGraph.vertexTable[bubbleIdA];
 
         for(uint64_t sideA=0; sideA<2; sideA++) {
             const vector<OrientedReadId>& orientedReadIds = bubbleA.orientedReadIds[sideA];
@@ -372,14 +379,15 @@ void Bubbles::createBubbleGraph()
                         continue;
                     }
                     const uint64_t sideB = p.second;
+                    const BubbleGraph::vertex_descriptor vB = bubbleGraph.vertexTable[bubbleIdB];
 
                     // Locate the edge between these two bubbles,
                     // creating it if necessary.
                     BubbleGraph::edge_descriptor e;
                     bool edgeWasFound = false;
-                    tie(e, edgeWasFound) = edge(bubbleIdA, bubbleIdB, bubbleGraph);
+                    tie(e, edgeWasFound) = edge(vA, vB, bubbleGraph);
                     if(not edgeWasFound) {
-                        tie(e, edgeWasFound) = add_edge(bubbleIdA, bubbleIdB, bubbleGraph);
+                        tie(e, edgeWasFound) = add_edge(vA, vB, bubbleGraph);
                     }
                     SHASTA_ASSERT(edgeWasFound);
 
@@ -397,8 +405,8 @@ void Bubbles::createBubbleGraph()
     csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
-        csv << source(e, bubbleGraph) << ",";
-        csv << target(e, bubbleGraph) << ",";
+        csv << bubbleGraph[source(e, bubbleGraph)].bubbleId << ",";
+        csv << bubbleGraph[target(e, bubbleGraph)].bubbleId << ",";
         csv << edge.matrix[0][0] << ",";
         csv << edge.matrix[1][1] << ",";
         csv << edge.matrix[0][1] << ",";
@@ -415,7 +423,9 @@ void Bubbles::writeBubbleGraphGraphviz() const
     out << "graph G{\n"
         "node [shape=point];\n";
 
-    BGL_FORALL_VERTICES(bubbleId, bubbleGraph, BubbleGraph) {
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        const BubbleGraphVertex& vertex = bubbleGraph[v];
+        const uint64_t bubbleId = vertex.bubbleId;
         const Bubble& bubble = bubbles[bubbleId];
         const double discordantRatio = bubble.discordantRatio();
         SHASTA_ASSERT(discordantRatio <= 0.5);
@@ -429,8 +439,8 @@ void Bubbles::writeBubbleGraphGraphviz() const
 
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
-        const uint64_t bubbleIdA = source(e, bubbleGraph);
-        const uint64_t bubbleIdB = target(e, bubbleGraph);
+        const uint64_t bubbleIdA = bubbleGraph[source(e, bubbleGraph)].bubbleId;
+        const uint64_t bubbleIdB = bubbleGraph[target(e, bubbleGraph)].bubbleId;
 
         const uint64_t diagonal = edge.matrix[0][0] + edge.matrix[1][1];
         const uint64_t offDiagonal = edge.matrix[0][1] + edge.matrix[1][0];
@@ -459,7 +469,7 @@ void Bubbles::flagBadBubbles()
         Bubble& bubble = bubbles[bubbleId];
         bubble.concordantSum = 0;
         bubble.discordantSum = 0;
-        BGL_FORALL_OUTEDGES(bubbleId, e, bubbleGraph, BubbleGraph) {
+        BGL_FORALL_OUTEDGES(bubbleGraph.vertexDescriptor(bubbleId), e, bubbleGraph, BubbleGraph) {
             const BubbleGraphEdge& edge = bubbleGraph[e];
             const uint64_t diagonal = edge.matrix[0][0] + edge.matrix[1][1];
             const uint64_t offDiagonal = edge.matrix[0][1] + edge.matrix[1][0];
@@ -469,4 +479,26 @@ void Bubbles::flagBadBubbles()
             bubble.discordantSum += discordant;
         }
     }
+}
+
+
+
+void Bubbles::removeBadBubbles(double discordantRatioThreshold)
+{
+    uint64_t removedCount = 0;
+    for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
+        if(bubbles[bubbleId].discordantRatio() > discordantRatioThreshold) {
+            const BubbleGraph::vertex_descriptor v = bubbleGraph.vertexDescriptor(bubbleId);
+            clear_vertex(v, bubbleGraph);
+            remove_vertex(v, bubbleGraph);
+            bubbleGraph.vertexTable[bubbleId] = BubbleGraph::null_vertex();
+            ++removedCount;
+        }
+    }
+
+    cout << "Removed " << removedCount << " bad bubbles out of " <<
+        bubbles.size() << " total." << endl;
+
+
+
 }
