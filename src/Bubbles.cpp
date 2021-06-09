@@ -11,16 +11,18 @@ Bubbles::Bubbles(
     assembler(assembler)
 {
     findBubbles();
-    writeBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
 
     fillOrientedReadsTable();
     writeOrientedReadsTable();
 
     createBubbleGraph();
-    bubbleGraph.writeGraphviz();
+    flagBadBubbles();
+    writeBubbles();
+    writeBubbleGraphGraphviz();
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
+
 }
 
 
@@ -110,7 +112,7 @@ void Bubbles::findBubbles()
 void Bubbles::writeBubbles()
 {
     ofstream csv("Bubbles.csv");
-    csv << "BubbleId,VertexId0,VertexId1,CoverageA,CoverageB\n";
+    csv << "BubbleId,VertexId0,VertexId1,CoverageA,CoverageB,ConcordantSum,DiscordantSum,DiscordantRatio\n";
 
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
         const Bubble& bubble = bubbles[bubbleId];
@@ -118,7 +120,10 @@ void Bubbles::writeBubbles()
         csv << bubble.mv0 << ",";
         csv << bubble.mv1 << ",";
         csv << bubble.orientedReadIds[0].size() << ",";
-        csv << bubble.orientedReadIds[1].size() << "\n";
+        csv << bubble.orientedReadIds[1].size() << ",";
+        csv << bubble.concordantSum << ",";
+        csv << bubble.discordantSum << ",";
+        csv << bubble.discordantRatio() << "\n";
     }
 }
 
@@ -403,13 +408,24 @@ void Bubbles::createBubbleGraph()
 
 
 
-void Bubbles::BubbleGraph::writeGraphviz()
+void Bubbles::writeBubbleGraphGraphviz() const
 {
-    const BubbleGraph& bubbleGraph = *this;
 
     ofstream out("BubbleGraph.dot");
     out << "graph G{\n"
         "node [shape=point];\n";
+
+    BGL_FORALL_VERTICES(bubbleId, bubbleGraph, BubbleGraph) {
+        const Bubble& bubble = bubbles[bubbleId];
+        const double discordantRatio = bubble.discordantRatio();
+        SHASTA_ASSERT(discordantRatio <= 0.5);
+        const double hue = (1. - 2. * discordantRatio) * 0.333333;  //  Good = green, bad = red, via yellow
+        out << bubbleId <<
+            " [color=\"" << hue << ",1.,0.8\""
+            " tooltip=\""  << bubbleId << " " << discordantRatio << "\""
+            "];\n";
+    }
+
 
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
@@ -422,7 +438,7 @@ void Bubbles::BubbleGraph::writeGraphviz()
 
         // The concordantRatio is 1 if all is good and 0.5 in the worst case.
         const double concordantRatio = double(max(diagonal, offDiagonal)) / double(total);
-        const double hue = (concordantRatio - 0.5) * 0.6666667;
+        const double hue = (concordantRatio - 0.5) * 0.6666667; //  Good = green, bad = red, via yellow
 
         out << bubbleIdA << "--" << bubbleIdB <<
             " ["
@@ -432,4 +448,25 @@ void Bubbles::BubbleGraph::writeGraphviz()
     }
 
     out << "}\n";
+}
+
+
+
+// Use the BubbleGraph to flag bad bubbles.
+void Bubbles::flagBadBubbles()
+{
+    for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
+        Bubble& bubble = bubbles[bubbleId];
+        bubble.concordantSum = 0;
+        bubble.discordantSum = 0;
+        BGL_FORALL_OUTEDGES(bubbleId, e, bubbleGraph, BubbleGraph) {
+            const BubbleGraphEdge& edge = bubbleGraph[e];
+            const uint64_t diagonal = edge.matrix[0][0] + edge.matrix[1][1];
+            const uint64_t offDiagonal = edge.matrix[0][1] + edge.matrix[1][0];
+            const uint64_t concordant = max(diagonal, offDiagonal);
+            const uint64_t discordant = min(diagonal, offDiagonal);
+            bubble.concordantSum += concordant;
+            bubble.discordantSum += discordant;
+        }
+    }
 }

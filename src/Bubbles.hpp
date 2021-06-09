@@ -51,6 +51,14 @@ private:
         // Values that are present on both sides are removed.
         array<vector<OrientedReadId>, 2> orientedReadIds;
 
+        // Concordant/discordant sums computed by flagBadBubbles.
+        uint64_t concordantSum = 0;
+        uint64_t discordantSum = 0;
+        double discordantRatio() const
+        {
+            return double(discordantSum) / double(concordantSum + discordantSum);
+        }
+
         // Constructor.
         Bubble(
             AssemblyGraph::VertexId av0,
@@ -123,10 +131,13 @@ private:
         BubbleGraphVertex, BubbleGraphEdge>;
     class BubbleGraph: public BubbleGraphBaseClass {
     public:
-        void writeGraphviz();
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph();
+    void writeBubbleGraphGraphviz() const;
+
+    // Use the BubbleGraph to flag bad bubbles.
+    void flagBadBubbles();
 
 
 
