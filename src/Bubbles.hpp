@@ -108,6 +108,9 @@ private:
         BubbleGraphVertex(uint64_t bubbleId) :
             bubbleId(bubbleId) {}
         BubbleGraphVertex() : bubbleId(std::numeric_limits<uint64_t>::max()) {}
+
+        uint64_t component;
+        uint64_t color;
     };
     class BubbleGraphEdge {
     public:
@@ -134,6 +137,7 @@ private:
     using BubbleGraphBaseClass =
         boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
         BubbleGraphVertex, BubbleGraphEdge>;
+
     class BubbleGraph: public BubbleGraphBaseClass {
     public:
         // The vertex descriptor corresponding to each bubbleId.
@@ -142,7 +146,11 @@ private:
         {
             return vertexTable[bubbleId];
         }
+
+        void computeConnectedComponents();
+        vector< vector<vertex_descriptor> > connectedComponents;
     };
+
     BubbleGraph bubbleGraph;
     void createBubbleGraph();
     void writeBubbleGraphGraphviz() const;
@@ -150,6 +158,9 @@ private:
     // Use the BubbleGraph to flag bad bubbles.
     void flagBadBubbles();
     void removeBadBubbles(double discordantRatioThreshold);
+
+    // Phase bubbles and reads.
+    void phase();
 
 
 

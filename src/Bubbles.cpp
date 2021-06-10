@@ -3,6 +3,7 @@
 #include "prefixLength.hpp"
 using namespace shasta;
 
+#include <boost/graph/connected_components.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 
@@ -28,6 +29,8 @@ Bubbles::Bubbles(
     writeBubbleGraphGraphviz();
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
+
+    phase();
 
 }
 
@@ -502,3 +505,50 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
 
 
 }
+
+
+
+// Phase bubbles and reads.
+// This should be called after bad bubbles were already removed
+// from the bubble graph.
+void Bubbles::phase()
+{
+    bubbleGraph.computeConnectedComponents();
+    cout << "Found " << bubbleGraph.connectedComponents.size() <<
+        " connected components of the bubble graph." << endl;
+
+    for(const vector<BubbleGraph::vertex_descriptor>& component:
+        bubbleGraph.connectedComponents) {
+        cout << "Processing a connected component with " << component.size() <<
+            " bubbles." << endl;
+    }
+}
+
+
+
+void Bubbles::BubbleGraph::computeConnectedComponents()
+{
+    using boost::connected_components;
+    using boost::get;
+    using boost::color_map;
+
+    using G = BubbleGraph;
+    G& g = *this;
+
+    connected_components(g,
+        get(&BubbleGraphVertex::component, g),
+        color_map(get(&BubbleGraphVertex::color, g)));
+
+    // Gather the vertices in each connected component.
+    std::map<uint64_t, vector<vertex_descriptor> > componentMap;
+    BGL_FORALL_VERTICES(v, g, G) {
+        componentMap[g[v].component].push_back(v);
+    }
+    connectedComponents.clear();
+    for(const auto& p: componentMap) {
+        connectedComponents.push_back(p.second);
+    }
+}
+
+
+
