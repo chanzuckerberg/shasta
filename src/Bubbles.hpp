@@ -12,6 +12,7 @@ Class to describe an analyze bubbles in the assembly graph.
 #include <boost/graph/adjacency_list.hpp>
 
 #include <limits>
+#include <random>
 #include "vector.hpp"
 
 namespace shasta {
@@ -111,6 +112,7 @@ private:
 
         uint64_t component;
         uint64_t color;
+        int64_t phase;
     };
     class BubbleGraphEdge {
     public:
@@ -122,6 +124,22 @@ private:
         // sideB of the "second" bubble of this edge.
         // The "first" bubble of the edge is the lowered numbered.
         array<array<uint64_t, 2>, 2> matrix;
+        uint64_t diagonalCount() const
+        {
+            return matrix[0][0] + matrix[1][1];
+        }
+        uint64_t offDiagonalCount() const
+        {
+            return matrix[0][1] + matrix[1][0];
+        }
+        uint64_t concordantCount() const
+        {
+            return max(diagonalCount(), offDiagonalCount());
+        }
+        uint64_t discordantCount() const
+        {
+            return min(diagonalCount(), offDiagonalCount());
+        }
 
         BubbleGraphEdge()
         {
@@ -160,7 +178,16 @@ private:
     void removeBadBubbles(double discordantRatioThreshold);
 
     // Phase bubbles and reads.
-    void phase();
+    void phase(
+        uint64_t iterationCount,
+        uint64_t randomSeed);
+    void phaseComponent(
+        const vector<BubbleGraph::vertex_descriptor>&,
+        uint64_t iterationCount,
+        std::mt19937&);
+    void phaseComponentIteration(
+        const vector<BubbleGraph::vertex_descriptor>&,
+        std::mt19937&);
 
 
 

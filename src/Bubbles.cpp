@@ -1,10 +1,13 @@
 #include "Bubbles.hpp"
 #include "Assembler.hpp"
+#include "orderPairs.hpp"
 #include "prefixLength.hpp"
 using namespace shasta;
 
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/iteration_macros.hpp>
+
+#include <queue>
 
 
 Bubbles::Bubbles(
@@ -15,9 +18,16 @@ Bubbles::Bubbles(
     // are considered bad and will be removed.
     const double discordantRatioThreshold = 0.1;
 
+    // Number of phasing iterations.
+    const uint64_t iterationCount = 1;
+
+    // Seed for random number generator.
+    uint64_t randomSeed = 231;
+
 
     findBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
+    cout << "Found "<< 2*assembler.getReads().readCount() << " oriented reads." << endl;
 
     fillOrientedReadsTable();
     writeOrientedReadsTable();
@@ -30,7 +40,7 @@ Bubbles::Bubbles(
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
-    phase();
+    phase(iterationCount, randomSeed);
 
 }
 
@@ -511,16 +521,161 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
 // Phase bubbles and reads.
 // This should be called after bad bubbles were already removed
 // from the bubble graph.
-void Bubbles::phase()
+void Bubbles::phase(
+    uint64_t iterationCount,
+    uint64_t randomSeed)
 {
     bubbleGraph.computeConnectedComponents();
     cout << "Found " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
 
+    std::mt19937 randomSource(randomSeed);
     for(const vector<BubbleGraph::vertex_descriptor>& component:
         bubbleGraph.connectedComponents) {
-        cout << "Processing a connected component with " << component.size() <<
-            " bubbles." << endl;
+        phaseComponent(component, iterationCount, randomSource);
+    }
+}
+
+
+
+void Bubbles::phaseComponent(
+    const vector<BubbleGraph::vertex_descriptor>& component,
+    uint64_t iterationCount,
+    std::mt19937& randomSource)
+{
+    cout << "Phasing a connected component with " << component.size() <<
+        " bubbles." << endl;
+
+    for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
+        cout << "Iteration " << iteration << endl;
+        phaseComponentIteration(component, randomSource);
+
+    }
+}
+
+
+
+void Bubbles::phaseComponentIteration(
+    const vector<BubbleGraph::vertex_descriptor>& component,
+    std::mt19937& randomSource)
+{
+    using G = BubbleGraph;
+    G& g = bubbleGraph;
+    using vertex_descriptor = G::vertex_descriptor;
+
+    // Set the phase to zero for all vertices in this component.
+    for(const vertex_descriptor v: component) {
+        g[v].phase = 0;
+    }
+
+    // A priority queue ordered by the number of concordant reads
+    // that lead to each vertex.
+    using QueuedPair = pair<uint64_t, vertex_descriptor>;
+    std::priority_queue<
+        QueuedPair,
+        vector<QueuedPair>,
+        OrderPairsByFirstOnly<uint64_t, vertex_descriptor> > q;
+
+    // Pick a random vertex to start and queue it.
+    std::uniform_int_distribution<uint64_t>
+        uniformDistribution(0, component.size() - 1);
+    const vertex_descriptor v = component[uniformDistribution(randomSource)];
+    g[v].phase = 1;
+    q.push(make_pair(0, v));
+
+
+    // Main search loop.
+    while(not q.empty()) {
+
+        // Dequeue the vertex with the top priority.
+        const QueuedPair p = q.top();
+        const vertex_descriptor v0 = p.second;
+        q.pop();
+        BubbleGraphVertex& vertex0 = g[v0];
+
+        // Check all edges incident on this vertex.
+        BGL_FORALL_OUTEDGES(v0, e, g, G) {
+            SHASTA_ASSERT(source(e, g) == v0);
+            const BubbleGraphEdge& edge = g[e];
+            const vertex_descriptor v1 = target(e, g);
+            BubbleGraphVertex& vertex1 = g[v1];
+
+            // Figure out the optimal phase of v1 based on the phase of v0 and
+            // this edge.
+            const uint64_t diagonalCount= edge.diagonalCount();
+            const uint64_t offDiagonalCount= edge.offDiagonalCount();
+            int64_t phase1 =  vertex0.phase;
+            if(diagonalCount < offDiagonalCount) {
+                phase1 = -phase1;
+            }
+
+
+            if(vertex1.phase == 0) {
+                // We have not been here before.
+                vertex1.phase = phase1;
+                q.push(make_pair(edge.concordantCount(), v1));
+            } else {
+                // We have been here before. If disagreement, keep track of it.
+                if(vertex1.phase != phase1) {
+                    cout << "Disagreement " << diagonalCount << " " << offDiagonalCount << endl;
+                }
+            }
+        }
+    }
+
+
+    // When getting here, every bubble in this component was phased.
+    for(const vertex_descriptor v: component) {
+        SHASTA_ASSERT(bubbleGraph[v].phase != 0);
+    }
+
+
+
+    // Use the phasing of the bubbles to phase the reads.
+    // First, gather all the reads in this component.
+    std::set<OrientedReadId> orientedReadIds;
+    for(const vertex_descriptor v: component) {
+        const uint64_t bubbleId = bubbleGraph[v].bubbleId;
+        const Bubble& bubble = bubbles[bubbleId];
+        for(uint64_t side=0; side<2; side++) {
+            for(const OrientedReadId orientedReadId: bubble.orientedReadIds[side]) {
+                orientedReadIds.insert(orientedReadId);
+            }
+        }
+    }
+    cout << "Found " << orientedReadIds.size() << " in this component." << endl;
+
+
+
+    // For each oriented read, count the bubbles on each orientation.
+    for(const OrientedReadId orientedReadId: orientedReadIds) {
+
+        // Loop over pairs(bubbleId, side) where this orientedRead appears.
+        const vector <pair <uint64_t, uint64_t> >& v = orientedReadsTable[orientedReadId.getValue()];
+        uint64_t phasePlusCount = 0;
+        uint64_t phaseMinusCount = 0;
+        for(const auto& p: v) {
+            const uint64_t bubbleId = p.first;
+            const uint64_t side = p.second;
+            const vertex_descriptor v = bubbleGraph.vertexTable[bubbleId];
+            if(v == BubbleGraph::null_vertex()) {
+                continue;
+            }
+            const int64_t bubblePhase = bubbleGraph[v].phase;
+            int64_t orientedReadPhase = bubblePhase;
+            if(side == 1) {
+                orientedReadPhase = -orientedReadPhase;
+            }
+
+            if(orientedReadPhase == +1) {
+                ++phasePlusCount;
+            } else {
+                ++phaseMinusCount;
+            }
+        }
+        cout << orientedReadId << " " << phasePlusCount << " " << phaseMinusCount << "\n";
+
+
     }
 }
 
