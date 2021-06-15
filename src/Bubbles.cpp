@@ -1,7 +1,9 @@
 #include "Bubbles.hpp"
 #include "Assembler.hpp"
+#include "computeLayout.hpp"
 #include "orderPairs.hpp"
 #include "prefixLength.hpp"
+#include "writeGraph.hpp"
 using namespace shasta;
 
 #include <boost/graph/connected_components.hpp>
@@ -24,6 +26,8 @@ Bubbles::Bubbles(
     // Seed for random number generator.
     uint64_t randomSeed = 231;
 
+    // Only used for graphics.
+    const double minRelativePhase = 0.;
 
     findBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
@@ -40,7 +44,7 @@ Bubbles::Bubbles(
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
-    phase(iterationCount, randomSeed);
+    phase(iterationCount, randomSeed, minRelativePhase);
 
 }
 
@@ -455,13 +459,7 @@ void Bubbles::writeBubbleGraphGraphviz() const
         const uint64_t bubbleIdA = bubbleGraph[source(e, bubbleGraph)].bubbleId;
         const uint64_t bubbleIdB = bubbleGraph[target(e, bubbleGraph)].bubbleId;
 
-        const uint64_t diagonal = edge.matrix[0][0] + edge.matrix[1][1];
-        const uint64_t offDiagonal = edge.matrix[0][1] + edge.matrix[1][0];
-        const uint64_t total = diagonal + offDiagonal;
-
-        // The concordantRatio is 1 if all is good and 0.5 in the worst case.
-        const double concordantRatio = double(max(diagonal, offDiagonal)) / double(total);
-        const double hue = (concordantRatio - 0.5) * 0.6666667; //  Good = green, bad = red, via yellow
+        const double hue = (1. - edge.ambiguity()) * 0.333333; //  Good = green, bad = red, via yellow
 
         out << bubbleIdA << "--" << bubbleIdB <<
             " ["
@@ -471,6 +469,139 @@ void Bubbles::writeBubbleGraphGraphviz() const
     }
 
     out << "}\n";
+}
+
+
+
+// Write a single component of the BubbleGraph in svg format.
+// To compute sfdp layout, only consider edges
+// for which relativePhase() >= minRelativePhase.
+void Bubbles::writeBubbleGraphComponentSvg(
+    uint64_t componentId,
+    const vector<BubbleGraph::vertex_descriptor>& component,
+    double minRelativePhase) const
+{
+    using vertex_descriptor = BubbleGraph::vertex_descriptor;
+    using edge_descriptor = BubbleGraph::edge_descriptor;
+
+    // Map the vertices of this component to integers.
+    std::map<vertex_descriptor, uint64_t> componentVertexMap;
+    for(uint64_t i=0; i<component.size(); i++) {
+        componentVertexMap.insert(make_pair(component[i], i));
+    }
+
+    // Create a graph with only this connected component and only
+    // edges with relativePhase >= minRelativePhase.
+    // This will be used to compute the sfdp layout.
+    ComponentGraph componentGraph(component.size());
+    for(uint64_t i0=0; i0<component.size(); i0++) {
+        const vertex_descriptor v0 = component[i0];
+        BGL_FORALL_OUTEDGES(v0, e, bubbleGraph, BubbleGraph) {
+            if(bubbleGraph[e].relativePhase() < minRelativePhase) {
+                continue;
+            }
+            const vertex_descriptor v1 = target(e, bubbleGraph);
+            auto it = componentVertexMap.find(v1);
+            SHASTA_ASSERT(it != componentVertexMap.end());
+            const uint64_t i1 = it->second;
+            if(i0 < i1) {
+                add_edge(i0, i1, componentGraph);
+            }
+        }
+    }
+
+    // Compute the layout of this graph.
+    std::map<uint64_t, array<double, 2> > positionMap;
+    SHASTA_ASSERT(computeLayout(componentGraph, "sfdp", 600., positionMap) == ComputeLayoutReturnCode::Success);
+    for(uint64_t i=0; i<component.size(); i++) {
+        componentGraph[i].position = positionMap[i];
+        // cout << componentGraph[i].position[0] << " " << componentGraph[i].position[1] << "\n";
+    }
+
+    // Add all the remaining edges.
+    for(uint64_t i0=0; i0<component.size(); i0++) {
+        const vertex_descriptor v0 = component[i0];
+        BGL_FORALL_OUTEDGES(v0, e, bubbleGraph, BubbleGraph) {
+            if(bubbleGraph[e].relativePhase() >= minRelativePhase) {
+                // We already added this edge.
+                continue;
+            }
+            const vertex_descriptor v1 = target(e, bubbleGraph);
+            auto it = componentVertexMap.find(v1);
+            SHASTA_ASSERT(it != componentVertexMap.end());
+            const uint64_t i1 = it->second;
+            if(i0 < i1) {
+                add_edge(i0, i1, componentGraph);
+            }
+        }
+    }
+
+
+
+    // Graphics scaling.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::min();
+    BGL_FORALL_VERTICES_T(v, componentGraph, ComponentGraph) {
+        const auto& position = componentGraph[v].position;
+        xMin = min(xMin, position[0]);
+        xMax = max(xMax, position[0]);
+        yMin = min(yMin, position[1]);
+        yMax = max(yMax, position[1]);
+    }
+    const double xyRange = max(xMax-xMin, yMax-yMin);
+    const int svgSize = 1024;
+    const double vertexRadiusPixels = 3.;
+    const double vertexRadius = vertexRadiusPixels * xyRange / double(svgSize);
+    const double edgeThicknessPixels = 0.4;
+    const double edgeThickness = edgeThicknessPixels * xyRange / double(svgSize);
+
+
+
+    // Write the componentGraph in svg format.
+
+    // Vertex attributes. Color by phase.
+    std::map<ComponentGraph::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
+    BGL_FORALL_VERTICES(v, componentGraph, ComponentGraph) {
+        const int64_t phase = bubbleGraph[component[v]].phase;
+        auto& attributes = vertexAttributes[v];
+        attributes.radius = vertexRadius;
+        if(phase == +1) {
+            attributes.color = "hsl(240,50%,50%)";
+        }
+        if(phase == -1) {
+            attributes.color = "hsl(300,50%,50%)";
+        }
+    }
+
+    // Edge attributes. Color by relative phase.
+    std::map<ComponentGraph::edge_descriptor, WriteGraph::EdgeAttributes> edgeAttributes;
+    BGL_FORALL_EDGES(e, componentGraph, ComponentGraph) {
+        const vertex_descriptor v0 = component[source(e, componentGraph)];
+        const vertex_descriptor v1 = component[target(e, componentGraph)];
+        edge_descriptor eb;
+        bool edgeWasFound = false;
+        tie(eb, edgeWasFound) = edge(v0, v1, bubbleGraph);
+        const BubbleGraphEdge& edge = bubbleGraph[eb];
+        const double relativePhase = edge.relativePhase();
+        const double hue = (1. + relativePhase) * 60.; /// Goes from 0 (red) to 120 (green).
+        auto& attributes = edgeAttributes[e];
+        attributes.thickness = edgeThickness;
+        attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,20%)";
+    }
+
+    // Draw the svg.
+    ofstream out("BubbleGraph-Component-" + to_string(componentId) + ".html");
+    out << "<html><body>";
+    WriteGraph::writeSvg(
+        componentGraph,
+        "component" + to_string(componentId),
+        svgSize, svgSize,
+        vertexAttributes,
+        edgeAttributes,
+        out);
+    out << "</body></html>";
 }
 
 
@@ -523,34 +654,46 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
 // from the bubble graph.
 void Bubbles::phase(
     uint64_t iterationCount,
-    uint64_t randomSeed)
+    uint64_t randomSeed,
+    double minRelativePhase)
 {
     bubbleGraph.computeConnectedComponents();
     cout << "Found " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
 
     std::mt19937 randomSource(randomSeed);
-    for(const vector<BubbleGraph::vertex_descriptor>& component:
-        bubbleGraph.connectedComponents) {
-        phaseComponent(component, iterationCount, randomSource);
+    for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
+        phaseComponent(
+            componentId,
+            bubbleGraph.connectedComponents[componentId],
+            iterationCount,
+            randomSource,
+            minRelativePhase);
     }
 }
 
 
 
 void Bubbles::phaseComponent(
+    uint64_t componentId,
     const vector<BubbleGraph::vertex_descriptor>& component,
     uint64_t iterationCount,
-    std::mt19937& randomSource)
+    std::mt19937& randomSource,
+    double minRelativePhase)
 {
     cout << "Phasing a connected component with " << component.size() <<
         " bubbles." << endl;
 
+    // Iterate.
     for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
         cout << "Iteration " << iteration << endl;
         phaseComponentIteration(component, randomSource);
 
     }
+
+    // Write out this component in svg format.
+    writeBubbleGraphComponentSvg(componentId, component, minRelativePhase);
+
 }
 
 
@@ -562,6 +705,8 @@ void Bubbles::phaseComponentIteration(
     using G = BubbleGraph;
     G& g = bubbleGraph;
     using vertex_descriptor = G::vertex_descriptor;
+
+    const bool debug = false;
 
     // Set the phase to zero for all vertices in this component.
     for(const vertex_descriptor v: component) {
@@ -617,7 +762,10 @@ void Bubbles::phaseComponentIteration(
             } else {
                 // We have been here before. If disagreement, keep track of it.
                 if(vertex1.phase != phase1) {
-                    cout << "Disagreement " << diagonalCount << " " << offDiagonalCount << endl;
+                    if(debug) {
+                        cout << "Disagreement " << vertex1.phase << " " << phase1 << " " <<
+                            diagonalCount << " " << offDiagonalCount << endl;
+                    }
                 }
             }
         }
@@ -643,7 +791,7 @@ void Bubbles::phaseComponentIteration(
             }
         }
     }
-    cout << "Found " << orientedReadIds.size() << " in this component." << endl;
+    cout << "Found " << orientedReadIds.size() << " oriented reads in this component." << endl;
 
 
 
@@ -673,9 +821,9 @@ void Bubbles::phaseComponentIteration(
                 ++phaseMinusCount;
             }
         }
-        cout << orientedReadId << " " << phasePlusCount << " " << phaseMinusCount << "\n";
-
-
+        if(debug) {
+            cout << orientedReadId << " " << phasePlusCount << " " << phaseMinusCount << "\n";
+        }
     }
 }
 

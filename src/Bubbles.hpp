@@ -132,6 +132,10 @@ private:
         {
             return matrix[0][1] + matrix[1][0];
         }
+        uint64_t totalCount() const
+        {
+            return matrix[0][0] + matrix[1][1]+ matrix[0][1] + matrix[1][0];
+        }
         uint64_t concordantCount() const
         {
             return max(diagonalCount(), offDiagonalCount());
@@ -139,6 +143,23 @@ private:
         uint64_t discordantCount() const
         {
             return min(diagonalCount(), offDiagonalCount());
+        }
+
+        // Ambiguity of the edge is 0 if discordantCount() is 0
+        // and 1 if discordantCount() = totalCount()/2, in which case
+        // discordantCount() = concordantCount();
+        double ambiguity() const
+        {
+            return double(2 * discordantCount()) / double(totalCount());
+        }
+
+        // Return the relative phase implied by this edge, which is
+        // +1 if offdiagonalCount() is 0 and
+        // -1 if diagonalCount() is 0.
+        double relativePhase() const
+        {
+            const double diagonalRatio = double(diagonalCount()) / double(totalCount());
+            return 2. * diagonalRatio - 1.;
         }
 
         BubbleGraphEdge()
@@ -171,7 +192,26 @@ private:
 
     BubbleGraph bubbleGraph;
     void createBubbleGraph();
+
+    // Write the BubbleGraph in graphviz format, coloring
+    // the bubbles by discordant ratio and the edges by ambiguity.
     void writeBubbleGraphGraphviz() const;
+
+    // Write a single component of the BubbleGraph in svg format.
+    // To compute sfdp layout, only consider edges
+    // for which relativePhase() >= minRelativePhase.
+    void writeBubbleGraphComponentSvg(
+        uint64_t componentId,
+        const vector<BubbleGraph::vertex_descriptor>& component,
+        double minRelativePhase) const;
+
+    // ComponentGraph is used by writeBubbleGraphComponentSvg.
+    class ComponentGraphVertex {
+    public:
+        array<double, 2> position;
+    };
+    using ComponentGraph = boost::adjacency_list<boost::listS, boost::vecS, boost::undirectedS, ComponentGraphVertex>;
+
 
     // Use the BubbleGraph to flag bad bubbles.
     void flagBadBubbles();
@@ -180,11 +220,14 @@ private:
     // Phase bubbles and reads.
     void phase(
         uint64_t iterationCount,
-        uint64_t randomSeed);
+        uint64_t randomSeed,
+        double minRelativePhase);
     void phaseComponent(
+        uint64_t componentId,
         const vector<BubbleGraph::vertex_descriptor>&,
         uint64_t iterationCount,
-        std::mt19937&);
+        std::mt19937&,
+        double minRelativePhase);
     void phaseComponentIteration(
         const vector<BubbleGraph::vertex_descriptor>&,
         std::mt19937&);
