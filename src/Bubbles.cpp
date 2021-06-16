@@ -511,7 +511,7 @@ void Bubbles::writeBubbleGraphComponentSvg(
     }
 
     // Compute the layout of this graph.
-    std::map<uint64_t, array<double, 2> > positionMap;
+    std::map<ComponentGraph::vertex_descriptor, array<double, 2> > positionMap;
     SHASTA_ASSERT(computeLayout(componentGraph, "sfdp", 600., positionMap) == ComputeLayoutReturnCode::Success);
     for(uint64_t i=0; i<component.size(); i++) {
         componentGraph[i].position = positionMap[i];
