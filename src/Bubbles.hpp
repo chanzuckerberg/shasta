@@ -222,10 +222,10 @@ private:
     // the bubbles by discordant ratio and the edges by ambiguity.
     void writeBubbleGraphGraphviz() const;
 
-    // Write a single component of the BubbleGraph in svg format.
+    // Write a single component of the BubbleGraph in html/svg format.
     // To compute sfdp layout, only consider edges
     // for which relativePhase() >= minRelativePhase.
-    void writeBubbleGraphComponentSvg(
+    void writeBubbleGraphComponentHtml(
         uint64_t componentId,
         const vector<BubbleGraph::vertex_descriptor>& component,
         double minRelativePhase) const;
@@ -255,11 +255,17 @@ private:
     public:
         OrientedReadId orientedReadId;
         int64_t phase = 0;
+        array<double, 2> position;
     };
     class PhasingGraphEdge {
     public:
         uint64_t sameSideCount;
         uint64_t oppositeSideCount;
+        double relativePhase() const
+        {
+            const double ratio = double(sameSideCount) / double(sameSideCount + oppositeSideCount); // In [0,1]
+            return 2. * ratio - 1.; // In (-1, 1)
+        }
     };
     using PhasingGraphBaseClass =
         boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
@@ -270,10 +276,37 @@ private:
         std::map<OrientedReadId, vertex_descriptor> vertexMap;
         void createVertices(const vector<OrientedReadId>&);
         void phase();
+        // Write in html/svg format.
+        // To compute sfdp layout, only consider edges
+        // for which relativePhase() >= minRelativePhase.
+        void writeHtml(
+            const string& fileName,
+            double minRelativePhase) const;
     };
     void createPhasingGraph(
         const vector<OrientedReadId>&,
         PhasingGraph&) const;
+
+
+
+    // A predicate used to filter PhasingGraph edges for which
+    // relativePhase() >= minrelativePhase.
+    class PhasingGraphEdgePredicate {
+    public:
+        PhasingGraphEdgePredicate(
+            const PhasingGraph& phasingGraph,
+            double minRelativePhase) :
+            phasingGraph(&phasingGraph),
+            minRelativePhase(minRelativePhase) {}
+
+        const PhasingGraph* phasingGraph;
+        double minRelativePhase;
+
+        bool operator() (const PhasingGraph::edge_descriptor e) const
+        {
+            return (*phasingGraph)[e].relativePhase() >= minRelativePhase;
+        }
+    };
 
 
     // Top level function for phasing.

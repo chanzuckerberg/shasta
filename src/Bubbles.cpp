@@ -8,6 +8,7 @@
 using namespace shasta;
 
 #include <boost/graph/connected_components.hpp>
+#include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 #include <queue>
@@ -561,7 +562,7 @@ void Bubbles::writeBubbleGraphGraphviz() const
 // Write a single component of the BubbleGraph in svg format.
 // To compute sfdp layout, only consider edges
 // for which relativePhase() >= minRelativePhase.
-void Bubbles::writeBubbleGraphComponentSvg(
+void Bubbles::writeBubbleGraphComponentHtml(
     uint64_t componentId,
     const vector<BubbleGraph::vertex_descriptor>& component,
     double minRelativePhase) const
@@ -698,6 +699,98 @@ void Bubbles::writeBubbleGraphComponentSvg(
 
 
 
+// Write in html/svg format.
+// To compute sfdp layout, only consider edges
+// for which relativePhase() >= minRelativePhase.
+void Bubbles::PhasingGraph::writeHtml(
+    const string& fileName,
+    double minRelativePhase) const
+{
+    using G = PhasingGraph;
+    const G& g = *this;
+
+    // Create a filtered PhasingGraph, containing only the edges
+    // with relativePhase() >= minRelativePhase.
+    using FilteredGraph = boost::filtered_graph<G, PhasingGraphEdgePredicate>;
+    FilteredGraph filteredGraph(g, PhasingGraphEdgePredicate(g, minRelativePhase));
+
+    // Compute the layout of the filtered graph.
+    std::map<FilteredGraph::vertex_descriptor, array<double, 2> > positionMap;
+    SHASTA_ASSERT(computeLayout(filteredGraph, "sfdp", 600., positionMap) == ComputeLayoutReturnCode::Success);
+    BGL_FORALL_VERTICES(v, filteredGraph, FilteredGraph) {
+        filteredGraph[v].position = positionMap[v];
+    }
+
+    // Graphics scaling.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::min();
+    BGL_FORALL_VERTICES_T(v, g, G) {
+        const auto& position = g[v].position;
+        xMin = min(xMin, position[0]);
+        xMax = max(xMax, position[0]);
+        yMin = min(yMin, position[1]);
+        yMax = max(yMax, position[1]);
+    }
+    const double xyRange = max(xMax-xMin, yMax-yMin);
+    const int svgSize = 1024;
+    const double vertexRadiusPixels = 3.;
+    const double vertexRadius = vertexRadiusPixels * xyRange / double(svgSize);
+    const double edgeThicknessPixels = 1.;
+    const double edgeThickness = edgeThicknessPixels * xyRange / double(svgSize);
+
+
+
+    // Write the componentGraph in svg format.
+
+    // Vertex attributes. Color by phase.
+    std::map<G::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
+    BGL_FORALL_VERTICES(v, g, G) {
+        const PhasingGraphVertex& vertex = g[v];
+        const int64_t phase = vertex.phase;
+        auto& attributes = vertexAttributes[v];
+        attributes.radius = vertexRadius;
+        if(phase == +1) {
+            attributes.color = "hsl(240,50%,50%)";
+        }
+        if(phase == -1) {
+            attributes.color = "hsl(300,50%,50%)";
+        }
+        attributes.tooltip = vertex.orientedReadId.getString();
+    }
+
+    // Edge attributes. Color by relative phase.
+    std::map<G::edge_descriptor, WriteGraph::EdgeAttributes> edgeAttributes;
+    BGL_FORALL_EDGES(e, g, G) {
+        const PhasingGraphEdge& edge = g[e];
+        const double relativePhase = edge.relativePhase();
+        const double hue = (1. + relativePhase) * 60.; /// Goes from 0 (red) to 120 (green).
+        auto& attributes = edgeAttributes[e];
+        attributes.thickness = edgeThickness;
+        if(relativePhase > 0.) {
+            attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,100%)";
+        } else {
+            attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,20%)";
+        }
+    }
+
+
+    // Draw the svg.
+    ofstream out(fileName);
+    out << "<html><body>";
+    WriteGraph::writeSvg(
+        g,
+        "PhasingGraph",
+        svgSize, svgSize,
+        vertexAttributes,
+        edgeAttributes,
+        out);
+    out << "</body></html>";
+}
+
+
+
 // Use the BubbleGraph to flag bad bubbles.
 void Bubbles::flagBadBubbles()
 {
@@ -759,7 +852,7 @@ void Bubbles::phase(
         // Phase the bubbles.
         // Eventually this will probably not be necessary, but can be useful for testing.
         phaseComponentBubbles(component);
-        writeBubbleGraphComponentSvg(componentId, component, minRelativePhase);
+        writeBubbleGraphComponentHtml(componentId, component, minRelativePhase);
 
         // Phase the oriented reads.
         vector<OrientedReadId> componentOrientedReadIds;
@@ -767,6 +860,9 @@ void Bubbles::phase(
         PhasingGraph phasingGraph;
         createPhasingGraph(componentOrientedReadIds, phasingGraph);
         phasingGraph.phase();
+        phasingGraph.writeHtml(
+            "PhasingGraph-Component-" + to_string(componentId) + ".html",
+            minRelativePhase);
     }
 }
 
@@ -900,6 +996,51 @@ void Bubbles::PhasingGraph::phase()
         A[i0 + i1*n] = similarity;
     }
 
+    // Check that the similarity matrix is symmetric.
+    for(uint64_t i0=0; i0<n; i0++) {
+        for(uint64_t i1=0; i1<n; i1++) {
+            SHASTA_ASSERT(A[i0*n + i1] == A[i0 + i1*n]);
+        }
+    }
+
+    // Compute the sum of each row. This will become the diagonal of the Laplacian matrix.
+    vector<double> D(n, 0.);
+    for(uint64_t i0=0; i0<n; i0++) {
+        for(uint64_t i1=0; i1<n; i1++) {
+            D[i0] += A[i0 + i1*n];
+        }
+    }
+
+    // Now turn A from the similarity matrix into the Laplacian matrix.
+    for(uint64_t i0=0; i0<n; i0++) {
+        for(uint64_t i1=0; i1<n; i1++) {
+            if(i0 == i1) {
+                A[i0 + i1*n] = D[i0];
+            } else {
+                A[i0 + i1*n] = - A[i0 + i1*n];
+            }
+        }
+    }
+
+
+
+    // Compute eigenvalues and eigenvectors.
+    int N = int(n);
+    vector<double> W(n);
+    const int LWORK = 10 * N;
+    vector<double> WORK(LWORK);
+    int INFO = 0;
+    dsyev_("V", "L", N, &A[0], N, &W[0], &WORK[0], LWORK, INFO);
+    SHASTA_ASSERT(INFO == 0);
+
+    // Get the phase from the sign of the components of the first eigenvector.
+    BGL_FORALL_VERTICES(v, g, G) {
+        if(A[vertexToIntegerMap[v]] >= 0.) {
+            g[v].phase = 1;
+        } else {
+            g[v].phase = -1;
+        }
+    }
 }
 
 
@@ -941,6 +1082,11 @@ void Bubbles::createPhasingGraph(
             PhasingGraph::edge_descriptor e;
             bool edgeWasAdded = false;
             tie(e, edgeWasAdded) = add_edge(v0, v1, phasingGraph);
+            SHASTA_ASSERT(edgeWasAdded);
+
+            PhasingGraphEdge& edge = phasingGraph[e];
+            edge.sameSideCount = sameSideCount;
+            edge.oppositeSideCount = oppositeSideCount;
         }
     }
 
