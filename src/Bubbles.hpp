@@ -12,7 +12,6 @@ Class to describe an analyze bubbles in the assembly graph.
 #include <boost/graph/adjacency_list.hpp>
 
 #include <limits>
-#include <random>
 #include "vector.hpp"
 
 namespace shasta {
@@ -218,19 +217,9 @@ private:
     void removeBadBubbles(double discordantRatioThreshold);
 
     // Phase bubbles and reads.
-    void phase(
-        uint64_t iterationCount,
-        uint64_t randomSeed,
-        double minRelativePhase);
-    void phaseComponent(
-        uint64_t componentId,
-        const vector<BubbleGraph::vertex_descriptor>&,
-        uint64_t iterationCount,
-        std::mt19937&,
-        double minRelativePhase);
-    void phaseComponentIteration(
-        const vector<BubbleGraph::vertex_descriptor>&,
-        std::mt19937&);
+    void phase(double minRelativePhase);
+    void phaseComponentSpectral(
+        const vector<BubbleGraph::vertex_descriptor>&);
 
 
 

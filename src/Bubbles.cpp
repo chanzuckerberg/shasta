@@ -3,6 +3,7 @@
 #include "computeLayout.hpp"
 #include "orderPairs.hpp"
 #include "prefixLength.hpp"
+#include "shastaLapack.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
 
@@ -19,12 +20,6 @@ Bubbles::Bubbles(
     // Bubbles with discordant ratio greater than this value
     // are considered bad and will be removed.
     const double discordantRatioThreshold = 0.1;
-
-    // Number of phasing iterations.
-    const uint64_t iterationCount = 1;
-
-    // Seed for random number generator.
-    uint64_t randomSeed = 231;
 
     // Only used for graphics.
     const double minRelativePhase = 0.;
@@ -44,7 +39,7 @@ Bubbles::Bubbles(
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
-    phase(iterationCount, randomSeed, minRelativePhase);
+    phase(minRelativePhase);
 
 }
 
@@ -537,7 +532,6 @@ void Bubbles::writeBubbleGraphComponentSvg(
     }
 
 
-
     // Graphics scaling.
     double xMin = std::numeric_limits<double>::max();
     double xMax = std::numeric_limits<double>::min();
@@ -554,7 +548,7 @@ void Bubbles::writeBubbleGraphComponentSvg(
     const int svgSize = 1024;
     const double vertexRadiusPixels = 3.;
     const double vertexRadius = vertexRadiusPixels * xyRange / double(svgSize);
-    const double edgeThicknessPixels = 0.4;
+    const double edgeThicknessPixels = 1.;
     const double edgeThickness = edgeThicknessPixels * xyRange / double(svgSize);
 
 
@@ -564,7 +558,10 @@ void Bubbles::writeBubbleGraphComponentSvg(
     // Vertex attributes. Color by phase.
     std::map<ComponentGraph::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
     BGL_FORALL_VERTICES(v, componentGraph, ComponentGraph) {
-        const int64_t phase = bubbleGraph[component[v]].phase;
+        const BubbleGraph::vertex_descriptor vb = component[v];
+        const BubbleGraphVertex& vertex = bubbleGraph[vb];
+        const uint64_t bubbleId = vertex.bubbleId;
+        const int64_t phase = vertex.phase;
         auto& attributes = vertexAttributes[v];
         attributes.radius = vertexRadius;
         if(phase == +1) {
@@ -573,6 +570,7 @@ void Bubbles::writeBubbleGraphComponentSvg(
         if(phase == -1) {
             attributes.color = "hsl(300,50%,50%)";
         }
+        attributes.tooltip = to_string(bubbleId);
     }
 
     // Edge attributes. Color by relative phase.
@@ -588,7 +586,11 @@ void Bubbles::writeBubbleGraphComponentSvg(
         const double hue = (1. + relativePhase) * 60.; /// Goes from 0 (red) to 120 (green).
         auto& attributes = edgeAttributes[e];
         attributes.thickness = edgeThickness;
-        attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,20%)";
+        if(relativePhase > 0.) {
+            attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,100%)";
+        } else {
+            attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,20%)";
+        }
     }
 
     // Draw the svg.
@@ -653,178 +655,101 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
 // This should be called after bad bubbles were already removed
 // from the bubble graph.
 void Bubbles::phase(
-    uint64_t iterationCount,
-    uint64_t randomSeed,
     double minRelativePhase)
 {
     bubbleGraph.computeConnectedComponents();
     cout << "Found " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
 
-    std::mt19937 randomSource(randomSeed);
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
-        phaseComponent(
-            componentId,
-            bubbleGraph.connectedComponents[componentId],
-            iterationCount,
-            randomSource,
-            minRelativePhase);
+        const vector<BubbleGraph::vertex_descriptor>& component = bubbleGraph.connectedComponents[componentId];
+        phaseComponentSpectral(component);
+        writeBubbleGraphComponentSvg(componentId, component, minRelativePhase);
     }
 }
 
 
 
-void Bubbles::phaseComponent(
-    uint64_t componentId,
-    const vector<BubbleGraph::vertex_descriptor>& component,
-    uint64_t iterationCount,
-    std::mt19937& randomSource,
-    double minRelativePhase)
+// Spectral phasing.
+void Bubbles::phaseComponentSpectral(
+    const vector<BubbleGraph::vertex_descriptor>& component)
 {
-    cout << "Phasing a connected component with " << component.size() <<
+    using vertex_descriptor = BubbleGraph::vertex_descriptor;
+
+    cout << "Spectral phasing a connected component with " << component.size() <<
         " bubbles." << endl;
 
-    // Iterate.
-    for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
-        cout << "Iteration " << iteration << endl;
-        phaseComponentIteration(component, randomSource);
-
+    // Map the vertices of this component to integers.
+    std::map<vertex_descriptor, uint64_t> componentVertexMap;
+    const uint64_t n = component.size();
+    for(uint64_t i=0; i<n; i++) {
+        componentVertexMap.insert(make_pair(component[i], i));
     }
 
-    // Write out this component in svg format.
-    writeBubbleGraphComponentSvg(componentId, component, minRelativePhase);
-
-}
-
-
-
-void Bubbles::phaseComponentIteration(
-    const vector<BubbleGraph::vertex_descriptor>& component,
-    std::mt19937& randomSource)
-{
-    using G = BubbleGraph;
-    G& g = bubbleGraph;
-    using vertex_descriptor = G::vertex_descriptor;
-
-    const bool debug = false;
-
-    // Set the phase to zero for all vertices in this component.
-    for(const vertex_descriptor v: component) {
-        g[v].phase = 0;
+    // Create the similarity matrix.
+    // For the similarity of two bubbles use
+    // diagonalCount() - offDiagonalCount().
+    // This can be negative, but spectral clustering is still possible.
+    vector<double> A(n * n, 0.);
+    for(uint64_t i0=0; i0<component.size(); i0++) {
+        const vertex_descriptor v0 = component[i0];
+        BGL_FORALL_OUTEDGES(v0, e, bubbleGraph, BubbleGraph) {
+            const BubbleGraphEdge& edge = bubbleGraph[e];
+            const vertex_descriptor v1 = target(e, bubbleGraph);
+            auto it = componentVertexMap.find(v1);
+            SHASTA_ASSERT(it != componentVertexMap.end());
+            const uint64_t i1 = it->second;
+            SHASTA_ASSERT(i0 != i1);
+            A[i0*n + i1] = double(edge.diagonalCount()) - double(edge.offDiagonalCount());
+        }
     }
 
-    // A priority queue ordered by the number of concordant reads
-    // that lead to each vertex.
-    using QueuedPair = pair<uint64_t, vertex_descriptor>;
-    std::priority_queue<
-        QueuedPair,
-        vector<QueuedPair>,
-        OrderPairsByFirstOnly<uint64_t, vertex_descriptor> > q;
+    // Check that the similarity matrix is symmetric.
+    for(uint64_t i0=0; i0<n; i0++) {
+        for(uint64_t i1=0; i1<n; i1++) {
+            SHASTA_ASSERT(A[i0*n + i1] == A[i0 + i1*n]);
+        }
+    }
 
-    // Pick a random vertex to start and queue it.
-    std::uniform_int_distribution<uint64_t>
-        uniformDistribution(0, component.size() - 1);
-    const vertex_descriptor v = component[uniformDistribution(randomSource)];
-    g[v].phase = 1;
-    q.push(make_pair(0, v));
+    // Compute the sum of each row. This will become the diagonal of the Laplacian matrix.
+    vector<double> D(n, 0.);
+    for(uint64_t i0=0; i0<n; i0++) {
+        for(uint64_t i1=0; i1<n; i1++) {
+            D[i0] += A[i0 + i1*n];
+        }
+    }
 
-
-    // Main search loop.
-    while(not q.empty()) {
-
-        // Dequeue the vertex with the top priority.
-        const QueuedPair p = q.top();
-        const vertex_descriptor v0 = p.second;
-        q.pop();
-        BubbleGraphVertex& vertex0 = g[v0];
-
-        // Check all edges incident on this vertex.
-        BGL_FORALL_OUTEDGES(v0, e, g, G) {
-            SHASTA_ASSERT(source(e, g) == v0);
-            const BubbleGraphEdge& edge = g[e];
-            const vertex_descriptor v1 = target(e, g);
-            BubbleGraphVertex& vertex1 = g[v1];
-
-            // Figure out the optimal phase of v1 based on the phase of v0 and
-            // this edge.
-            const uint64_t diagonalCount= edge.diagonalCount();
-            const uint64_t offDiagonalCount= edge.offDiagonalCount();
-            int64_t phase1 =  vertex0.phase;
-            if(diagonalCount < offDiagonalCount) {
-                phase1 = -phase1;
-            }
-
-
-            if(vertex1.phase == 0) {
-                // We have not been here before.
-                vertex1.phase = phase1;
-                q.push(make_pair(edge.concordantCount(), v1));
+    // Now turn A from the similarity matrix into the Laplacian matrix.
+    for(uint64_t i0=0; i0<n; i0++) {
+        for(uint64_t i1=0; i1<n; i1++) {
+            if(i0 == i1) {
+                A[i0 + i1*n] = D[i0];
             } else {
-                // We have been here before. If disagreement, keep track of it.
-                if(vertex1.phase != phase1) {
-                    if(debug) {
-                        cout << "Disagreement " << vertex1.phase << " " << phase1 << " " <<
-                            diagonalCount << " " << offDiagonalCount << endl;
-                    }
-                }
+                A[i0 + i1*n] = - A[i0 + i1*n];
             }
         }
     }
 
 
-    // When getting here, every bubble in this component was phased.
-    for(const vertex_descriptor v: component) {
-        SHASTA_ASSERT(bubbleGraph[v].phase != 0);
+    // Compute eigenvalues and eigenvectors.
+    int N = int(n);
+    vector<double> W(n);
+    const int LWORK = 10 * N;
+    vector<double> WORK(LWORK);
+    int INFO = 0;
+    dsyev_("V", "L", N, &A[0], N, &W[0], &WORK[0], LWORK, INFO);
+    SHASTA_ASSERT(INFO == 0);
+
+    // Get the phase from the sign of the components of the first eigenvector.
+    for(uint64_t i=0; i<n; i++) {
+        if(A[i] >= 0.) {
+            bubbleGraph[component[i]].phase = 1;
+        } else {
+            bubbleGraph[component[i]].phase = -1;
+        }
+
     }
 
-
-
-    // Use the phasing of the bubbles to phase the reads.
-    // First, gather all the reads in this component.
-    std::set<OrientedReadId> orientedReadIds;
-    for(const vertex_descriptor v: component) {
-        const uint64_t bubbleId = bubbleGraph[v].bubbleId;
-        const Bubble& bubble = bubbles[bubbleId];
-        for(uint64_t side=0; side<2; side++) {
-            for(const OrientedReadId orientedReadId: bubble.orientedReadIds[side]) {
-                orientedReadIds.insert(orientedReadId);
-            }
-        }
-    }
-    cout << "Found " << orientedReadIds.size() << " oriented reads in this component." << endl;
-
-
-
-    // For each oriented read, count the bubbles on each orientation.
-    for(const OrientedReadId orientedReadId: orientedReadIds) {
-
-        // Loop over pairs(bubbleId, side) where this orientedRead appears.
-        const vector <pair <uint64_t, uint64_t> >& v = orientedReadsTable[orientedReadId.getValue()];
-        uint64_t phasePlusCount = 0;
-        uint64_t phaseMinusCount = 0;
-        for(const auto& p: v) {
-            const uint64_t bubbleId = p.first;
-            const uint64_t side = p.second;
-            const vertex_descriptor v = bubbleGraph.vertexTable[bubbleId];
-            if(v == BubbleGraph::null_vertex()) {
-                continue;
-            }
-            const int64_t bubblePhase = bubbleGraph[v].phase;
-            int64_t orientedReadPhase = bubblePhase;
-            if(side == 1) {
-                orientedReadPhase = -orientedReadPhase;
-            }
-
-            if(orientedReadPhase == +1) {
-                ++phasePlusCount;
-            } else {
-                ++phaseMinusCount;
-            }
-        }
-        if(debug) {
-            cout << orientedReadId << " " << phasePlusCount << " " << phaseMinusCount << "\n";
-        }
-    }
 }
 
 
