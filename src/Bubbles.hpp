@@ -60,6 +60,9 @@ private:
             return double(discordantSum) / double(concordantSum + discordantSum);
         }
 
+        // This flag is set for bubbles flagged as bad and removed from the BubbleGraph.
+        bool isBad = false;
+
         // Constructor.
         Bubble(
             AssemblyGraph::VertexId av0,
@@ -85,9 +88,32 @@ private:
     // Contains pairs (bubbleId, side)
     // where bubbleId is an index into the bubbles vector
     // and side is 0 or 1.
+    // For each OrientedReadId, sorted by bubbleId and side.
+    // Note an oriented read cannot appearf on both sides of a bubble,
+    // by construction.
     vector< vector <pair <uint64_t, uint64_t> > > orientedReadsTable;
     void fillOrientedReadsTable();
     void writeOrientedReadsTable();
+
+    // Given two OrientedReadIds, use the orientedReadsTable
+    // to count the number of times they appear on the same
+    // side or opposite sides of the same bubble.
+    void findOrientedReadsRelativePhase(
+        OrientedReadId,
+        OrientedReadId,
+        uint64_t& sameSideCount,
+        uint64_t& oppositeSideCount
+    ) const;
+
+
+
+    // Find OrientedReadIds that appear in at least one bubble
+    // together with a given OrientedReadId.
+    // They are returned sorted.
+    void findNeighborOrientedReadIds(
+        OrientedReadId,
+        vector<OrientedReadId>&
+    ) const;
 
 
     // Figure out if two sequences differ only by copy numbers in
@@ -109,9 +135,9 @@ private:
             bubbleId(bubbleId) {}
         BubbleGraphVertex() : bubbleId(std::numeric_limits<uint64_t>::max()) {}
 
-        uint64_t component;
+        uint64_t componentId = std::numeric_limits<uint64_t>::max();
         uint64_t color;
-        int64_t phase;
+        int64_t phase = std::numeric_limits<int64_t>::max();
     };
     class BubbleGraphEdge {
     public:
@@ -216,11 +242,60 @@ private:
     void flagBadBubbles();
     void removeBadBubbles(double discordantRatioThreshold);
 
-    // Phase bubbles and reads.
+
+
+    // In the PhasingGraph, each vertex represents an OrientedReadId.
+    // Two vertices are joined by an undirected edge
+    // if the corresponding OrientedReadIds appear
+    // together in at least one bubble.
+    // There is no global PhasingGraph object.
+    // We construct a separate PhasingGraph for each connected
+    // component of the BubbleGraph.
+    class PhasingGraphVertex {
+    public:
+        OrientedReadId orientedReadId;
+        int64_t phase = 0;
+    };
+    class PhasingGraphEdge {
+    public:
+        uint64_t sameSideCount;
+        uint64_t oppositeSideCount;
+    };
+    using PhasingGraphBaseClass =
+        boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
+        PhasingGraphVertex, PhasingGraphEdge>;
+
+    class PhasingGraph: public PhasingGraphBaseClass {
+    public:
+        std::map<OrientedReadId, vertex_descriptor> vertexMap;
+        void createVertices(const vector<OrientedReadId>&);
+        void phase();
+    };
+    void createPhasingGraph(
+        const vector<OrientedReadId>&,
+        PhasingGraph&) const;
+
+
+    // Top level function for phasing.
     void phase(double minRelativePhase);
-    void phaseComponentSpectral(
+
+    // Phase the bubbles of a connected component of the BubbleGraph.
+    // This stores the phases in the component vertices.
+    void phaseComponentBubbles(
         const vector<BubbleGraph::vertex_descriptor>&);
 
+    // The component and phase of each oriented read.
+    // The phase is +1 or -1.
+    // Indexed by OrientedRead::getValue().
+    vector< pair<uint64_t, uint64_t> > orientedReadsPhase;
+
+    // Given a connected component of the BubbleGraph,
+    // find the OrientedReadIds that appear in it.
+    // The OrientedReadIds are returned sorted.
+    void findComponentOrientedReads(
+        const vector<BubbleGraph::vertex_descriptor>&,
+        vector<OrientedReadId>&
+        ) const;
 
 
     const Assembler& assembler;

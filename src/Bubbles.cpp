@@ -366,6 +366,96 @@ void Bubbles::writeOrientedReadsTable()
 
 
 
+// Given two OrientedReadIds, use the orientedReadsTable
+// to count the number of times they appear on the same
+// side or opposite sides of the same bubble.
+void Bubbles::findOrientedReadsRelativePhase(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    uint64_t& sameSideCount,
+    uint64_t& oppositeSideCount
+) const
+{
+    const vector<pair <uint64_t, uint64_t> >& v0 = orientedReadsTable[orientedReadId0.getValue()];
+    const vector<pair <uint64_t, uint64_t> >& v1 = orientedReadsTable[orientedReadId1.getValue()];
+
+    sameSideCount = 0;
+    oppositeSideCount = 0;
+
+    auto begin0 = v0.begin();
+    auto begin1 = v1.begin();
+    auto end0 = v0.end();
+    auto end1 = v1.end();
+
+    auto it0 = begin0;
+    auto it1 = begin1;
+
+    // The loop makes use of the fact that an OrientedReadId cannot appear
+    // on both sides of a bubble.
+    while((it0!=end0) and (it1!=end1)) {
+        const uint64_t bubbleId0 = it0->first;
+        const uint64_t bubbleId1 = it1->first;
+
+        if(bubbleId0 < bubbleId1) {
+            ++it0;
+            continue;
+        }
+
+        if(bubbleId1 < bubbleId0) {
+            ++it1;
+            continue;
+        }
+
+        SHASTA_ASSERT(bubbleId0 == bubbleId1);
+
+        if(not bubbles[bubbleId0].isBad) {
+            const uint64_t side0 = it0->second;
+            const uint64_t side1 = it1->second;
+            if(side0 == side1) {
+                ++sameSideCount;
+            } else {
+                ++oppositeSideCount;
+            }
+        }
+
+        ++it0;
+        ++it1;
+    }
+}
+
+
+
+// Find OrientedReadIds that appear in at least one bubble
+// together with a given OrientedReadId.
+// They are returned sorted.
+void Bubbles::findNeighborOrientedReadIds(
+    OrientedReadId orientedReadId0,
+    vector<OrientedReadId>& orientedReadIds
+) const
+{
+    const vector <pair <uint64_t, uint64_t> >& v0 = orientedReadsTable[orientedReadId0.getValue()];
+    std::set<OrientedReadId> orientedReadIdsSet;
+    for(const auto& p: v0) {
+        const uint64_t bubbleId = p.first;
+        const Bubble& bubble = bubbles[bubbleId];
+        if(bubble.isBad) {
+            continue;
+        }
+        for(uint64_t side=0; side<2; side++) {
+            for(const OrientedReadId orientedReadId1: bubble.orientedReadIds[side]) {
+                if(orientedReadId1 != orientedReadId0) {
+                    orientedReadIdsSet.insert(orientedReadId1);
+                }
+            }
+        }
+    }
+
+    orientedReadIds.clear();
+    copy(orientedReadIdsSet.begin(), orientedReadIdsSet.end(), back_inserter(orientedReadIds));
+}
+
+
+
 void Bubbles::createBubbleGraph()
 {
     // Create the vertices.
@@ -638,6 +728,7 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
             clear_vertex(v, bubbleGraph);
             remove_vertex(v, bubbleGraph);
             bubbleGraph.vertexTable[bubbleId] = BubbleGraph::null_vertex();
+            bubbles[bubbleId].isBad = true;
             ++removedCount;
         }
     }
@@ -662,21 +753,33 @@ void Bubbles::phase(
         " connected components of the bubble graph." << endl;
 
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
+        cout << "Working on connected component " << componentId << endl;
         const vector<BubbleGraph::vertex_descriptor>& component = bubbleGraph.connectedComponents[componentId];
-        phaseComponentSpectral(component);
+
+        // Phase the bubbles.
+        // Eventually this will probably not be necessary, but can be useful for testing.
+        phaseComponentBubbles(component);
         writeBubbleGraphComponentSvg(componentId, component, minRelativePhase);
+
+        // Phase the oriented reads.
+        vector<OrientedReadId> componentOrientedReadIds;
+        findComponentOrientedReads(component, componentOrientedReadIds);
+        PhasingGraph phasingGraph;
+        createPhasingGraph(componentOrientedReadIds, phasingGraph);
+        phasingGraph.phase();
     }
 }
 
 
 
-// Spectral phasing.
-void Bubbles::phaseComponentSpectral(
+// Phase the bubbles of a connected component of the BubbleGraph.
+// This sets the phase in the component vertices.
+void Bubbles::phaseComponentBubbles(
     const vector<BubbleGraph::vertex_descriptor>& component)
 {
     using vertex_descriptor = BubbleGraph::vertex_descriptor;
 
-    cout << "Spectral phasing a connected component with " << component.size() <<
+    cout << "Phasing bubbles of a connected component with " << component.size() <<
         " bubbles." << endl;
 
     // Map the vertices of this component to integers.
@@ -754,6 +857,156 @@ void Bubbles::phaseComponentSpectral(
 
 
 
+// Phase the oriented reads of a connected component of the BubbleGraph.
+// This stores the phases in the orientedReadsPhase vector.
+void Bubbles::PhasingGraph::phase()
+{
+    using G = PhasingGraph;
+    G& g = *this;
+
+    const uint64_t n = vertexMap.size();
+    cout << "Phasing oriented reads of a PhasingGraph with " << n <<
+        " oriented reads." << endl;
+
+    // Map vertices to integers.
+    std::map<vertex_descriptor, uint64_t> vertexToIntegerMap;
+    uint64_t i = 0;
+    BGL_FORALL_VERTICES(v, g, G) {
+        vertexToIntegerMap.insert(make_pair(v, i++));
+    }
+
+
+
+    // Create the similarity matrix.
+    // For the similarity of two oriented reads use
+    // sameSideCount - oppositeSideCount.
+    // This can be negative, but spectral clustering is still possible.
+    vector<double> A(n * n, 0.);
+    BGL_FORALL_EDGES(e, g, G) {
+        const PhasingGraphEdge& edge = g[e];
+        const vertex_descriptor v0 = source(e, g);
+        const vertex_descriptor v1 = target(e, g);
+
+        // Find the matrix indexes for these two vertices.
+        const auto it0 = vertexToIntegerMap.find(v0);
+        SHASTA_ASSERT(it0 != vertexToIntegerMap.end());
+        const uint64_t i0 = it0->second;
+        const auto it1 = vertexToIntegerMap.find(v1);
+        SHASTA_ASSERT(it1 != vertexToIntegerMap.end());
+        const uint64_t i1 = it1->second;
+
+        const double similarity = double(edge.sameSideCount) - double(edge.oppositeSideCount);
+        A[i0*n + i1] = similarity;
+        A[i0 + i1*n] = similarity;
+    }
+
+}
+
+
+
+void Bubbles::createPhasingGraph(
+    const vector<OrientedReadId>& orientedReadIds,
+    PhasingGraph& phasingGraph) const
+{
+    // Create the vertices and the vertexMap.
+    phasingGraph.createVertices(orientedReadIds);
+
+    // Create the edges.
+    BGL_FORALL_VERTICES(v0, phasingGraph, PhasingGraph) {
+        const OrientedReadId orientedReadId0 = phasingGraph[v0].orientedReadId;
+
+        // Find the neighbors of v0 - that is, the ones that
+        // have at least one bubble in common.
+        vector<OrientedReadId> orientedReadIds1;
+        findNeighborOrientedReadIds(orientedReadId0, orientedReadIds1);
+
+        for(const OrientedReadId orientedReadId1: orientedReadIds1) {
+
+            // Don't add an edge twice.
+            if(orientedReadId1 <= orientedReadId0) {
+                continue;
+            }
+
+            // Locate the vertex corresponding to orientedReadId1.
+            auto it1 = phasingGraph.vertexMap.find(orientedReadId1);
+            SHASTA_ASSERT(it1 != phasingGraph.vertexMap.end());
+            const PhasingGraph::vertex_descriptor v1 = it1->second;
+
+            uint64_t sameSideCount = 0;
+            uint64_t oppositeSideCount = 0;
+            findOrientedReadsRelativePhase(
+                orientedReadId0, orientedReadId1,
+                sameSideCount, oppositeSideCount);
+
+            PhasingGraph::edge_descriptor e;
+            bool edgeWasAdded = false;
+            tie(e, edgeWasAdded) = add_edge(v0, v1, phasingGraph);
+        }
+    }
+
+}
+
+
+
+void Bubbles::PhasingGraph::createVertices(
+    const vector<OrientedReadId>& orientedReadIds)
+{
+    PhasingGraph& g = *this;
+
+    for(const OrientedReadId orientedReadId: orientedReadIds) {
+        const vertex_descriptor v = add_vertex(g);
+        g[v].orientedReadId = orientedReadId;
+        vertexMap.insert(make_pair(orientedReadId, v));
+    }
+}
+
+
+
+// Given a connected component of the BubbleGraph,
+// find the OrientedReadIds that appear in it.
+// The OrientedReadIds are returned sorted.
+void Bubbles::findComponentOrientedReads(
+    const vector<BubbleGraph::vertex_descriptor>& component,
+    vector<OrientedReadId>& orientedReadIds
+    ) const
+{
+#if 0
+    cout << "Bubbles in this component:";
+    for(const BubbleGraph::vertex_descriptor v: component) {
+        const uint64_t bubbleId = bubbleGraph[v].bubbleId;
+        cout << " " << bubbleId;
+    }
+    cout << endl;
+#endif
+
+    std::set<OrientedReadId> orientedReadIdsSet;
+    for(const BubbleGraph::vertex_descriptor v: component) {
+        const uint64_t bubbleId = bubbleGraph[v].bubbleId;
+        const Bubble& bubble = bubbles[bubbleId];
+        if(bubble.isBad) {
+            continue;
+        }
+        for(uint64_t side=0; side<2; side++) {
+            for(const OrientedReadId orientedReadId: bubble.orientedReadIds[side]) {
+                orientedReadIdsSet.insert(orientedReadId);
+            }
+        }
+    }
+
+    orientedReadIds.clear();
+    copy(orientedReadIdsSet.begin(), orientedReadIdsSet.end(),
+        back_inserter(orientedReadIds));
+
+#if 0
+    cout << "OrientedReadIds in this component:" << endl;
+    for(const OrientedReadId orientedReadId: orientedReadIds) {
+        cout << orientedReadId << " ";
+    }
+    cout << endl;
+#endif
+}
+
+
 void Bubbles::BubbleGraph::computeConnectedComponents()
 {
     using boost::connected_components;
@@ -764,13 +1017,13 @@ void Bubbles::BubbleGraph::computeConnectedComponents()
     G& g = *this;
 
     connected_components(g,
-        get(&BubbleGraphVertex::component, g),
+        get(&BubbleGraphVertex::componentId, g),
         color_map(get(&BubbleGraphVertex::color, g)));
 
     // Gather the vertices in each connected component.
     std::map<uint64_t, vector<vertex_descriptor> > componentMap;
     BGL_FORALL_VERTICES(v, g, G) {
-        componentMap[g[v].component].push_back(v);
+        componentMap[g[v].componentId].push_back(v);
     }
     connectedComponents.clear();
     for(const auto& p: componentMap) {
