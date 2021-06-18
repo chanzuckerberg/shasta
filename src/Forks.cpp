@@ -175,7 +175,7 @@ void Forks::constructOrientedReadEdgeInfos()
     // Write them out.
     if(debug) {
         ofstream csv("OrientedReadEdgeInfos.csv");
-        csv << "OrientedReadId,Ordinal0,Ordinal1,EdgeId,VertexId0,VertexId1,Direction\n";
+        csv << "OrientedReadId,Ordinal0,Ordinal1,EdgeId,VertexId0,VertexId1,ForkVertexId,Direction,BranchIndex\n";
         const ReadId readCount = ReadId(orientedReadCount / 2);
         for(ReadId readId=0; readId<readCount; readId++) {
             for(Strand strand=0; strand<2; strand++) {
@@ -192,7 +192,9 @@ void Forks::constructOrientedReadEdgeInfos()
                     csv << edgeInfo.edgeId << ",";
                     csv << edge.source << ",";
                     csv << edge.target << ",";
-                    csv << (edgeInfo.fork->direction == ForkDirection::Forward ? "Forward" : "Backward") << "\n";
+                    csv << (edgeInfo.fork->direction==ForkDirection::Forward ? edge.source : edge.target) << ",";
+                    csv << directionString(edgeInfo.fork->direction) << ",";
+                    csv << edgeInfo.branch << "\n";
                 }
             }
 
@@ -238,15 +240,15 @@ void Forks::analyze(
         html << "<h2>Nearby forks</h2>"
             "<p>There are " << nearbyForks.size() << " forks within a maximum distance of " << maxDistance <<
             " markers from this fork."
-            "<table><tr><th>Index<th>Direction<th>VertexId<th>Marker<br>offset";
+            "<table><tr><th>Index<th>VertexId<th>Direction<th>Marker<br>offset";
         for(uint64_t id=0; id<nearbyForks.size(); id++) {
             const auto& p = nearbyForks[id];
             const Fork* fork1 = p.first;
             const int32_t offset = p.second;
             html << "<tr>"
                 "<td class=centered>" << id <<
-                "<td class=centered>" << directionString(fork1->direction) <<
                 "<td class=centered>" << fork1->vertexId <<
+                "<td class=centered>" << directionString(fork1->direction) <<
                 "<td class=centered>" << offset << endl;
         }
         html << "</table>";
@@ -342,12 +344,14 @@ void Forks::analyze(
 
         // Table body.
         for(uint64_t orientedReadIndex=0; orientedReadIndex<branchTable.size(); orientedReadIndex++) {
+            const OrientedReadId orientedReadId = nearbyForksOrientedReadIds[orientedReadIndex];
             const auto& v = branchTable[orientedReadIndex];
             html << "<tr><td class=centered>" << orientedReadIndex <<
-                "<td class=centered>" <<
-                nearbyForksOrientedReadIds[orientedReadIndex];
+                "<td class=centered>" <<orientedReadId;
             for(uint64_t forkIndex=0; forkIndex<v.size(); forkIndex++) {
-                html << "<td class=centered";
+                const Fork* fork1 = nearbyForks[forkIndex].first;
+                html << "<td class=centered title='" << orientedReadId << " " <<
+                    fork1->vertexId << " " << directionString(fork1->direction) << "'";
                 if(nearbyForks[forkIndex].first == &fork0) {
                     html << " style='background-color:Beige'";
                 }

@@ -146,6 +146,10 @@ public:
     {
         return value == that.value;
     }
+    bool operator!=(Base that) const
+    {
+        return value != that.value;
+    }
     bool operator<(Base that) const
     {
         return value < that.value;

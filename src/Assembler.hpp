@@ -1733,6 +1733,20 @@ private:
 
 
 
+    // Get the RLE sequence implied by a MarkerInterval.
+    // If the markers overlap, returns the number of
+    // overlapping RLE bases in overlappingRleBaseCount
+    // and empty rleSequence.
+    // Otherwise, returns zero overlappingRleBaseCount
+    // and the intervening sequence in rleSequence
+    // (which can be empty if the two markers are exactly adjacent).
+    void getMarkerIntervalRleSequence(
+        const MarkerInterval&,
+        uint64_t& overlappingRleBaseCount,
+        vector<Base>& rleSequence) const;
+
+
+
     // Use spoa to compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
@@ -1815,6 +1829,7 @@ public:
         uint64_t minEdgeCount);
 
 
+    void analyzeAssemblyGraphBubbles();
 
     // Compute consensus repeat counts for each vertex of the marker graph.
     void assembleMarkerGraphVertices(size_t threadCount);
@@ -2017,9 +2032,24 @@ private:
 
 
 
+    // Assemble the RLE sequence of a path of the marker graph, under the assumption
+    // that, for each edge, all oriented reads have exactly the same sequence.
+    // This will be the case if edges were created by Assembler::createMarkerGraphEdgesStrict.
+public:
+    void assembleMarkerGraphPathRleStrict(
+        span<const MarkerGraph::EdgeId> path,
+        vector<Base>& rleSequence
+    ) const;
+    // Same, but for an assembly graph edge.
+    void assembleAssemblyGraphEdgeRleStrict(
+        AssemblyGraph::EdgeId,
+        vector<Base>& rleSequence
+    ) const;
+
+
+
     // Write the assembly graph in GFA 1.0 format defined here:
     // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
-public:
     void writeGfa1(const string& fileName);
     void writeGfa1BothStrands(const string& fileName);
     void writeGfa1BothStrandsNoSequence(const string& fileName);

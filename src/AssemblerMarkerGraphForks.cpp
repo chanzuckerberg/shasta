@@ -6,7 +6,7 @@ using namespace shasta;
 void Assembler::analyzeMarkerGraphForks()
 {
     Forks forks(markers, markerGraph);
-    const uint32_t maxDistance = 1000;
+    const uint32_t maxDistance = 1000000;
 
     // while(true) {
         try {

@@ -5358,3 +5358,156 @@ void Assembler::debugWriteMarkerGraph(const string& fileNamePrefix) const
         }
     }
 }
+
+
+
+// Assemble the RLE sequence of a path of the marker graph, under the assumption
+// that, for each edge, all oriented reads have exactly the same sequence.
+// This will be the case if edges were created by Assembler::createMarkerGraphEdgesStrict.
+void Assembler::assembleMarkerGraphPathRleStrict(
+    span<const MarkerGraph::EdgeId> path,
+    vector<Base>& rleSequence
+    ) const
+{
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
+    const uint64_t k = assemblerInfo->k;
+
+    // Start with no sequence.
+    rleSequence.clear();
+    if(path.empty()) {
+        return;
+    }
+
+    // Add the RLE sequence of the first vertex.
+    VertexId v0 = markerGraph.edges[path.front()].source;
+    const MarkerId firstMarkerId = markerGraph.getVertexMarkerIds(v0)[0];
+    const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
+    const KmerId kmerId = firstMarker.kmerId;
+    const Kmer kmer(kmerId, k);
+    for(uint64_t i=0; i<k; i++) {
+        rleSequence.push_back(kmer[i]);
+    }
+
+
+
+    // Loop over edges of the path.
+    for(const EdgeId edgeId: path) {
+        const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+        SHASTA_ASSERT(edge.source == v0);
+        const VertexId v1 = edge.target;
+
+        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+        SHASTA_ASSERT(not markerIntervals.empty());
+
+        // Get the RLE sequence and check that all the MarkerIntervals agree.
+        // This will be the case if edges were created by Assembler::createMarkerGraphEdgesStrict.
+        uint64_t overlappingRleBaseCount;
+        vector<Base> edgeRleSequence;
+        getMarkerIntervalRleSequence(
+            markerIntervals.front(),
+            overlappingRleBaseCount,
+            edgeRleSequence);
+        uint64_t markerIntervalOverlappingRleBaseCount;
+        vector<Base> markerIntervalRleSequence;
+        for(const MarkerInterval& markerInterval: markerIntervals) {
+            getMarkerIntervalRleSequence(
+                markerInterval,
+                markerIntervalOverlappingRleBaseCount,
+                markerIntervalRleSequence);
+            SHASTA_ASSERT(markerIntervalOverlappingRleBaseCount == overlappingRleBaseCount);
+            SHASTA_ASSERT(markerIntervalRleSequence == edgeRleSequence);
+        }
+
+
+
+        // Construct the sequence of the v1 vertex.
+        const MarkerId markerId1 = markerGraph.getVertexMarkerIds(v1)[0];
+        const CompressedMarker& marker1 = markers.begin()[markerId1];
+        const KmerId kmerId1 = marker1.kmerId;
+        const Kmer kmer1(kmerId1, k);
+
+
+        // Add the sequence of this edge and the v1 vertex.
+        if(overlappingRleBaseCount == 0) {
+
+            // There is no overlap.
+
+            // Add the edge sequence.
+            copy(edgeRleSequence.begin(), edgeRleSequence.end(), back_inserter(rleSequence));
+
+            // Add the entire sequence of v1.
+            for(uint64_t i=0; i<k; i++) {
+                rleSequence.push_back(kmer1[i]);
+            }
+
+        } else {
+
+            // There is overlap.
+            // Add the sequence of v1, excluding the overlapping bases.
+            for(uint64_t i=overlappingRleBaseCount; i<k; i++) {
+                rleSequence.push_back(kmer1[i]);
+            }
+        }
+
+
+        // Prepare to process the next edge.
+        v0 = v1;
+    }
+}
+
+
+
+void Assembler::assembleAssemblyGraphEdgeRleStrict(
+    AssemblyGraph::EdgeId edgeId,
+    vector<Base>& rleSequence
+) const
+{
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    assembleMarkerGraphPathRleStrict(
+        assemblyGraph.edgeLists[edgeId],
+        rleSequence);
+}
+
+
+
+// Get the RLE sequence implied by a MarkerInterval.
+// If the markers overlap, returns the number of
+// overlapping RLE bases in overlappingRleBaseCount
+// and empty rleSequence.
+// Otherwise, returns zero overlappingRleBaseCount
+// and the intervening sequence in rleSequence
+// (which can be empty if the two markers are exactly adjacent).
+void Assembler::getMarkerIntervalRleSequence(
+    const MarkerInterval& markerInterval,
+    uint64_t& overlappingRleBaseCount,
+    vector<Base>& rleSequence) const
+{
+    const uint64_t k = assemblerInfo->k;
+    const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+
+    // Extract the k-mers and their RLE positions in this oriented read.
+    array<Kmer, 2> kmers;
+    array<uint32_t, 2> positions;
+    for(uint64_t i=0; i<2; i++) {
+        const MarkerId markerId = getMarkerId(orientedReadId, markerInterval.ordinals[i]);
+        const CompressedMarker& compressedMarker = markers.begin()[markerId];
+        kmers[i] = Kmer(compressedMarker.kmerId, k);
+        positions[i] = compressedMarker.position;
+    }
+
+
+    if(positions[1] < positions[0] + k) {
+        // The two markers overlap.
+        overlappingRleBaseCount = (positions[0] + k) - positions[1];
+        rleSequence.clear();
+    } else {
+        // The two markers don't overlap.
+        overlappingRleBaseCount = 0;
+        rleSequence.clear();
+        for(uint32_t position=positions[0]+uint32_t(k); position<positions[1]; position++) {
+            rleSequence.push_back(getReads().getOrientedReadBase(orientedReadId, position));
+        }
+    }
+}
+
