@@ -415,6 +415,20 @@ void Assembler::exploreAlignmentCandidateGraph(
 
     // Create the local graph.
     LocalAlignmentCandidateGraph graph;
+
+    if (not alignmentCandidates.candidates.isOpen) {
+        accessAlignmentCandidates();
+    }
+    if (not alignmentCandidates.candidateTable.isOpen()) {
+        accessAlignmentCandidateTable();
+    }
+    if (not alignmentData.isOpen) {
+        accessAlignmentData();
+    }
+    if (not readGraph.connectivity.isOpen() or not readGraph.edges.isOpen) {
+        accessReadGraph();
+    }
+
     if (referenceGraphOnly){
         if(!createLocalReferenceGraph(
                 readIds,
@@ -427,19 +441,6 @@ void Assembler::exploreAlignmentCandidateGraph(
         }
     }
     else {
-        if (not alignmentCandidates.candidates.isOpen) {
-            accessAlignmentCandidates();
-        }
-        if (not alignmentCandidates.candidateTable.isOpen()) {
-            accessAlignmentCandidateTable();
-        }
-        if (not alignmentData.isOpen) {
-            accessAlignmentData();
-        }
-        if (not readGraph.connectivity.isOpen() or not readGraph.edges.isOpen) {
-            accessReadGraph();
-        }
-
         if (!createLocalAlignmentCandidateGraph(
                 readIds,
                 maxDistance,
