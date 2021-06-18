@@ -427,6 +427,19 @@ void Assembler::exploreAlignmentCandidateGraph(
         }
     }
     else {
+        if (not alignmentCandidates.candidates.isOpen) {
+            accessAlignmentCandidates();
+        }
+        if (not alignmentCandidates.candidateTable.isOpen()) {
+            accessAlignmentCandidateTable();
+        }
+        if (not alignmentData.isOpen) {
+            accessAlignmentData();
+        }
+        if (not readGraph.connectivity.isOpen() or not readGraph.edges.isOpen) {
+            accessReadGraph();
+        }
+
         if (!createLocalAlignmentCandidateGraph(
                 readIds,
                 maxDistance,
