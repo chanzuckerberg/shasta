@@ -399,6 +399,13 @@ void Assembler::accessAllSoft()
     }
 
     try {
+        accessAlignmentCandidateTable();
+    } catch(const exception& e) {
+        cout << "Alignment candidate table is not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
         accessReadLowHashStatistics();
     } catch(const exception& e) {
         cout << "Read alignment statistics are not accessible." << endl;

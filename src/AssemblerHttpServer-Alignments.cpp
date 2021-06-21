@@ -415,6 +415,7 @@ void Assembler::exploreAlignmentCandidateGraph(
 
     // Create the local graph.
     LocalAlignmentCandidateGraph graph;
+
     if (referenceGraphOnly){
         if(!createLocalReferenceGraph(
                 readIds,
