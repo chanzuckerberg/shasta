@@ -849,6 +849,11 @@ void Bubbles::phase(
     cout << "Found " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
 
+    orientedReadsPhase.resize(orientedReadsTable.size());
+        make_pair(
+        std::numeric_limits<uint32_t>::max(),
+        std::numeric_limits<uint32_t>::max());
+
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
         cout << "Working on connected component " << componentId << endl;
         const vector<BubbleGraph::vertex_descriptor>& component = bubbleGraph.connectedComponents[componentId];
@@ -863,10 +868,25 @@ void Bubbles::phase(
         findComponentOrientedReads(component, componentOrientedReadIds);
         PhasingGraph phasingGraph;
         createPhasingGraph(componentOrientedReadIds, phasingGraph);
-        phasingGraph.phase();
+        phasingGraph.phaseSpectral();
         phasingGraph.writeHtml(
             "PhasingGraph-Component-" + to_string(componentId) + ".html",
             minRelativePhase);
+
+        // Copy the phasing for this connected component to the global
+        // phasing vector orientedReadsPhase.
+        BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+            PhasingGraphVertex& vertex = phasingGraph[v];
+            const OrientedReadId orientedReadId = vertex.orientedReadId;
+            auto& p = orientedReadsPhase[orientedReadId.getValue()];
+            p.first = uint32_t(componentId);
+            if(vertex.phase == 1) {
+                p.second = 0;
+            } else {
+                p.second = 1;
+            }
+        }
+
     }
 }
 
@@ -959,7 +979,7 @@ void Bubbles::phaseComponentBubbles(
 
 // Phase the oriented reads of a connected component of the BubbleGraph.
 // This stores the phases in the orientedReadsPhase vector.
-void Bubbles::PhasingGraph::phase()
+void Bubbles::PhasingGraph::phaseSpectral()
 {
     using G = PhasingGraph;
     G& g = *this;
@@ -1039,12 +1059,14 @@ void Bubbles::PhasingGraph::phase()
 
     // Get the phase from the sign of the components of the first eigenvector.
     BGL_FORALL_VERTICES(v, g, G) {
+        PhasingGraphVertex& vertex = g[v];
         const double eigenvectorComponent = A[vertexToIntegerMap[v]];
-        g[v].eigenvectorComponent = eigenvectorComponent;
+        vertex.eigenvectorComponent = eigenvectorComponent;
+
         if(eigenvectorComponent >= 0.) {
-            g[v].phase = 1;
+            vertex.phase = 1;
         } else {
-            g[v].phase = -1;
+            vertex.phase = -1;
         }
     }
 }

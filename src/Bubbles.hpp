@@ -276,7 +276,8 @@ private:
     public:
         std::map<OrientedReadId, vertex_descriptor> vertexMap;
         void createVertices(const vector<OrientedReadId>&);
-        void phase();
+        void phaseSpectral();
+        void phaseSvd();
         // Write in html/svg format.
         // To compute sfdp layout, only consider edges
         // for which relativePhase() >= minRelativePhase.
@@ -319,9 +320,9 @@ private:
         const vector<BubbleGraph::vertex_descriptor>&);
 
     // The component and phase of each oriented read.
-    // The phase is +1 or -1.
+    // The phase is 0 or 1.
     // Indexed by OrientedRead::getValue().
-    vector< pair<uint64_t, uint64_t> > orientedReadsPhase;
+    vector< pair<uint32_t, uint32_t> > orientedReadsPhase;
 
     // Given a connected component of the BubbleGraph,
     // find the OrientedReadIds that appear in it.
