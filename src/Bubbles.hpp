@@ -255,6 +255,7 @@ private:
     public:
         OrientedReadId orientedReadId;
         int64_t phase = 0;
+        double eigenvectorComponent = 0.;
         array<double, 2> position;
     };
     class PhasingGraphEdge {

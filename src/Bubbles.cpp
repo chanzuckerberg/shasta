@@ -11,6 +11,7 @@ using namespace shasta;
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
+#include <sstream>
 #include <queue>
 
 
@@ -757,7 +758,10 @@ void Bubbles::PhasingGraph::writeHtml(
         if(phase == -1) {
             attributes.color = "hsl(300,50%,50%)";
         }
-        attributes.tooltip = vertex.orientedReadId.getString();
+        std::ostringstream s;
+        s << vertex.eigenvectorComponent;
+        attributes.tooltip = vertex.orientedReadId.getString() + " " +
+            s.str();
     }
 
     // Edge attributes. Color by relative phase.
@@ -1035,7 +1039,9 @@ void Bubbles::PhasingGraph::phase()
 
     // Get the phase from the sign of the components of the first eigenvector.
     BGL_FORALL_VERTICES(v, g, G) {
-        if(A[vertexToIntegerMap[v]] >= 0.) {
+        const double eigenvectorComponent = A[vertexToIntegerMap[v]];
+        g[v].eigenvectorComponent = eigenvectorComponent;
+        if(eigenvectorComponent >= 0.) {
             g[v].phase = 1;
         } else {
             g[v].phase = -1;
