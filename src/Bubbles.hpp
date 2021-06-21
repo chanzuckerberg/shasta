@@ -277,7 +277,6 @@ private:
         std::map<OrientedReadId, vertex_descriptor> vertexMap;
         void createVertices(const vector<OrientedReadId>&);
         void phaseSpectral();
-        void phaseSvd();
         // Write in html/svg format.
         // To compute sfdp layout, only consider edges
         // for which relativePhase() >= minRelativePhase.
@@ -289,6 +288,10 @@ private:
         const vector<OrientedReadId>&,
         PhasingGraph&) const;
 
+    // Phase a connected component using the SVD.
+    void phaseSvd(
+        const vector<BubbleGraph::vertex_descriptor>&,
+        PhasingGraph&);
 
 
     // A predicate used to filter PhasingGraph edges for which
