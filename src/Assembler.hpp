@@ -2362,7 +2362,7 @@ private:
     // Only in assembly mode 1.
     shared_ptr<Bubbles> bubbles;
 public:
-    void analyzeAssemblyGraphBubbles();
+    void analyzeAssemblyGraphBubbles(bool debug = false);
 
 
 

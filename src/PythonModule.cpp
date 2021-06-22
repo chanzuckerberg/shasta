@@ -605,7 +605,8 @@ PYBIND11_MODULE(shasta, module)
         .def("alignPseudoPaths",
             &Assembler::alignPseudoPaths)
         .def("analyzeAssemblyGraphBubbles",
-            &Assembler::analyzeAssemblyGraphBubbles)
+            &Assembler::analyzeAssemblyGraphBubbles,
+            arg("debug") = true)
 
 
 

@@ -16,9 +16,11 @@ using namespace shasta;
 
 
 Bubbles::Bubbles(
-    const Assembler& assembler) :
-    assembler(assembler)
+    const Assembler& assembler, bool debug) :
+    assembler(assembler),
+    debug(debug)
 {
+
     // Bubbles with discordant ratio greater than this value
     // are considered bad and will be removed.
     const double discordantRatioThreshold = 0.1;
@@ -28,7 +30,6 @@ Bubbles::Bubbles(
 
     findBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
-    cout << "Found "<< 2*assembler.getReads().readCount() << " oriented reads." << endl;
 
     fillOrientedReadsTable();
     writeOrientedReadsTable();
@@ -36,8 +37,10 @@ Bubbles::Bubbles(
     createBubbleGraph();
     flagBadBubbles();
     removeBadBubbles(discordantRatioThreshold);
-    writeBubbles();
-    writeBubbleGraphGraphviz();
+    if(debug) {
+        writeBubbles();
+        writeBubbleGraphGraphviz();
+    }
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
@@ -855,24 +858,29 @@ void Bubbles::phase(
         std::numeric_limits<uint32_t>::max());
 
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
-        cout << "Working on connected component " << componentId << endl;
+        if(debug) {
+            cout << "Working on connected component " << componentId << endl;
+        }
         const vector<BubbleGraph::vertex_descriptor>& component = bubbleGraph.connectedComponents[componentId];
 
         // Phase the bubbles.
-        // Eventually this will probably not be necessary, but can be useful for testing.
-        phaseComponentBubbles(component);
-        writeBubbleGraphComponentHtml(componentId, component, minRelativePhase);
+        if(debug) {
+            phaseComponentBubbles(component);
+            writeBubbleGraphComponentHtml(componentId, component, minRelativePhase);
+        }
 
         // Phase the oriented reads.
         vector<OrientedReadId> componentOrientedReadIds;
         findComponentOrientedReads(component, componentOrientedReadIds);
         PhasingGraph phasingGraph;
         createPhasingGraph(componentOrientedReadIds, phasingGraph);
-        phasingGraph.phaseSpectral();
-        // phaseSvd(component, phasingGraph);
-        phasingGraph.writeHtml(
-            "PhasingGraph-Component-" + to_string(componentId) + ".html",
-            minRelativePhase);
+        phasingGraph.phaseSpectral(debug);
+
+        if(debug) {
+            phasingGraph.writeHtml(
+                "PhasingGraph-Component-" + to_string(componentId) + ".html",
+                minRelativePhase);
+        }
 
         // Copy the phasing for this connected component to the global
         // phasing vector orientedReadsPhase.
@@ -900,8 +908,10 @@ void Bubbles::phaseComponentBubbles(
 {
     using vertex_descriptor = BubbleGraph::vertex_descriptor;
 
-    cout << "Phasing bubbles of a connected component with " << component.size() <<
-        " bubbles." << endl;
+    if(debug) {
+        cout << "Phasing bubbles of a connected component with " << component.size() <<
+            " bubbles." << endl;
+    }
 
     // Map the vertices of this component to integers.
     std::map<vertex_descriptor, uint64_t> componentVertexMap;
@@ -980,14 +990,16 @@ void Bubbles::phaseComponentBubbles(
 
 // Phase the oriented reads of a connected component of the BubbleGraph.
 // This stores the phases in the orientedReadsPhase vector.
-void Bubbles::PhasingGraph::phaseSpectral()
+void Bubbles::PhasingGraph::phaseSpectral(bool debug)
 {
     using G = PhasingGraph;
     G& g = *this;
 
     const uint64_t n = vertexMap.size();
-    cout << "Phasing oriented reads of a PhasingGraph with " << n <<
-        " oriented reads." << endl;
+    if(debug) {
+        cout << "Phasing oriented reads of a PhasingGraph with " << n <<
+            " oriented reads." << endl;
+    }
 
     // Map vertices to integers.
     std::map<vertex_descriptor, uint64_t> vertexToIntegerMap;

@@ -23,12 +23,11 @@ class shasta::Bubbles {
 public:
 
     Bubbles(
-        const Assembler&
+        const Assembler&,
+        bool debug = false
     );
 
 private:
-
-
 
     // For now we only consider diploid bubbles, defined using the
     // following strict criteria:
@@ -276,7 +275,7 @@ private:
     public:
         std::map<OrientedReadId, vertex_descriptor> vertexMap;
         void createVertices(const vector<OrientedReadId>&);
-        void phaseSpectral();
+        void phaseSpectral(bool debug);
         // Write in html/svg format.
         // To compute sfdp layout, only consider edges
         // for which relativePhase() >= minRelativePhase.
@@ -337,6 +336,7 @@ private:
 
 
     const Assembler& assembler;
+    bool debug;
 
 };
 
