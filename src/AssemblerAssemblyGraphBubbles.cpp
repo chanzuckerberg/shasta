@@ -14,5 +14,5 @@ void Assembler::analyzeAssemblyGraphBubbles()
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
 
     // Create the Bubbles.
-    Bubbles bubbles(*this);
+    bubbles = make_unique<Bubbles>(*this);
 }

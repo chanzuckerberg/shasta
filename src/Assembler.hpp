@@ -47,6 +47,7 @@ namespace shasta {
     class AlignOptions;
     class AssemblerOptions;
     class AssembledSegment;
+    class Bubbles;
     class CompressedAssemblyGraph;
     class ConsensusCaller;
     class LocalAssemblyGraph;
@@ -1829,8 +1830,6 @@ public:
         uint64_t minEdgeCount);
 
 
-    void analyzeAssemblyGraphBubbles();
-
     // Compute consensus repeat counts for each vertex of the marker graph.
     void assembleMarkerGraphVertices(size_t threadCount);
     void accessMarkerGraphVertexRepeatCounts();
@@ -2356,6 +2355,14 @@ public:
     void setupConsensusCaller(const string&);
 private:
     shared_ptr<ConsensusCaller> consensusCaller;
+
+
+
+    // Bubbles in the initial assembly graph.
+    // Only in assembly mode 1.
+    shared_ptr<Bubbles> bubbles;
+public:
+    void analyzeAssemblyGraphBubbles();
 
 
 

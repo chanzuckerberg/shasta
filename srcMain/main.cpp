@@ -1088,6 +1088,9 @@ void shasta::main::mode1Assembly(
     assembler.createAssemblyGraphVertices();
     assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
 
+    // Analyze bubbles in the assembly graph.
+    assembler.analyzeAssemblyGraphBubbles();
+
     throw runtime_error("Missing code in assembly mode 1 .");
 }
 
