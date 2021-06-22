@@ -354,6 +354,10 @@ PYBIND11_MODULE(shasta, module)
              arg("maxAlignmentCount"),
              arg("threadCount") = 1
              )
+         .def("createReadGraphMode1",
+              &Assembler::createReadGraphMode1,
+              arg("maxAlignmentCount")
+              )
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
         .def("accessReadGraphReadWrite",

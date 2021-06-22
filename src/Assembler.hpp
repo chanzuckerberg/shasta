@@ -1119,6 +1119,10 @@ public:
 #endif
 
 
+    // Read graph creation for mode 1 assembly.
+    void createReadGraphMode1(uint64_t maxAlignmentCount);
+
+
 
     void flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount);
 private:
@@ -2359,7 +2363,7 @@ private:
 
 
     // Bubbles in the initial assembly graph.
-    // Only in assembly mode 1.
+    // Only used in assembly mode 1.
     shared_ptr<Bubbles> bubbles;
 public:
     void analyzeAssemblyGraphBubbles(bool debug = false);

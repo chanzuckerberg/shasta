@@ -1091,6 +1091,11 @@ void shasta::main::mode1Assembly(
     // Analyze bubbles in the assembly graph.
     assembler.analyzeAssemblyGraphBubbles();
 
+    // Create a new read graph, using the bubble analysis
+    // to exclude alignments.
+    assembler.createReadGraphMode1(
+        assemblerOptions.readGraphOptions.maxAlignmentCount);
+
     throw runtime_error("Missing code in assembly mode 1 .");
 }
 
