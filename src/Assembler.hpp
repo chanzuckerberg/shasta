@@ -7,6 +7,7 @@
 #include "AssemblerOptions.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
+#include "Bubbles.hpp"
 #include "Coverage.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "Histogram.hpp"
@@ -47,7 +48,6 @@ namespace shasta {
     class AlignOptions;
     class AssemblerOptions;
     class AssembledSegment;
-    class Bubbles;
     class CompressedAssemblyGraph;
     class ConsensusCaller;
     class LocalAssemblyGraph;
@@ -2364,7 +2364,7 @@ private:
 
     // Bubbles in the initial assembly graph.
     // Only used in assembly mode 1.
-    shared_ptr<Bubbles> bubbles;
+    unique_ptr<Bubbles> bubbles = 0;
 public:
     void analyzeAssemblyGraphBubbles(bool debug = false);
 
