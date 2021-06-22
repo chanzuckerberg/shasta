@@ -857,6 +857,7 @@ void Bubbles::phase(
         std::numeric_limits<uint32_t>::max(),
         std::numeric_limits<uint32_t>::max());
 
+    uint64_t phasedReadCount = 0;
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
         if(debug) {
             cout << "Working on connected component " << componentId << endl;
@@ -872,6 +873,7 @@ void Bubbles::phase(
         // Phase the oriented reads.
         vector<OrientedReadId> componentOrientedReadIds;
         findComponentOrientedReads(component, componentOrientedReadIds);
+        phasedReadCount += componentOrientedReadIds.size();
         PhasingGraph phasingGraph;
         createPhasingGraph(componentOrientedReadIds, phasingGraph);
         phasingGraph.phaseSpectral(debug);
@@ -897,6 +899,8 @@ void Bubbles::phase(
         }
 
     }
+    cout << phasedReadCount << " oriented reads were phased, out of " <<
+        orientedReadsTable.size() << " total." << endl;
 }
 
 
@@ -1323,5 +1327,85 @@ void Bubbles::BubbleGraph::computeConnectedComponents()
     }
 }
 
+
+
+// Functions used to decide if an alignment should be used.
+bool Bubbles::allowAlignment(
+    const OrientedReadPair& orientedReadPair,
+    bool useClustering) const
+{
+    const OrientedReadId orientedReadId0(orientedReadPair.readIds[0], 0);
+    const OrientedReadId orientedReadId1(orientedReadPair.readIds[1], orientedReadPair.isSameStrand ? 0 : 1);
+
+    OrientedReadId orientedReadId0Rc = orientedReadId0;
+    OrientedReadId orientedReadId1Rc = orientedReadId1;
+    orientedReadId0Rc.flipStrand();
+    orientedReadId1Rc.flipStrand();
+
+    return
+        allowAlignment(orientedReadId0,   orientedReadId1, useClustering) and
+        allowAlignment(orientedReadId0Rc, orientedReadId1Rc, useClustering);
+}
+
+
+
+bool Bubbles::allowAlignment(
+    const OrientedReadId& orientedReadId0,
+    const OrientedReadId& orientedReadId1,
+    bool useClustering) const
+{
+    if(useClustering) {
+        return allowAlignmentUsingClustering(orientedReadId0, orientedReadId1);
+    } else {
+        return allowAlignmentUsingBubbles(orientedReadId0, orientedReadId1);
+    }
+}
+
+
+
+bool Bubbles::allowAlignmentUsingClustering(
+    const OrientedReadId& orientedReadId0,
+    const OrientedReadId& orientedReadId1) const
+{
+    const pair<uint64_t, uint64_t>& p0 = orientedReadsPhase[orientedReadId0.getValue()];
+    const pair<uint64_t, uint64_t>& p1 = orientedReadsPhase[orientedReadId1.getValue()];
+
+    const uint64_t componentId0 = p0.first;
+    const uint64_t componentId1 = p1.first;
+    const uint64_t unphased = std::numeric_limits<uint64_t>::max();
+    const bool isPhased0 = not(componentId0 == unphased);
+    const bool isPhased1 = not(componentId1 == unphased);
+
+    // If both unphased, allow the alignment.
+    if((not isPhased0) and (not isPhased1)) {
+        return true;
+    }
+
+    // If only one is phased, don't allow the alignment.
+    // This will have to be reviewed to allow alignments with unphased reads near
+    // the beginning/end of a phased region.
+    if(isPhased0 and (not isPhased1)) {
+        return false;
+    }
+    if(isPhased1 and (not isPhased0)) {
+        return false;
+    }
+
+    // If getting here, they are both phased.
+    SHASTA_ASSERT(isPhased0 and isPhased1);
+
+    // Only allow the alignment if they are in the same component and phase.
+    return
+        (componentId0 == componentId1) and (p0.second == p1.second);
+}
+
+
+
+bool Bubbles::allowAlignmentUsingBubbles(
+    const OrientedReadId& orientedReadId0,
+    const OrientedReadId& orientedReadId1) const
+{
+    SHASTA_ASSERT(0);
+}
 
 
