@@ -1447,11 +1447,7 @@ public:
     // Function createMarkerGraphSecondaryEdges can be called after createMarkerGraphEdgesStrict
     // to create a minimal amount of additional non-strict edges (secondary edges)
     // sufficient to restore contiguity.
-    void createMarkerGraphSecondaryEdges(
-        uint64_t minEdgeCoverage,
-        uint64_t minEdgeCoveragePerStrand,
-        uint64_t neighborhoodSize,
-        size_t threadCount);
+    void createMarkerGraphSecondaryEdges(size_t threadCount);
 
 
 

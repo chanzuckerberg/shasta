@@ -477,9 +477,6 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("createMarkerGraphSecondaryEdges",
             &Assembler::createMarkerGraphSecondaryEdges,
-            arg("minEdgeCoverage"),
-            arg("minEdgeCoveragePerStrand"),
-            arg("neighborhoodSize"),
             arg("threadCount") = 0)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
