@@ -75,6 +75,7 @@ void Assembler::createReadGraphMode1(uint64_t maxAlignmentCount)
     cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
 
     // Create the read graph using the alignments we selected.
+    readGraph.remove();
     createReadGraphUsingSelectedAlignments(keepAlignment);
 
     cout << timestamp << "createReadGraphMode1 ends." << endl;

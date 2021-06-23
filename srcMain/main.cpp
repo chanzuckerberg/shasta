@@ -1074,7 +1074,42 @@ void shasta::main::mode1Assembly(
 
     // Create marker graph edges.
     // For assembly mode 1 we use createMarkerGraphEdgesStrict
-    // with minimum edge coverage (total and per satrand).
+    // with minimum edge coverage (total and per strand).
+    assembler.createMarkerGraphEdgesStrict(
+        assemblerOptions.markerGraphOptions.minEdgeCoverage,
+        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
+    assembler.findMarkerGraphReverseComplementEdges(threadCount);
+
+    // Coverage histograms for vertices and edges of the marker graph.
+    assembler.computeMarkerGraphCoverageHistogram();
+
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
+
+    // Analyze bubbles in the assembly graph.
+    assembler.analyzeAssemblyGraphBubbles();
+
+    // Create a new read graph, using the bubble analysis
+    // to exclude alignments.
+    assembler.createReadGraphMode1(
+        assemblerOptions.readGraphOptions.maxAlignmentCount);
+
+
+
+    // Create a new marker graph and assembly graph using this new read graph.
+
+    // Remove the old marker graph and assembly graph.
+    assembler.markerGraph.remove();
+    assembler.assemblyGraphPointer.reset();
+
+    // Create marker graph vertices.
+    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.findMarkerGraphReverseComplementVertices(threadCount);
+
+    // Create marker graph edges.
+    // For assembly mode 1 we use createMarkerGraphEdgesStrict
+    // with minimum edge coverage (total and per strand).
     assembler.createMarkerGraphEdgesStrict(
         assemblerOptions.markerGraphOptions.minEdgeCoverage,
         assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
@@ -1088,13 +1123,6 @@ void shasta::main::mode1Assembly(
     assembler.createAssemblyGraphVertices();
     assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
 
-    // Analyze bubbles in the assembly graph.
-    assembler.analyzeAssemblyGraphBubbles();
-
-    // Create a new read graph, using the bubble analysis
-    // to exclude alignments.
-    assembler.createReadGraphMode1(
-        assemblerOptions.readGraphOptions.maxAlignmentCount);
 
     throw runtime_error("Missing code in assembly mode 1 .");
 }
