@@ -309,11 +309,13 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     }
 
     // Thickness.
-    const double thickness = 0.05 * std::pow(double(baseCount), 0.333333);
-    s << " penwidth=";
-    const auto oldPrecision = s.precision(4);
-    s <<  thickness;
-    s.precision(oldPrecision);
+    if(baseCount > 0) {
+        const double thickness = 0.05 * std::pow(double(baseCount), 0.333333);
+        s << " penwidth=";
+        const auto oldPrecision = s.precision(4);
+        s <<  thickness;
+        s.precision(oldPrecision);
+    }
 
 
     // End edge attributes.
