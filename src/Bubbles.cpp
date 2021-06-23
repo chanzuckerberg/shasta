@@ -1405,7 +1405,24 @@ bool Bubbles::allowAlignmentUsingBubbles(
     const OrientedReadId& orientedReadId0,
     const OrientedReadId& orientedReadId1) const
 {
-    SHASTA_ASSERT(0);
+    uint64_t sameSideCount = 0;
+    uint64_t oppositeSideCount = 0;
+    findOrientedReadsRelativePhase(
+        orientedReadId0, orientedReadId1,
+        sameSideCount, oppositeSideCount);
+
+    // Allow alignments in homozygous regions.
+    if((sameSideCount==0) and (oppositeSideCount==0)) {
+        return true;
+    }
+
+    // Thresholds to be exposed as options when code stabilizes.
+    const uint64_t minSameSideCount = 6;
+    const uint64_t maxOppositeSideCount = 1;
+
+    return
+        (sameSideCount >= minSameSideCount) and
+        (oppositeSideCount <= maxOppositeSideCount);
 }
 
 
