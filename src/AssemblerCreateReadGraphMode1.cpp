@@ -17,26 +17,65 @@ void Assembler::createReadGraphMode1(uint64_t maxAlignmentCount)
 
 
 
-    // Use the Bubbles to flag the alignments we want to keep.
-    vector<bool> keepAlignment(alignmentData.size(), false);
+    // Use the Bubbles to flag the allowed alignments.
+    vector<bool> alignmentIsAllowed(alignmentData.size(), false);
     for(uint64_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
         const OrientedReadPair orientedReadPair = alignmentData[alignmentId];
-        keepAlignment[alignmentId] = bubbles->allowAlignment(orientedReadPair, useClustering);
+        alignmentIsAllowed[alignmentId] = bubbles->allowAlignment(orientedReadPair, useClustering);
     }
 
     const uint64_t allowedAlignmentCount =
-        count(keepAlignment.begin(), keepAlignment.end(), true);
+        count(alignmentIsAllowed.begin(), alignmentIsAllowed.end(), true);
     cout << allowedAlignmentCount << " alignments allowed by bubble analysis out of " <<
         alignmentData.size() << " total." << endl;
 
 
 
-    // Keep at most maxAlignmentCount alignments for each read.
+    // Mark all alignments as not to be kept.
+    vector<bool> keepAlignment(alignmentData.size(), false);
 
 
 
-    // Missing code.
-    SHASTA_ASSERT(0);
+    // Vector to keep the alignments for each read,
+    // with their number of markers.
+    // Contains pairs(marker count, alignment id).
+    vector< pair<uint32_t, uint32_t> > readAlignments;
+
+
+
+    // Loop over reads.
+    for(ReadId readId=0; readId<getReads().readCount(); readId++) {
+
+        // Gather the allowed alignments for this read, each with its number of markers.
+        readAlignments.clear();
+        for(const uint32_t alignmentId: alignmentTable[OrientedReadId(readId, 0).getValue()]) {
+            if(alignmentIsAllowed[alignmentId]) {
+                const AlignmentData& alignment = alignmentData[alignmentId];
+                readAlignments.push_back(make_pair(alignment.info.markerCount, alignmentId));
+            }
+        }
+
+        // Keep the best maxAlignmentCount.
+        if(readAlignments.size() > maxAlignmentCount) {
+            std::nth_element(
+                readAlignments.begin(),
+                readAlignments.begin() + maxAlignmentCount,
+                readAlignments.end(),
+                std::greater< pair<uint32_t, uint32_t> >());
+            readAlignments.resize(maxAlignmentCount);
+        }
+
+        // Mark the surviving alignments as to be kept.
+        for(const auto& p: readAlignments) {
+            const uint32_t alignmentId = p.second;
+            keepAlignment[alignmentId] = true;
+        }
+    }
+    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
+    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+
+    // Create the read graph using the alignments we selected.
+    createReadGraphUsingSelectedAlignments(keepAlignment);
 
     cout << timestamp << "createReadGraphMode1 ends." << endl;
 }
