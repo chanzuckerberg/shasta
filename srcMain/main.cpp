@@ -1214,16 +1214,14 @@ void shasta::main::saveBinaryData(
     const string dataDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
     if(!filesystem::exists(dataDirectory)) {
-        cout << dataDirectory << " does not exist, nothing done." << endl;
-        return;
+        throw runtime_error(dataDirectory + " does not exist, nothing done.");
     }
 
     // Check that the DataOnDisk directory does not exist.
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
     if(filesystem::exists(dataOnDiskDirectory)) {
-        cout << dataOnDiskDirectory << " already exists, nothing done." << endl;
-        return;
+        throw runtime_error(dataOnDiskDirectory + " already exists, nothing done.");
     }
 
     // Copy Data to DataOnDisk.
