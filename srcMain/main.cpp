@@ -1131,8 +1131,26 @@ void shasta::main::mode1Assembly(
     assembler.createAssemblyGraphVertices();
     assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
 
+    // Compute optimal repeat counts for each vertex of the marker graph.
+    assembler.assembleMarkerGraphVertices(threadCount);
 
-    throw runtime_error("Missing code in assembly mode 1 .");
+    // Compute consensus sequence for marker graph edges to be used for assembly.
+    assembler.assembleMarkerGraphEdges(
+        threadCount,
+        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.assemblyOptions.storeCoverageData or
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
+        );
+
+    // Use the assembly graph for sequence assembly.
+    assembler.assemble(
+        threadCount,
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
+    assembler.computeAssemblyStatistics();
+    assembler.writeGfa1("Assembly.gfa");
+    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
+    assembler.writeFasta("Assembly.fasta");
+
 }
 
 
