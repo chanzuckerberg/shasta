@@ -1121,6 +1121,11 @@ void shasta::main::mode1Assembly(
     // Coverage histograms for vertices and edges of the marker graph.
     assembler.computeMarkerGraphCoverageHistogram();
 
+    // Simplify the marker graph to remove bubbles and superbubbles.
+    // The maxLength parameter controls the maximum number of markers
+    // for a branch to be collapsed during each iteration.
+    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
+
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
     assembler.createAssemblyGraphVertices();

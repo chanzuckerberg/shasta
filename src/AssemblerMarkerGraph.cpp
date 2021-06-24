@@ -1476,7 +1476,6 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId
 // Check the edges.
 void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId)
 {
-    using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
 
     uint64_t begin, end;
@@ -1496,13 +1495,16 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
             SHASTA_ASSERT(edge0.wasPruned == edge1.wasPruned);
             SHASTA_ASSERT(edge0.isSuperBubbleEdge == edge1.isSuperBubbleEdge);
 
-
+#if 0
+            // This portion does not work if parallel edges are present,
+            // which can happen in assembly mode 1.
             const VertexId v0 = edge0.source;
             const VertexId v1 = edge0.target;
             const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
             const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
             const EdgeId e0rc = markerGraph.findEdgeId(v1rc, v0rc);
             SHASTA_ASSERT(e0rc == e1);
+#endif
 
 #if 0
             // This check does not work correctly when --MarkerGraph.allowDuplicateMarkers.
