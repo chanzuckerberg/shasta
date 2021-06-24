@@ -421,6 +421,11 @@ void Assembler::writeParallelMarkerGraphEdges() const
 //   namespace shasta::MemoryMapped.
 void Assembler::createMarkerGraphSecondaryEdges(size_t threadCount)
 {
+    createMarkerGraphSecondaryEdges(false, threadCount);
+    createMarkerGraphSecondaryEdges(true, threadCount);
+}
+void Assembler::createMarkerGraphSecondaryEdges(bool aggressive, size_t threadCount)
+{
     using VertexId = MarkerGraph::VertexId;
 
     // Check that we have what we need.
@@ -499,13 +504,20 @@ void Assembler::createMarkerGraphSecondaryEdges(size_t threadCount)
                 continue;
             }
 
-            // If this is not a backward dead end, skip.
-            const uint64_t deadEnd1 = deadEndTable[v1][1];
-            if(deadEnd1 == noDeadEnd) {
-                continue;
+            // If not in aggressive mode and this is not a backward dead end, skip.
+            // In aggressive mode we accept everything, which gives better
+            // contiguity but can also create more artifacts.
+            if(not aggressive) {
+                const uint64_t deadEnd1 = deadEndTable[v1][1];
+                if(deadEnd1 == noDeadEnd) {
+                    continue;
+                }
             }
 
             v1Candidates.push_back(v1);
+        }
+        if(v1Candidates.empty()) {
+            continue;
         }
 
         // Count how many times each possible v1 appeared.

@@ -1448,6 +1448,8 @@ public:
     // to create a minimal amount of additional non-strict edges (secondary edges)
     // sufficient to restore contiguity.
     void createMarkerGraphSecondaryEdges(size_t threadCount);
+private:
+    void createMarkerGraphSecondaryEdges(bool aggressive, size_t threadCount);
 
 
 
