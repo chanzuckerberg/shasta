@@ -1119,11 +1119,20 @@ void shasta::main::mode1Assembly(
     assembler.markerGraph.remove();
     assembler.assemblyGraphPointer.reset();
 
+    // For the second step we use lower coverage thresholds
+    // for marker graph vertices and edges.
+    // ******* EXPOSE THESE WHEN CODE STABILIZES.
+    const uint64_t minVertexCoverageFinal = 4;
+    const uint64_t minVertexCoveragePerStrandFinal = 1;
+    const uint64_t minEdgeCoverageFinal = 4;
+    const uint64_t minEdgeCoveragePerStrandFinal = 1;
+
+
     // Create marker graph vertices.
     assembler.createMarkerGraphVertices(
-        assemblerOptions.markerGraphOptions.minCoverage,
+        minVertexCoverageFinal,
         assemblerOptions.markerGraphOptions.maxCoverage,
-        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        minVertexCoveragePerStrandFinal,
         assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
         assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
         assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
@@ -1134,8 +1143,8 @@ void shasta::main::mode1Assembly(
     // For assembly mode 1 we use createMarkerGraphEdgesStrict
     // with minimum edge coverage (total and per strand).
     assembler.createMarkerGraphEdgesStrict(
-        assemblerOptions.markerGraphOptions.minEdgeCoverage,
-        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
+        minEdgeCoverageFinal,
+        minEdgeCoveragePerStrandFinal, threadCount);
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
 
     // To recovery contiguity, add secondary edges.
