@@ -22,11 +22,6 @@ namespace shasta {
             const AssemblerOptions&,
             vector<string> inputNames);
 
-        void createMarkerGraphVertices(
-            Assembler&,
-            const AssemblerOptions&,
-            uint32_t threadCount);
-
         void mode0Assembly(
             Assembler&,
             const AssemblerOptions&,
@@ -856,7 +851,14 @@ void shasta::main::mode0Assembly(
 
             // Do an assembly with the current read graph, without marker graph
             // simplification or detangling.
-            createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+            assembler.createMarkerGraphVertices(
+                assemblerOptions.markerGraphOptions.minCoverage,
+                assemblerOptions.markerGraphOptions.maxCoverage,
+                assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+                assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+                assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+                assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+                threadCount);
             assembler.findMarkerGraphReverseComplementVertices(threadCount);
             assembler.createMarkerGraphEdges(threadCount);
             assembler.findMarkerGraphReverseComplementEdges(threadCount);
@@ -902,7 +904,14 @@ void shasta::main::mode0Assembly(
     // Create marker graph vertices.
     // This uses a disjoint sets data structure to merge markers
     // that are aligned based on an alignment present in the read graph.
-    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+        threadCount);
 
     // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
@@ -1069,7 +1078,14 @@ void shasta::main::mode1Assembly(
     uint32_t threadCount)
 {
     // Create marker graph vertices.
-    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+        threadCount);
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create marker graph edges.
@@ -1104,7 +1120,14 @@ void shasta::main::mode1Assembly(
     assembler.assemblyGraphPointer.reset();
 
     // Create marker graph vertices.
-    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+        threadCount);
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create marker graph edges.
@@ -1154,28 +1177,6 @@ void shasta::main::mode1Assembly(
 
 }
 
-
-
-
-// Create marker graph vertices.
-// This uses a disjoint sets data structure to merge markers
-// that are aligned based on an alignment present in the read graph.
-void shasta::main::createMarkerGraphVertices(
-    Assembler& assembler,
-    const AssemblerOptions& assemblerOptions,
-    uint32_t threadCount
-    )
-{
-    // Create marker graph vertices: mainstream code.
-    assembler.createMarkerGraphVertices(
-        assemblerOptions.markerGraphOptions.minCoverage,
-        assemblerOptions.markerGraphOptions.maxCoverage,
-        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
-        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
-        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
-        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
-        threadCount);
-}
 
 
 
