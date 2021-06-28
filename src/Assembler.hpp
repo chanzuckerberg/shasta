@@ -1279,13 +1279,15 @@ private:
 
 
     // Given a marker graph vertex, follow all of the contributing oriented
-    // reads to their next vertex.
+    // reads to their next vertex, but without moving forward more than
+    // maxSkip markers.
     // In the returned vector, each entry correspond to a marker in the given vertex
     // (in the same order) and gives the next VertexId for that oriented read.
     // The next VertexId can be invalidVertexId if the oriented read has no vertices
     // past the starting VertexId.
     void findNextMarkerGraphVertices(
         MarkerGraph::VertexId,
+        uint32_t maxSkip,
         vector<MarkerGraph::VertexId>&) const;
 
 
@@ -1447,9 +1449,14 @@ public:
     // Function createMarkerGraphSecondaryEdges can be called after createMarkerGraphEdgesStrict
     // to create a minimal amount of additional non-strict edges (secondary edges)
     // sufficient to restore contiguity.
-    void createMarkerGraphSecondaryEdges(size_t threadCount);
+    void createMarkerGraphSecondaryEdges(
+        uint32_t secondaryEdgeMaxSkip,
+        size_t threadCount);
 private:
-    void createMarkerGraphSecondaryEdges(bool aggressive, size_t threadCount);
+    void createMarkerGraphSecondaryEdges(
+        uint32_t secondaryEdgeMaxSkip,
+        bool aggressive,
+        size_t threadCount);
 
 
 

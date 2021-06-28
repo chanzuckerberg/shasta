@@ -5252,13 +5252,15 @@ void Assembler::test()
 
 
 // Given a marker graph vertex, follow all of the contributing oriented
-// reads to their next vertex.
+// reads to their next vertex, but without moving forward more than
+// maxSkip markers.
 // In the returned vector, each entry correspond to a marker in the given vertex
 // (in the same order) and gives the next VertexId for that oriented read.
 // The next VertexId can be invalidVertexId if the oriented read has no vertices
 // past the starting VertexId.
 void Assembler::findNextMarkerGraphVertices(
     MarkerGraph::VertexId vertexId,
+    uint32_t maxSkip,
     vector<MarkerGraph::VertexId>& nextVertices) const
 {
     nextVertices.clear();
@@ -5269,7 +5271,8 @@ void Assembler::findNextMarkerGraphVertices(
         tie(orientedReadId, ordinal) = findMarkerId(markerId);
         const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
         MarkerGraph::VertexId nextVertexId = MarkerGraph::invalidVertexId;
-        for(++ordinal; ordinal<markerCount; ++ordinal) {
+        uint32_t ordinalEnd = min(markerCount, ordinal + maxSkip + 1);
+        for(++ordinal; ordinal<ordinalEnd; ++ordinal) {
             const MarkerId nextMarkerId = getMarkerId(orientedReadId, ordinal);
             const MarkerGraph::CompressedVertexId compressedNextVertexId = markerGraph.vertexTable[nextMarkerId];
             if(compressedNextVertexId != MarkerGraph::invalidCompressedVertexId) {

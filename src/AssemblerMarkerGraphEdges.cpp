@@ -419,12 +419,17 @@ void Assembler::writeParallelMarkerGraphEdges() const
 // - It is not multithreaded.
 // - It uses standard containers instead of the classes in
 //   namespace shasta::MemoryMapped.
-void Assembler::createMarkerGraphSecondaryEdges(size_t threadCount)
+void Assembler::createMarkerGraphSecondaryEdges(
+    uint32_t secondaryEdgeMaxSkip,
+    size_t threadCount)
 {
-    createMarkerGraphSecondaryEdges(false, threadCount);
-    createMarkerGraphSecondaryEdges(true, threadCount);
+    createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, false, threadCount);
+    createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, true, threadCount);
 }
-void Assembler::createMarkerGraphSecondaryEdges(bool aggressive, size_t threadCount)
+void Assembler::createMarkerGraphSecondaryEdges(
+    uint32_t secondaryEdgeMaxSkip,
+    bool aggressive,
+    size_t threadCount)
 {
     using VertexId = MarkerGraph::VertexId;
 
@@ -486,7 +491,7 @@ void Assembler::createMarkerGraphSecondaryEdges(bool aggressive, size_t threadCo
         const VertexId v0 = deadEndPairs[deadEndId0][0];
 
         // Find the next vertex for each marker / oriented read on this vertex.
-        findNextMarkerGraphVertices(v0, nextVertices);
+        findNextMarkerGraphVertices(v0, secondaryEdgeMaxSkip, nextVertices);
 
         // Loop over the markers in this vertex.
         // For each marker there is an OrientedReadId and a next vertex.

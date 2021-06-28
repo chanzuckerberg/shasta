@@ -12,6 +12,7 @@ a.accessMarkerGraphVertices()
 a.accessMarkerGraphReverseComplementVertex()
 a.accessMarkerGraphEdges(True, True)
 
-a.createMarkerGraphSecondaryEdges()
+# ********************** Expose this as an expotion when code stabilizes
+a.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip = 100)
 
 

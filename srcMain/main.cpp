@@ -1116,7 +1116,8 @@ void shasta::main::mode1Assembly(
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
 
     // To recovery contiguity, add secondary edges.
-    assembler.createMarkerGraphSecondaryEdges(threadCount);
+    const uint32_t secondaryEdgeMaxSkip = 100;    // ********* EXPOSE WHEN CODE STABILIZES
+    assembler.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, threadCount);
 
     // Coverage histograms for vertices and edges of the marker graph.
     assembler.computeMarkerGraphCoverageHistogram();
