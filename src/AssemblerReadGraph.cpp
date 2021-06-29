@@ -805,7 +805,7 @@ void Assembler::writeLocalReadGraphReads(
         fasta << " oldReadId=" << readId;
 
         // Write the length
-        fasta << " length=" << sequence.baseCount;
+        fasta << " length=" << reads->getReadRawSequenceLength(readId);
 
         // Write the metadata from the original fasta (if there is any)
         const auto metaData = reads->getReadMetaData(readId);
