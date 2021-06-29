@@ -3,7 +3,7 @@
 using namespace shasta;
 
 
-void Assembler::analyzeAssemblyGraphBubbles()
+void Assembler::analyzeAssemblyGraphBubbles(bool debug)
 {
     // Check that we have what we need.
     SHASTA_ASSERT(assemblyGraphPointer);
@@ -14,5 +14,5 @@ void Assembler::analyzeAssemblyGraphBubbles()
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
 
     // Create the Bubbles.
-    Bubbles bubbles(*this);
+    bubbles = make_unique<Bubbles>(*this, debug);
 }

@@ -11,13 +11,16 @@ using namespace shasta;
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
+#include <sstream>
 #include <queue>
 
 
 Bubbles::Bubbles(
-    const Assembler& assembler) :
-    assembler(assembler)
+    const Assembler& assembler, bool debug) :
+    assembler(assembler),
+    debug(debug)
 {
+
     // Bubbles with discordant ratio greater than this value
     // are considered bad and will be removed.
     const double discordantRatioThreshold = 0.1;
@@ -27,7 +30,6 @@ Bubbles::Bubbles(
 
     findBubbles();
     cout << "Found " << bubbles.size() << " bubbles." << endl;
-    cout << "Found "<< 2*assembler.getReads().readCount() << " oriented reads." << endl;
 
     fillOrientedReadsTable();
     writeOrientedReadsTable();
@@ -35,8 +37,10 @@ Bubbles::Bubbles(
     createBubbleGraph();
     flagBadBubbles();
     removeBadBubbles(discordantRatioThreshold);
-    writeBubbles();
-    writeBubbleGraphGraphviz();
+    if(debug) {
+        writeBubbles();
+        writeBubbleGraphGraphviz();
+    }
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
@@ -757,7 +761,10 @@ void Bubbles::PhasingGraph::writeHtml(
         if(phase == -1) {
             attributes.color = "hsl(300,50%,50%)";
         }
-        attributes.tooltip = vertex.orientedReadId.getString();
+        std::ostringstream s;
+        s << vertex.eigenvectorComponent;
+        attributes.tooltip = vertex.orientedReadId.getString() + " " +
+            s.str();
     }
 
     // Edge attributes. Color by relative phase.
@@ -845,24 +852,73 @@ void Bubbles::phase(
     cout << "Found " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
 
+    orientedReadsPhase.resize(orientedReadsTable.size());
+        make_pair(
+        std::numeric_limits<uint32_t>::max(),
+        std::numeric_limits<uint32_t>::max());
+
+    uint64_t phasedReadCount = 0;
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
-        cout << "Working on connected component " << componentId << endl;
+        if(debug) {
+            cout << "Working on connected component " << componentId << endl;
+        }
         const vector<BubbleGraph::vertex_descriptor>& component = bubbleGraph.connectedComponents[componentId];
 
         // Phase the bubbles.
-        // Eventually this will probably not be necessary, but can be useful for testing.
-        phaseComponentBubbles(component);
-        writeBubbleGraphComponentHtml(componentId, component, minRelativePhase);
+        if(debug) {
+            phaseComponentBubbles(component);
+            writeBubbleGraphComponentHtml(componentId, component, minRelativePhase);
+        }
 
         // Phase the oriented reads.
         vector<OrientedReadId> componentOrientedReadIds;
         findComponentOrientedReads(component, componentOrientedReadIds);
+        phasedReadCount += componentOrientedReadIds.size();
         PhasingGraph phasingGraph;
         createPhasingGraph(componentOrientedReadIds, phasingGraph);
-        phasingGraph.phase();
-        phasingGraph.writeHtml(
-            "PhasingGraph-Component-" + to_string(componentId) + ".html",
-            minRelativePhase);
+        phasingGraph.phaseSpectral(debug);
+
+        if(true) {
+            phasingGraph.writeHtml(
+                "PhasingGraph-Component-" + to_string(componentId) + ".html",
+                minRelativePhase);
+        }
+
+        // Copy the phasing for this connected component to the global
+        // phasing vector orientedReadsPhase.
+        BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+            PhasingGraphVertex& vertex = phasingGraph[v];
+            const OrientedReadId orientedReadId = vertex.orientedReadId;
+            auto& p = orientedReadsPhase[orientedReadId.getValue()];
+            p.first = uint32_t(componentId);
+            if(vertex.phase == 1) {
+                p.second = 0;
+            } else {
+                p.second = 1;
+            }
+        }
+
+    }
+    cout << phasedReadCount << " oriented reads were phased, out of " <<
+        orientedReadsTable.size() << " total." << endl;
+
+
+
+    // Write out the phasing.
+    ofstream csv("Phasing.csv");
+    for(uint64_t i=0; i<orientedReadsPhase.size(); i++) {
+        const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(i));
+        const auto& p = orientedReadsPhase[i];
+        const uint32_t componentId = p.first;
+        const uint32_t phase = 0;
+        csv << orientedReadId << ",";
+        if(componentId != std::numeric_limits<uint32_t>::max()) {
+            csv << componentId << ",";
+            csv << phase << "\n";
+        } else {
+            csv << ",\n";
+        }
+
     }
 }
 
@@ -875,8 +931,10 @@ void Bubbles::phaseComponentBubbles(
 {
     using vertex_descriptor = BubbleGraph::vertex_descriptor;
 
-    cout << "Phasing bubbles of a connected component with " << component.size() <<
-        " bubbles." << endl;
+    if(debug) {
+        cout << "Phasing bubbles of a connected component with " << component.size() <<
+            " bubbles." << endl;
+    }
 
     // Map the vertices of this component to integers.
     std::map<vertex_descriptor, uint64_t> componentVertexMap;
@@ -955,14 +1013,16 @@ void Bubbles::phaseComponentBubbles(
 
 // Phase the oriented reads of a connected component of the BubbleGraph.
 // This stores the phases in the orientedReadsPhase vector.
-void Bubbles::PhasingGraph::phase()
+void Bubbles::PhasingGraph::phaseSpectral(bool debug)
 {
     using G = PhasingGraph;
     G& g = *this;
 
     const uint64_t n = vertexMap.size();
-    cout << "Phasing oriented reads of a PhasingGraph with " << n <<
-        " oriented reads." << endl;
+    if(debug) {
+        cout << "Phasing oriented reads of a PhasingGraph with " << n <<
+            " oriented reads." << endl;
+    }
 
     // Map vertices to integers.
     std::map<vertex_descriptor, uint64_t> vertexToIntegerMap;
@@ -1035,10 +1095,119 @@ void Bubbles::PhasingGraph::phase()
 
     // Get the phase from the sign of the components of the first eigenvector.
     BGL_FORALL_VERTICES(v, g, G) {
-        if(A[vertexToIntegerMap[v]] >= 0.) {
-            g[v].phase = 1;
+        PhasingGraphVertex& vertex = g[v];
+        const double eigenvectorComponent = A[vertexToIntegerMap[v]];
+        vertex.eigenvectorComponent = eigenvectorComponent;
+
+        if(eigenvectorComponent >= 0.) {
+            vertex.phase = 1;
         } else {
-            g[v].phase = -1;
+            vertex.phase = -1;
+        }
+    }
+}
+
+
+// Phase a connected component using the SVD.
+void Bubbles::phaseSvd(
+    const vector<BubbleGraph::vertex_descriptor>& bubbleGraphComponent,
+    PhasingGraph& phasingGraph)
+{
+
+    // Map global bubbleIds to indices in bubbleGraphComponent.
+    std::map<uint64_t, uint64_t> bubbleMap;
+    uint64_t i = 0;
+    for(const BubbleGraph::vertex_descriptor v: bubbleGraphComponent) {
+        bubbleMap.insert(make_pair(bubbleGraph[v].bubbleId, i++));
+    }
+    const uint64_t bubbleCount = bubbleMap.size();
+
+
+
+    // Create a matrix with a row for each oriented read and a column for each bubble.
+    // The matrix is stored in Fortran storage scheme (that is, by columns).
+    // An element is set to +1 if the oriented read appears in the first side of the bubble
+    // and to -1 if the oriented read appears on the second side of the bubble.
+    // All other matrix elements are set to 0.
+    const uint64_t orientedReadCount = num_vertices(phasingGraph);
+    vector<double> A(orientedReadCount * bubbleCount, 0.);
+
+    // To fill the matrix, loop over oriented reads.
+    i = 0;
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+        const OrientedReadId orientedReadId = phasingGraph[v].orientedReadId;
+
+        // Loop over the bubbles that this OrientedReadId participates in.
+        const vector <pair <uint64_t, uint64_t> >& orientedReadBubbles =
+            orientedReadsTable[orientedReadId.getValue()];
+        for(const pair <uint64_t, uint64_t>& p: orientedReadBubbles) {
+            const uint64_t bubbleId = p.first;
+            if(bubbleGraph.vertexTable[bubbleId] == BubbleGraph::null_vertex()) {
+                continue; // This is a bad bubble.
+            }
+            const uint64_t side = p.second;
+
+            // Find the index of this bubble in this connected component.
+            const auto it = bubbleMap.find(bubbleId);
+            SHASTA_ASSERT(it != bubbleMap.end());
+            const auto j = it->second;
+            SHASTA_ASSERT(j < bubbleCount);
+
+            // Fill in the matrix element.
+            double& matrixElement = A[j * orientedReadCount + i];
+            if(side == 0) {
+                matrixElement = 1.;
+            } else if (side == 1) {
+                matrixElement = -1.;
+            } else {
+                SHASTA_ASSERT(0);
+            }
+        }
+        i++;
+    }
+
+
+
+    // Compute the SVD.
+    const int M = int(orientedReadCount);
+    const int N = int(bubbleCount);
+    const string JOBU = "A";
+    const string JOBVT = "A";
+    const int LDA = M;
+    vector<double> S(min(M, N));
+    vector<double> U(M*M);
+    const int LDU = M;
+    vector<double> VT(N*N);
+    const int LDVT = N;
+    const int LWORK = 10 * max(M, N);
+    vector<double> WORK(LWORK);
+    int INFO = 0;
+    cout << timestamp << "Computing the svd. Matrix is " << M << " by " << N << endl;
+    dgesvd_(
+        JOBU.data(), JOBVT.data(),
+        M, N,
+        &A[0], LDA, &S[0], &U[0], LDU, &VT[0], LDVT, &WORK[0], LWORK, INFO);
+    cout << timestamp << "Done computing the svd." << endl;
+    if(INFO != 0) {
+        throw runtime_error("Error " + to_string(INFO) +
+            " computing SVD decomposition of local read graph.");
+    }
+    for(uint64_t i=0; i<min(10UL, S.size()); i++) {
+        cout << S[i] << endl;
+    }
+
+
+    // Get the phase from the sign of the components of the first left eigenvector.
+    i = 0;
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+        PhasingGraphVertex& vertex = phasingGraph[v];
+        const double eigenvectorComponent = U[i++];
+        vertex.eigenvectorComponent = eigenvectorComponent;
+
+        if(eigenvectorComponent >= 0.) {
+            vertex.phase = 1;
+        } else {
+            vertex.phase = -1;
         }
     }
 }
@@ -1177,5 +1346,102 @@ void Bubbles::BubbleGraph::computeConnectedComponents()
     }
 }
 
+
+
+// Functions used to decide if an alignment should be used.
+bool Bubbles::allowAlignment(
+    const OrientedReadPair& orientedReadPair,
+    bool useClustering) const
+{
+    const OrientedReadId orientedReadId0(orientedReadPair.readIds[0], 0);
+    const OrientedReadId orientedReadId1(orientedReadPair.readIds[1], orientedReadPair.isSameStrand ? 0 : 1);
+
+    OrientedReadId orientedReadId0Rc = orientedReadId0;
+    OrientedReadId orientedReadId1Rc = orientedReadId1;
+    orientedReadId0Rc.flipStrand();
+    orientedReadId1Rc.flipStrand();
+
+    return
+        allowAlignment(orientedReadId0,   orientedReadId1, useClustering) and
+        allowAlignment(orientedReadId0Rc, orientedReadId1Rc, useClustering);
+}
+
+
+
+bool Bubbles::allowAlignment(
+    const OrientedReadId& orientedReadId0,
+    const OrientedReadId& orientedReadId1,
+    bool useClustering) const
+{
+    if(useClustering) {
+        return allowAlignmentUsingClustering(orientedReadId0, orientedReadId1);
+    } else {
+        return allowAlignmentUsingBubbles(orientedReadId0, orientedReadId1);
+    }
+}
+
+
+
+bool Bubbles::allowAlignmentUsingClustering(
+    const OrientedReadId& orientedReadId0,
+    const OrientedReadId& orientedReadId1) const
+{
+    const pair<uint64_t, uint64_t>& p0 = orientedReadsPhase[orientedReadId0.getValue()];
+    const pair<uint64_t, uint64_t>& p1 = orientedReadsPhase[orientedReadId1.getValue()];
+
+    const uint64_t componentId0 = p0.first;
+    const uint64_t componentId1 = p1.first;
+    const uint64_t unphased = std::numeric_limits<uint64_t>::max();
+    const bool isPhased0 = not(componentId0 == unphased);
+    const bool isPhased1 = not(componentId1 == unphased);
+
+    // If both unphased, allow the alignment.
+    if((not isPhased0) and (not isPhased1)) {
+        return true;
+    }
+
+    // If only one is phased, don't allow the alignment.
+    // This will have to be reviewed to allow alignments with unphased reads near
+    // the beginning/end of a phased region.
+    if(isPhased0 and (not isPhased1)) {
+        return false;
+    }
+    if(isPhased1 and (not isPhased0)) {
+        return false;
+    }
+
+    // If getting here, they are both phased.
+    SHASTA_ASSERT(isPhased0 and isPhased1);
+
+    // Only allow the alignment if they are in the same component and phase.
+    return
+        (componentId0 == componentId1) and (p0.second == p1.second);
+}
+
+
+
+bool Bubbles::allowAlignmentUsingBubbles(
+    const OrientedReadId& orientedReadId0,
+    const OrientedReadId& orientedReadId1) const
+{
+    uint64_t sameSideCount = 0;
+    uint64_t oppositeSideCount = 0;
+    findOrientedReadsRelativePhase(
+        orientedReadId0, orientedReadId1,
+        sameSideCount, oppositeSideCount);
+
+    // Allow alignments in homozygous regions.
+    if((sameSideCount==0) and (oppositeSideCount==0)) {
+        return true;
+    }
+
+    // Thresholds to be exposed as options when code stabilizes.
+    const uint64_t minSameSideCount = 6;
+    const uint64_t maxOppositeSideCount = 1;
+
+    return
+        (sameSideCount >= minSameSideCount) and
+        (oppositeSideCount <= maxOppositeSideCount);
+}
 
 

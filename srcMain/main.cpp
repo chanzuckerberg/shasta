@@ -22,11 +22,6 @@ namespace shasta {
             const AssemblerOptions&,
             vector<string> inputNames);
 
-        void createMarkerGraphVertices(
-            Assembler&,
-            const AssemblerOptions&,
-            uint32_t threadCount);
-
         void mode0Assembly(
             Assembler&,
             const AssemblerOptions&,
@@ -856,7 +851,14 @@ void shasta::main::mode0Assembly(
 
             // Do an assembly with the current read graph, without marker graph
             // simplification or detangling.
-            createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+            assembler.createMarkerGraphVertices(
+                assemblerOptions.markerGraphOptions.minCoverage,
+                assemblerOptions.markerGraphOptions.maxCoverage,
+                assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+                assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+                assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+                assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+                threadCount);
             assembler.findMarkerGraphReverseComplementVertices(threadCount);
             assembler.createMarkerGraphEdges(threadCount);
             assembler.findMarkerGraphReverseComplementEdges(threadCount);
@@ -902,7 +904,14 @@ void shasta::main::mode0Assembly(
     // Create marker graph vertices.
     // This uses a disjoint sets data structure to merge markers
     // that are aligned based on an alignment present in the read graph.
-    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+        threadCount);
 
     // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
@@ -1069,12 +1078,19 @@ void shasta::main::mode1Assembly(
     uint32_t threadCount)
 {
     // Create marker graph vertices.
-    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+        threadCount);
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create marker graph edges.
     // For assembly mode 1 we use createMarkerGraphEdgesStrict
-    // with minimum edge coverage (total and per satrand).
+    // with minimum edge coverage (total and per strand).
     assembler.createMarkerGraphEdgesStrict(
         assemblerOptions.markerGraphOptions.minEdgeCoverage,
         assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
@@ -1086,33 +1102,90 @@ void shasta::main::mode1Assembly(
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
     assembler.createAssemblyGraphVertices();
-    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
 
-    throw runtime_error("Missing code in assembly mode 1 .");
-}
+    // Analyze bubbles in the assembly graph.
+    assembler.analyzeAssemblyGraphBubbles();
+
+    // Create a new read graph, using the bubble analysis
+    // to exclude alignments.
+    assembler.createReadGraphMode1(
+        assemblerOptions.readGraphOptions.maxAlignmentCount);
 
 
 
+    // Create a new marker graph and assembly graph using this new read graph.
 
-// Create marker graph vertices.
-// This uses a disjoint sets data structure to merge markers
-// that are aligned based on an alignment present in the read graph.
-void shasta::main::createMarkerGraphVertices(
-    Assembler& assembler,
-    const AssemblerOptions& assemblerOptions,
-    uint32_t threadCount
-    )
-{
-    // Create marker graph vertices: mainstream code.
+    // Remove the old marker graph and assembly graph.
+    assembler.removeMarkerGraph();
+    assembler.removeAssemblyGraph();
+
+    // For the second step we use lower coverage thresholds
+    // for marker graph vertices and edges.
+    // ******* EXPOSE THESE WHEN CODE STABILIZES (also in Mode1Assembly.py)
+    const uint64_t minVertexCoverageFinal = 4;
+    const uint64_t minVertexCoveragePerStrandFinal = 1;
+    const uint64_t minEdgeCoverageFinal = 4;
+    const uint64_t minEdgeCoveragePerStrandFinal = 1;
+
+
+    // Create marker graph vertices.
     assembler.createMarkerGraphVertices(
-        assemblerOptions.markerGraphOptions.minCoverage,
+        minVertexCoverageFinal,
         assemblerOptions.markerGraphOptions.maxCoverage,
-        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        minVertexCoveragePerStrandFinal,
         assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
         assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
         assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
         threadCount);
+    assembler.findMarkerGraphReverseComplementVertices(threadCount);
+
+    // Create marker graph edges.
+    // For assembly mode 1 we use createMarkerGraphEdgesStrict
+    // with minimum edge coverage (total and per strand).
+    assembler.createMarkerGraphEdgesStrict(
+        minEdgeCoverageFinal,
+        minEdgeCoveragePerStrandFinal, threadCount);
+    assembler.findMarkerGraphReverseComplementEdges(threadCount);
+
+    // To recovery contiguity, add secondary edges.
+    const uint32_t secondaryEdgeMaxSkip = 100;    // ********* EXPOSE WHEN CODE STABILIZES (also in Mode1Assembly.py)
+    assembler.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, threadCount);
+
+    // Coverage histograms for vertices and edges of the marker graph.
+    assembler.computeMarkerGraphCoverageHistogram();
+
+    // Simplify the marker graph to remove bubbles and superbubbles.
+    // The maxLength parameter controls the maximum number of markers
+    // for a branch to be collapsed during each iteration.
+    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
+
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
+    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
+
+    // Compute optimal repeat counts for each vertex of the marker graph.
+    assembler.assembleMarkerGraphVertices(threadCount);
+
+    // Compute consensus sequence for marker graph edges to be used for assembly.
+    assembler.assembleMarkerGraphEdges(
+        threadCount,
+        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.assemblyOptions.storeCoverageData or
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
+        );
+
+    // Use the assembly graph for sequence assembly.
+    assembler.assemble(
+        threadCount,
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
+    assembler.computeAssemblyStatistics();
+    assembler.writeGfa1("Assembly.gfa");
+    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
+    assembler.writeFasta("Assembly.fasta");
+
 }
+
 
 
 
@@ -1175,16 +1248,14 @@ void shasta::main::saveBinaryData(
     const string dataDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
     if(!filesystem::exists(dataDirectory)) {
-        cout << dataDirectory << " does not exist, nothing done." << endl;
-        return;
+        throw runtime_error(dataDirectory + " does not exist, nothing done.");
     }
 
     // Check that the DataOnDisk directory does not exist.
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
     if(filesystem::exists(dataOnDiskDirectory)) {
-        cout << dataOnDiskDirectory << " already exists, nothing done." << endl;
-        return;
+        throw runtime_error(dataOnDiskDirectory + " already exists, nothing done.");
     }
 
     // Copy Data to DataOnDisk.

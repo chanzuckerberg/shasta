@@ -412,74 +412,26 @@ void Assembler::writeParallelMarkerGraphEdges() const
 
 
 
-// A "local" class used only in Assembler::createMarkerGraphSecondaryEdges below.
-namespace shasta {
-    namespace CreateMarkerGraphSecondaryEdges {
-
-        class EdgeCandidate {
-        public:
-
-            // Information about the first vertex.
-            uint32_t deadEndId0;
-            uint32_t position0;
-
-            // Information about the second vertex.
-            uint32_t deadEndId1;
-            uint32_t position1;
-
-            bool operator==(const EdgeCandidate& that) const
-            {
-                return
-                    tie(deadEndId0, position0, deadEndId1, position1) ==
-                    tie(that.deadEndId0, that.position0, that.deadEndId1, that.position1);
-            }
-
-            bool operator<(const EdgeCandidate& that) const
-            {
-                return
-                    tie(deadEndId0, position0, deadEndId1, position1) <
-                    tie(that.deadEndId0, that.position0, that.deadEndId1, that.position1);
-            }
-
-            void reverseComplement()
-            {
-                swap(deadEndId0, deadEndId1);
-                swap(position0, position1);
-            }
-
-        };
-
-        ostream& operator<<(ostream& s, const EdgeCandidate& edgeCandidate)
-        {
-            s <<
-                "(" << edgeCandidate.deadEndId0 << "-" << edgeCandidate.position0 << ")->"
-                "(" << edgeCandidate.deadEndId1 << "-" << edgeCandidate.position1 << ")";
-            return s;
-        }
-    }
-}
-
-
-
 // Function createMarkerGraphSecondaryEdges can be called after createMarkerGraphEdgesStrict
 // to create a minimal amount of additional non-strict edges (secondary edges)
 // sufficient to restore contiguity.
 // This is a low performance version for testing:
 // - It is not multithreaded.
-// - It uses standard containers instead of trhe classes in
+// - It uses standard containers instead of the classes in
 //   namespace shasta::MemoryMapped.
 void Assembler::createMarkerGraphSecondaryEdges(
-    uint64_t minEdgeCoverage,
-    uint64_t minEdgeCoveragePerStrand,
-    uint64_t neighborhoodSize,
+    uint32_t secondaryEdgeMaxSkip,
+    size_t threadCount)
+{
+    createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, false, threadCount);
+    createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, true, threadCount);
+}
+void Assembler::createMarkerGraphSecondaryEdges(
+    uint32_t secondaryEdgeMaxSkip,
+    bool aggressive,
     size_t threadCount)
 {
     using VertexId = MarkerGraph::VertexId;
-    using EdgeId = MarkerGraph::EdgeId;
-    using Edge = MarkerGraph::Edge;
-    using namespace CreateMarkerGraphSecondaryEdges;
-
-    const bool debug = false;
 
     // Check that we have what we need.
     checkMarkersAreOpen();
@@ -502,303 +454,107 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
 
 
-    // Gather the dead ends (0-forward, 1=backward).
-    // Go forward/backward to include up to neighborhoodSize
-    // for each dead end.
-    // A forward dead end has the same numbering as its
-    // reverse complemented backward dead end.
-    array< vector<vector<VertexId> >, 2> deadEnds;
-    for(VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
-        if(markerGraph.outDegree(vertexId) == 0) {
-            SHASTA_ASSERT(markerGraph.inDegree(markerGraph.reverseComplementVertex[vertexId]) == 0);
-            deadEnds[0].push_back(vector<VertexId>());
-            deadEnds[1].push_back(vector<VertexId>());
-            VertexId v = vertexId;
-            for(uint64_t i=0; i<neighborhoodSize; i++) {
-                deadEnds[0].back().push_back(v);
-                deadEnds[1].back().push_back(markerGraph.reverseComplementVertex[v]);
-                if(markerGraph.inDegree(v) != 1) {
-                    break;
-                }
-                const EdgeId edgeId = EdgeId(markerGraph.edgesByTarget[v][0]);
-                const Edge& edge = markerGraph.edges[edgeId];
-                v = edge.source;
-            }
+    // Vector to contain the dead end pairs.
+    // A forward dead end is a vertex with out-degree 0.
+    // A backward dead end is a vertex with in-degree 0.
+    // Each dead end pair consists of a vertex with zero out-degree
+    // (a forward dead end) and its reverse complement,
+    // which has zero in-degree and is a backward dead end.
+    vector< array<VertexId, 2> > deadEndPairs;
+
+    // Also create a table to contains the forward/backward deadEndId for each vertex.
+    // Index by VertexId.
+    const uint64_t noDeadEnd = std::numeric_limits<uint64_t>::max();
+    vector< array<uint64_t, 2> > deadEndTable(vertexCount, {noDeadEnd, noDeadEnd});
+
+    // Gather the dead end pairs.
+    for(VertexId v=0; v!=vertexCount; v++) {
+        if(markerGraph.outDegree(v) == 0) {
+            const VertexId vRc = markerGraph.reverseComplementVertex[v];
+            SHASTA_ASSERT(markerGraph.inDegree(vRc) == 0);
+            const uint64_t deadEndPairId = deadEndPairs.size();
+            deadEndTable[v][0] = deadEndPairId;
+            deadEndTable[vRc][1] = deadEndPairId;
+            deadEndPairs.push_back({v, vRc});
         }
     }
-    cout << "Found " << deadEnds[0].size() << " forward dead ends and " <<
-        deadEnds[1].size() << " backward dead ends." << endl;
-
-    if(debug) {
-        ofstream csv("DeadEnds.csv");
-        csv << "Direction,Id,Size,VertexIds\n";
-        for(uint64_t direction=0; direction<2; direction++) {
-            const vector<vector<VertexId> >& v = deadEnds[direction];
-            for(uint64_t i=0; i<v.size(); i++) {
-                const vector<VertexId>& neighborhood = v[i];
-                csv << ((direction == 0) ? "Forward," : "Backward,");
-                csv << i << ",";
-                csv << neighborhood.size() << ",";
-                for(const VertexId vertexId: neighborhood) {
-                    csv << vertexId << ",";
-                }
-                csv << "\n";
-            }
-        }
-    }
+    cout << "Found " << deadEndPairs.size() << " dead end pairs." << endl;
 
 
 
-    // Construct two vectors that for each vertex tell us which dead ends
-    // it belongs to, if any.
-    // Each vector stores pairs(deadEndId, vertexPositionInDeadEnd).
-    const uint32_t noDeadEnd = std::numeric_limits<uint32_t>::max();
-    const pair<uint32_t, uint32_t> noDeadEndPair = make_pair(noDeadEnd, noDeadEnd);
-    vector< array< pair<uint32_t, uint32_t>, 2> > vertexDeadEnd(vertexCount,
-        array< pair<uint32_t, uint32_t>, 2>({noDeadEndPair, noDeadEndPair}));
-    for(uint64_t direction=0; direction<2; direction++) {
-        const vector<vector<VertexId> >& v = deadEnds[direction];
-        for(uint32_t deadEndId=0; deadEndId<uint32_t(v.size()); deadEndId++) {
-            const vector<VertexId>& deadEnd = v[deadEndId];
-            for(uint32_t i=0; i<uint32_t(deadEnd.size()); i++) {
-                const VertexId vertexId = deadEnd[i];
-                vertexDeadEnd[vertexId][direction] = make_pair(deadEndId, i);
-            }
-        }
-    }
-
-
-
-    // Find edges to add.
+    // Look for secondary edges. Loop over forward dead ends.
+    vector< array<VertexId, 2> > secondaryEdges;
     vector<MarkerGraph::VertexId> nextVertices;
-    vector<EdgeCandidate> edgeCandidates;
+    vector<MarkerGraph::VertexId> v1Candidates;
+    vector<uint64_t> v1Count;
+    for(uint64_t deadEndId0=0; deadEndId0<deadEndPairs.size(); deadEndId0++) {
+        const VertexId v0 = deadEndPairs[deadEndId0][0];
 
-    // Loop over forward dead ends.
-    for(uint32_t deadEndId0=0; deadEndId0<uint32_t(deadEnds[0].size()); deadEndId0++) {
-        if(debug) {
-            cout << "Forward dead end " << deadEndId0 << endl;
-        }
+        // Find the next vertex for each marker / oriented read on this vertex.
+        findNextMarkerGraphVertices(v0, secondaryEdgeMaxSkip, nextVertices);
 
-        // Coverage map for the candidate edges for this dead end.
-        std::map<EdgeCandidate, array<uint64_t, 2> > coverageMap;
+        // Loop over the markers in this vertex.
+        // For each marker there is an OrientedReadId and a next vertex.
+        v1Candidates.clear();
+        for(uint64_t j=0; j<nextVertices.size(); j++) {
+            const MarkerGraph::VertexId v1 = nextVertices[j];
 
-        // Loop over vertices of this forward dead end.
-        const vector<VertexId>& neighborhood0 = deadEnds[0][deadEndId0];
-        for(uint32_t position0=0; position0<uint32_t(neighborhood0.size()); position0++) {
-            const VertexId vertexId0 = neighborhood0[position0];
-
-            // Find the next vertex for each oriented read on this vertex.
-            findNextMarkerGraphVertices(vertexId0, nextVertices);
-
-            // Each distinct next vertex generates a possible edge to be added.
-            // Compute coverage for each strand of this edge candidate.
-            const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId0);
-            SHASTA_ASSERT(nextVertices.size() == markerIds.size());
-            for(uint64_t j=0; j<markerIds.size(); j++) {
-                const MarkerId markerId = markerIds[j];
-                const MarkerGraph::VertexId vertexId1 = nextVertices[j];
-                if(vertexId1 == MarkerGraph::invalidVertexId) {
-                    continue;
-                }
-                const uint32_t deadEndId1 = vertexDeadEnd[vertexId1][1].first;
-                const uint32_t position1 = vertexDeadEnd[vertexId1][1].second;
-
-                // The next vertex must belong to a backward dead end.
-                if(deadEndId1 == noDeadEnd) {
-                    continue;
-                }
-
-                // The next vertex must not belong to the same forward dead end.
-                if(vertexDeadEnd[vertexId1][0].first == deadEndId0) {
-                    continue;
-                }
-
-                EdgeCandidate edgeCandidate;
-                edgeCandidate.deadEndId0 = deadEndId0;
-                edgeCandidate.position0 = position0;
-                edgeCandidate.deadEndId1 = deadEndId1;
-                edgeCandidate.position1 = position1;
-
-                // Increment the coverage map for this edge candidate.
-                OrientedReadId orientedReadId;
-                tie(orientedReadId, ignore) = findMarkerId(markerId);
-                const uint64_t strand = orientedReadId.getStrand();
-                auto it = coverageMap.find(edgeCandidate);
-                if(it == coverageMap.end()) {
-                    tie(it, ignore) = coverageMap.insert(make_pair(
-                        edgeCandidate,
-                        array<uint64_t, 2>({0, 0})));
-                }
-                ++it->second[strand];
-            }
-        }
-
-        // Write out the candidate edges we found for this forward dead end.
-        if(debug) {
-            for(const auto& p: coverageMap) {
-                const EdgeCandidate& edgeCandidate = p.first;
-                const VertexId vertexId0 = deadEnds[0][edgeCandidate.deadEndId0][edgeCandidate.position0];
-                const VertexId vertexId1 = deadEnds[1][edgeCandidate.deadEndId1][edgeCandidate.position1];
-                const uint64_t coverage0 = p.second[0];
-                const uint64_t coverage1 = p.second[1];
-                const uint64_t coverage = coverage0 + coverage1;
-                cout << edgeCandidate << " " << vertexId0 << "->" << vertexId1 << " " <<
-                    coverage0 << "+" << coverage1 << "=" << coverage << "\n";
-            }
-        }
-
-        if(coverageMap.empty()) {
-            if(debug) {
-                cout << "No candidate edges available for this forward dead end." << endl;
-            }
-            continue;
-        }
-
-
-
-        // In a first step, look for candidate edges that satisfy minEdgeCoverage
-        // and minEdgeCoveragePerStrand, without requiring the RLE sequences to be
-        // all identical. If there is more than one, choose the one with the best
-        // coverage.
-        auto itBest = coverageMap.end();
-        uint64_t bestCoverage = 0;
-        for(auto it=coverageMap.begin(); it!=coverageMap.end(); ++it) {
-
-            // If coverage is insufficient, skip it.
-            const array<uint64_t, 2>& strandCoverage = it->second;
-            const uint64_t coverage = strandCoverage[0] + strandCoverage[1];
-            if(coverage < minEdgeCoverage or
-                strandCoverage[0] < minEdgeCoveragePerStrand or
-                strandCoverage[1] < minEdgeCoveragePerStrand) {
+            // Disregard secondary edges to self.
+            if(v1 == v0) {
                 continue;
             }
 
-            if(coverage > bestCoverage) {
-                bestCoverage = coverage;
-                itBest = it;
+            // If there is no next vertex for this marker, skip.
+            if(v1 == MarkerGraph::invalidVertexId) {
+                continue;
             }
-        }
 
-
-
-        if(itBest == coverageMap.end()) {
-
-            // We did not find a candidate edge with sufficient coverage.
-            // Pick the edge with best coverage.
-            uint64_t bestCoverage = 0;
-            for(auto it=coverageMap.begin(); it!=coverageMap.end(); ++it) {
-
-                const array<uint64_t, 2>& strandCoverage = it->second;
-                const uint64_t coverage = strandCoverage[0] + strandCoverage[1];
-
-                if(coverage > bestCoverage) {
-                    bestCoverage = coverage;
-                    itBest = it;
+            // If not in aggressive mode and this is not a backward dead end, skip.
+            // In aggressive mode we accept everything, which gives better
+            // contiguity but can also create more artifacts.
+            if(not aggressive) {
+                const uint64_t deadEnd1 = deadEndTable[v1][1];
+                if(deadEnd1 == noDeadEnd) {
+                    continue;
                 }
             }
 
+            v1Candidates.push_back(v1);
+        }
+        if(v1Candidates.empty()) {
+            continue;
         }
 
-        // Add this edge candidate to our list.
-        EdgeCandidate edgeCandidate = itBest->first;
-        edgeCandidates.push_back(edgeCandidate);
+        // Count how many times each possible v1 appeared.
+        deduplicateAndCount(v1Candidates, v1Count);
+        const uint64_t v1CountMax = *std::max_element(v1Count.begin(), v1Count.end());
 
-        if(debug) {
-            const VertexId vertexId0 = deadEnds[0][edgeCandidate.deadEndId0][edgeCandidate.position0];
-            const VertexId vertexId1 = deadEnds[1][edgeCandidate.deadEndId1][edgeCandidate.position1];
-            const uint64_t coverage0 = itBest->second[0];
-            const uint64_t coverage1 = itBest->second[1];
-            const uint64_t coverage = coverage0 + coverage1;
-            cout << "Stored candidate edge " << edgeCandidate << " " << vertexId0 << "->" << vertexId1 << " " <<
-                coverage0 << "+" << coverage1 << "=" << coverage << "\n";
+        for(uint64_t i=0; i<v1Candidates.size(); i++) {
+            if(v1Count[i] == v1CountMax) {
+                const VertexId v1 = v1Candidates[i];
+                const VertexId v0Rc = markerGraph.reverseComplementVertex[v0];
+                const VertexId v1Rc = markerGraph.reverseComplementVertex[v1];
+                SHASTA_ASSERT(v0 != v1);
+                SHASTA_ASSERT(v0Rc != v1Rc);
+                secondaryEdges.push_back({v0, v1});
+                secondaryEdges.push_back({v1Rc, v0Rc});
+            }
         }
-
-        // Also add its reverse complement.
-        edgeCandidate.reverseComplement();
-        edgeCandidates.push_back(edgeCandidate);
-
-        if(debug) {
-            const VertexId vertexId0 = deadEnds[0][edgeCandidate.deadEndId0][edgeCandidate.position0];
-            const VertexId vertexId1 = deadEnds[1][edgeCandidate.deadEndId1][edgeCandidate.position1];
-            const uint64_t coverage0 = itBest->second[1];
-            const uint64_t coverage1 = itBest->second[0];
-            const uint64_t coverage = coverage0 + coverage1;
-            cout << "Reverse complement: stored candidate edge " << edgeCandidate << " " << vertexId0 << "->" << vertexId1 << " " <<
-                coverage0 << "+" << coverage1 << "=" << coverage << "\n";
-        }
-
-
     }
-
-    // Remove duplicates.
-    cout << "Before removing duplicates, there are " << edgeCandidates.size() <<
-        " candidates for secondary edges." << endl;
-    deduplicate(edgeCandidates);
-    cout << "After removing duplicates, there are " << edgeCandidates.size() <<
-        " candidates for secondary edges." << endl;
+    cout << "Found " << secondaryEdges.size() << " secondary edges." << endl;
+    deduplicate(secondaryEdges);
+    cout << "After deduplicating, there are " << secondaryEdges.size() << " secondary edges." << endl;
 
 
 
-    // There is still the possibility of more than one secondary edge
-    // between the same two dead ends.
-    // Store them in a map, keyed by the two dead ends,
-    // with the first numbered lower.
-    std::map< pair<uint32_t, uint32_t>, vector<EdgeCandidate> > edgeCandidateMap;
-    for(const EdgeCandidate& edgeCandidate: edgeCandidates) {
-        uint32_t deadEndId0 = edgeCandidate.deadEndId0;
-        uint32_t deadEndId1 = edgeCandidate.deadEndId1;
-        if(deadEndId1 < deadEndId0) {
-            swap(deadEndId0, deadEndId1);
-        }
-        edgeCandidateMap[make_pair(deadEndId0, deadEndId1)].push_back(edgeCandidate);
-    }
-    cout << "The edge candidate map has " << edgeCandidateMap.size() <<
-        " candidates for secondary edges." << endl;
-
-
-
-    // Now recreate the edge candidates, keeping only a reverse complemented pair
-    // for each pair of dead ends.
-    edgeCandidates.clear();
-    for(const auto& p: edgeCandidateMap) {
-        EdgeCandidate edgeCandidate = p.second.front();
-        edgeCandidates.push_back(edgeCandidate);
-        edgeCandidate.reverseComplement();
-        edgeCandidates.push_back(edgeCandidate);
-    }
-    cout << "After running though the edge candidate map, there are " << edgeCandidates.size() <<
-        " candidates for secondary edges." << endl;
-    deduplicate(edgeCandidates);
-    cout << "After this dedupicationstage, there are " << edgeCandidates.size() <<
-        " candidates for secondary edges." << endl;
-
-    // Now store the edges as vertex pairs and deduplicate again.
-    vector< pair<VertexId, VertexId> > candidateVertexPairs;
-    for(const EdgeCandidate& edgeCandidate: edgeCandidates) {
-        const uint32_t deadEndId0 = edgeCandidate.deadEndId0;
-        const uint32_t position0 = edgeCandidate.position0;
-        const uint32_t deadEndId1 = edgeCandidate.deadEndId1;
-        const uint32_t position1 = edgeCandidate.position1;
-
-        const VertexId v0 = deadEnds[0][deadEndId0][position0];
-        const VertexId v1 = deadEnds[1][deadEndId1][position1];
-        candidateVertexPairs.push_back(make_pair(v0, v1));
-    }
-    deduplicate(candidateVertexPairs);
-
-
-
-    // Create the secondary edges.
+    // Add the edges we found.
     vector<MarkerInterval> markerIntervals;
-    for(const auto& p: candidateVertexPairs) {
-        const VertexId v0 = p.first;
-        const VertexId v1 = p.second;
-        getMarkerIntervals(v0, v1, markerIntervals);
+    for(const array<VertexId, 2>& secondaryEdge: secondaryEdges) {
+        const VertexId v0 = secondaryEdge[0];
+        const VertexId v1 = secondaryEdge[1];
+        SHASTA_ASSERT(v0 != v1);
 
-        if(debug) {
-            cout << "Adding edge " << markerGraph.edges.size() << " " <<
-                " " << v0 << "->" << v1 << "\n";
-        }
+        getMarkerIntervals(v0, v1, markerIntervals);
 
         // Add the edge.
         MarkerGraph::Edge edge;
@@ -813,31 +569,8 @@ void Assembler::createMarkerGraphSecondaryEdges(
         edge.isSecondary = 1;
         markerGraph.edges.push_back(edge);
         markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
-
-
-        // Prune edges closer to the dead end.
-        // This can't be done because it can break contiguity.
-        /*
-        for(uint32_t position=0; position<position0; position++) {
-            const VertexId vertexId0 = deadEnds[0][deadEndId0][position+1];
-            const VertexId vertexId1 = deadEnds[0][deadEndId0][position];
-            const EdgeId edgeId = markerGraph.findEdgeId(vertexId0,  vertexId1);
-            cout << "Pruned " << vertexId0 << "->" << vertexId1 << endl;
-            markerGraph.edges[edgeId].wasPruned = 1;
-        }
-        for(uint32_t position=0; position<position1; position++) {
-            const VertexId vertexId0 = deadEnds[1][deadEndId1][position];
-            const VertexId vertexId1 = deadEnds[1][deadEndId1][position+1];
-            const EdgeId edgeId = markerGraph.findEdgeId(vertexId0,  vertexId1);
-            cout << "Pruned " << vertexId0 << "->" << vertexId1 << endl;
-            markerGraph.edges[edgeId].wasPruned = 1;
-        }
-        */
     }
-    cout << "Created " << edgeCandidates.size() << " secondary edges." << endl;
-    cout << "After adding secondary edges, the marker graph has " << vertexCount <<
-        " vertices and " << markerGraph.edges.size() << " edges." << endl;
-    SHASTA_ASSERT(markerGraph.edgeMarkerIntervals.size() == markerGraph.edges.size());
+
 
 
     // We need to recreate edgesBySource and edgesByTarget.
@@ -855,7 +588,11 @@ void Assembler::createMarkerGraphSecondaryEdges(
     }
     findMarkerGraphReverseComplementEdges(threadCount);
 
-    cout << timestamp << "createMarkerGraphSecondaryEdges ends." << endl;
+
+    cout << "After adding secondary edges, the marker graph has " <<
+        markerGraph.vertices().size() << " vertices and " <<
+        markerGraph.edges.size() << " edges." << endl;
+
 
 }
 

@@ -17,18 +17,18 @@ Class to describe an analyze bubbles in the assembly graph.
 namespace shasta {
     class Bubbles;
     class Assembler;
+    class OrientedReadPair;
 }
 
 class shasta::Bubbles {
 public:
 
     Bubbles(
-        const Assembler&
+        const Assembler&,
+        bool debug = false
     );
 
 private:
-
-
 
     // For now we only consider diploid bubbles, defined using the
     // following strict criteria:
@@ -255,6 +255,7 @@ private:
     public:
         OrientedReadId orientedReadId;
         int64_t phase = 0;
+        double eigenvectorComponent = 0.;
         array<double, 2> position;
     };
     class PhasingGraphEdge {
@@ -275,7 +276,7 @@ private:
     public:
         std::map<OrientedReadId, vertex_descriptor> vertexMap;
         void createVertices(const vector<OrientedReadId>&);
-        void phase();
+        void phaseSpectral(bool debug);
         // Write in html/svg format.
         // To compute sfdp layout, only consider edges
         // for which relativePhase() >= minRelativePhase.
@@ -287,6 +288,10 @@ private:
         const vector<OrientedReadId>&,
         PhasingGraph&) const;
 
+    // Phase a connected component using the SVD.
+    void phaseSvd(
+        const vector<BubbleGraph::vertex_descriptor>&,
+        PhasingGraph&);
 
 
     // A predicate used to filter PhasingGraph edges for which
@@ -318,9 +323,9 @@ private:
         const vector<BubbleGraph::vertex_descriptor>&);
 
     // The component and phase of each oriented read.
-    // The phase is +1 or -1.
+    // The phase is 0 or 1.
     // Indexed by OrientedRead::getValue().
-    vector< pair<uint64_t, uint64_t> > orientedReadsPhase;
+    vector< pair<uint32_t, uint32_t> > orientedReadsPhase;
 
     // Given a connected component of the BubbleGraph,
     // find the OrientedReadIds that appear in it.
@@ -331,7 +336,26 @@ private:
         ) const;
 
 
+
+    // Functions used to decide if an alignment should be used.
+public:
+    bool allowAlignment(
+        const OrientedReadPair&,
+        bool useClustering) const;
+private:
+    bool allowAlignment(
+        const OrientedReadId&,
+        const OrientedReadId&,
+        bool useClustering) const;
+    bool allowAlignmentUsingClustering(
+        const OrientedReadId&,
+        const OrientedReadId&) const;
+    bool allowAlignmentUsingBubbles(
+        const OrientedReadId&,
+        const OrientedReadId&) const;
+
     const Assembler& assembler;
+    bool debug;
 
 };
 

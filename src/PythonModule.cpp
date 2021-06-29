@@ -354,6 +354,10 @@ PYBIND11_MODULE(shasta, module)
              arg("maxAlignmentCount"),
              arg("threadCount") = 1
              )
+         .def("createReadGraphMode1",
+              &Assembler::createReadGraphMode1,
+              arg("maxAlignmentCount")
+              )
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
         .def("accessReadGraphReadWrite",
@@ -473,10 +477,11 @@ PYBIND11_MODULE(shasta, module)
             arg("minEdgeCoveragePerStrand"),
             arg("threadCount") = 0)
         .def("createMarkerGraphSecondaryEdges",
+            (
+                void (Assembler::*) (uint32_t, size_t)
+            )
             &Assembler::createMarkerGraphSecondaryEdges,
-            arg("minEdgeCoverage"),
-            arg("minEdgeCoveragePerStrand"),
-            arg("neighborhoodSize"),
+            arg("secondaryEdgeMaxSkip"),
             arg("threadCount") = 0)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
@@ -526,6 +531,8 @@ PYBIND11_MODULE(shasta, module)
             arg("wasAssembled"))
         .def("writeParallelMarkerGraphEdges",
             &Assembler::writeParallelMarkerGraphEdges)
+        .def("removeMarkerGraph",
+            &Assembler::removeMarkerGraph)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",
@@ -606,7 +613,10 @@ PYBIND11_MODULE(shasta, module)
         .def("alignPseudoPaths",
             &Assembler::alignPseudoPaths)
         .def("analyzeAssemblyGraphBubbles",
-            &Assembler::analyzeAssemblyGraphBubbles)
+            &Assembler::analyzeAssemblyGraphBubbles,
+            arg("debug") = true)
+        .def("removeAssemblyGraph",
+            &Assembler::removeAssemblyGraph)
 
 
 

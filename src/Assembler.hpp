@@ -7,6 +7,7 @@
 #include "AssemblerOptions.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
+#include "Bubbles.hpp"
 #include "Coverage.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "Histogram.hpp"
@@ -1118,6 +1119,10 @@ public:
 #endif
 
 
+    // Read graph creation for mode 1 assembly.
+    void createReadGraphMode1(uint64_t maxAlignmentCount);
+
+
 
     void flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount);
 private:
@@ -1129,8 +1134,12 @@ private:
     };
     FlagCrossStrandReadGraphEdgesData flagCrossStrandReadGraphEdgesData;
 
-    // This is called for ReadGraph.creationMethod 0 and 2.
+    // Create the ReadGraph given a bool vector that specifies which
+    // alignments should be used in the read graph.
     void createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignment);
+
+    // Add alignments to avoid coverage holes.
+    void fixCoverageHoles(vector<bool>& keepAlignment) const;
 
 
 public:
@@ -1262,6 +1271,10 @@ private:
     // Marker graph.
 public:
     MarkerGraph markerGraph;
+    void removeMarkerGraph()
+    {
+        markerGraph.remove();
+    }
 
     // Find the reverse complement of each marker graph vertex.
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
@@ -1275,13 +1288,15 @@ private:
 
 
     // Given a marker graph vertex, follow all of the contributing oriented
-    // reads to their next vertex.
+    // reads to their next vertex, but without moving forward more than
+    // maxSkip markers.
     // In the returned vector, each entry correspond to a marker in the given vertex
     // (in the same order) and gives the next VertexId for that oriented read.
     // The next VertexId can be invalidVertexId if the oriented read has no vertices
     // past the starting VertexId.
     void findNextMarkerGraphVertices(
         MarkerGraph::VertexId,
+        uint32_t maxSkip,
         vector<MarkerGraph::VertexId>&) const;
 
 
@@ -1444,9 +1459,12 @@ public:
     // to create a minimal amount of additional non-strict edges (secondary edges)
     // sufficient to restore contiguity.
     void createMarkerGraphSecondaryEdges(
-        uint64_t minEdgeCoverage,
-        uint64_t minEdgeCoveragePerStrand,
-        uint64_t neighborhoodSize,
+        uint32_t secondaryEdgeMaxSkip,
+        size_t threadCount);
+private:
+    void createMarkerGraphSecondaryEdges(
+        uint32_t secondaryEdgeMaxSkip,
+        bool aggressive,
         size_t threadCount);
 
 
@@ -1798,6 +1816,10 @@ public:
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
     shared_ptr<AssemblyGraph> assemblyGraphPointer;
+    void removeAssemblyGraph()
+    {
+        assemblyGraphPointer.reset();
+    }
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();
@@ -1829,8 +1851,6 @@ public:
         uint64_t minVertexCount,
         uint64_t minEdgeCount);
 
-
-    void analyzeAssemblyGraphBubbles();
 
     // Compute consensus repeat counts for each vertex of the marker graph.
     void assembleMarkerGraphVertices(size_t threadCount);
@@ -2357,6 +2377,14 @@ public:
     void setupConsensusCaller(const string&);
 private:
     shared_ptr<ConsensusCaller> consensusCaller;
+
+
+
+    // Bubbles in the initial assembly graph.
+    // Only used in assembly mode 1.
+    unique_ptr<Bubbles> bubbles = 0;
+public:
+    void analyzeAssemblyGraphBubbles(bool debug = false);
 
 
 

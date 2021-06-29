@@ -12,9 +12,7 @@ a.accessMarkerGraphVertices()
 a.accessMarkerGraphReverseComplementVertex()
 a.accessMarkerGraphEdges(True, True)
 
-a.createMarkerGraphSecondaryEdges(
-    minEdgeCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
-    minEdgeCoveragePerStrand = int(config['MarkerGraph']['minEdgeCoveragePerStrand']),
-    neighborhoodSize = 3)
+# ********************** Expose this as an expotion when code stabilizes
+a.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip = 100)
 
 
