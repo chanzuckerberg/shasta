@@ -901,6 +901,25 @@ void Bubbles::phase(
     }
     cout << phasedReadCount << " oriented reads were phased, out of " <<
         orientedReadsTable.size() << " total." << endl;
+
+
+
+    // Write out the phasing.
+    ofstream csv("Phasing.csv");
+    for(uint64_t i=0; i<orientedReadsPhase.size(); i++) {
+        const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(i));
+        const auto& p = orientedReadsPhase[i];
+        const uint32_t componentId = p.first;
+        const uint32_t phase = 0;
+        csv << orientedReadId << ",";
+        if(componentId != std::numeric_limits<uint32_t>::max()) {
+            csv << componentId << ",";
+            csv << phase << "\n";
+        } else {
+            csv << ",\n";
+        }
+
+    }
 }
 
 
