@@ -1885,3 +1885,11 @@ void Assembler::flagInconsistentAlignmentsThreadFunction2(size_t threadId)
     deduplicate(inconsistentEdgeIds);
 }
 
+
+
+// Add alignments to avoid coverage holes.
+void Assembler::fixCoverageHoles(vector<bool>& keepAlignment) const
+{
+
+}
+

@@ -72,7 +72,12 @@ void Assembler::createReadGraphMode1(uint64_t maxAlignmentCount)
         }
     }
     const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
-    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+    cout << "Initially keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+
+
+    // Add alignments to avoid coverage holes.
+    fixCoverageHoles(keepAlignment);
+    cout << "After fixing coverage holes, keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
 
     // Create the read graph using the alignments we selected.
     readGraph.remove();

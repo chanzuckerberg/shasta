@@ -1134,8 +1134,12 @@ private:
     };
     FlagCrossStrandReadGraphEdgesData flagCrossStrandReadGraphEdgesData;
 
-    // This is called for ReadGraph.creationMethod 0 and 2.
+    // Create the ReadGraph given a bool vector that specifies which
+    // alignments should be used in the read graph.
     void createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignment);
+
+    // Add alignments to avoid coverage holes.
+    void fixCoverageHoles(vector<bool>& keepAlignment) const;
 
 
 public:
@@ -1266,6 +1270,10 @@ private:
     // Marker graph.
 public:
     MarkerGraph markerGraph;
+    void removeMarkerGraph()
+    {
+        markerGraph.remove();
+    }
 
     // Find the reverse complement of each marker graph vertex.
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
@@ -1807,6 +1815,10 @@ public:
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
     shared_ptr<AssemblyGraph> assemblyGraphPointer;
+    void removeAssemblyGraph()
+    {
+        assemblyGraphPointer.reset();
+    }
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();

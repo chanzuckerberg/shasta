@@ -530,6 +530,8 @@ PYBIND11_MODULE(shasta, module)
             arg("wasAssembled"))
         .def("writeParallelMarkerGraphEdges",
             &Assembler::writeParallelMarkerGraphEdges)
+        .def("removeMarkerGraph",
+            &Assembler::removeMarkerGraph)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",
@@ -612,6 +614,8 @@ PYBIND11_MODULE(shasta, module)
         .def("analyzeAssemblyGraphBubbles",
             &Assembler::analyzeAssemblyGraphBubbles,
             arg("debug") = true)
+        .def("removeAssemblyGraph",
+            &Assembler::removeAssemblyGraph)
 
 
 
