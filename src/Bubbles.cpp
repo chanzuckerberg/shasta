@@ -878,7 +878,7 @@ void Bubbles::phase(
         createPhasingGraph(componentOrientedReadIds, phasingGraph);
         phasingGraph.phaseSpectral(debug);
 
-        if(debug) {
+        if(true) {
             phasingGraph.writeHtml(
                 "PhasingGraph-Component-" + to_string(componentId) + ".html",
                 minRelativePhase);
