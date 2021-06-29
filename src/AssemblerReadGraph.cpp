@@ -766,6 +766,7 @@ void Assembler::writeLocalReadGraphReads(
     ReadId readId,
     Strand strand,
     uint32_t maxDistance,
+    bool useReadName,
     bool allowChimericReads,
     bool allowCrossStrandEdges,
     bool allowInconsistentAlignmentEdges)
@@ -796,8 +797,18 @@ void Assembler::writeLocalReadGraphReads(
 
         // Write the header line with the read name.
         const auto readName = reads->getReadName(readId);
-        fasta << ">" << readId << " ";
-        copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+
+        // Write the name first and the ID second if useReadName is specified
+        if (useReadName) {
+            fasta << ">";
+            copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+            fasta << " " << readId;
+        }
+        else {
+            fasta << ">" << readId << " ";
+            copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+        }
+
         const auto metaData = reads->getReadMetaData(readId);
         if(metaData.size() > 0) {
             fasta << " ";

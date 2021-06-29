@@ -1191,6 +1191,7 @@ public:
         ReadId,
         Strand,
         uint32_t maxDistance,
+        bool useReadName,
         bool allowChimericReads,
         bool allowCrossStrandEdges,
         bool allowInconsistentAlignmentEdges);
