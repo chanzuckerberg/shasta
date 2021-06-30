@@ -136,8 +136,7 @@ private:
         BubbleGraphVertex() : bubbleId(std::numeric_limits<uint64_t>::max()) {}
 
         uint64_t componentId = std::numeric_limits<uint64_t>::max();
-        uint64_t color;
-        int64_t phase = std::numeric_limits<int64_t>::max();
+        uint64_t color; // Used to compute connected components.
     };
     class BubbleGraphEdge {
     public:
@@ -227,8 +226,7 @@ private:
     // for which relativePhase() >= minRelativePhase.
     void writeBubbleGraphComponentHtml(
         uint64_t componentId,
-        const vector<BubbleGraph::vertex_descriptor>& component,
-        double minRelativePhase) const;
+        const vector<BubbleGraph::vertex_descriptor>& component) const;
 
     // ComponentGraph is used by writeBubbleGraphComponentSvg.
     class ComponentGraphVertex {
@@ -316,11 +314,6 @@ private:
 
     // Top level function for phasing.
     void phase(double minRelativePhase);
-
-    // Phase the bubbles of a connected component of the BubbleGraph.
-    // This stores the phases in the component vertices.
-    void phaseComponentBubbles(
-        const vector<BubbleGraph::vertex_descriptor>&);
 
     // The component and phase of each oriented read.
     // The phase is 0 or 1.

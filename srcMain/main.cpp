@@ -1104,7 +1104,7 @@ void shasta::main::mode1Assembly(
     assembler.createAssemblyGraphVertices();
 
     // Analyze bubbles in the assembly graph.
-    assembler.analyzeAssemblyGraphBubbles();
+    assembler.analyzeAssemblyGraphBubbles(true);
 
     // Create a new read graph, using the bubble analysis
     // to exclude alignments.
