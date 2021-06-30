@@ -1789,11 +1789,15 @@ void Assembler::followReadInMarkerGraph(
     const vector<string>& request,
     ostream& html)
 {
-    // Get the ReadId and Strand from the request.
+    // Get the request parameters.
     ReadId readId0 = 0;
     const bool readId0IsPresent = getParameterValue(request, "readId", readId0);
     Strand strand0 = 0;
     const bool strand0IsPresent = getParameterValue(request, "strand", strand0);
+    uint32_t firstOrdinal = 0;
+    const bool firstOrdinalIsPresent = getParameterValue(request, "firstOrdinal", firstOrdinal);
+    uint32_t lastOrdinal = 0;
+    const bool lastOrdinalIsPresent = getParameterValue(request, "lastOrdinal", lastOrdinal);
     string whichAlignments = "ReadGraphAlignments";
     getParameterValue(request, "whichAlignments", whichAlignments);
 
@@ -1806,6 +1810,11 @@ void Assembler::followReadInMarkerGraph(
         " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html <<
+        " First marker ordinal: <input type=text name=firstOrdinal required" <<
+        (firstOrdinalIsPresent ? (" value=" + to_string(firstOrdinal)) : "") << ">"
+        " Last marker ordinal: <input type=text name=lastOrdinal required" <<
+        (lastOrdinalIsPresent ? (" value=" + to_string(lastOrdinal)) : "") << ">";
     html << "<br><input type=radio name=whichAlignments value=AllAlignments" <<
         (whichAlignments=="AllAlignments" ? " checked=checked" : "") << "> All alignments";
     html << "<br><input type=radio name=whichAlignments value=ReadGraphAlignments" <<
@@ -1813,12 +1822,14 @@ void Assembler::followReadInMarkerGraph(
         "> Only alignments used in the read graph.";
     html << "</form>";
 
-    // If the readId or strand are missing, stop here.
-    if(!readId0IsPresent || !strand0IsPresent) {
+    // If a required parameter is missing, stop here.
+    if(!readId0IsPresent || !strand0IsPresent || !firstOrdinalIsPresent || !lastOrdinalIsPresent) {
         return;
     }
     const OrientedReadId orientedReadId0(readId0, strand0);
     const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
+    const uint32_t ordinal0Begin = firstOrdinal;
+    const uint32_t ordinal0End = min(markerCount0, lastOrdinal + 1);
 
 
 
@@ -1935,7 +1946,7 @@ void Assembler::followReadInMarkerGraph(
 
 
     // Write a table row for each marker in orientedReadId0.
-    for(uint32_t ordinal0=0; ordinal0<markerCount0; ordinal0++) {
+    for(uint32_t ordinal0=ordinal0Begin; ordinal0<ordinal0End; ordinal0++) {
         const MarkerId markerId0 = getMarkerId(orientedReadId0, ordinal0);
         const MarkerGraph::CompressedVertexId vertexId0 = markerGraph.vertexTable[markerId0];
 
