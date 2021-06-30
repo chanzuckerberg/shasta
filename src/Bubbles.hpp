@@ -286,12 +286,6 @@ private:
         const vector<OrientedReadId>&,
         PhasingGraph&) const;
 
-    // Phase a connected component using the SVD.
-    void phaseSvd(
-        const vector<BubbleGraph::vertex_descriptor>&,
-        PhasingGraph&);
-
-
     // A predicate used to filter PhasingGraph edges for which
     // relativePhase() >= minrelativePhase.
     class PhasingGraphEdgePredicate {
