@@ -29,6 +29,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreRead);
     SHASTA_ADD_TO_FUNCTION_TABLE(blastRead);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignments);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignmentCoverage);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     SHASTA_ADD_TO_FUNCTION_TABLE(computeAllAlignments);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignmentCandidateGraph);
@@ -235,6 +236,7 @@ void Assembler::writeNavigation(ostream& html) const
     writeNavigation(html, "Alignments", {
         {"Candidate graph", "exploreAlignmentCandidateGraph"},
         {"Stored alignments", "exploreAlignments"},
+        {"Alignment coverage", "exploreAlignmentCoverage"},
         {"Align two reads", "exploreAlignment"},
         {"Align one read with all", "computeAllAlignments"},
         {"Alignment graph", "exploreAlignmentGraph"},

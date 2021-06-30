@@ -2180,6 +2180,7 @@ public:
     void blastRead(const vector<string>&, ostream&);
     void exploreAlignmentCandidateGraph(const vector<string>& request, ostream& html);
     void exploreAlignments(const vector<string>&, ostream&);
+    void exploreAlignmentCoverage(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void alignSequencesInBaseRepresentation(const vector<string>&, ostream&);
     void alignSequencesInMarkerRepresentation(const vector<string>&, ostream&);

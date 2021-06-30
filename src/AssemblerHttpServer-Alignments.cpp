@@ -15,6 +15,7 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/icl/interval_map.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -735,6 +736,97 @@ void Assembler::exploreAlignments(
     }
 
 }
+
+
+void Assembler::exploreAlignmentCoverage(
+    const vector<string>& request,
+    ostream& html)
+{
+    html << ""
+        "<h2>Alignment coverage</h2>"
+        "<p>Alignment coverage at a marker of an oriented read is the number of alignments "
+        "whose range includes the given marker. It can be computed using all alignments "
+        "or just the alignments in the read graph.";
+
+    // Get the ReadId and Strand from the request.
+    ReadId readId0 = 0;
+    const bool readId0IsPresent = getParameterValue(request, "readId", readId0);
+    Strand strand0 = 0;
+    const bool strand0IsPresent = getParameterValue(request, "strand", strand0);
+    string whichAlignments = "AllAlignments";
+    getParameterValue(request, "whichAlignments", whichAlignments);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Plot alignment coverage for read'> "
+        "<input type=text name=readId required" <<
+        (readId0IsPresent ? (" value=" + to_string(readId0)) : "") <<
+        " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html << "<br><input type=radio name=whichAlignments value=AllAlignments" <<
+        (whichAlignments=="AllAlignments" ? " checked=checked" : "") << "> Use all alignments";
+    html << "<br><input type=radio name=whichAlignments value=ReadGraphAlignments" <<
+        (whichAlignments=="ReadGraphAlignments" ? " checked=checked" : "") <<
+        "> Only use alignments in the read graph.";
+    html << "</form>";
+
+    // If the readId or strand are missing, stop here.
+    if(!readId0IsPresent || !strand0IsPresent) {
+        return;
+    }
+
+    // Page title.
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    html <<
+        "<h1>Alignment coverage for oriented read "
+        "<a href='exploreRead?readId=" << readId0  << "&strand=" << strand0 << "'>"
+        << OrientedReadId(readId0, strand0) << "</a>"
+        "</h1>";
+
+    // Find the alignments that this oriented read is involved in, with the proper orientation.
+    const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
+        findOrientedAlignments(orientedReadId0, whichAlignments=="ReadGraphAlignments");
+
+    // Compute alignment coverage.
+    using boost::icl::interval_map;
+    interval_map<uint32_t, uint32_t> coverage;
+    using boost::icl::interval;
+    const uint32_t markerCount = uint32_t(markers.size(orientedReadId0.getValue()));
+    coverage.add(make_pair(interval<uint32_t>::right_open(0, markerCount), 1));  // EXTRA 1 TO SIMPLIFY PLOTTING
+    for(const auto& p: alignments) {
+        const AlignmentInfo& info = p.second;
+        const uint32_t ordinalBegin = info.data[0].firstOrdinal;
+        const uint32_t ordinalEnd = info.data[0].lastOrdinal + 1;
+        coverage.add(make_pair(interval<uint32_t>::right_open(ordinalBegin, ordinalEnd), 1));
+    }
+
+
+
+    // Plot the results.
+    std::ostringstream gnuplotCommands;
+    gnuplotCommands <<
+        "set border linewidth 1\n"
+        "set xtics out nomirror\n"
+        "set mxtics 10\n"
+        "set ytics out nomirror\n"
+        "set xrange [0:" << markerCount << "]\n"
+        "set yrange [0:*]\n"
+        "set grid xtics mxtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'\n"
+        "plot '-' with lines linecolor rgb '#0000ff' notitle\n";
+
+    for(const auto& p: coverage) {
+        const interval<uint32_t>::type range = p.first;
+        const uint32_t coverage = p.second - 1;
+        gnuplotCommands << range.lower() << " " << coverage << "\n";
+        gnuplotCommands << range.upper()-1 << " " << coverage << "\n";
+    }
+
+    gnuplotCommands << "e\n";
+    writeGnuPlotPngToHtml(html, 800, 600, gnuplotCommands.str());
+}
+
 
 
 void Assembler::displayAlignment(
