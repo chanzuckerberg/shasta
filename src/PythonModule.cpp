@@ -242,7 +242,6 @@ PYBIND11_MODULE(shasta, module)
              arg("readId"),
              arg("strand"),
              arg("maxDistance"),
-             arg("useReadName"),
              arg("allowChimericReads"),
              arg("allowCrossStrandEdges"),
              arg("allowInconsistentAlignmentEdges"))

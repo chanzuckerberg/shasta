@@ -28,7 +28,7 @@ a.accessReadGraph()
 a.accessMarkers()
 a.writeLocalReadGraphReads(
     readId=readId, strand=strand, 
-    maxDistance=maxDistance, 
+    maxDistance=maxDistance,
     allowChimericReads=allowChimericReads,
     allowCrossStrandEdges=allowCrossStrandEdges,
     allowInconsistentAlignmentEdges=allowInconsistentAlignmentEdges)

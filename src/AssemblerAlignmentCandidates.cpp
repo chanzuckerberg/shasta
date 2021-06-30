@@ -130,7 +130,6 @@ void Assembler::writeLocalAlignmentCandidateReads(
         ReadId readId,
         Strand strand,
         uint32_t maxDistance,
-        bool useReadName,
         bool allowChimericReads,
         bool allowCrossStrandEdges,
         bool allowInconsistentAlignmentEdges)
@@ -165,18 +164,18 @@ void Assembler::writeLocalAlignmentCandidateReads(
 
         // Write the header line with the read name.
         const auto readName = reads->getReadName(readId);
+        const auto& sequence = reads->getRead(readId);
+        const auto& counts = reads->getReadRepeatCounts(readId);
 
         // Write the name first and the ID second if useReadName is specified
-        if (useReadName) {
-            fasta << ">";
-            copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
-            fasta << " " << readId;
-        }
-        else {
-            fasta << ">" << readId << " ";
-            copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
-        }
+        fasta << ">";
+        copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+        fasta << " oldReadId=" << readId;
 
+        // Write the length
+        fasta << " length=" << sequence.baseCount;
+
+        // Write the metadata from the original fasta (if there is any)
         const auto metaData = reads->getReadMetaData(readId);
         if(metaData.size() > 0) {
             fasta << " ";
@@ -185,8 +184,6 @@ void Assembler::writeLocalAlignmentCandidateReads(
         fasta << "\n";
 
         // Write the sequence.
-        const auto& sequence = reads->getRead(readId);
-        const auto& counts = reads->getReadRepeatCounts(readId);
         const size_t n = sequence.baseCount;
         SHASTA_ASSERT(counts.size() == n);
         for(size_t i=0; i<n; i++) {
