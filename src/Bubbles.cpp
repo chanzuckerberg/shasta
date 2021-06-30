@@ -852,10 +852,10 @@ void Bubbles::phase(
     cout << "Found " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
 
-    orientedReadsPhase.resize(orientedReadsTable.size());
+    orientedReadsPhase.resize(orientedReadsTable.size(),
         make_pair(
         std::numeric_limits<uint32_t>::max(),
-        std::numeric_limits<uint32_t>::max());
+        std::numeric_limits<uint32_t>::max()));
 
     uint64_t phasedReadCount = 0;
     for(uint64_t componentId=0; componentId<bubbleGraph.connectedComponents.size(); componentId++) {
@@ -910,7 +910,7 @@ void Bubbles::phase(
         const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(i));
         const auto& p = orientedReadsPhase[i];
         const uint32_t componentId = p.first;
-        const uint32_t phase = 0;
+        const uint32_t phase = p.second;
         csv << orientedReadId << ",";
         if(componentId != std::numeric_limits<uint32_t>::max()) {
             csv << componentId << ",";
@@ -1386,12 +1386,12 @@ bool Bubbles::allowAlignmentUsingClustering(
     const OrientedReadId& orientedReadId0,
     const OrientedReadId& orientedReadId1) const
 {
-    const pair<uint64_t, uint64_t>& p0 = orientedReadsPhase[orientedReadId0.getValue()];
-    const pair<uint64_t, uint64_t>& p1 = orientedReadsPhase[orientedReadId1.getValue()];
+    const pair<uint32_t, uint32_t>& p0 = orientedReadsPhase[orientedReadId0.getValue()];
+    const pair<uint32_t, uint32_t>& p1 = orientedReadsPhase[orientedReadId1.getValue()];
 
-    const uint64_t componentId0 = p0.first;
-    const uint64_t componentId1 = p1.first;
-    const uint64_t unphased = std::numeric_limits<uint64_t>::max();
+    const uint32_t componentId0 = p0.first;
+    const uint32_t componentId1 = p1.first;
+    const uint32_t unphased = std::numeric_limits<uint32_t>::max();
     const bool isPhased0 = not(componentId0 == unphased);
     const bool isPhased1 = not(componentId1 == unphased);
 
