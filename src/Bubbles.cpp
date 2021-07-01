@@ -546,6 +546,7 @@ void Bubbles::createBubbleGraph()
                 if(bubbleIdB <= bubbleIdA) {
                     continue;
                 }
+                const Bubble& bubbleB = bubbles[bubbleIdB];
                 const uint64_t sideB = p.second;
                 const BubbleGraph::vertex_descriptor vB = bubbleGraph.vertexTable[bubbleIdB];
 
@@ -562,6 +563,10 @@ void Bubbles::createBubbleGraph()
                 // Update the matrix.
                 BubbleGraphEdge& edge = bubbleGraph[e];
                 ++edge.matrix[sideA][sideB];
+
+                // Count the common oriented reads that reach each of the two bubles first.
+                evaluateRelativePosition(bubbleA, bubbleB, edge.orderABCount, edge.orderBACount);
+
             }
         }
     }
@@ -1274,4 +1279,55 @@ bool Bubbles::allowAlignmentUsingBubbles(
         (oppositeSideCount <= maxOppositeSideCount);
 }
 
+
+
+// Given two bubbles, return the number of oriented reads
+// common between the two and that:
+// - Reach bubble0 before bubble1.
+// - Reach bubble1 before bubble0.
+void Bubbles::evaluateRelativePosition(
+    const Bubble& bubble0,
+    const Bubble& bubble1,
+    uint64_t& order01Count, // Number of of oriented reads that encounter bubble0 before bubble1
+    uint64_t& order10Count  // Number of of oriented reads that encounter bubble1 before bubble0
+) const
+{
+    order01Count = 0;
+    order10Count = 0;
+
+    // Joint loop over the oriented reads of the two bubbles.
+    const auto begin0 = bubble0.orientedReadInfos.begin();
+    const auto begin1 = bubble1.orientedReadInfos.begin();
+    const auto end0 = bubble0.orientedReadInfos.end();
+    const auto end1 = bubble1.orientedReadInfos.end();
+    auto it0 = begin0;
+    auto it1 = begin1;
+
+    while((it0!=end0) and (it1!=end1)) {
+        const OrientedReadId orientedReadId0 = it0->orientedReadId;
+        const OrientedReadId orientedReadId1 = it1->orientedReadId;
+
+        if(orientedReadId0 < orientedReadId1) {
+            ++it0;
+            continue;
+        }
+        if(orientedReadId1 < orientedReadId0) {
+            ++it1;
+            continue;
+        }
+        SHASTA_ASSERT(orientedReadId0 == orientedReadId1);
+
+        if(it0->maxOrdinal <= it1->minOrdinal) {
+            ++order01Count;
+        } else if(it1->maxOrdinal <= it0->minOrdinal) {
+            ++order10Count;
+        } else {
+            SHASTA_ASSERT(0);
+        }
+
+        ++it0;
+        ++it1;
+
+    }
+}
 

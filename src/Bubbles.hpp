@@ -116,6 +116,17 @@ private:
     void writeBubbles();
     void writeBubblesDetails();
 
+    // Given two bubbles, return the number of oriented reads
+    // common between the two and that:
+    // - Reach bubble0 before bubble1.
+    // - Reach bubble1 before bubble0.
+    void evaluateRelativePosition(
+        const Bubble& bubble0,
+        const Bubble& bubble1,
+        uint64_t& order01Count, // Number of of oriented reads that encounter bubble0 before bubble1
+        uint64_t& order10Count  // Number of of oriented reads that encounter bubble1 before bubble0
+    ) const;
+
 
     // A data structure that tells us, for each OrientedReadId,
     // which sides of which bubbles that OrientedReadId appears in.
@@ -220,6 +231,10 @@ private:
             const double diagonalRatio = double(diagonalCount()) / double(totalCount());
             return 2. * diagonalRatio - 1.;
         }
+
+        // Number of oriented reads that reach each of the two bubbles first.
+        uint64_t orderABCount = std::numeric_limits<uint64_t>::max();
+        uint64_t orderBACount = std::numeric_limits<uint64_t>::max();
 
         BubbleGraphEdge()
         {
