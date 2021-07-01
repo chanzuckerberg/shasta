@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(shastaStaticExecutable)
 
 # C++ dialect.
-add_definitions(-std=c++14)
+add_definitions(-std=c++17)
 
 # Compilation warnings.
 if(NOT MACOS)
