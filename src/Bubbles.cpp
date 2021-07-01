@@ -39,6 +39,7 @@ Bubbles::Bubbles(
     removeBadBubbles(discordantRatioThreshold);
     if(debug) {
         writeBubbles();
+        writeBubblesDetails();
         writeBubbleGraphGraphviz();
     }
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
@@ -163,6 +164,26 @@ void Bubbles::writeBubbles()
         csv << bubble.discordantRatio() << "\n";
     }
 }
+
+
+
+void Bubbles::writeBubblesDetails()
+{
+    ofstream csv("BubblesDetails.csv");
+    csv << "BubbleId,OrientedReadId,Side,MinOrdinal,MaxOrdinal\n";
+
+    for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
+        const Bubble& bubble = bubbles[bubbleId];
+        for(const OrientedReadInfo& info: bubble.orientedReadInfos) {
+            csv << bubbleId << ",";
+            csv << info.orientedReadId << ",";
+            csv << info.side << ",";
+            csv << info.minOrdinal << ",";
+            csv << info.maxOrdinal << "\n";
+        }
+    }
+}
+
 
 
 // Figure out if two sequences differ only by copy numbers in

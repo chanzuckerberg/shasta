@@ -114,6 +114,7 @@ private:
     vector<Bubble> bubbles;
     void findBubbles();
     void writeBubbles();
+    void writeBubblesDetails();
 
 
     // A data structure that tells us, for each OrientedReadId,
