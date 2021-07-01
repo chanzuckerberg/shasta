@@ -132,6 +132,20 @@ void Bubbles::findBubbles()
 
 
 
+// Return the number of oriented reads on a given side.
+uint64_t Bubbles::Bubble::countOrientedReadsOnSide(uint64_t side) const
+{
+    uint64_t n = 0;
+    for(const OrientedReadInfo& info: orientedReadInfos) {
+        if(info.side == side) {
+            ++n;
+        }
+    }
+    return n;
+}
+
+
+
 void Bubbles::writeBubbles()
 {
     ofstream csv("Bubbles.csv");
@@ -142,8 +156,8 @@ void Bubbles::writeBubbles()
         csv << bubbleId << ",";
         csv << bubble.mv0 << ",";
         csv << bubble.mv1 << ",";
-        csv << bubble.orientedReadIds[0].size() << ",";
-        csv << bubble.orientedReadIds[1].size() << ",";
+        csv << bubble.countOrientedReadsOnSide(0) << ",";
+        csv << bubble.countOrientedReadsOnSide(1) << ",";
         csv << bubble.concordantSum << ",";
         csv << bubble.discordantSum << ",";
         csv << bubble.discordantRatio() << "\n";
@@ -308,8 +322,8 @@ void Bubbles::Bubble::fillInOrientedReadIds(
 
     // Loop over both sides of the bubble.
     array<std::set<OrientedReadId>, 2> orientedReadIdSets;
-    for(uint64_t i=0; i<2; i++) {
-        const AssemblyGraph::EdgeId aEdgeId = aEdgeIds[i];
+    for(uint64_t side=0; side<2; side++) {
+        const AssemblyGraph::EdgeId aEdgeId = aEdgeIds[side];
 
         // Loop over marker graph edges of this side.
         const span<const MarkerGraph::EdgeId> mEdgeIds = assemblyGraph.edgeLists[aEdgeId];
@@ -319,18 +333,18 @@ void Bubbles::Bubble::fillInOrientedReadIds(
             const span<const MarkerInterval> markerIntervals =
                 markerGraph.edgeMarkerIntervals[mEdgeId];
             for(const MarkerInterval& markerInterval: markerIntervals) {
-                orientedReadIdSets[i].insert(markerInterval.orientedReadId);
+                orientedReadIdSets[side].insert(markerInterval.orientedReadId);
             }
         }
     }
 
     // Now store them, discarding the ones that appear on both sides.
-    for(uint64_t i=0; i<2; i++) {
-        const std::set<OrientedReadId>& x = orientedReadIdSets[i];
-        const std::set<OrientedReadId>& y = orientedReadIdSets[1-i];
+    for(uint32_t side=0; side<2; side++) {
+        const std::set<OrientedReadId>& x = orientedReadIdSets[side];
+        const std::set<OrientedReadId>& y = orientedReadIdSets[1-side];
         for(const OrientedReadId orientedReadId: x) {
             if(y.find(orientedReadId) == y.end()) {
-                orientedReadIds[i].push_back(orientedReadId);
+                orientedReadInfos.push_back(OrientedReadInfo(orientedReadId, side));
             }
         }
     }
@@ -343,10 +357,9 @@ void Bubbles::fillOrientedReadsTable()
     orientedReadsTable.resize(2* assembler.getReads().readCount());
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
         const Bubble& bubble = bubbles[bubbleId];
-        for(uint64_t side=0; side<2; side++) {
-            for(const OrientedReadId orientedReadId: bubble.orientedReadIds[side]) {
-                orientedReadsTable[orientedReadId.getValue()].push_back(make_pair(bubbleId, side));
-            }
+
+        for(const OrientedReadInfo& info: bubble.orientedReadInfos) {
+            orientedReadsTable[info.orientedReadId.getValue()].push_back(make_pair(bubbleId, info.side));
         }
     }
 }
@@ -446,11 +459,11 @@ void Bubbles::findNeighborOrientedReadIds(
         if(bubble.isBad) {
             continue;
         }
-        for(uint64_t side=0; side<2; side++) {
-            for(const OrientedReadId orientedReadId1: bubble.orientedReadIds[side]) {
-                if(orientedReadId1 != orientedReadId0) {
-                    orientedReadIdsSet.insert(orientedReadId1);
-                }
+
+        for(const OrientedReadInfo& info: bubble.orientedReadInfos) {
+            const OrientedReadId orientedReadId1 = info.orientedReadId;
+            if(orientedReadId1 != orientedReadId0) {
+                orientedReadIdsSet.insert(orientedReadId1);
             }
         }
     }
@@ -474,34 +487,33 @@ void Bubbles::createBubbleGraph()
         const Bubble& bubbleA = bubbles[bubbleIdA];
         const BubbleGraph::vertex_descriptor vA = bubbleGraph.vertexTable[bubbleIdA];
 
-        for(uint64_t sideA=0; sideA<2; sideA++) {
-            const vector<OrientedReadId>& orientedReadIds = bubbleA.orientedReadIds[sideA];
+        for(const OrientedReadInfo& info: bubbleA.orientedReadInfos) {
+            const OrientedReadId orientedReadId = info.orientedReadId;
+            const uint64_t sideA = info.side;
 
-            for(const OrientedReadId orientedReadId: orientedReadIds) {
-                const auto& v = orientedReadsTable[orientedReadId.getValue()];
+            const auto& v = orientedReadsTable[orientedReadId.getValue()];
 
-                for(const auto& p: v) {
-                    const uint64_t bubbleIdB = p.first;
-                    if(bubbleIdB <= bubbleIdA) {
-                        continue;
-                    }
-                    const uint64_t sideB = p.second;
-                    const BubbleGraph::vertex_descriptor vB = bubbleGraph.vertexTable[bubbleIdB];
-
-                    // Locate the edge between these two bubbles,
-                    // creating it if necessary.
-                    BubbleGraph::edge_descriptor e;
-                    bool edgeWasFound = false;
-                    tie(e, edgeWasFound) = edge(vA, vB, bubbleGraph);
-                    if(not edgeWasFound) {
-                        tie(e, edgeWasFound) = add_edge(vA, vB, bubbleGraph);
-                    }
-                    SHASTA_ASSERT(edgeWasFound);
-
-                    // Update the matrix.
-                    BubbleGraphEdge& edge = bubbleGraph[e];
-                    ++edge.matrix[sideA][sideB];
+            for(const auto& p: v) {
+                const uint64_t bubbleIdB = p.first;
+                if(bubbleIdB <= bubbleIdA) {
+                    continue;
                 }
+                const uint64_t sideB = p.second;
+                const BubbleGraph::vertex_descriptor vB = bubbleGraph.vertexTable[bubbleIdB];
+
+                // Locate the edge between these two bubbles,
+                // creating it if necessary.
+                BubbleGraph::edge_descriptor e;
+                bool edgeWasFound = false;
+                tie(e, edgeWasFound) = edge(vA, vB, bubbleGraph);
+                if(not edgeWasFound) {
+                    tie(e, edgeWasFound) = add_edge(vA, vB, bubbleGraph);
+                }
+                SHASTA_ASSERT(edgeWasFound);
+
+                // Update the matrix.
+                BubbleGraphEdge& edge = bubbleGraph[e];
+                ++edge.matrix[sideA][sideB];
             }
         }
     }
@@ -1073,10 +1085,8 @@ void Bubbles::findComponentOrientedReads(
         if(bubble.isBad) {
             continue;
         }
-        for(uint64_t side=0; side<2; side++) {
-            for(const OrientedReadId orientedReadId: bubble.orientedReadIds[side]) {
-                orientedReadIdsSet.insert(orientedReadId);
-            }
+        for(const OrientedReadInfo& info: bubble.orientedReadInfos) {
+            orientedReadIdsSet.insert(info.orientedReadId);
         }
     }
 

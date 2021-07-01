@@ -30,6 +30,28 @@ public:
 
 private:
 
+
+
+    // Information about an oriented read in a bubble.
+    class OrientedReadInfo {
+    public:
+        OrientedReadId orientedReadId;
+
+        // The side of the bubble that this oriented read appears in.
+        // This is an index into aEdgeIds.
+        // OrientedReadIds that appear on more than one side are not stored.
+        uint32_t side;
+
+        OrientedReadInfo(
+            OrientedReadId orientedReadId,
+            uint32_t side) :
+            orientedReadId(orientedReadId),
+            side(side)
+            {}
+    };
+
+
+
     // For now we only consider diploid bubbles, defined using the
     // following strict criteria:
     // - Source vertex v0 has out-degree 2.
@@ -49,8 +71,11 @@ private:
 
         // The OrientedReadIds on each of the two sides.
         // Sorted by OrientedReadId, without duplicates.
-        // Values that are present on both sides are removed.
-        array<vector<OrientedReadId>, 2> orientedReadIds;
+        // Values that are present on more than one side are removed.
+        vector<OrientedReadInfo> orientedReadInfos;
+
+        // Return the number of oriented reads on a given side.
+        uint64_t countOrientedReadsOnSide(uint64_t side) const;
 
         // Concordant/discordant sums computed by flagBadBubbles.
         uint64_t concordantSum = 0;
