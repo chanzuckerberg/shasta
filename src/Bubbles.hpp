@@ -42,11 +42,20 @@ private:
         // OrientedReadIds that appear on more than one side are not stored.
         uint32_t side;
 
+        // The minimum and maximum ordinal at which this OrientedRead
+        // appears on this side of the bubble.
+        uint32_t minOrdinal;
+        uint32_t maxOrdinal;
+
         OrientedReadInfo(
             OrientedReadId orientedReadId,
-            uint32_t side) :
+            uint32_t side,
+            uint32_t minOrdinal,
+            uint32_t maxOrdinal) :
             orientedReadId(orientedReadId),
-            side(side)
+            side(side),
+            minOrdinal(minOrdinal),
+            maxOrdinal(maxOrdinal)
             {}
     };
 

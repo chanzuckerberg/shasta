@@ -320,9 +320,16 @@ void Bubbles::Bubble::fillInOrientedReadIds(
     const AssemblyGraph& assemblyGraph)
 {
 
+    // Map with:
+    // Key = (OrientedReadId, side on the bubble).
+    // Value = Minimum and maximum ordinals for the OrientedReadId on
+    //         that side of the bubble.
+    using OrientedReadIdAndSide = pair<OrientedReadId, uint32_t>;
+    using MinMaxOrdinals = pair<uint32_t, uint32_t>;
+    std::map<OrientedReadIdAndSide, MinMaxOrdinals> m;
+
     // Loop over both sides of the bubble.
-    array<std::set<OrientedReadId>, 2> orientedReadIdSets;
-    for(uint64_t side=0; side<2; side++) {
+    for(uint32_t side=0; side<2; side++) {
         const AssemblyGraph::EdgeId aEdgeId = aEdgeIds[side];
 
         // Loop over marker graph edges of this side.
@@ -333,21 +340,41 @@ void Bubbles::Bubble::fillInOrientedReadIds(
             const span<const MarkerInterval> markerIntervals =
                 markerGraph.edgeMarkerIntervals[mEdgeId];
             for(const MarkerInterval& markerInterval: markerIntervals) {
-                orientedReadIdSets[side].insert(markerInterval.orientedReadId);
+                const OrientedReadIdAndSide orientedReadIdAndSide = make_pair(markerInterval.orientedReadId, side);
+                auto it = m.find(orientedReadIdAndSide);
+                if(it == m.end()) {
+                    // We have not yet seen this OrientedReadId on this side.
+                    m[orientedReadIdAndSide] =
+                        make_pair(markerInterval.ordinals[0], markerInterval.ordinals[1]);
+                } else {
+                    MinMaxOrdinals& minMaxOrdinals = it->second;
+                    minMaxOrdinals.first  = min(minMaxOrdinals.first, markerInterval.ordinals[0]);
+                    minMaxOrdinals.second = max(minMaxOrdinals.second, markerInterval.ordinals[1]);
+                }
             }
         }
     }
 
+
+
     // Now store them, discarding the ones that appear on both sides.
-    for(uint32_t side=0; side<2; side++) {
-        const std::set<OrientedReadId>& x = orientedReadIdSets[side];
-        const std::set<OrientedReadId>& y = orientedReadIdSets[1-side];
-        for(const OrientedReadId orientedReadId: x) {
-            if(y.find(orientedReadId) == y.end()) {
-                orientedReadInfos.push_back(OrientedReadInfo(orientedReadId, side));
-            }
+    for(const auto& p: m) {
+        const OrientedReadIdAndSide orientedReadIdAndSide = p.first;
+        const OrientedReadId orientedReadId = orientedReadIdAndSide.first;
+        const uint32_t side = orientedReadIdAndSide.second;
+        const uint32_t oppositeSide = 1 - side;
+
+        // If it also appear on the opposite side, don't store it.
+        if(m.find(make_pair(orientedReadId, oppositeSide)) != m.end()) {
+            continue;
         }
+
+        const MinMaxOrdinals& minMaxOrdinals = p.second;
+        orientedReadInfos.push_back(
+            OrientedReadInfo(orientedReadId, side,
+                minMaxOrdinals.first, minMaxOrdinals.second));
     }
+
 }
 
 
