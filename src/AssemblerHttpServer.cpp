@@ -10,6 +10,9 @@ using namespace shasta;
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+// Standard library.
+#include <filesystem>
+
 
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1226,7 +1229,7 @@ void Assembler::blastRead(
     ostream& html)
 {
 
-    if(!filesystem::isRegularFile(httpServerData.referenceFastaFileName)) {
+    if(!std::filesystem::is_regular_file(httpServerData.referenceFastaFileName)) {
         html << "<p>The fasta sequence " << httpServerData.referenceFastaFileName <<
             " to be used as the reference (Blast subject) does not exist.";
         return;

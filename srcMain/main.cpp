@@ -236,7 +236,7 @@ void shasta::main::assemble(
         if(!std::filesystem::exists(inputFileName)) {
             throw runtime_error("Input file not found: " + inputFileName);
         }
-        if(!filesystem::isRegularFile(inputFileName)) {
+        if(!std::filesystem::is_regular_file(inputFileName)) {
             throw runtime_error("Input file is not a regular file: " + inputFileName);
         }
         inputFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFileName));
@@ -1320,7 +1320,7 @@ void shasta::main::explore(
         if(!std::filesystem::exists(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
             throw runtime_error(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile + " not found.");
         }
-        if(!filesystem::isRegularFile(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
+        if(!std::filesystem::is_regular_file(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
             throw runtime_error(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile + " is not a regular file.");
         }
         alignmentsPafFileAbsolutePath = filesystem::getAbsolutePath(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile);

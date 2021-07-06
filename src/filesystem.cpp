@@ -28,19 +28,6 @@ using namespace shasta;
 #include <filesystem>
 
 
-// Return true if the path exists and is a regular file.
-bool shasta::filesystem::isRegularFile(const string& path)
-{
-    struct ::stat info;
-    if(::stat(path.c_str(), &info) == -1) {
-        return false;
-    } else {
-        return S_ISREG(info.st_mode);
-    }
-}
-
-
-
 // Return true if the path exists and is a directory.
 bool shasta::filesystem::isDirectory(const string& path)
 {
