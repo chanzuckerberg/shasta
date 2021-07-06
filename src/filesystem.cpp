@@ -28,19 +28,6 @@ using namespace shasta;
 #include <filesystem>
 
 
-// Return true if the path exists and is a directory.
-bool shasta::filesystem::isDirectory(const string& path)
-{
-    struct ::stat info;
-    if(::stat(path.c_str(), &info) == -1) {
-        return false;
-    } else {
-        return S_ISDIR(info.st_mode);
-    }
-}
-
-
-
 // Create a directory. In case of failure, throw an exception.
 void shasta::filesystem::createDirectory(const string& path)
 {

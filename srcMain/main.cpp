@@ -246,7 +246,7 @@ void shasta::main::assemble(
 
     // Create the run output directory. If it exists and is not empty then stop.
     bool exists = std::filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
-    bool isDir = filesystem::isDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    bool isDir = std::filesystem::is_directory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     if (exists) {
         if (!isDir) {
             throw runtime_error(
@@ -1360,10 +1360,10 @@ void shasta::main::explore(
     string installRootPath = executableBinPath.substr(0, executableBinPath.find_last_of('/'));
     string docsPath = installRootPath + "/docs";
 
-    if (filesystem::isDirectory(docsPath)) {
-        cout << "Docs found at the expected location." << endl;
+    if (std::filesystem::is_directory(docsPath)) {
         assembler.httpServerData.docsDirectory = docsPath;
     } else {
+        cout << "Documentation is not available." << endl;
         assembler.httpServerData.docsDirectory = "";
     }
 

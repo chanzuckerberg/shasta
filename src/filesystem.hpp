@@ -21,9 +21,6 @@ which is the version used in CentOS 7).
 namespace shasta {
     namespace filesystem {
 
-        // Return true if the path exists and is a directory.
-        bool isDirectory(const string&);
-
         // Create a directory. In case of failure, throw an exception.
         void createDirectory(const string&);
 
