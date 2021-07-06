@@ -935,12 +935,16 @@ void Bubbles::phase(
 
     // Write out the phasing.
     ofstream csv("Phasing.csv");
+    csv << "OrientedReadId,ReadName,Component,Phase\n";
     for(uint64_t i=0; i<orientedReadsPhase.size(); i++) {
         const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(i));
+        const auto readName = assembler.getReads().getReadName(orientedReadId.getReadId());
         const auto& p = orientedReadsPhase[i];
         const uint32_t componentId = p.first;
         const uint32_t phase = p.second;
         csv << orientedReadId << ",";
+        copy(readName.begin(), readName.end(), ostream_iterator<char>(csv));
+        csv << ",";
         if(componentId != std::numeric_limits<uint32_t>::max()) {
             csv << componentId << ",";
             csv << phase << "\n";
