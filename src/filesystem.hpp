@@ -21,9 +21,6 @@ which is the version used in CentOS 7).
 namespace shasta {
     namespace filesystem {
 
-        // Return true if the path exists.
-        bool exists(const string&);
-
         // Return true if the path exists and is a regular file.
         bool isRegularFile(const string&);
 

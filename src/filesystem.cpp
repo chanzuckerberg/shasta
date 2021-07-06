@@ -25,15 +25,7 @@ using namespace shasta;
 
 // Standard library.
 #include "array.hpp"
-
-
-// Return true if the path exists.
-bool shasta::filesystem::exists(const string& path)
-{
-    struct ::stat info;
-    return ::stat(path.c_str(), &info) == 0;
-}
-
+#include <filesystem>
 
 
 // Return true if the path exists and is a regular file.
@@ -108,12 +100,12 @@ void shasta::filesystem::remove(const string& path)
 // Move (rename). In case of failure, throw an exception.
 void shasta::filesystem::move(const string& oldPath, const string& newPath)
 {
-    if(not exists(oldPath)) {
+    if(not std::filesystem::exists(oldPath)) {
         throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath +
             " because " + oldPath + " does not exist.");
 
     }
-    if(exists(newPath)) {
+    if(std::filesystem::exists(newPath)) {
         throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath +
             " because " + newPath + " already exists.");
 

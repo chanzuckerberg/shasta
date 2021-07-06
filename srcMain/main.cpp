@@ -12,6 +12,9 @@
 #include "timestamp.hpp"
 #include "platformDependent.hpp"
 
+// Standard library.
+#include <filesystem>
+
 namespace shasta {
     namespace main {
 
@@ -230,7 +233,7 @@ void shasta::main::assemble(
     // We will use them below after changing directory to the output directory.
     vector<string> inputFileAbsolutePaths;
     for(const string& inputFileName: assemblerOptions.commandLineOnlyOptions.inputFileNames) {
-        if(!filesystem::exists(inputFileName)) {
+        if(!std::filesystem::exists(inputFileName)) {
             throw runtime_error("Input file not found: " + inputFileName);
         }
         if(!filesystem::isRegularFile(inputFileName)) {
@@ -242,7 +245,7 @@ void shasta::main::assemble(
 
 
     // Create the run output directory. If it exists and is not empty then stop.
-    bool exists = filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    bool exists = std::filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     bool isDir = filesystem::isDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     if (exists) {
         if (!isDir) {
@@ -1247,14 +1250,14 @@ void shasta::main::saveBinaryData(
     // Locate the Data directory.
     const string dataDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
-    if(!filesystem::exists(dataDirectory)) {
+    if(!std::filesystem::exists(dataDirectory)) {
         throw runtime_error(dataDirectory + " does not exist, nothing done.");
     }
 
     // Check that the DataOnDisk directory does not exist.
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
-    if(filesystem::exists(dataOnDiskDirectory)) {
+    if(std::filesystem::exists(dataOnDiskDirectory)) {
         throw runtime_error(dataOnDiskDirectory + " already exists, nothing done.");
     }
 
@@ -1279,7 +1282,7 @@ void shasta::main::cleanupBinaryData(
     // Locate the Data directory.
     const string dataDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
-    if(!filesystem::exists(dataDirectory)) {
+    if(!std::filesystem::exists(dataDirectory)) {
         cout << dataDirectory << " does not exist, nothing done." << endl;
         return;
     }
@@ -1297,7 +1300,7 @@ void shasta::main::cleanupBinaryData(
     // Data->DataOnDisk.
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
-    if(filesystem::exists(dataOnDiskDirectory)) {
+    if(std::filesystem::exists(dataOnDiskDirectory)) {
         filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
         const string command = "ln -s DataOnDisk Data";
         ::system(command.c_str());
@@ -1314,7 +1317,7 @@ void shasta::main::explore(
     // before we switch to the assembly directory.
     string alignmentsPafFileAbsolutePath;
     if(not assemblerOptions.commandLineOnlyOptions.alignmentsPafFile.empty()) {
-        if(!filesystem::exists(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
+        if(!std::filesystem::exists(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
             throw runtime_error(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile + " not found.");
         }
         if(!filesystem::isRegularFile(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
@@ -1327,7 +1330,7 @@ void shasta::main::explore(
     filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     
     // Check that we have the binary data. 
-    if(!filesystem::exists("Data")) {
+    if(!std::filesystem::exists("Data")) {
         throw runtime_error("Binary directory \"Data\" not available "
         " in assembly directory " + 
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
