@@ -7,6 +7,7 @@ using namespace shasta;
 // Standard library.
 #include "chrono.hpp"
 #include "iterator.hpp"
+#include <filesystem>
 
 
 // Load reads from a fastq or fasta file.
@@ -553,7 +554,7 @@ void ReadLoader::readFile()
 {
     // Create a buffer to contain the entire file.
     const auto t0 = std::chrono::steady_clock::now();
-    int64_t bytesToRead = filesystem::fileSize(fileName);
+    int64_t bytesToRead = std::filesystem::file_size(fileName);
     buffer.createNew(dataName("tmp-FastaBuffer"), pageSize);
     // Do reserve before resize, to force using exactly the
     // amount of memory necessary and nothing more.

@@ -51,9 +51,6 @@ namespace shasta {
         // If there is no dot following the last dash, throw an exception.
         string fileName(const string&);
 
-        // Find the size of a file.
-        size_t fileSize(const string&);
-
         // Find the absolute path.
         string getAbsolutePath(const string& path);
 

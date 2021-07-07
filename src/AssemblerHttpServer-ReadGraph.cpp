@@ -17,6 +17,7 @@ using namespace shasta;
 // Standard library.
 #include "chrono.hpp"
 #include "iterator.hpp"
+#include <filesystem>
 
 void Assembler::exploreReadGraph(
     const vector<string>& request,
@@ -353,7 +354,7 @@ void Assembler::exploreUndirectedReadGraph(
         cout << timestamp << "Blast command completed." << endl;
 
         // Copy any error output to html.
-        if(filesystem::fileSize(blastErrFileName)) {
+        if(std::filesystem::file_size(blastErrFileName)) {
             ifstream blastErrFile(blastErrFileName);
             html << "<pre style='font-size:10px'>";
             html << blastErrFile.rdbuf();

@@ -1321,7 +1321,7 @@ void Assembler::blastRead(
 
 
     // Copy any error output to html.
-    if(filesystem::fileSize(blastErrFileName)) {
+    if(std::filesystem::file_size(blastErrFileName)) {
         ifstream blastErrFile(blastErrFileName);
         html << "<pre style='font-size:10px'>";
         html << blastErrFile.rdbuf();

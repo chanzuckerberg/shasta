@@ -202,18 +202,6 @@ string shasta::filesystem::fileName(const string& path)
 
 
 
-// Find the size of a file.
-size_t shasta::filesystem::fileSize(const string& path)
-{
-    struct ::stat fileInformation;
-    if(::stat(path.c_str(), &fileInformation) != 0) {
-        throw runtime_error("Could not determine the size of file " + path);
-    }
-    return fileInformation.st_size;
-}
-
-
-
 // Find the absolute path.
 string shasta::filesystem::getAbsolutePath(const string& path)
 {
