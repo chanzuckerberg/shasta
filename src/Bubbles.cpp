@@ -151,7 +151,8 @@ uint64_t Bubbles::Bubble::countOrientedReadsOnSide(uint64_t side) const
 void Bubbles::writeBubbles()
 {
     ofstream csv("Bubbles.csv");
-    csv << "BubbleId,VertexId0,VertexId1,CoverageA,CoverageB,ConcordantSum,DiscordantSum,DiscordantRatio\n";
+    csv << "BubbleId,VertexId0,VertexId1,CoverageA,CoverageB,"
+        "ConcordantSum,DiscordantSum,DiscordantRatio,isTerminalBackward,isTerminalForward\n";
 
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
         const Bubble& bubble = bubbles[bubbleId];
@@ -162,7 +163,9 @@ void Bubbles::writeBubbles()
         csv << bubble.countOrientedReadsOnSide(1) << ",";
         csv << bubble.concordantSum << ",";
         csv << bubble.discordantSum << ",";
-        csv << bubble.discordantRatio() << "\n";
+        csv << bubble.discordantRatio() << ",";
+        csv << int(bubble.isTerminalBackward) << ",";
+        csv << int(bubble.isTerminalForward) << "\n";
     }
 }
 
@@ -912,9 +915,9 @@ void Bubbles::flagTerminalBubbles()
             if((orderABCount>0) and (orderBACount>0)) {
                 ++ambiguousCount;
             } else if(orderABCount>0) {
-                ++precedesCount;
+                ++followsCount; // Bubble B follows bubble A
             } else {
-                ++followsCount;
+                ++precedesCount;// Bubble B precedes bubble A
             }
         }
 
