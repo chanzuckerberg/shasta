@@ -97,6 +97,10 @@ private:
         // This flag is set for bubbles flagged as bad and removed from the BubbleGraph.
         bool isBad = false;
 
+        // Terminal bubbles flag.
+        bool isTerminalBackward = false; // No bubble "precedes" this bubble.
+        bool isTerminalForward  = false; // No bubble "follows"  this bubble.
+
         // Constructor.
         Bubble(
             AssemblyGraph::VertexId av0,
@@ -289,6 +293,8 @@ private:
     // Use the BubbleGraph to flag bad bubbles.
     void flagBadBubbles();
     void removeBadBubbles(double discordantRatioThreshold);
+
+    void flagTerminalBubbles();
 
 
 

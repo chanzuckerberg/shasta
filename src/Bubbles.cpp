@@ -37,6 +37,7 @@ Bubbles::Bubbles(
     createBubbleGraph();
     flagBadBubbles();
     removeBadBubbles(discordantRatioThreshold);
+    flagTerminalBubbles();
     if(debug) {
         writeBubbles();
         writeBubblesDetails();
@@ -574,7 +575,7 @@ void Bubbles::createBubbleGraph()
 
 
     ofstream csv("BubbleGraphEdges.csv");
-    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
+    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10,ABCount,BACount\n";
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
         csv << bubbleGraph[source(e, bubbleGraph)].bubbleId << ",";
@@ -582,7 +583,9 @@ void Bubbles::createBubbleGraph()
         csv << edge.matrix[0][0] << ",";
         csv << edge.matrix[1][1] << ",";
         csv << edge.matrix[0][1] << ",";
-        csv << edge.matrix[1][0] << "\n";
+        csv << edge.matrix[1][0] << ",";
+        csv << edge.orderABCount << ",";
+        csv << edge.orderBACount << "\n";
     }
 }
 
@@ -705,6 +708,12 @@ void Bubbles::writeBubbleGraphComponentHtml(
         attributes.radius = vertexRadius;
         attributes.tooltip = to_string(bubbleId);
         attributes.color = "hsl(" + to_string(int(hue)) + ",50%,50%)";
+        if(bubble.isTerminalBackward) {
+            attributes.color = "Purple";
+        }
+        if(bubble.isTerminalForward) {
+            attributes.color = "Orange";
+        }
     }
 
     // Edge attributes.
@@ -868,6 +877,63 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
 
 
 
+}
+
+
+
+// Flag terminal bubbles.
+// This sets terminal flags of each bubble as follows:
+// isTerminalBackward is set if no bubble "precedes" this bubble.
+// isTerminalForward  is set if no bubble "follows"  this bubble.
+// The above logic only considers bubbles not flagged as bad.
+// These are the bubbles that still have a vertex in the BubbleGraph
+// (assuming removeBadBubbles was already called).
+void Bubbles::flagTerminalBubbles()
+{
+    ofstream csv("TerminalFlags.csv");
+    BGL_FORALL_VERTICES(vA, bubbleGraph, BubbleGraph) {
+        const BubbleGraphVertex& vertexA = bubbleGraph[vA];
+        const uint64_t bubbleIdA = vertexA.bubbleId;
+
+        // Count the number of neighbors that precede/follow this bubble.
+        uint64_t followsCount = 0;
+        uint64_t precedesCount = 0;
+        uint64_t ambiguousCount = 0;
+        BGL_FORALL_OUTEDGES(vA, eAB, bubbleGraph, BubbleGraph) {
+            const BubbleGraph::vertex_descriptor vB = target(eAB, bubbleGraph);
+            const BubbleGraphVertex& vertexB = bubbleGraph[vB];
+            const uint64_t bubbleIdB = vertexB.bubbleId;
+            const BubbleGraphEdge& edge = bubbleGraph[eAB];
+            uint64_t orderABCount = edge.orderABCount;
+            uint64_t orderBACount = edge.orderBACount;
+            if(bubbleIdB < bubbleIdA) {
+                swap(orderABCount, orderBACount);
+            }
+            if((orderABCount>0) and (orderBACount>0)) {
+                ++ambiguousCount;
+            } else if(orderABCount>0) {
+                ++precedesCount;
+            } else {
+                ++followsCount;
+            }
+        }
+
+
+        csv << bubbleIdA << ",";
+        csv << followsCount << ",";
+        csv << precedesCount << ",";
+        csv << ambiguousCount << "\n";
+
+        Bubble& bubbleA = bubbles[bubbleIdA];
+        if((precedesCount==0) and (ambiguousCount==0)) {
+            bubbleA.isTerminalBackward = true;
+            cout << "Bubble " << bubbleIdA << " is terminal backward." << endl;
+        }
+        if((followsCount==0) and (ambiguousCount==0)) {
+            bubbleA.isTerminalForward = true;
+            cout << "Bubble " << bubbleIdA << " is terminal forward." << endl;
+        }
+    }
 }
 
 
