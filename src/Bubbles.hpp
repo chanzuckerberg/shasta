@@ -337,6 +337,8 @@ private:
         void writeHtml(
             const string& fileName,
             double minRelativePhase) const;
+        void writeEdges(
+            const string& fileName) const;
     };
     void createPhasingGraph(
         const vector<OrientedReadId>&,

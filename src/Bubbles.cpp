@@ -32,13 +32,13 @@ Bubbles::Bubbles(
     cout << "Found " << bubbles.size() << " bubbles." << endl;
 
     fillOrientedReadsTable();
-    writeOrientedReadsTable();
 
     createBubbleGraph();
     flagBadBubbles();
     removeBadBubbles(discordantRatioThreshold);
     flagTerminalBubbles();
     if(debug) {
+        writeOrientedReadsTable();
         writeBubbles();
         writeBubblesDetails();
         writeBubbleGraphGraphviz();
@@ -152,7 +152,7 @@ void Bubbles::writeBubbles()
 {
     ofstream csv("Bubbles.csv");
     csv << "BubbleId,VertexId0,VertexId1,CoverageA,CoverageB,"
-        "ConcordantSum,DiscordantSum,DiscordantRatio,isTerminalBackward,isTerminalForward\n";
+        "ConcordantSum,DiscordantSum,DiscordantRatio,isBad,isTerminalBackward,isTerminalForward\n";
 
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
         const Bubble& bubble = bubbles[bubbleId];
@@ -164,6 +164,7 @@ void Bubbles::writeBubbles()
         csv << bubble.concordantSum << ",";
         csv << bubble.discordantSum << ",";
         csv << bubble.discordantRatio() << ",";
+        csv << int(bubble.isBad) << ",";
         csv << int(bubble.isTerminalBackward) << ",";
         csv << int(bubble.isTerminalForward) << "\n";
     }
@@ -174,12 +175,13 @@ void Bubbles::writeBubbles()
 void Bubbles::writeBubblesDetails()
 {
     ofstream csv("BubblesDetails.csv");
-    csv << "BubbleId,OrientedReadId,Side,MinOrdinal,MaxOrdinal\n";
+    csv << "BubbleId,isBadBubble,OrientedReadId,Side,MinOrdinal,MaxOrdinal\n";
 
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
         const Bubble& bubble = bubbles[bubbleId];
         for(const OrientedReadInfo& info: bubble.orientedReadInfos) {
             csv << bubbleId << ",";
+            csv << int(bubble.isBad) << ",";
             csv << info.orientedReadId << ",";
             csv << info.side << ",";
             csv << info.minOrdinal << ",";
@@ -421,14 +423,17 @@ void Bubbles::fillOrientedReadsTable()
 void Bubbles::writeOrientedReadsTable()
 {
     ofstream csv("OrientedReadsTable.csv");
-    csv << "OrientedReadId,Bubble,Side\n";
+    csv << "OrientedReadId,Bubble,Side,isBadBubble,\n";
     for(ReadId readId=0; readId<assembler.getReads().readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             for(const auto& v: orientedReadsTable[orientedReadId.getValue()]) {
+                const uint64_t bubbleId = v.first;
+                const Bubble& bubble = bubbles[bubbleId];
                 csv << orientedReadId << ",";
-                csv << v.first << ",";
-                csv << v.second << "\n";
+                csv << bubbleId << ",";
+                csv << v.second << ",";
+                csv << int(bubble.isBad) << "\n";
             }
         }
     }
@@ -840,6 +845,34 @@ void Bubbles::PhasingGraph::writeHtml(
 
 
 
+void Bubbles::PhasingGraph::writeEdges(const string& fileName) const
+{
+    using G = PhasingGraph;
+    const G& g = *this;
+
+    ofstream csv(fileName);
+    csv << "OrientedReadId0,Phase0,OrientedReadId1,Phase1,SameSideCount,OppositeSideCount,RelativePhase\n";
+
+    BGL_FORALL_EDGES(e, g, G) {
+        const PhasingGraph::vertex_descriptor v0 = source(e, g);
+        const PhasingGraph::vertex_descriptor v1 = target(e, g);
+        const PhasingGraphVertex& vertex0 = g[v0];
+        const PhasingGraphVertex& vertex1 = g[v1];
+        const PhasingGraphEdge& edge = g[e];
+
+        csv <<
+            vertex0.orientedReadId << "," <<
+            vertex0.phase << "," <<
+            vertex1.orientedReadId << "," <<
+            vertex1.phase << "," <<
+            edge.sameSideCount << "," <<
+            edge.oppositeSideCount << "," <<
+            edge.relativePhase() << "\n";
+    }
+}
+
+
+
 // Use the BubbleGraph to flag bad bubbles.
 void Bubbles::flagBadBubbles()
 {
@@ -980,6 +1013,8 @@ void Bubbles::phase(
             phasingGraph.writeHtml(
                 "PhasingGraph-Component-" + to_string(componentId) + ".html",
                 minRelativePhase);
+            phasingGraph.writeEdges(
+                "PhasingGraphEdges-Component-" + to_string(componentId) + ".csv");
         }
 
         // Copy the phasing for this connected component to the global
