@@ -32,7 +32,7 @@ def parseShastaPhaseCsv(shastaPath):
 
 
 def main(hap1MarginPath, hap2MarginPath, shastaPath):
-    discordantCsvPath = os.path.join(os.path.dirname(shastaPath), "discordantPhasedReads.csv")
+    discordantCsvPath = os.path.join(os.path.dirname(shastaPath), "DiscordantPhasedReads.csv")
 
     marginPhases = (set(),set())
     shastaComponents = defaultdict(lambda: (set(),set()))
@@ -147,19 +147,19 @@ if __name__ == "__main__":
         "-1","--hap1",
         type=str,
         required=True,
-        help="path of marginphase file for hap1"
+        help="Path of Marginphase txt file for hap1, containing one read name per line"
     )
     parser.add_argument(
         "-2","--hap2",
         type=str,
         required=True,
-        help="path of marginphase file for hap2"
+        help="Path of Marginphase txt file for hap2, containing one read name per line"
     )
     parser.add_argument(
         "-s","--shasta",
         type=str,
         required=True,
-        help="path of shasta phase components csv"
+        help="Path of Shasta phase components csv (Phasing.csv)"
     )
 
     args = parser.parse_args()
