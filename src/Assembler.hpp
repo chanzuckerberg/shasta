@@ -8,7 +8,6 @@
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
 #include "dset64-gccAtomic.hpp"
-#include "Histogram.hpp"
 #include "HttpServer.hpp"
 #include "InducedAlignment.hpp"
 #include "Kmer.hpp"
@@ -43,6 +42,7 @@ namespace shasta {
     class Bubbles;
     class CompressedAssemblyGraph;
     class ConsensusCaller;
+    class Histogram2;
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
