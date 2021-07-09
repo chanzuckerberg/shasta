@@ -1471,7 +1471,7 @@ void Bubbles::findTerminalOrdinals()
         // Backward terminal bubble.
         if(bubble0.isTerminalBackward) {
             if(debug) {
-                cout << "Workking on backwardward terminal bubble " << bubbleId0 << endl;
+                cout << "Working on backward terminal bubble " << bubbleId0 << endl;
             }
 
             // Loop over oriented reads in this bubble.
@@ -1518,7 +1518,7 @@ void Bubbles::findTerminalOrdinals()
         // Forward terminal bubble.
         if(bubble0.isTerminalForward) {
             if(debug) {
-                cout << "Workking on forward terminal bubble " << bubbleId0 << endl;
+                cout << "Working on forward terminal bubble " << bubbleId0 << endl;
             }
 
             // Loop over oriented reads in this bubble.
