@@ -520,18 +520,6 @@ void AssemblerOptions::addConfigurableOptions()
         "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
         "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
 
-        ("ReadGraph.containedNeighborCount",
-        value<int>(&readGraphOptions.containedNeighborCount)->
-        default_value(6),
-        "Maximum number of alignments to be kept for each contained read "
-        "(only used when creationMethod is 1).")
-
-        ("ReadGraph.uncontainedNeighborCountPerDirection",
-        value<int>(&readGraphOptions.uncontainedNeighborCountPerDirection)->
-        default_value(3),
-        "Maximum number of alignments to be kept in each direction "
-        "(forward, backward) for each uncontained read (only used when creationMethod is 1).")
-
         ("ReadGraph.removeConflicts",
         bool_switch(&readGraphOptions.removeConflicts)->
         default_value(false),
@@ -921,8 +909,6 @@ void ReadGraphOptions::write(ostream& s) const
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
-    s << "containedNeighborCount = " << containedNeighborCount << "\n";
-    s << "uncontainedNeighborCountPerDirection = " << uncontainedNeighborCountPerDirection << "\n";
     s << "removeConflicts = " <<
         convertBoolToPythonString(removeConflicts) << "\n";
     s << "markerCountPercentile = " << markerCountPercentile << "\n";

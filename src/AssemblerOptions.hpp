@@ -213,8 +213,6 @@ public:
     int minComponentSize;
     int maxChimericReadDistance;
     int crossStrandMaxDistance;
-    int containedNeighborCount;
-    int uncontainedNeighborCountPerDirection;
     bool removeConflicts;
     double markerCountPercentile;
     double alignedFractionPercentile;
