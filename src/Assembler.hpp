@@ -6,7 +6,6 @@
 #include "AlignmentCandidates.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
-#include "Bubbles.hpp"
 #include "Coverage.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "Histogram.hpp"
@@ -27,7 +26,6 @@
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
 #include "Reads.hpp"
-#include "ReferenceOverlapMap.hpp"
 
 // Standard library.
 #include "memory.hpp"
@@ -47,6 +45,7 @@ namespace shasta {
     class AlignOptions;
     class AssemblerOptions;
     class AssembledSegment;
+    class Bubbles;
     class CompressedAssemblyGraph;
     class ConsensusCaller;
     class LocalAssemblyGraph;
@@ -54,6 +53,7 @@ namespace shasta {
     class LocalAlignmentGraph;
     class LocalMarkerGraphRequestParameters;
     class Reads;
+    class ReferenceOverlapMap;
 
 #ifdef SHASTA_HTTP_SERVER
     class LocalMarkerGraph;
@@ -2380,7 +2380,7 @@ private:
 
     // Bubbles in the initial assembly graph.
     // Only used in assembly mode 1.
-    unique_ptr<Bubbles> bubbles = 0;
+    shared_ptr<Bubbles> bubbles = 0;
 public:
     void analyzeAssemblyGraphBubbles(bool debug = false);
 

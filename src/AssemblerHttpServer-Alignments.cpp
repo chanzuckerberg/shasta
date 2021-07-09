@@ -12,6 +12,7 @@
 #include "platformDependent.hpp"
 #include "PngImage.hpp"
 #include "ReadId.hpp"
+#include "ReferenceOverlapMap.hpp"
 using namespace shasta;
 
 // Boost libraries.

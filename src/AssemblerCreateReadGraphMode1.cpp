@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "Bubbles.hpp"
 using namespace shasta;
 
 
