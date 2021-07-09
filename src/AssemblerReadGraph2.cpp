@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 

@@ -2,6 +2,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "orderPairs.hpp"
+#include "Reads.hpp"
 #include "seqan.hpp"
 using namespace shasta;
 

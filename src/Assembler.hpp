@@ -23,17 +23,12 @@
 #include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "ReadGraph.hpp"
-#include "ReadFlags.hpp"
 #include "ReadId.hpp"
-#include "Reads.hpp"
 
 // Standard library.
 #include "memory.hpp"
 #include "string.hpp"
 #include "tuple.hpp"
-
-// Spoa.
-#include "spoa/spoa.hpp"
 
 namespace shasta {
 
@@ -75,6 +70,12 @@ namespace shasta {
         class Options;
     }
 }
+
+namespace spoa {
+    class AlignmentEngine;
+    class Graph;
+}
+
 
 
 // Sanity check that we are compiling on x86_64 or aarch64
@@ -395,7 +396,7 @@ private:
 
 
     // Reads in RLE representation.
-    unique_ptr<Reads> reads;
+    shared_ptr<Reads> reads;
 public:
     const Reads& getReads() const {
         SHASTA_ASSERT(reads);
@@ -408,10 +409,7 @@ public:
 public:
     void writeReadsSummary();
 
-    void computeReadIdsSortedByName()
-    {
-        reads->computeReadIdsSortedByName();
-    }
+    void computeReadIdsSortedByName();
 
 
 private:

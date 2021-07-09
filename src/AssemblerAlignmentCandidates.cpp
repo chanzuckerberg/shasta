@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 #include "chrono.hpp"

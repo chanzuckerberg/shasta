@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "LocalAlignmentGraph.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 // Standard libraries.

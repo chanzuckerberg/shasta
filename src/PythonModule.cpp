@@ -15,6 +15,7 @@
 #include "MedianConsensusCaller.hpp"
 #include "MemoryMappedAllocator.hpp"
 #include "MultithreadedObject.hpp"
+#include "Reads.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
 #include "testSpoa.hpp"

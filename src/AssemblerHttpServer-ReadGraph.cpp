@@ -6,6 +6,7 @@
 #include "LocalReadGraph.hpp"
 #include "orderPairs.hpp"
 #include "platformDependent.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 // Boost libraries.

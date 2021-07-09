@@ -4,6 +4,7 @@
 #include "deduplicate.hpp"
 #include "LocalAssemblyGraph.hpp"
 #include "orderPairs.hpp"
+#include "Reads.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 

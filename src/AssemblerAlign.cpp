@@ -7,6 +7,7 @@
 #include "Align4.hpp"
 #include "AssemblerOptions.hpp"
 #include "compressAlignment.hpp"
+#include "Reads.hpp"
 #include "span.hpp"
 #include "timestamp.hpp"
 using namespace shasta;

@@ -1,8 +1,9 @@
 #include "Assembler.hpp"
 #include "buildId.hpp"
+#include "MedianConsensusCaller.hpp"
+#include "Reads.hpp"
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
-#include "MedianConsensusCaller.hpp"
 using namespace shasta;
 
 

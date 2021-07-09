@@ -4,6 +4,7 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "orderPairs.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 

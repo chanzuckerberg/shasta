@@ -5,6 +5,7 @@
 #include "findLinearChains.hpp"
 #include "html.hpp"
 #include "platformDependent.hpp"
+#include "Reads.hpp"
 #include "runCommandWithTimeout.hpp"
 #include "subgraph.hpp"
 using namespace shasta;

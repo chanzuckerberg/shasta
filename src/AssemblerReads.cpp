@@ -274,3 +274,10 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
     return assemblerInfo->minReadLength;
 }
 
+
+
+void Assembler::computeReadIdsSortedByName()
+{
+    reads->computeReadIdsSortedByName();
+}
+

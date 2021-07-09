@@ -3,6 +3,7 @@
 #include "Assembler.hpp"
 #include "buildId.hpp"
 #include "platformDependent.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 // Boost libraries.

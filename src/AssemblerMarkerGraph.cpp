@@ -7,6 +7,7 @@
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
+#include "Reads.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 

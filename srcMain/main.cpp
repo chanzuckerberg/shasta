@@ -9,6 +9,7 @@
 #include "AssemblerOptions.hpp"
 #include "buildId.hpp"
 #include "filesystem.hpp"
+#include "Reads.hpp"
 #include "timestamp.hpp"
 #include "platformDependent.hpp"
 

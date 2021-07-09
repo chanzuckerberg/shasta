@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
+#include "Reads.hpp"
 using namespace shasta;
 
 

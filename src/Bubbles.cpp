@@ -3,6 +3,7 @@
 #include "computeLayout.hpp"
 #include "orderPairs.hpp"
 #include "prefixLength.hpp"
+#include "Reads.hpp"
 #include "shastaLapack.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;

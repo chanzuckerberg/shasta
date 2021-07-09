@@ -4,6 +4,7 @@
 #include "deduplicate.hpp"
 #include "LocalReadGraph.hpp"
 #include "orderPairs.hpp"
+#include "Reads.hpp"
 #include "shastaLapack.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
