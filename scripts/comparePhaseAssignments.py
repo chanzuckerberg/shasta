@@ -55,9 +55,9 @@ def main(hap1MarginPath, hap2MarginPath, shastaPath):
             name = line.strip()
             marginPhases[1].add(name)
 
-    # Compare SHasta to Margin and write results to CSV + stdout
+    # Compare Shasta to Margin and write results to CSV + stdout
     with open(discordantCsvPath, 'w') as file:
-        file.write("OrientedReadId,ReadName,Component,ShastaPhase,MarginPhase")
+        file.write("OrientedReadId,ReadName,Component,ShastaPhase,MarginPhase\n")
 
         for componentId,component in shastaComponents.items():
             print("Evaluating component:", componentId)
