@@ -47,7 +47,7 @@ Bubbles::Bubbles(
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
     phase(minRelativePhase);
-
+    findTerminalOrdinals();
 }
 
 
@@ -1436,6 +1436,129 @@ void Bubbles::evaluateRelativePosition(
         ++it0;
         ++it1;
 
+    }
+}
+
+
+
+// Backward terminal oriented reads are oriented reads that are near the beginning
+// of a phasing component. The first bubble they encounter is a backward terminal
+// bubble. We store the first ordinal where the oriented read encounters the bubble.
+// Similarly, forward terminal oriented reads are oriented reads that are near the end
+// of a phasing component. The last bubble they encounter is a forward terminal
+// bubble. We store the last ordinal where the oriented read encounters the bubble.
+// The vectors below are indexed by OrientedReadId::getValue().
+// The contain std::numeric_limits<uint32_t>::max() for oriented reads
+// that are not backward or forward terminal.
+void Bubbles::findTerminalOrdinals()
+{
+    const bool debug = true;
+    const uint32_t invalidOrdinal = std::numeric_limits<uint32_t>::max();
+    backwardTerminalOrdinal.resize(orientedReadsTable.size(), invalidOrdinal);
+    forwardTerminalOrdinal.resize(orientedReadsTable.size(), invalidOrdinal);
+
+    // Check all the terminal bubbles.
+    // Note a bubble can be terminal in both directions,
+    // if it consists of a single connected component.
+    for(uint64_t bubbleId0=0; bubbleId0<bubbles.size(); bubbleId0++) {
+        const Bubble& bubble0 = bubbles[bubbleId0];
+        if(bubble0.isBad) {
+            continue;
+        }
+
+
+
+        // Backward terminal bubble.
+        if(bubble0.isTerminalBackward) {
+            if(debug) {
+                cout << "Workking on backwardward terminal bubble " << bubbleId0 << endl;
+            }
+
+            // Loop over oriented reads in this bubble.
+            for(const OrientedReadInfo& orientedReadInfo0: bubble0.orientedReadInfos) {
+                const OrientedReadId orientedReadId = orientedReadInfo0.orientedReadId;
+
+                SHASTA_ASSERT(backwardTerminalOrdinal[orientedReadId.getValue()] == invalidOrdinal);
+                backwardTerminalOrdinal[orientedReadId.getValue()] = orientedReadInfo0.minOrdinal;
+
+                if(debug) {
+                    cout << orientedReadId << " is backward terminal at ordinal " << orientedReadInfo0.minOrdinal << endl;
+                }
+
+
+
+                // Also check that this is the first bubble encountered by this oriented read.
+                for(const pair <uint64_t, uint64_t>& p: orientedReadsTable[orientedReadId.getValue()]) {
+                    const uint64_t bubbleId1 = p.first;
+                    if(bubbleId1== bubbleId0) {
+                        continue;
+                    }
+                    const Bubble& bubble1 = bubbles[bubbleId1];
+                    if(bubble1.isBad) {
+                        continue;
+                    }
+
+                    // Look for this oriented read in bubble1 and check that it encounters bubble1
+                    // after bubble0.
+                    bool found = false;
+                    for(const OrientedReadInfo& orientedReadInfo1: bubble1.orientedReadInfos) {
+                        if(orientedReadInfo1.orientedReadId == orientedReadId) {
+                            SHASTA_ASSERT(orientedReadInfo0.maxOrdinal <= orientedReadInfo1.minOrdinal);
+                            found = true;
+                            break;
+                        }
+                    }
+                    SHASTA_ASSERT(found);
+                }
+            }
+        }
+
+
+
+        // Forward terminal bubble.
+        if(bubble0.isTerminalForward) {
+            if(debug) {
+                cout << "Workking on forward terminal bubble " << bubbleId0 << endl;
+            }
+
+            // Loop over oriented reads in this bubble.
+            for(const OrientedReadInfo& orientedReadInfo0: bubble0.orientedReadInfos) {
+                const OrientedReadId orientedReadId = orientedReadInfo0.orientedReadId;
+
+                SHASTA_ASSERT(forwardTerminalOrdinal[orientedReadId.getValue()] == invalidOrdinal);
+                forwardTerminalOrdinal[orientedReadId.getValue()] = orientedReadInfo0.maxOrdinal;
+
+                if(debug) {
+                    cout << orientedReadId << " is forward terminal at ordinal " << orientedReadInfo0.maxOrdinal << endl;
+                }
+
+
+
+                // Also check that this is the last bubble encountered by this oriented read.
+                for(const pair <uint64_t, uint64_t>& p: orientedReadsTable[orientedReadId.getValue()]) {
+                    const uint64_t bubbleId1 = p.first;
+                    if(bubbleId1== bubbleId0) {
+                        continue;
+                    }
+                    const Bubble& bubble1 = bubbles[bubbleId1];
+                    if(bubble1.isBad) {
+                        continue;
+                    }
+
+                    // Look for this oriented read in bubble1 and check that it encounters bubble1
+                    // before bubble0.
+                    bool found = false;
+                    for(const OrientedReadInfo& orientedReadInfo1: bubble1.orientedReadInfos) {
+                        if(orientedReadInfo1.orientedReadId == orientedReadId) {
+                            SHASTA_ASSERT(orientedReadInfo0.minOrdinal >= orientedReadInfo1.maxOrdinal);
+                            found = true;
+                            break;
+                        }
+                    }
+                    SHASTA_ASSERT(found);
+                }
+            }
+        }
     }
 }
 

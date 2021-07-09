@@ -139,7 +139,7 @@ private:
     // where bubbleId is an index into the bubbles vector
     // and side is 0 or 1.
     // For each OrientedReadId, sorted by bubbleId and side.
-    // Note an oriented read cannot appearf on both sides of a bubble,
+    // Note an oriented read cannot appear on both sides of a bubble,
     // by construction.
     vector< vector <pair <uint64_t, uint64_t> > > orientedReadsTable;
     void fillOrientedReadsTable();
@@ -380,6 +380,20 @@ private:
         vector<OrientedReadId>&
         ) const;
 
+
+
+    // Backward terminal oriented reads are oriented reads that are near the beginning
+    // of a phasing component. The first bubble they encounter is a backward terminal
+    // bubble. We store the first ordinal where the oriented read encounters the bubble.
+    // Similarly, forward terminal oriented reads are oriented reads that are near the end
+    // of a phasing component. The last bubble they encounter is a forward terminal
+    // bubble. We store the last ordinal where the oriented read encounters the bubble.
+    // The vectors below are indexed by OrientedReadId::getValue().
+    // The contain std::numeric_limits<uint32_t>::max() for oriented reads
+    // that are not backward or forward terminal.
+    vector<uint32_t> backwardTerminalOrdinal;
+    vector<uint32_t> forwardTerminalOrdinal;
+    void findTerminalOrdinals();
 
 
     // Functions used to decide if an alignment should be used.
