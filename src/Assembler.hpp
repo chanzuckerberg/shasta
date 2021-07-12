@@ -12,7 +12,6 @@
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
 #include "LocalReadGraph.hpp"
-#include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "MarkerConnectivityGraph.hpp"
 #include "MarkerGraph.hpp"
