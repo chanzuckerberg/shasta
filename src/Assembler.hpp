@@ -8,7 +8,6 @@
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
 #include "HttpServer.hpp"
-#include "InducedAlignment.hpp"
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
 #include "LocalReadGraph.hpp"
@@ -41,6 +40,7 @@ namespace shasta {
     class CompressedAssemblyGraph;
     class ConsensusCaller;
     class Histogram2;
+    class InducedAlignment;
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
@@ -1647,16 +1647,6 @@ private:
         OrientedReadId,
         OrientedReadId,
         InducedAlignment&);
-
-    // Evaluate an induced alignment.
-    // Contrary to InducedAlignment::evaluate, this takes into account
-    // markers that don't correspond to a marker graph vertex.
-    bool evaluateInducedAlignment(
-        OrientedReadId orientedReadId0,
-        OrientedReadId orientgedReadId1,
-        const InducedAlignment&,
-        const InducedAlignmentCriteria&,
-        vector<uint64_t>& work);
 
     // Find the markers aligned to a given marker.
     // This is slow and cannot be used during assembly.
