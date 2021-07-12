@@ -3,6 +3,7 @@
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "compressAlignment.hpp"
+#include "dset64-gccAtomic.hpp"
 #include "PeakFinder.hpp"
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"

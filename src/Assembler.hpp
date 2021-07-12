@@ -7,7 +7,6 @@
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
-#include "dset64-gccAtomic.hpp"
 #include "HttpServer.hpp"
 #include "InducedAlignment.hpp"
 #include "Kmer.hpp"
@@ -76,6 +75,7 @@ namespace spoa {
     class Graph;
 }
 
+class DisjointSets;
 
 
 // Sanity check that we are compiling on x86_64 or aarch64
