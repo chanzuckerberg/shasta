@@ -8,8 +8,6 @@ using namespace shasta;
 // Read graph creation for mode 1 assembly.
 void Assembler::createReadGraphMode1(uint64_t maxAlignmentCount)
 {
-    // Parameters that should be exposed when the code stabilizes.
-    const bool useClustering = true;
 
     cout << timestamp << "createReadGraphMode1 begins." << endl;
 
@@ -22,8 +20,7 @@ void Assembler::createReadGraphMode1(uint64_t maxAlignmentCount)
     // Use the Bubbles to flag the allowed alignments.
     vector<bool> alignmentIsAllowed(alignmentData.size(), false);
     for(uint64_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
-        const OrientedReadPair orientedReadPair = alignmentData[alignmentId];
-        alignmentIsAllowed[alignmentId] = bubbles->allowAlignment(orientedReadPair, useClustering);
+        alignmentIsAllowed[alignmentId] = bubbles->allowAlignment(alignmentData[alignmentId]);
     }
 
     const uint64_t allowedAlignmentCount =

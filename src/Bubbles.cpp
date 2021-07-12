@@ -1293,99 +1293,65 @@ void Bubbles::BubbleGraph::computeConnectedComponents()
 
 
 // Functions used to decide if an alignment should be used.
-bool Bubbles::allowAlignment(
-    const OrientedReadPair& orientedReadPair,
-    bool useClustering) const
+bool Bubbles::allowAlignment(const AlignmentData& alignmentData) const
 {
-    const OrientedReadId orientedReadId0(orientedReadPair.readIds[0], 0);
-    const OrientedReadId orientedReadId1(orientedReadPair.readIds[1], orientedReadPair.isSameStrand ? 0 : 1);
+    // Get the OrientedReadIds in this alignment.
+    const OrientedReadId orientedReadId0(alignmentData.readIds[0], 0);
+    const OrientedReadId orientedReadId1(alignmentData.readIds[0], alignmentData.isSameStrand ? 0 : 1);
 
-    OrientedReadId orientedReadId0Rc = orientedReadId0;
-    OrientedReadId orientedReadId1Rc = orientedReadId1;
-    orientedReadId0Rc.flipStrand();
-    orientedReadId1Rc.flipStrand();
-
-    return
-        allowAlignment(orientedReadId0,   orientedReadId1, useClustering) and
-        allowAlignment(orientedReadId0Rc, orientedReadId1Rc, useClustering);
-}
-
-
-
-bool Bubbles::allowAlignment(
-    const OrientedReadId& orientedReadId0,
-    const OrientedReadId& orientedReadId1,
-    bool useClustering) const
-{
-    if(useClustering) {
-        return allowAlignmentUsingClustering(orientedReadId0, orientedReadId1);
-    } else {
-        return allowAlignmentUsingBubbles(orientedReadId0, orientedReadId1);
-    }
-}
-
-
-
-bool Bubbles::allowAlignmentUsingClustering(
-    const OrientedReadId& orientedReadId0,
-    const OrientedReadId& orientedReadId1) const
-{
+    // Get the connected components and phases of the two oriented reads.
     const pair<uint32_t, uint32_t>& p0 = orientedReadsPhase[orientedReadId0.getValue()];
     const pair<uint32_t, uint32_t>& p1 = orientedReadsPhase[orientedReadId1.getValue()];
-
     const uint32_t componentId0 = p0.first;
     const uint32_t componentId1 = p1.first;
+    const uint32_t phase0 = p0.second;
+    const uint32_t phase1 = p1.second;
+
+    // Figure out if they are phased or not.
     const uint32_t unphased = std::numeric_limits<uint32_t>::max();
     const bool isPhased0 = not(componentId0 == unphased);
     const bool isPhased1 = not(componentId1 == unphased);
+
+    // If both phased, allow the alignment only if they have the
+    // same component and phase.
+    if(isPhased0 and isPhased1) {
+        return (componentId0 == componentId1) and (phase0 == phase1);
+    }
 
     // If both unphased, allow the alignment.
     if((not isPhased0) and (not isPhased1)) {
         return true;
     }
 
-    // If only one is phased, don't allow the alignment.
-    // This will have to be reviewed to allow alignments with unphased reads near
-    // the beginning/end of a phased region.
-    if(isPhased0 and (not isPhased1)) {
-        return false;
-    }
-    if(isPhased1 and (not isPhased0)) {
-        return false;
-    }
-
-    // If getting here, they are both phased.
-    SHASTA_ASSERT(isPhased0 and isPhased1);
-
-    // Only allow the alignment if they are in the same component and phase.
-    return
-        (componentId0 == componentId1) and (p0.second == p1.second);
-}
 
 
+    // If only one of the two oriented reads is phased,
+    // the logic is more complicated because we have
+    // to take into account the "terminal ordinals" of the two oriented reads,
+    // backwardTerminalOrdinal and forwardTerminalOrdinal.
+    // See Bubbles.hpp near their definition for more information.
 
-bool Bubbles::allowAlignmentUsingBubbles(
-    const OrientedReadId& orientedReadId0,
-    const OrientedReadId& orientedReadId1) const
-{
-    uint64_t sameSideCount = 0;
-    uint64_t oppositeSideCount = 0;
-    findOrientedReadsRelativePhase(
-        orientedReadId0, orientedReadId1,
-        sameSideCount, oppositeSideCount);
+    if(isPhased0) {
+        SHASTA_ASSERT(not isPhased1);
 
-    // Allow alignments in homozygous regions.
-    if((sameSideCount==0) and (oppositeSideCount==0)) {
-        return true;
+        // Missing code.
+        SHASTA_ASSERT(0);
     }
 
-    // Thresholds to be exposed as options when code stabilizes.
-    const uint64_t minSameSideCount = 6;
-    const uint64_t maxOppositeSideCount = 1;
 
-    return
-        (sameSideCount >= minSameSideCount) and
-        (oppositeSideCount <= maxOppositeSideCount);
+
+    // Same as above, but 1 is phased and 0 is not.
+    if(isPhased1) {
+        SHASTA_ASSERT(not isPhased0);
+
+        // Missing code.
+        SHASTA_ASSERT(0);
+    }
+
+
+
+    // It should never get here.
+    SHASTA_ASSERT(0);
 }
 
 

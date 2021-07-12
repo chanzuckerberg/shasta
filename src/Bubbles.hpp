@@ -17,6 +17,7 @@ Class to describe an analyze bubbles in the assembly graph.
 namespace shasta {
     class Bubbles;
     class Assembler;
+    class AlignmentData;
     class OrientedReadPair;
 }
 
@@ -398,20 +399,8 @@ private:
 
     // Functions used to decide if an alignment should be used.
 public:
-    bool allowAlignment(
-        const OrientedReadPair&,
-        bool useClustering) const;
+    bool allowAlignment(const AlignmentData&) const;
 private:
-    bool allowAlignment(
-        const OrientedReadId&,
-        const OrientedReadId&,
-        bool useClustering) const;
-    bool allowAlignmentUsingClustering(
-        const OrientedReadId&,
-        const OrientedReadId&) const;
-    bool allowAlignmentUsingBubbles(
-        const OrientedReadId&,
-        const OrientedReadId&) const;
 
     const Assembler& assembler;
     bool debug;
