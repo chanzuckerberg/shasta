@@ -1115,6 +1115,10 @@ void shasta::main::mode1Assembly(
     assembler.createReadGraphMode1(
         assemblerOptions.readGraphOptions.maxAlignmentCount);
 
+    // Compute connected components of the read graph.
+    // These are currently not used.
+    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+
 
 
     // Create a new marker graph and assembly graph using this new read graph.
