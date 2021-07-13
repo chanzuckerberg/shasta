@@ -1295,9 +1295,11 @@ void Bubbles::BubbleGraph::computeConnectedComponents()
 // Functions used to decide if an alignment should be used.
 bool Bubbles::allowAlignment(const AlignmentData& alignmentData) const
 {
+    const uint32_t invalidOrdinal = std::numeric_limits<uint32_t>::max();
+
     // Get the OrientedReadIds in this alignment.
     const OrientedReadId orientedReadId0(alignmentData.readIds[0], 0);
-    const OrientedReadId orientedReadId1(alignmentData.readIds[0], alignmentData.isSameStrand ? 0 : 1);
+    const OrientedReadId orientedReadId1(alignmentData.readIds[1], alignmentData.isSameStrand ? 0 : 1);
 
     // Get the connected components and phases of the two oriented reads.
     const pair<uint32_t, uint32_t>& p0 = orientedReadsPhase[orientedReadId0.getValue()];
@@ -1334,8 +1336,26 @@ bool Bubbles::allowAlignment(const AlignmentData& alignmentData) const
     if(isPhased0) {
         SHASTA_ASSERT(not isPhased1);
 
-        // Missing code.
-        SHASTA_ASSERT(0);
+        // If 0 is backward terminal and the alignment ends before
+        // the first bubble, allow it.
+        const uint32_t b = backwardTerminalOrdinal[orientedReadId0.getValue()];
+        if(b != invalidOrdinal) {
+            if(alignmentData.info.data[0].lastOrdinal < b) {
+                return true;
+            }
+        }
+
+        // If 0 is forward terminal and the alignment begins after
+        // the last bubble, allow it.
+        const uint32_t f = forwardTerminalOrdinal[orientedReadId0.getValue()];
+        if(f != invalidOrdinal) {
+            if(alignmentData.info.data[0].firstOrdinal > f) {
+                return true;
+            }
+        }
+
+        // Otherwise, don't allow the alignment.
+        return false;
     }
 
 
@@ -1344,8 +1364,26 @@ bool Bubbles::allowAlignment(const AlignmentData& alignmentData) const
     if(isPhased1) {
         SHASTA_ASSERT(not isPhased0);
 
-        // Missing code.
-        SHASTA_ASSERT(0);
+        // If 1 is backward terminal and the alignment ends before
+        // the first bubble, allow it.
+        const uint32_t b = backwardTerminalOrdinal[orientedReadId1.getValue()];
+        if(b != invalidOrdinal) {
+            if(alignmentData.info.data[1].lastOrdinal < b) {
+                return true;
+            }
+        }
+
+        // If 1 is forward terminal and the alignment begins after
+        // the last bubble, allow it.
+        const uint32_t f = forwardTerminalOrdinal[orientedReadId1.getValue()];
+        if(f != invalidOrdinal) {
+            if(alignmentData.info.data[1].firstOrdinal > f) {
+                return true;
+            }
+        }
+
+        // Otherwise, don't allow the alignment.
+        return false;
     }
 
 
