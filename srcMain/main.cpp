@@ -1130,10 +1130,10 @@ void shasta::main::mode1Assembly(
     // For the second step we use lower coverage thresholds
     // for marker graph vertices and edges.
     // ******* EXPOSE THESE WHEN CODE STABILIZES (also in Mode1Assembly.py)
-    const uint64_t minVertexCoverageFinal = 4;
-    const uint64_t minVertexCoveragePerStrandFinal = 1;
-    const uint64_t minEdgeCoverageFinal = 4;
-    const uint64_t minEdgeCoveragePerStrandFinal = 1;
+    const uint64_t minVertexCoverageFinal = 3;
+    const uint64_t minVertexCoveragePerStrandFinal = 0;
+    const uint64_t minEdgeCoverageFinal = 2;
+    const uint64_t minEdgeCoveragePerStrandFinal = 0;
 
 
     // Create marker graph vertices.
@@ -1156,7 +1156,7 @@ void shasta::main::mode1Assembly(
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
 
     // To recovery contiguity, add secondary edges.
-    const uint32_t secondaryEdgeMaxSkip = 100;    // ********* EXPOSE WHEN CODE STABILIZES (also in Mode1Assembly.py)
+    const uint32_t secondaryEdgeMaxSkip = 1000000;    // ********* EXPOSE WHEN CODE STABILIZES (also in Mode1Assembly.py)
     assembler.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, threadCount);
 
     // Coverage histograms for vertices and edges of the marker graph.
