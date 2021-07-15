@@ -899,12 +899,13 @@ void Bubbles::removeBadBubbles(double discordantRatioThreshold)
 {
     uint64_t removedCount = 0;
     for(uint64_t bubbleId=0; bubbleId<bubbles.size(); bubbleId++) {
-        if(bubbles[bubbleId].discordantRatio() > discordantRatioThreshold) {
+        Bubble& bubble = bubbles[bubbleId];
+        if((bubble.sum()==0) or (bubble.discordantRatio() > discordantRatioThreshold)) {
             const BubbleGraph::vertex_descriptor v = bubbleGraph.vertexDescriptor(bubbleId);
             clear_vertex(v, bubbleGraph);
             remove_vertex(v, bubbleGraph);
             bubbleGraph.vertexTable[bubbleId] = BubbleGraph::null_vertex();
-            bubbles[bubbleId].isBad = true;
+            bubble.isBad = true;
             ++removedCount;
         }
     }

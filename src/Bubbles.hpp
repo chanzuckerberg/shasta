@@ -90,9 +90,13 @@ private:
         // Concordant/discordant sums computed by flagBadBubbles.
         uint64_t concordantSum = 0;
         uint64_t discordantSum = 0;
+        uint64_t sum() const
+        {
+            return concordantSum + discordantSum;
+        }
         double discordantRatio() const
         {
-            return double(discordantSum) / double(concordantSum + discordantSum);
+            return double(discordantSum) / double(sum());
         }
 
         // This flag is set for bubbles flagged as bad and removed from the BubbleGraph.
