@@ -15,7 +15,6 @@
 #include "MarkerConnectivityGraph.hpp"
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
-#include "Mode1-AssemblyGraph.hpp"
 #include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "ReadGraph.hpp"
@@ -2071,23 +2070,6 @@ public:
 
     // Write assembled sequences in FASTA format.
     void writeFasta(const string& fileName);
-
-
-
-    // Mode 1 assembly.
-    void createMode1AssemblyGraph(
-        uint64_t minEdgeCoverage,
-        uint64_t minEdgeCoveragePerStrand);
-
-private:
-
-    class Mode1Data {
-    public:
-        unique_ptr<Mode1::AssemblyGraph> assemblyGraphPointer;
-    };
-    Mode1Data mode1Data;
-
-public:
 
 
 

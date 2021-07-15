@@ -632,14 +632,6 @@ PYBIND11_MODULE(shasta, module)
 
 
 
-        // Mode 1 assembly.
-        .def("createMode1AssemblyGraph",
-            &Assembler::createMode1AssemblyGraph,
-            arg("minEdgeCoverage"),
-            arg("minEdgeCoveragePerStrand"))
-
-
-
         .def("test", &Assembler::test)
 
         // Definition of class_Assembler ends here.
