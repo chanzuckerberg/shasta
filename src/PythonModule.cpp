@@ -1,6 +1,7 @@
 #ifdef SHASTA_PYTHON_API
 
 // Shasta.
+#include "AssembledSegment.hpp"
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
 #include "Base.hpp"

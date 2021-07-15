@@ -2,11 +2,8 @@
 #define SHASTA_ASSEMBLER_HPP
 
 // Shasta.
-#include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
-#include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
-#include "Coverage.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
