@@ -39,6 +39,10 @@ namespace shasta {
         LocalReadGraphEdge
         >;
 
+    // Triangles of the read graph, each with an alignment residual.
+    class LocalReadGraphTriangles : public vector< pair<array<LocalReadGraphBaseClass::edge_descriptor, 3>, int32_t> >
+        {};
+
     enum class AlignmentType;
 }
 

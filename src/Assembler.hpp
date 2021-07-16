@@ -7,7 +7,6 @@
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
-#include "LocalReadGraph.hpp"
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
@@ -39,6 +38,8 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
+    class LocalReadGraph;
+    class LocalReadGraphTriangles;
     class LocalMarkerGraphRequestParameters;
     class MarkerConnectivityGraph;
     class MarkerConnectivityGraphVertexMap;
@@ -1175,7 +1176,7 @@ private:
     // sorted by decreasing residual.
     void triangleAnalysis(
         LocalReadGraph&,
-        vector< pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t> >&) const;
+        LocalReadGraphTriangles&) const;
 
     // Singular value decomposition analysis of the local read graph.
     void leastSquareAnalysis(

@@ -414,7 +414,7 @@ void Assembler::exploreUndirectedReadGraph(
 
 
     // Triangle analysis of the local read graph, if requested.
-    vector< pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t> > triangles;
+    LocalReadGraphTriangles triangles;
     if(alignmentAnalysis == "triangles") {
         triangleAnalysis(graph, triangles);
 

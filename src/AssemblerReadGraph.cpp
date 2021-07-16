@@ -1548,7 +1548,7 @@ void Assembler::leastSquareAnalysis(
 // sorted by decreasing residual.
 void Assembler::triangleAnalysis(
     LocalReadGraph& graph,
-    vector< pair<array<LocalReadGraph::edge_descriptor, 3>, int32_t> >& triangles) const
+    LocalReadGraphTriangles& triangles) const
 {
     using vertex_descriptor = LocalReadGraph::vertex_descriptor;
     // using edge_descriptor = LocalReadGraph::edge_descriptor;
