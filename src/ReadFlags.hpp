@@ -1,7 +1,6 @@
 #ifndef SHASTA_READ_FLAGS_HPP
 #define SHASTA_READ_FLAGS_HPP
 
-#include <cstdlib>
 #include "cstdint.hpp"
 
 namespace shasta {
