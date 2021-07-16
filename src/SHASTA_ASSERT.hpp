@@ -8,12 +8,15 @@
 #include <stdexcept>
 #include <string>
 
+#if 0
 // Gcc (for backtraces).
 #include "execinfo.h"
 
 namespace shasta {
     inline void writeBackTrace();
 }
+#endif
+
 
 #define SHASTA_ASSERT(expression) ((expression) ? (static_cast<void>(0)) : \
     (/*writeBackTrace(),*/ throw std::runtime_error(std::string("Assertion failed: ") + #expression + " at " + __PRETTY_FUNCTION__ + " in " +  __FILE__ + " line " + std::to_string(__LINE__))))
