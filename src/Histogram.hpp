@@ -2,17 +2,14 @@
 #define SHASTA_HISTOGRAM_HPP
 
 #include "algorithm.hpp"
-#include "vector.hpp"
-#include <numeric>
-#include <cstdint>
-#include <fstream>
-#include <utility>
 #include <deque>
+#include "cstdint.hpp"
+#include "iosfwd.hpp"
+#include <numeric>
+#include "string.hpp"
+#include "utility.hpp"
+#include "vector.hpp"
 
-using std::ostream;
-using std::string;
-using std::deque;
-using std::pair;
 
 
 namespace shasta {
@@ -20,11 +17,11 @@ namespace shasta {
     class Histogram2;
     void testIterativeHistogram();
     void writeHistogramsToHtml(
-            ostream& html,
-            Histogram2& histogramA,
-            Histogram2& histogramB,
-            uint64_t sizePx,
-            int32_t precision);
+        ostream& html,
+        Histogram2& histogramA,
+        Histogram2& histogramB,
+        uint64_t sizePx,
+        int32_t precision);
 }
 
 
@@ -74,7 +71,7 @@ public:
     double stop;
     uint64_t binCount;
     const double binSize;
-    deque<uint64_t> histogram;
+    std::deque<uint64_t> histogram;
     bool unboundedLeft;
     bool unboundedRight;
     bool dynamicBounds;
