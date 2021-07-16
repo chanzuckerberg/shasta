@@ -395,7 +395,7 @@ void Assembler::cleanupDuplicateMarkersPattern2(
 
     // Create the marker connectivity graph for this vertex.
     MarkerConnectivityGraph graph;
-    std::map<MarkerDescriptor, vertex_descriptor> vertexMap;
+    MarkerConnectivityGraphVertexMap vertexMap;
     createMarkerConnectivityGraph(
         markerDescriptors.front().first, markerDescriptors.front().second, true, graph, vertexMap);
     SHASTA_ASSERT(num_vertices(graph) == markerCount);

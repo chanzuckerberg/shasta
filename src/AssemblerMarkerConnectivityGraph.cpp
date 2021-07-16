@@ -19,8 +19,7 @@ void Assembler::createMarkerConnectivityGraph(
     bool useReadGraphAlignmentsOnly,
     MarkerConnectivityGraph& graph) const
 {
-    using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
-    std::map<MarkerDescriptor, vertex_descriptor> vertexMap;
+    MarkerConnectivityGraphVertexMap vertexMap;
     createMarkerConnectivityGraph(orientedReadId, ordinal, useReadGraphAlignmentsOnly,
         graph, vertexMap);
 
@@ -33,7 +32,7 @@ void Assembler::createMarkerConnectivityGraph(
     uint32_t ordinal,
     bool useReadGraphAlignmentsOnly,
     MarkerConnectivityGraph& graph,
-    std::map<MarkerDescriptor, MarkerConnectivityGraph::vertex_descriptor>& vertexMap) const
+    MarkerConnectivityGraphVertexMap& vertexMap) const
 {
 
 
