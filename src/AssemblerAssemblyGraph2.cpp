@@ -12,6 +12,8 @@ void Assembler::createAssemblyGraph2()
     checkMarkerGraphEdgesIsOpen();
     SHASTA_ASSERT(markerGraph.reverseComplementVertex.isOpen);
     SHASTA_ASSERT(markerGraph.reverseComplementEdge.isOpen);
+    SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
+    SHASTA_ASSERT(markerGraph.edgesByTarget.isOpen());
 
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(markerGraph);
 }

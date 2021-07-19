@@ -35,6 +35,9 @@ namespace shasta {
 class shasta::AssemblyGraph2Vertex {
 public:
     MarkerGraph::VertexId markerGraphVertexId;
+
+    AssemblyGraph2Vertex(MarkerGraph::VertexId markerGraphVertexId) :
+        markerGraphVertexId(markerGraphVertexId) {}
 };
 
 
@@ -46,6 +49,10 @@ public:
     // a set of paths in the marker graph.
     // This way it can describe a bubble in the marker graph.
     vector<MarkerGraphPath> markerGraphPaths;
+
+    // The constructor creates an edge with a single path.
+    AssemblyGraph2Edge(const MarkerGraphPath& path) :
+        markerGraphPaths(1, path) {}
 
     bool isBubble() const
     {
@@ -65,9 +72,21 @@ public:
 
 private:
 
+    // A non-owned reference to the MarkerGraph.
+    const MarkerGraph& markerGraph;
+
     // Map that gives us the vertex descriptor corresponding to
     // each marker graph vertex.
     std::map<MarkerGraph::VertexId, vertex_descriptor> vertexMap;
+
+    // Get the vertex descriptor for the vertex corresponding to
+    // a given MarkerGraph::VertexId, creating the vertex if necessary.
+    vertex_descriptor getVertex(MarkerGraph::VertexId);
+
+    // Create a new edge corresponding to the given path.
+    // Also create the vertices if necessary.
+    void addEdge(const MarkerGraphPath&);
+
 };
 
 
