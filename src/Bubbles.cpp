@@ -616,7 +616,6 @@ void Bubbles::writeBubbleGraphGraphviz(const string& fileName) const
         const uint64_t bubbleId = vertex.bubbleId;
         const Bubble& bubble = bubbles[bubbleId];
         const double discordantRatio = bubble.discordantRatio();
-        SHASTA_ASSERT(discordantRatio <= 0.5);
         const double hue = (1. - 2. * discordantRatio) * 0.333333;  //  Good = green, bad = red, via yellow
         out << bubbleId <<
             " [color=\"" << hue << ",1.,0.8\""
