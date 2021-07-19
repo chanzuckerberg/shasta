@@ -78,9 +78,12 @@ a.computeMarkerGraphCoverageHistogram()
 # Add secondary edges.
 a.createMarkerGraphSecondaryEdges(
     secondaryEdgeMaxSkip = 1000000)
+    
+# Create the mode 2 assembly graph.
+a.createAssemblyGraph2()    
 
 # Missing: 
-# - Create AssemblyGraph2 (including, later, bubble detection and phasing).
+# - Additional AssemblyGraph2 processing (including bubble detection and phasing).
 # - Assemble marker graph vertices, edges.
 # - Write gfa, fasta.
 
