@@ -35,6 +35,10 @@ Bubbles::Bubbles(
     fillOrientedReadsTable();
 
     createBubbleGraph();
+    if(debug) {
+        writeBubbleGraphGraphviz("BubbleGraph-Initial.dot");
+    }
+
     flagBadBubbles();
     removeBadBubbles(discordantRatioThreshold);
     flagTerminalBubbles();
@@ -42,7 +46,7 @@ Bubbles::Bubbles(
         writeOrientedReadsTable();
         writeBubbles();
         writeBubblesDetails();
-        writeBubbleGraphGraphviz();
+        writeBubbleGraphGraphviz("BubbleGraph.dot");
     }
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
@@ -600,10 +604,10 @@ void Bubbles::createBubbleGraph()
 
 
 
-void Bubbles::writeBubbleGraphGraphviz() const
+void Bubbles::writeBubbleGraphGraphviz(const string& fileName) const
 {
 
-    ofstream out("BubbleGraph.dot");
+    ofstream out(fileName);
     out << "graph G{\n"
         "node [shape=point];\n";
 

@@ -278,7 +278,7 @@ private:
 
     // Write the BubbleGraph in graphviz format, coloring
     // the bubbles by discordant ratio and the edges by ambiguity.
-    void writeBubbleGraphGraphviz() const;
+    void writeBubbleGraphGraphviz(const string& fileName) const;
 
     // Write a single component of the BubbleGraph in html/svg format.
     // To compute sfdp layout, only consider edges
