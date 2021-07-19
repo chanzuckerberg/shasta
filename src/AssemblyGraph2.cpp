@@ -1,5 +1,8 @@
 #include "AssemblyGraph2.hpp"
+#include "fstream.hpp"
 using namespace shasta;
+
+#include <boost/graph/iteration_macros.hpp>
 
 
 
@@ -9,6 +12,11 @@ using namespace shasta;
 AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
     markerGraph(markerGraph)
 {
+    const bool debug = false;
+    ofstream debugOut;
+    if(debug) {
+        debugOut.open("AssemblyGraph2-Constructor.txt");
+    }
 
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
     vector<bool> wasFound(edgeCount, false);
@@ -23,6 +31,11 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
     // Main loop over all edges of the marker graph.
     // At each iteration we find a new linear path of edges.
     for(MarkerGraph::EdgeId startEdgeId=0; startEdgeId<edgeCount; startEdgeId++) {
+        if(debug) {
+            const MarkerGraph::Edge& startEdge = markerGraph.edges[startEdgeId];
+            debugOut << "Starting a new path at edge " << startEdgeId << " " <<
+                startEdge.source << "->" << startEdge.target << "\n";
+        }
 
         // If we already found this edge, skip it.
         // It is part of a path we already found.
@@ -41,12 +54,25 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
             if(outEdges.size() != 1) {
                 break;
             }
+            const auto inEdges = markerGraph.edgesByTarget[v1];
+            if(inEdges.size() != 1) {
+                break;
+            }
             edgeId = outEdges[0];
             if(edgeId == startEdgeId) {
                 isCircular = true;
+                if(debug) {
+                    cout << "Is circular." << endl;
+                }
                 break;
             }
             nextEdges.push_back(edgeId);
+            SHASTA_ASSERT(not wasFound[edgeId]);
+            if(debug) {
+                debugOut << "Forward " << edgeId << " " <<
+                    edge.source << "->" << edge.target << "\n";
+
+            }
         }
 
         // Follow the path backward.
@@ -56,12 +82,21 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
             while(true) {
                 const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
                 const MarkerGraph::VertexId v0 = edge.source;
+                const auto outEdges = markerGraph.edgesBySource[v0];
+                if(outEdges.size() != 1) {
+                    break;
+                }
                 const auto inEdges = markerGraph.edgesByTarget[v0];
                 if(inEdges.size() != 1) {
                     break;
                 }
                 edgeId = inEdges[0];
                 previousEdges.push_back(edgeId);
+                SHASTA_ASSERT(not wasFound[edgeId]);
+                if(debug) {
+                    debugOut << "Backward " << edgeId << " " <<
+                        edge.source << "->" << edge.target << "\n";
+                }
             }
         }
 
@@ -78,11 +113,19 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
 
         // Store this path as a new edge of the assembly graph.
         addEdge(path);
+        if(debug) {
+            for(const MarkerGraph::EdgeId edgeId: path) {
+                const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+                debugOut << "Path " << edgeId << " " <<
+                    edge.source << "->" << edge.target << "\n";
+            }
+        }
 
         // Also construct the reverse complemented path.
         reverseComplementedPath.clear();
         for(const MarkerGraph::EdgeId edgeId: path) {
-            reverseComplementedPath.push_back(markerGraph.reverseComplementEdge[edgeId]);
+            const MarkerGraph::EdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
+            reverseComplementedPath.push_back(edgeIdRc);
         }
         std::reverse(reverseComplementedPath.begin(), reverseComplementedPath.end());
 
@@ -106,6 +149,18 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
         // Store the reverse complemented path, if different from the original one.
         if(not isSelfComplementary) {
             addEdge(reverseComplementedPath);
+            for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
+                SHASTA_ASSERT(not wasFound[edgeIdRc]);
+                wasFound[edgeIdRc] = true;
+            }
+
+            if(debug) {
+                for(const MarkerGraph::EdgeId edgeId: path) {
+                    const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+                    debugOut << "Reverse complemented path " << edgeId << " " <<
+                        edge.source << "->" << edge.target << "\n";
+                }
+            }
         }
 
     }
@@ -156,4 +211,74 @@ void AssemblyGraph2::addEdge(const MarkerGraphPath& path)
 
     // Create the edge.
     add_edge(v0, v1, AssemblyGraph2Edge(path), *this);
+}
+
+
+
+void AssemblyGraph2::writeCsv(const string& baseName) const
+{
+    writeVerticesCsv(baseName + "-Vertices.csv");
+    writeEdgesCsv(baseName + "-Edges.csv");
+    writeEdgeDetailsCsv(baseName + "-EdgeDetails.csv");
+}
+
+
+
+void AssemblyGraph2::writeVerticesCsv(const string& fileName) const
+{
+    const AssemblyGraph2& graph = *this;
+
+    ofstream csv(fileName);
+    csv << "VertexId0\n";
+    BGL_FORALL_VERTICES(v, graph, AssemblyGraph2) {
+        csv << graph[v].markerGraphVertexId << "\n";
+    }
+}
+
+
+
+void AssemblyGraph2::writeEdgesCsv(const string& fileName) const
+{
+    const AssemblyGraph2& graph = *this;
+
+    ofstream csv(fileName);
+    csv << "VertexId0,VertexId1\n";
+    BGL_FORALL_EDGES(e, graph, AssemblyGraph2) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        csv << graph[v0].markerGraphVertexId << ",";
+        csv << graph[v1].markerGraphVertexId << "\n";
+    }
+
+}
+
+
+
+void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
+{
+    const AssemblyGraph2& graph = *this;
+
+    ofstream csv(fileName);
+    csv << "FirstVertexId,LastVertexId,Branch,Position,EdgeId,VertexId0,VertexId1\n";
+    BGL_FORALL_EDGES(e, graph, AssemblyGraph2) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const MarkerGraph::VertexId vertexId0 = graph[v0].markerGraphVertexId;
+        const MarkerGraph::VertexId vertexId1 = graph[v1].markerGraphVertexId;
+        for(uint64_t i=0; i<graph[e].markerGraphPaths.size(); i++) {
+            const MarkerGraphPath& path = graph[e].markerGraphPaths[i];
+            for(uint64_t j=0; j<path.size(); j++) {
+                const MarkerGraph::EdgeId edgeId = path[j];
+                const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+                csv << vertexId0 << ",";
+                csv << vertexId1 << ",";
+                csv << i << ",";
+                csv << j << ",";
+                csv << edgeId << ",";
+                csv << edge.source << ",";
+                csv << edge.target << "\n";
+            }
+        }
+    }
+
 }

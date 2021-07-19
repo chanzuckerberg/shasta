@@ -16,4 +16,5 @@ void Assembler::createAssemblyGraph2()
     SHASTA_ASSERT(markerGraph.edgesByTarget.isOpen());
 
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(markerGraph);
+    assemblyGraph2Pointer->writeCsv("AssemblyGraph2");
 }

@@ -13,6 +13,7 @@
 
 // Standard library.
 #include <map>
+#include "string.hpp"
 #include "vector.hpp"
 
 
@@ -69,6 +70,11 @@ public:
     // in the marker graph. Therefore, immediately after construction,
     // each edge has a single MarkerGraphPath (no bubbles).
     AssemblyGraph2(const MarkerGraph&);
+
+    void writeCsv(const string& baseName) const;
+    void writeVerticesCsv(const string& baseName) const;
+    void writeEdgesCsv(const string& baseName) const;
+    void writeEdgeDetailsCsv(const string& baseName) const;
 
 private:
 
