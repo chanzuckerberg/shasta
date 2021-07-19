@@ -30,6 +30,7 @@ namespace shasta {
     class AlignOptions;
     class AssemblerOptions;
     class AssembledSegment;
+    class AssemblyGraph2;
     class Bubbles;
     class CompressedAssemblyGraph;
     class ConsensusCaller;
@@ -2352,6 +2353,11 @@ private:
 public:
     void analyzeAssemblyGraphBubbles(bool debug = false);
 
+
+
+    // Assembly graph for mode 2 assembly.
+    shared_ptr<AssemblyGraph2> assemblyGraph2Pointer;
+    void createAssemblyGraph2();
 
 
 public:

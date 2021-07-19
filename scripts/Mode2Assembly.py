@@ -78,26 +78,11 @@ a.computeMarkerGraphCoverageHistogram()
 # Add secondary edges.
 a.createMarkerGraphSecondaryEdges(
     secondaryEdgeMaxSkip = 1000000)
-    
-# No bubble removal.
 
-# Create the final assembly graph.
-a.createAssemblyGraphEdges()
-a.createAssemblyGraphVertices()
-
-# Assemble.
-a.assembleMarkerGraphVertices()
-a.assembleMarkerGraphEdges(
-    markerGraphEdgeLengthThresholdForConsensus =
-    int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']))
-a.assemble()
-a.computeAssemblyStatistics()
-
-# Wtite out the assembly.
-a.writeGfa1('Assembly.gfa')
-a.writeGfa1BothStrands('Assembly-BothStrands.gfa')
-a.writeFasta('Assembly.fasta')
+# Missing: 
+# - Create AssemblyGraph2 (including, later, bubble detection and phasing).
+# - Assemble marker graph vertices, edges.
+# - Write gfa, fasta.
 
 
 

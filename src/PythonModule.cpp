@@ -620,6 +620,12 @@ PYBIND11_MODULE(shasta, module)
 
 
 
+        // Assembly mode 2.
+        .def("createAssemblyGraph2",
+            &Assembler::createAssemblyGraph2)
+
+
+
             // Consensus caller.
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
