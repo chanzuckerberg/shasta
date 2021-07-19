@@ -867,23 +867,26 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
         "<tr><td>Number of edges that were not removed"
         "<td class=right>" << assemblerInfo->markerGraphEdgesNotRemovedCount <<
         "</table>"
-        "<ul><li>The marker graph contains both strands.</ul>"
+        "<ul><li>The marker graph contains both strands.</ul>";
+
+
+        if(assemblyGraphPointer) {
+            html <<
+                "<h3>Assembly graph</h3>"
+                "<table>"
+                "<tr><td>Number of vertices"
+                "<td class=right>" << assemblyGraph.vertices.size() <<
+                "<tr><td>Number of edges"
+                "<td class=right>" << assemblyGraph.edges.size() <<
+                "<tr><td>Number of edges assembled"
+                "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
+                "</table>"
+                "<ul><li>The assembly graph contains both strands.</ul>";
+        }
 
 
 
-        "<h3>Assembly graph</h3>"
-        "<table>"
-        "<tr><td>Number of vertices"
-        "<td class=right>" << assemblyGraph.vertices.size() <<
-        "<tr><td>Number of edges"
-        "<td class=right>" << assemblyGraph.edges.size() <<
-        "<tr><td>Number of edges assembled"
-        "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
-        "</table>"
-        "<ul><li>The assembly graph contains both strands.</ul>"
-
-
-
+        html <<
         "<h3>Assembled segments (&quot;contigs&quot;)</h3>"
         "<table>"
         "<tr><td>Number of segments assembled"
@@ -1102,19 +1105,21 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
         "    \"Number of vertices that are not isolated after edge removal\": " <<
         assemblerInfo->markerGraphVerticesNotIsolatedCount << ",\n"
         "    \"Number of edges that were not removed\": " << assemblerInfo->markerGraphEdgesNotRemovedCount << "\n"
-        "  },\n"
+        "  },\n";
 
 
+    if(assemblyGraphPointer) {
+        json <<
+            "  \"Assembly graph\":\n"
+            "  {\n"
+            "    \"Number of vertices\": " << assemblyGraph.vertices.size() << ",\n"
+            "    \"Number of edges\": " << assemblyGraph.edges.size() << ",\n"
+            "    \"Number of edges assembled\": " << assemblerInfo->assemblyGraphAssembledEdgeCount << "\n"
+            "  },\n";
+    }
 
-        "  \"Assembly graph\":\n"
-        "  {\n"
-        "    \"Number of vertices\": " << assemblyGraph.vertices.size() << ",\n"
-        "    \"Number of edges\": " << assemblyGraph.edges.size() << ",\n"
-        "    \"Number of edges assembled\": " << assemblerInfo->assemblyGraphAssembledEdgeCount << "\n"
-        "  },\n"
 
-
-
+    json <<
         "  \"Assembled segments\":\n"
         "  {\n"
         "    \"Number of segments assembled\": " << assemblerInfo->assemblyGraphAssembledEdgeCount << ",\n"
