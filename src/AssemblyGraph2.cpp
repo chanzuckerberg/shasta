@@ -173,11 +173,13 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
 
     cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
+    writeGfaNoSequence("AssemblyGraph2-0");
 
     // Gather bubble edges.
     gatherBubbles();
     cout << "After gathering bubbles, the AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
+    writeGfaNoSequence("AssemblyGraph2-1");
 }
 
 
@@ -216,7 +218,7 @@ void AssemblyGraph2::addEdge(const MarkerGraphPath& path)
     const vertex_descriptor v1 = getVertex(vertexId1);
 
     // Create the edge.
-    add_edge(v0, v1, AssemblyGraph2Edge(path), *this);
+    add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++, path), *this);
 }
 
 
@@ -342,7 +344,7 @@ void AssemblyGraph2::gatherBubbles()
             if(ploidy > 1) {
                 edge_descriptor eNew;
                 bool edgeWasAdded = false;
-                tie(eNew, edgeWasAdded) = add_edge(v0, v1, g);
+                tie(eNew, edgeWasAdded) = add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++), g);
                 SHASTA_ASSERT(edgeWasAdded);
                 AssemblyGraph2Edge& edgeNew = g[eNew];
 
@@ -367,4 +369,62 @@ void AssemblyGraph2::gatherBubbles()
 
 }
 
+
+
+void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
+{
+    using G = AssemblyGraph2;
+    const G& g = *this;
+
+    // Open the gfa and write the header.
+    ofstream gfa(baseName + ".gfa");
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Open the csv and write the header.
+    ofstream csv(baseName + ".csv");
+    csv << ",Color,First,Last\n";
+
+
+
+    // Each edge of the AssemblyGraph2 generates a gfa Segment
+    // for each of its marker graph paths.
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+
+        for(uint64_t branchId=0; branchId<edge.markerGraphPaths.size(); branchId++) {
+            const MarkerGraphPath& path = edge.markerGraphPaths[branchId];
+
+            gfa << "S\t" << edge.pathId(branchId) << "\t*\tLN:i:" << path.size() << "\n";
+            csv << edge.pathId(branchId) << ",Green," <<
+                path.front() << "," << path.back() << "\n";
+        }
+    }
+
+
+
+    // Generate link record.
+    // For each vertex, we generate a Link for each pair of
+    // incoming/outgoing marker graph paths.
+    BGL_FORALL_VERTICES(v, g, G) {
+
+        // Loop over marker graph paths of incoming edges.
+        BGL_FORALL_INEDGES(v, e0, g, G) {
+            const AssemblyGraph2Edge& edge0 = g[e0];
+            for(uint64_t i0=0; i0<edge0.markerGraphPaths.size(); i0++) {
+
+                // Loop over marker graph paths of outgoing edges.
+                BGL_FORALL_OUTEDGES(v, e1, g, G) {
+                    const AssemblyGraph2Edge& edge1 = g[e1];
+                    for(uint64_t i1=0; i1<edge1.markerGraphPaths.size(); i1++) {
+
+                        gfa << "L\t" <<
+                            edge0.pathId(i0) << "\t+\t" <<
+                            edge1.pathId(i1) << "\t+\t\n";
+
+                    }
+                }
+            }
+        }
+    }
+}
 

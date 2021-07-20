@@ -46,21 +46,34 @@ public:
 class shasta::AssemblyGraph2Edge {
 public:
 
+    // Id used for gfa output.
+    uint64_t id;
+
     // Each assembly graph edge corresponds to
     // a set of paths in the marker graph.
     // This way it can describe a bubble in the marker graph.
     vector<MarkerGraphPath> markerGraphPaths;
 
-    // The default constructor creates an edge without any paths.
-    AssemblyGraph2Edge() {}
+    // This constructor creates an edge without any paths.
+    AssemblyGraph2Edge(uint64_t id) : id(id) {}
 
     // This constructor creates an edge with a single path.
-    AssemblyGraph2Edge(const MarkerGraphPath& path) :
-        markerGraphPaths(1, path) {}
+    AssemblyGraph2Edge(uint64_t id, const MarkerGraphPath& path) :
+        id(id), markerGraphPaths(1, path) {}
 
     bool isBubble() const
     {
         return markerGraphPaths.size() > 1;
+    }
+
+    // Construct a string to id each of the markerGraphPaths.
+    string pathId(uint64_t branchId) const
+    {
+        string s = to_string(id);
+        if(markerGraphPaths.size() > 1) {
+            s.append("." + to_string(branchId));
+        }
+        return s;
     }
 };
 
@@ -79,6 +92,8 @@ public:
     void writeEdgesCsv(const string& baseName) const;
     void writeEdgeDetailsCsv(const string& baseName) const;
 
+    void writeGfaNoSequence(const string& baseName) const;
+
 private:
 
     // A non-owned reference to the MarkerGraph.
@@ -91,6 +106,8 @@ private:
     // Get the vertex descriptor for the vertex corresponding to
     // a given MarkerGraph::VertexId, creating the vertex if necessary.
     vertex_descriptor getVertex(MarkerGraph::VertexId);
+
+    uint64_t nextEdgeId = 0;
 
     // Create a new edge corresponding to the given path.
     // Also create the vertices if necessary.
