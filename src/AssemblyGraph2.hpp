@@ -51,7 +51,10 @@ public:
     // This way it can describe a bubble in the marker graph.
     vector<MarkerGraphPath> markerGraphPaths;
 
-    // The constructor creates an edge with a single path.
+    // The default constructor creates an edge without any paths.
+    AssemblyGraph2Edge() {}
+
+    // This constructor creates an edge with a single path.
     AssemblyGraph2Edge(const MarkerGraphPath& path) :
         markerGraphPaths(1, path) {}
 
@@ -92,6 +95,10 @@ private:
     // Create a new edge corresponding to the given path.
     // Also create the vertices if necessary.
     void addEdge(const MarkerGraphPath&);
+
+    // Finds edges that form bubbles, then combine
+    // each of them into a single edge with multiple paths.
+    void gatherBubbles();
 
 };
 

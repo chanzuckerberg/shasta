@@ -1,9 +1,10 @@
 #include "AssemblyGraph2.hpp"
-#include "fstream.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
 
+#include "fstream.hpp"
 
 
 // The constructor creates an edge for each linear path
@@ -170,7 +171,12 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
     // Check that all edges of the marker graph were found.;
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
 
-    cout << "The AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
+    cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
+        num_edges(*this) << " edges." << endl;
+
+    // Gather bubble edges.
+    gatherBubbles();
+    cout << "After gathering bubbles, the AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
 }
 
@@ -282,3 +288,83 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
     }
 
 }
+
+
+
+// Finds edges that form bubbles, then combine
+// each of them into a single edge with multiple paths.
+void AssemblyGraph2::gatherBubbles()
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+    // Vector to contain pairs (v1, e01) for a single v0.
+    // Here, e01 is an edge v0->v1.
+    vector< pair<vertex_descriptor, edge_descriptor> > next;
+
+    // Ploidy histogram.
+    vector<uint64_t> ploidyHistogram;
+
+
+    // Look for sets of parallel edges v0->v1.
+    BGL_FORALL_VERTICES(v0, g, G) {
+
+        next.clear();
+        BGL_FORALL_OUTEDGES(v0, e01, g, G) {
+            const vertex_descriptor v1 = target(e01, g);
+            next.push_back(make_pair(v1, e01));
+        }
+
+        // Sort them by v1.
+        sort(next.begin(), next.end(), OrderPairsByFirstOnly<vertex_descriptor, edge_descriptor>());
+
+
+        // Find streaks with the same v1.
+        for(auto it=next.begin(); it!=next.end(); /*Incremented in the loop*/) {
+            const vertex_descriptor v1 = it->first;
+
+            auto jt = it;
+            for(; jt!=next.end(); ++jt) {
+                if(jt->first != v1) {
+                    break;
+                }
+            }
+
+            // Here, it and jt define a streak with the same v1.
+            const uint64_t ploidy = jt - it;
+            if(ploidy >= ploidyHistogram.size()) {
+                ploidyHistogram.resize(ploidy + 1);
+            }
+            ++ploidyHistogram[ploidy];
+
+
+            // Combine the edges in the streak into a new edge.
+            if(ploidy > 1) {
+                edge_descriptor eNew;
+                bool edgeWasAdded = false;
+                tie(eNew, edgeWasAdded) = add_edge(v0, v1, g);
+                SHASTA_ASSERT(edgeWasAdded);
+                AssemblyGraph2Edge& edgeNew = g[eNew];
+
+                for(auto kt=it; kt!=jt; kt++) {
+                    const edge_descriptor eOld = kt->second;
+                    const AssemblyGraph2Edge& edgeOld = g[eOld];
+                    copy(edgeOld.markerGraphPaths.begin(), edgeOld.markerGraphPaths.end(),
+                       back_inserter(edgeNew.markerGraphPaths));
+                    boost::remove_edge(eOld, g);
+                }
+            }
+
+            // Prepare to process the next streak.
+            it = jt;
+        }
+    }
+
+    cout << "Ploidy histogram (counting both strands):" << endl;
+    for(uint64_t ploidy=2; ploidy<ploidyHistogram.size(); ploidy++) {
+        cout << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " bubbles." << endl;
+    }
+
+}
+
+
