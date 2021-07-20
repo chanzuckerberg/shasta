@@ -1058,7 +1058,8 @@ void shasta::main::mode0Assembly(
         threadCount,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
         assemblerOptions.assemblyOptions.storeCoverageData or
-        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0,
+        false
         );
 
     // Use the assembly graph for global assembly.
@@ -1187,7 +1188,8 @@ void shasta::main::mode1Assembly(
         threadCount,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
         assemblerOptions.assemblyOptions.storeCoverageData or
-        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0,
+        false
         );
 
     // Use the assembly graph for sequence assembly.
@@ -1239,6 +1241,15 @@ void shasta::main::mode2Assembly(
 
     // Compute optimal repeat counts for each vertex of the marker graph.
     assembler.assembleMarkerGraphVertices(threadCount);
+
+    // Compute consensus sequence for all marker graph edges.
+    assembler.assembleMarkerGraphEdges(
+        threadCount,
+        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.assemblyOptions.storeCoverageData or
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0,
+        true
+        );
 
     // Create the mode 2 assembly graph.
     assembler.createAssemblyGraph2();

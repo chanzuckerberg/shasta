@@ -136,7 +136,8 @@ a.assembleMarkerGraphVertices()
 a.assembleMarkerGraphEdges(
     markerGraphEdgeLengthThresholdForConsensus =
     int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']))
+    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']),
+    assembleAllEdges = False)
 a.assemble()
 a.computeAssemblyStatistics()
 

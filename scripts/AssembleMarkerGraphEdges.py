@@ -22,10 +22,12 @@ a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
 
 # Do it.
+assembleAllEdges = (int(config['Assembly']['mode']) == 2)
 a.assembleMarkerGraphEdges(
     markerGraphEdgeLengthThresholdForConsensus =
     int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']))
+    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']),
+    assembleAllEdges = assembleAllEdges)
 
 
 

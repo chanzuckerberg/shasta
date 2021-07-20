@@ -4707,7 +4707,10 @@ void Assembler::assembleMarkerGraphEdges(
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
 
     // Request storing detailed coverage information.
-    bool storeCoverageData
+    bool storeCoverageData,
+
+    // Request assembling all edges (used by Mode 2 assembly)
+    bool assembleAllEdges
     )
 {
     cout << timestamp << "assembleMarkerGraphEdges begins." << endl;
@@ -4727,6 +4730,7 @@ void Assembler::assembleMarkerGraphEdges(
     // Do the computation in parallel.
     assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
     assembleMarkerGraphEdgesData.storeCoverageData = storeCoverageData;
+    assembleMarkerGraphEdgesData.assembleAllEdges = assembleAllEdges;
     assembleMarkerGraphEdgesData.threadEdgeIds.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensus.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount.resize(threadCount);
@@ -4829,6 +4833,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus;
     const bool storeCoverageData = assembleMarkerGraphEdgesData.storeCoverageData;
+    const bool assembleAllEdges = assembleMarkerGraphEdgesData.assembleAllEdges;
 
     // Allocate space for the results computed by this thread.
     assembleMarkerGraphEdgesData.threadEdgeIds[threadId] =
@@ -4883,20 +4888,22 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 
             // Figure out if we need to assemble this edge.
             bool shouldAssemble = true;
-            if(markerGraph.edges[edgeId].wasRemoved()) {
-                // The marker graph edge was removed.
-                shouldAssemble = false;
-            } else {
-                // This marker graph edge was not removed.
-                // Check its assembly graph locations to see if it
-                // should be assembled.
-                shouldAssemble = false;
-                for(const auto& location: assemblyGraph.markerToAssemblyTable[edgeId]) {
-                    const AssemblyGraph::EdgeId assemblyGraphEdgeId =
-                        location.first;
-                    if(assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
-                        shouldAssemble = true;
-                        break;
+            if(not assembleAllEdges) {
+                if(markerGraph.edges[edgeId].wasRemoved()) {
+                    // The marker graph edge was removed.
+                    shouldAssemble = false;
+                } else {
+                    // This marker graph edge was not removed.
+                    // Check its assembly graph locations to see if it
+                    // should be assembled.
+                    shouldAssemble = false;
+                    for(const auto& location: assemblyGraph.markerToAssemblyTable[edgeId]) {
+                        const AssemblyGraph::EdgeId assemblyGraphEdgeId =
+                            location.first;
+                        if(assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
+                            shouldAssemble = true;
+                            break;
+                        }
                     }
                 }
             }

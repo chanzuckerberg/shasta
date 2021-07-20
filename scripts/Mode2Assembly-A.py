@@ -84,10 +84,13 @@ a.computeMarkerGraphCoverageHistogram()
 a.createMarkerGraphSecondaryEdges(
     secondaryEdgeMaxSkip = 1000000)
 
-# Assembler marker graph vertices.
+# Assembler all marker graph vertices and edges.
 a.assembleMarkerGraphVertices()
-# Missing: assemble marker graph edges.
-
+a.assembleMarkerGraphEdges(
+    markerGraphEdgeLengthThresholdForConsensus =
+    int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
+    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']),
+    assembleAllEdges = True)
 
 
 

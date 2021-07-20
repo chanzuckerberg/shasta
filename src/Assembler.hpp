@@ -1959,7 +1959,10 @@ public:
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
 
         // Request storing detailed coverage information in binary format.
-        bool storeCoverageData
+        bool storeCoverageData,
+
+        // Request assembling all edges (used by Mode 2 assembly)
+        bool assembleAllEdges
         );
 private:
     void assembleMarkerGraphEdgesThreadFunction(size_t threadId);
@@ -1970,6 +1973,7 @@ private:
         // they are accessible to the threads.
         uint32_t markerGraphEdgeLengthThresholdForConsensus;
         bool storeCoverageData;
+        bool assembleAllEdges;
 
         // The results computed by each thread.
         // For each threadId:
