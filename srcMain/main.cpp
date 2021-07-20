@@ -1237,6 +1237,9 @@ void shasta::main::mode2Assembly(
     // Coverage histograms for vertices and edges of the marker graph.
     assembler.computeMarkerGraphCoverageHistogram();
 
+    // Compute optimal repeat counts for each vertex of the marker graph.
+    assembler.assembleMarkerGraphVertices(threadCount);
+
     // Create the mode 2 assembly graph.
     assembler.createAssemblyGraph2();
 

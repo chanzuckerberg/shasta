@@ -1,8 +1,13 @@
 #!/usr/bin/python3
 
 """
-Mode 2 assembly experiments.
-This assumes that everything up to alignment computation was done.
+
+This runs a portion of Mode 2 assembly.
+It starts at read graph creation, so the alignments must be available.
+It then creates the marker graph using the Mode 1/2 protocol
+(strict edge creation + creation of secondary edges).
+Finally, it assembles all of the marker graph vertices and edges.
+
 """
 
 import shasta
@@ -78,14 +83,10 @@ a.computeMarkerGraphCoverageHistogram()
 # Add secondary edges.
 a.createMarkerGraphSecondaryEdges(
     secondaryEdgeMaxSkip = 1000000)
-    
-# Create the mode 2 assembly graph.
-a.createAssemblyGraph2()    
 
-# Missing: 
-# - Additional AssemblyGraph2 processing (including bubble detection and phasing).
-# - Assemble marker graph vertices, edges.
-# - Write gfa, fasta.
+# Assembler marker graph vertices.
+a.assembleMarkerGraphVertices()
+# Missing: assemble marker graph edges.
 
 
 
