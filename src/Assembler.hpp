@@ -2004,10 +2004,13 @@ private:
 
 
     // Assemble sequence for an edge of the assembly graph.
-    // Optionally outputs detailed assembly information
-    // in html (skipped if the html pointer is 0).
     void assembleAssemblyGraphEdge(
         AssemblyGraph::EdgeId,
+        bool storeCoverageData,
+        AssembledSegment&);
+    // Lower level version that works on a generic marker graph path.
+    void assembleAssemblyGraphEdge(
+        const span<const MarkerGraph::EdgeId>&,
         bool storeCoverageData,
         AssembledSegment&);
 public:

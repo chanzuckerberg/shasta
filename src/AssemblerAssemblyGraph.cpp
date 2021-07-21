@@ -1773,19 +1773,28 @@ void Assembler::assembleAssemblyGraphEdge(
     AssembledSegment& assembledSegment)
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    const span<const MarkerGraph::EdgeId> markerGraphPath = makeSpanOfConst(assemblyGraph.edgeLists[edgeId]);
+    assembleAssemblyGraphEdge(markerGraphPath, storeCoverageData, assembledSegment);
+}
+
+
+
+void Assembler::assembleAssemblyGraphEdge(
+    const span<const MarkerGraph::EdgeId>& markerGraphPath,
+    bool storeCoverageData,
+    AssembledSegment& assembledSegment)
+{
 
     assembledSegment.clear();
     const auto k = assemblerInfo->k;
     assembledSegment.k = k;
 
-    // The edges of this chain in the marker graph.
-    const span<const MarkerGraph::EdgeId> assemblerEdgeIds = makeSpanOfConst(assemblyGraph.edgeLists[edgeId]);
-    assembledSegment.edgeCount = assemblerEdgeIds.size();
+    assembledSegment.edgeCount = markerGraphPath.size();
     assembledSegment.vertexCount = assembledSegment.edgeCount + 1;
     assembledSegment.edgeIds.resize(assembledSegment.edgeCount);
-    copy(assemblerEdgeIds.begin(), assemblerEdgeIds.end(), assembledSegment.edgeIds.begin());
+    copy(markerGraphPath.begin(), markerGraphPath.end(), assembledSegment.edgeIds.begin());
 
-    // Gather the vertices of this chain in the marker graph.
+    // Gather the vertices of this path in the marker graph.
     assembledSegment.vertexIds.reserve(assembledSegment.vertexCount);
     for(const MarkerGraph::EdgeId edgeId: assembledSegment.edgeIds) {
         const MarkerGraph::Edge& edge =
