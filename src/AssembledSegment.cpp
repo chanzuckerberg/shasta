@@ -14,7 +14,6 @@ using namespace shasta;
 
 void AssembledSegment::clear()
 {
-    assemblyGraphEdgeId = AssemblyGraph::invalidEdgeId;
     k = 0;
     vertexCount = 0;
     edgeCount = 0;
@@ -191,14 +190,7 @@ void AssembledSegment::writeHtml(
     uint32_t end) const
 {
     // Write a title.
-    html <<
-        "<h1>Assembly graph edge <a href="
-        "'exploreAssemblyGraph?edgeId=" << assemblyGraphEdgeId <<
-        "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
-        assemblyGraphEdgeId << "</a></h1>"
-        "<p>This edge was used to assemble segment " << assemblyGraphEdgeId <<
-        " in FASTA and GFA output (" << rawSequence.size() <<
-        " bases of assembled raw sequence).";
+    html << "<h1>Assembled segment</h1>";
 
     // Validate begin, end.
     if(showSequence || showDetails) {
@@ -500,7 +492,7 @@ void AssembledSegment::writeDetailHtml(
 
 void AssembledSegment::writeCoverageDataCsv() const
 {
-    ofstream csv("Coverage/" + to_string(assemblyGraphEdgeId) + ".csv");
+    ofstream csv("Coverage.csv");
 
     for(uint32_t position=0; position<size(); position++) {
         csv << position << ",";

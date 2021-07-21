@@ -21,9 +21,6 @@ namespace shasta {
 class shasta::AssembledSegment {
 public:
 
-    // The edge id of the assembly graph edge corresponding to this segment.
-    AssemblyGraph::EdgeId assemblyGraphEdgeId;
-
     // The length of a marker.
     size_t k;
 
