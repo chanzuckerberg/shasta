@@ -6,6 +6,7 @@
 
 
 // Shasta.
+#include "Marker.hpp"
 #include "MarkerGraph.hpp"
 
 // Boost libraries.
@@ -29,6 +30,10 @@ namespace shasta {
         AssemblyGraph2Vertex, AssemblyGraph2Edge>;
 
     using MarkerGraphPath = vector<MarkerGraph::EdgeId>;
+
+    namespace MemoryMapped {
+        template<class T, class Int> class VectorOfVectors;
+    }
 }
 
 
@@ -85,7 +90,10 @@ public:
     // The constructor creates an edge for each linear path
     // in the marker graph. Therefore, immediately after construction,
     // each edge has a single MarkerGraphPath (no bubbles).
-    AssemblyGraph2(const MarkerGraph&);
+    AssemblyGraph2(
+        uint64_t k, // Marker length
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+        const MarkerGraph&);
 
     void writeCsv(const string& baseName) const;
     void writeVerticesCsv(const string& baseName) const;
@@ -96,7 +104,9 @@ public:
 
 private:
 
-    // A non-owned reference to the MarkerGraph.
+    // Some Assembler data that we need.
+    uint64_t k;
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 
     // Map that gives us the vertex descriptor corresponding to
@@ -112,6 +122,13 @@ private:
     // Create a new edge corresponding to the given path.
     // Also create the vertices if necessary.
     void addEdge(const MarkerGraphPath&);
+
+    // Assemble sequence for every marker graph path of every edge.
+    void assemble();
+
+    // Assemble sequence for every marker graph path of a given edge.
+    void assemble(edge_descriptor);
+
 
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.

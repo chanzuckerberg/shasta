@@ -10,10 +10,12 @@ creation of the AssemblyGraph2 to the end.
 import shasta
 
 a = shasta.Assembler()
+a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphReverseComplementVertex()
 a.accessMarkerGraphEdges()
 a.accessMarkerGraphReverseComplementEdge()
+a.accessMarkerGraphConsensus()
 
 a.createAssemblyGraph2()
 

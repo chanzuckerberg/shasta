@@ -1,4 +1,6 @@
 #include "AssemblyGraph2.hpp"
+#include "AssembledSegment.hpp"
+#include "assembleMarkerGraphPath.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
@@ -10,7 +12,12 @@ using namespace shasta;
 // The constructor creates an edge for each linear path
 // in the marker graph. Therefore, immediately after construction,
 // each edge has a single MarkerGraphPath (no bubbles).
-AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
+AssemblyGraph2::AssemblyGraph2(
+    uint64_t k, // Marker length
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+    const MarkerGraph& markerGraph) :
+    k(k),
+    markers(markers),
     markerGraph(markerGraph)
 {
     const bool debug = false;
@@ -168,12 +175,15 @@ AssemblyGraph2::AssemblyGraph2(const MarkerGraph& markerGraph) :
 
 
 
-    // Check that all edges of the marker graph were found.;
+    // Check that all edges of the marker graph were found.
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
 
     cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
     writeGfaNoSequence("AssemblyGraph2-0");
+
+    // Assemble sequence for every marker graph path of every edge.
+    assemble();
 
     // Gather bubble edges.
     gatherBubbles();
@@ -289,6 +299,43 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
         }
     }
 
+}
+
+
+
+
+
+// Assemble sequence for every marker graph path of every edge.
+void AssemblyGraph2::assemble()
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+    cout << timestamp << "Assembling sequence." << endl;
+
+    BGL_FORALL_EDGES(e, g, G) {
+        assemble(e);
+    }
+
+    cout << timestamp << "Done assembling sequence." << endl;
+}
+
+
+// Assemble sequence for every marker graph path of a given edge.
+void AssemblyGraph2::assemble(edge_descriptor e)
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+
+    const AssemblyGraph2Edge& edge = g[e];
+    for(const MarkerGraphPath& path: edge.markerGraphPaths) {
+        AssembledSegment assembledSegment;
+        MarkerGraph::EdgeId const * const begin = &path[0];
+        MarkerGraph::EdgeId const * const end = begin + path.size();
+        const span<const MarkerGraph::EdgeId> pathSpan(begin, end);
+        assembleMarkerGraphPath(k, markers, markerGraph, pathSpan, false, assembledSegment);
+    }
 }
 
 
