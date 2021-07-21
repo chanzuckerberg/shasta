@@ -1780,7 +1780,7 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.assemblyGraphEdgeId = edgeId;
 
     // The edges of this chain in the marker graph.
-    const span<MarkerGraph::EdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];
+    const span<const MarkerGraph::EdgeId> assemblerEdgeIds = makeSpanOfConst(assemblyGraph.edgeLists[edgeId]);
     assembledSegment.edgeCount = assemblerEdgeIds.size();
     assembledSegment.vertexCount = assembledSegment.edgeCount + 1;
     assembledSegment.edgeIds.resize(assembledSegment.edgeCount);

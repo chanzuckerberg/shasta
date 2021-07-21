@@ -15,6 +15,9 @@
 namespace shasta {
     template<class T> class span;
 
+    // Allow converting a span<T> to a span<const T>.
+    template<class T> span<const T> makeSpanOfConst(const span<T>&);
+
     // Output a span<const char> as a string.
     inline ostream& operator<<(ostream&, const span<const char>&);
 
@@ -122,6 +125,15 @@ private:
     T* dataBegin;
     T* dataEnd;
 };
+
+
+
+// Allow converting a span<T> to a span<const T>.
+// I was not able to get an operator conversion to work
+template<class T> shasta::span<const T> shasta::makeSpanOfConst(const shasta::span<T>& s)
+{
+    return span<const T>(s.begin(), s.end());
+}
 
 
 
