@@ -284,23 +284,30 @@ void AssemblyGraph2::writeEdgesCsv(const string& fileName) const
 
 void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 {
-    const AssemblyGraph2& graph = *this;
+    using G = AssemblyGraph2;
+    const G& g = *this;
 
     ofstream csv(fileName);
     csv << "FirstVertexId,LastVertexId,Branch,Position,EdgeId,VertexId0,VertexId1\n";
-    BGL_FORALL_EDGES(e, graph, AssemblyGraph2) {
-        const vertex_descriptor v0 = source(e, graph);
-        const vertex_descriptor v1 = target(e, graph);
-        const MarkerGraph::VertexId vertexId0 = graph[v0].markerGraphVertexId;
-        const MarkerGraph::VertexId vertexId1 = graph[v1].markerGraphVertexId;
-        for(uint64_t i=0; i<graph[e].markerGraphPaths.size(); i++) {
-            const MarkerGraphPath& path = graph[e].markerGraphPaths[i];
+
+    // Loop over edges.
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+        const vertex_descriptor v0 = source(e, g);
+        const vertex_descriptor v1 = target(e, g);
+        const MarkerGraph::VertexId vertexId0 = g[v0].markerGraphVertexId;
+        const MarkerGraph::VertexId vertexId1 = g[v1].markerGraphVertexId;
+
+        // Loop over branches of this edge.
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+            const MarkerGraphPath& path = branch.path;
             for(uint64_t j=0; j<path.size(); j++) {
                 const MarkerGraph::EdgeId edgeId = path[j];
                 const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
                 csv << vertexId0 << ",";
                 csv << vertexId1 << ",";
-                csv << i << ",";
+                csv << branchId << ",";
                 csv << j << ",";
                 csv << edgeId << ",";
                 csv << edge.source << ",";
@@ -339,7 +346,9 @@ void AssemblyGraph2::assemble(edge_descriptor e)
 
 
     const AssemblyGraph2Edge& edge = g[e];
-    for(const MarkerGraphPath& path: edge.markerGraphPaths) {
+    for(const AssemblyGraph2Edge::Branch& branch: edge.branches) {
+        const MarkerGraphPath& path = branch.path;
+
         AssembledSegment assembledSegment;
         MarkerGraph::EdgeId const * const begin = &path[0];
         MarkerGraph::EdgeId const * const end = begin + path.size();
@@ -408,8 +417,8 @@ void AssemblyGraph2::gatherBubbles()
                 for(auto kt=it; kt!=jt; kt++) {
                     const edge_descriptor eOld = kt->second;
                     const AssemblyGraph2Edge& edgeOld = g[eOld];
-                    copy(edgeOld.markerGraphPaths.begin(), edgeOld.markerGraphPaths.end(),
-                       back_inserter(edgeNew.markerGraphPaths));
+                    copy(edgeOld.branches.begin(), edgeOld.branches.end(),
+                       back_inserter(edgeNew.branches));
                     boost::remove_edge(eOld, g);
                 }
             }
@@ -448,8 +457,8 @@ void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
     BGL_FORALL_EDGES(e, g, G) {
         const AssemblyGraph2Edge& edge = g[e];
 
-        for(uint64_t branchId=0; branchId<edge.markerGraphPaths.size(); branchId++) {
-            const MarkerGraphPath& path = edge.markerGraphPaths[branchId];
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            const MarkerGraphPath& path = edge.branches[branchId].path;
 
             gfa << "S\t" << edge.pathId(branchId) << "\t*\tLN:i:" << path.size() << "\n";
             csv << edge.pathId(branchId) << ",Green," <<
@@ -467,12 +476,12 @@ void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
         // Loop over marker graph paths of incoming edges.
         BGL_FORALL_INEDGES(v, e0, g, G) {
             const AssemblyGraph2Edge& edge0 = g[e0];
-            for(uint64_t i0=0; i0<edge0.markerGraphPaths.size(); i0++) {
+            for(uint64_t i0=0; i0<edge0.ploidy(); i0++) {
 
                 // Loop over marker graph paths of outgoing edges.
                 BGL_FORALL_OUTEDGES(v, e1, g, G) {
                     const AssemblyGraph2Edge& edge1 = g[e1];
-                    for(uint64_t i1=0; i1<edge1.markerGraphPaths.size(); i1++) {
+                    for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
 
                         gfa << "L\t" <<
                             edge0.pathId(i0) << "\t+\t" <<

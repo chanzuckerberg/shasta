@@ -57,25 +57,34 @@ public:
     // Each assembly graph edge corresponds to
     // a set of paths in the marker graph.
     // This way it can describe a bubble in the marker graph.
-    vector<MarkerGraphPath> markerGraphPaths;
+    class Branch {
+    public:
+        MarkerGraphPath path;
+        Branch(const MarkerGraphPath& path) : path(path) {}
+    };
+    vector<Branch> branches;
 
     // This constructor creates an edge without any paths.
     AssemblyGraph2Edge(uint64_t id) : id(id) {}
 
     // This constructor creates an edge with a single path.
     AssemblyGraph2Edge(uint64_t id, const MarkerGraphPath& path) :
-        id(id), markerGraphPaths(1, path) {}
+        id(id), branches(1, Branch(path)) {}
+
+    uint64_t ploidy() const {
+        return branches.size();
+    }
 
     bool isBubble() const
     {
-        return markerGraphPaths.size() > 1;
+        return ploidy() > 1;
     }
 
     // Construct a string to id each of the markerGraphPaths.
     string pathId(uint64_t branchId) const
     {
         string s = to_string(id);
-        if(markerGraphPaths.size() > 1) {
+        if(isBubble()) {
             s.append("." + to_string(branchId));
         }
         return s;
