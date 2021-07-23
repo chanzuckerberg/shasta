@@ -69,11 +69,18 @@ public:
         // Assembled sequence.
         vector<Base> runLengthSequence;
         vector<uint32_t> repeatCounts;
-        vector<Base> rawSequence;
 
-        // Return iterators pointing to the rawSequence range
+        // We should only use the internal portion of the raw sequence.
+        // This excludes the first/last k/2 RLE bases.
+    private:
+        vector<Base> rawSequence;
+    public:
+        void storeRawSequence(const vector<Base>& rawSequenceArgument);
+        span<const Base> getInternalRawSequence(uint64_t k) const;
+
+        // Return indexes pointing to the rawSequence range
         // that excludes k/2 RLE bases at its beginning and its end.
-        pair<vector<Base>::const_iterator, vector<Base>::const_iterator>
+        pair<uint64_t, uint64_t>
             getRawSequenceInternalRange(uint64_t k) const;
     };
     vector<Branch> branches;
@@ -103,11 +110,16 @@ public:
         }
         return s;
     }
+
+    // Return the number of raw bases of internal sequence identical between
+    // all branches at the beginning/end.
+    uint64_t countCommonPrefixBases(uint64_t k) const;
+    uint64_t countCommonSuffixBases(uint64_t k) const;
 };
 
 
 
-class shasta::AssemblyGraph2 : public AssemblyGraph2BaseClass{
+class shasta::AssemblyGraph2 : public AssemblyGraph2BaseClass {
 public:
 
     // The constructor creates an edge for each linear path
@@ -123,7 +135,17 @@ public:
     void writeEdgesCsv(const string& baseName) const;
     void writeEdgeDetailsCsv(const string& baseName) const;
 
-    void writeGfa(const string& baseName, bool writeSequence) const;
+    // This writes a gfa and a csv file with the given base name.
+    // If transferCommonBubbleSequence is true,
+    // common sequence at the begin/end of all branches of a
+    // bubble is donated to the preceding/followint edge, when possible.
+    void writeGfa(
+        const string& baseName,
+        bool writeSequence,
+        bool transferCommonBubbleSequence) const;
+
+    // Hide a AssemblyGraph2BaseClass::Base.
+    using Base = shasta::Base;
 
 private:
 
