@@ -345,8 +345,8 @@ void AssemblyGraph2::assemble(edge_descriptor e)
     G& g = *this;
 
 
-    const AssemblyGraph2Edge& edge = g[e];
-    for(const AssemblyGraph2Edge::Branch& branch: edge.branches) {
+    AssemblyGraph2Edge& edge = g[e];
+    for(AssemblyGraph2Edge::Branch& branch: edge.branches) {
         const MarkerGraphPath& path = branch.path;
 
         AssembledSegment assembledSegment;
@@ -354,6 +354,11 @@ void AssemblyGraph2::assemble(edge_descriptor e)
         MarkerGraph::EdgeId const * const end = begin + path.size();
         const span<const MarkerGraph::EdgeId> pathSpan(begin, end);
         assembleMarkerGraphPath(k, markers, markerGraph, pathSpan, false, assembledSegment);
+
+        // Store the sequence.
+        branch.runLengthSequence = assembledSegment.runLengthSequence;
+        branch.repeatCounts = assembledSegment.repeatCounts;
+        branch.rawSequence = assembledSegment.rawSequence;
     }
 }
 

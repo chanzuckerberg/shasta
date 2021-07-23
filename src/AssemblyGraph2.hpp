@@ -54,13 +54,22 @@ public:
     // Id used for gfa output.
     uint64_t id;
 
+
+
     // Each assembly graph edge corresponds to
     // a set of paths in the marker graph.
     // This way it can describe a bubble in the marker graph.
+
+    // Class to describe a single branch.
     class Branch {
     public:
         MarkerGraphPath path;
         Branch(const MarkerGraphPath& path) : path(path) {}
+
+        // Assembled sequence.
+        vector<Base> runLengthSequence;
+        vector<uint32_t> repeatCounts;
+        vector<Base> rawSequence;
     };
     vector<Branch> branches;
 
