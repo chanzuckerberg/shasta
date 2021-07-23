@@ -560,7 +560,6 @@ void Bubbles::createBubbleGraph()
                 if(bubbleIdB <= bubbleIdA) {
                     continue;
                 }
-                const Bubble& bubbleB = bubbles[bubbleIdB];
                 const uint64_t sideB = p.second;
                 const BubbleGraph::vertex_descriptor vB = bubbleGraph.vertexTable[bubbleIdB];
 
@@ -578,12 +577,38 @@ void Bubbles::createBubbleGraph()
                 BubbleGraphEdge& edge = bubbleGraph[e];
                 ++edge.matrix[sideA][sideB];
 
-                // Count the common oriented reads that reach each of the two bubles first.
-                evaluateRelativePosition(bubbleA, bubbleB, edge.orderABCount, edge.orderBACount);
-
             }
         }
     }
+
+
+
+    // Count the common oriented reads that reach each of the two bubbles first.
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        uint64_t bubbleIdA = bubbleGraph[source(e, bubbleGraph)].bubbleId;
+        uint64_t bubbleIdB = bubbleGraph[target(e, bubbleGraph)].bubbleId;
+        if(bubbleIdB < bubbleIdA) {
+            swap(bubbleIdB, bubbleIdA);
+        }
+        const Bubble& bubbleA = bubbles[bubbleIdA];
+        const Bubble& bubbleB = bubbles[bubbleIdB];
+        BubbleGraphEdge& edge = bubbleGraph[e];
+        evaluateRelativePosition(bubbleA, bubbleB, edge.orderABCount, edge.orderBACount);
+    }
+
+
+    // Remove edges with too few reads.
+    const uint64_t minCount = 2;
+    vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        if(bubbleGraph[e].totalCount() < minCount) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const BubbleGraph::edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, bubbleGraph);
+    }
+
 
 
 
@@ -1189,7 +1214,9 @@ void Bubbles::createPhasingGraph(
 
             // Locate the vertex corresponding to orientedReadId1.
             auto it1 = phasingGraph.vertexMap.find(orientedReadId1);
-            SHASTA_ASSERT(it1 != phasingGraph.vertexMap.end());
+            if(it1 == phasingGraph.vertexMap.end()) {
+                continue;
+            }
             const PhasingGraph::vertex_descriptor v1 = it1->second;
 
             uint64_t sameSideCount = 0;
@@ -1495,7 +1522,7 @@ void Bubbles::findTerminalOrdinals()
                 }
 
 
-
+#if 0
                 // Also check that this is the first bubble encountered by this oriented read.
                 for(const pair <uint64_t, uint64_t>& p: orientedReadsTable[orientedReadId.getValue()]) {
                     const uint64_t bubbleId1 = p.first;
@@ -1519,6 +1546,7 @@ void Bubbles::findTerminalOrdinals()
                     }
                     SHASTA_ASSERT(found);
                 }
+#endif
             }
         }
 
@@ -1542,7 +1570,7 @@ void Bubbles::findTerminalOrdinals()
                 }
 
 
-
+#if 0
                 // Also check that this is the last bubble encountered by this oriented read.
                 for(const pair <uint64_t, uint64_t>& p: orientedReadsTable[orientedReadId.getValue()]) {
                     const uint64_t bubbleId1 = p.first;
@@ -1566,6 +1594,7 @@ void Bubbles::findTerminalOrdinals()
                     }
                     SHASTA_ASSERT(found);
                 }
+#endif
             }
         }
     }
