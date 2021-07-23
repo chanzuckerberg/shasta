@@ -20,6 +20,28 @@ AssemblyGraph2::AssemblyGraph2(
     markers(markers),
     markerGraph(markerGraph)
 {
+    // Initial creation of vertices and edges.
+    // At this stage, every edge has exactly one branch (no bubbles).
+    create();
+    cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
+        num_edges(*this) << " edges." << endl;
+    writeGfaNoSequence("AssemblyGraph2-0");
+
+    // Assemble sequence for every marker graph path of every edge.
+    assemble();
+
+    // Gather bubble edges.
+    gatherBubbles();
+    cout << "After gathering bubbles, the AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
+        num_edges(*this) << " edges." << endl;
+    writeGfaNoSequence("AssemblyGraph2-1");
+}
+
+
+
+// Initial creation of vertices and edges.
+void AssemblyGraph2::create()
+{
     const bool debug = false;
     ofstream debugOut;
     if(debug) {
@@ -178,18 +200,6 @@ AssemblyGraph2::AssemblyGraph2(
     // Check that all edges of the marker graph were found.
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
 
-    cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
-        num_edges(*this) << " edges." << endl;
-    writeGfaNoSequence("AssemblyGraph2-0");
-
-    // Assemble sequence for every marker graph path of every edge.
-    assemble();
-
-    // Gather bubble edges.
-    gatherBubbles();
-    cout << "After gathering bubbles, the AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
-        num_edges(*this) << " edges." << endl;
-    writeGfaNoSequence("AssemblyGraph2-1");
 }
 
 
@@ -410,8 +420,8 @@ void AssemblyGraph2::gatherBubbles()
     }
 
     cout << "Ploidy histogram (counting both strands):" << endl;
-    for(uint64_t ploidy=2; ploidy<ploidyHistogram.size(); ploidy++) {
-        cout << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " bubbles." << endl;
+    for(uint64_t ploidy=1; ploidy<ploidyHistogram.size(); ploidy++) {
+        cout << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " edges." << endl;
     }
 
 }

@@ -113,6 +113,9 @@ private:
     // each marker graph vertex.
     std::map<MarkerGraph::VertexId, vertex_descriptor> vertexMap;
 
+    // Initial creation of vertices and edges.
+    void create();
+
     // Get the vertex descriptor for the vertex corresponding to
     // a given MarkerGraph::VertexId, creating the vertex if necessary.
     vertex_descriptor getVertex(MarkerGraph::VertexId);
