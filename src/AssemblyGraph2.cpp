@@ -7,6 +7,7 @@ using namespace shasta;
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
+#include <numeric>
 
 
 // The constructor creates an edge for each linear path
@@ -20,12 +21,16 @@ AssemblyGraph2::AssemblyGraph2(
     markers(markers),
     markerGraph(markerGraph)
 {
+    // Because of the way we write the GFA file (without overlaps),
+    // k is required to be even.
+    SHASTA_ASSERT((k % 2) == 0);
+
     // Initial creation of vertices and edges.
     // At this stage, every edge has exactly one branch (no bubbles).
     create();
     cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
-    writeGfaNoSequence("AssemblyGraph2-0");
+    writeGfa("AssemblyGraph2-0", false);
 
     // Assemble sequence for every marker graph path of every edge.
     assemble();
@@ -34,7 +39,8 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
     cout << "After gathering bubbles, the AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
-    writeGfaNoSequence("AssemblyGraph2-1");
+    writeGfa("AssemblyGraph2-1-NoSequence", false);
+    writeGfa("AssemblyGraph2-1", true);
 }
 
 
@@ -442,7 +448,7 @@ void AssemblyGraph2::gatherBubbles()
 
 
 
-void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
+void AssemblyGraph2::writeGfa(const string& baseName, bool writeSequence) const
 {
     using G = AssemblyGraph2;
     const G& g = *this;
@@ -463,10 +469,25 @@ void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
         const AssemblyGraph2Edge& edge = g[e];
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            const MarkerGraphPath& path = edge.branches[branchId].path;
+            const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+            const MarkerGraphPath& path = branch.path;
 
-            gfa << "S\t" << edge.pathId(branchId) << "\t*\tLN:i:" << path.size() << "\n";
-            csv << edge.pathId(branchId) << ",Green," <<
+            // Write a Segment to the GFA file.
+            gfa << "S\t" << edge.pathId(branchId) << "\t";
+            if(writeSequence) {
+                vector<shasta::Base>::const_iterator internalBegin;
+                vector<shasta::Base>::const_iterator internalEnd;
+                tie(internalBegin, internalEnd) = branch.getRawSequenceInternalRange(k);
+                copy(internalBegin, internalEnd,
+                    ostream_iterator<shasta::Base>(gfa));
+                gfa << "\tLN:i:" << branch.rawSequence.size() << "\n";
+            } else {
+                gfa << "*\tLN:i:" << path.size() << "\n";
+            }
+
+            // Also write a line to the csv file.
+            const string color = edge.isBubble() ? "Green" : "Grey";
+            csv << edge.pathId(branchId) << "," << color << "," <<
                 path.front() << "," << path.back() << "\n";
         }
     }
@@ -488,9 +509,11 @@ void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
                     const AssemblyGraph2Edge& edge1 = g[e1];
                     for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
 
+                        // To make Bandage happy, we write a Cigar string
+                        // consisting of 0M rather than an empty Cigar string.
                         gfa << "L\t" <<
                             edge0.pathId(i0) << "\t+\t" <<
-                            edge1.pathId(i1) << "\t+\t\n";
+                            edge1.pathId(i1) << "\t+\t0M\n";
 
                     }
                 }
@@ -498,4 +521,22 @@ void AssemblyGraph2::writeGfaNoSequence(const string& baseName) const
         }
     }
 }
+
+
+
+// Return iterators pointing to the rawSequence range
+// that excludes k/2 RLE bases at its beginning and its end.
+pair<vector<Base>::const_iterator, vector<Base>::const_iterator>
+    AssemblyGraph2Edge::Branch::getRawSequenceInternalRange(uint64_t k) const
+{
+    const uint64_t kHalf = k /2;
+
+    const uint64_t beginSkip = std::accumulate(repeatCounts.begin(), repeatCounts.begin()+kHalf, 0);
+    const uint64_t endSkip = std::accumulate(repeatCounts.end()-kHalf, repeatCounts.end(), 0);
+
+    return make_pair(
+        rawSequence.begin() + beginSkip,
+        rawSequence.end() - endSkip);
+}
+
 

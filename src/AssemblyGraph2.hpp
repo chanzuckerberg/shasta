@@ -70,6 +70,11 @@ public:
         vector<Base> runLengthSequence;
         vector<uint32_t> repeatCounts;
         vector<Base> rawSequence;
+
+        // Return iterators pointing to the rawSequence range
+        // that excludes k/2 RLE bases at its beginning and its end.
+        pair<vector<Base>::const_iterator, vector<Base>::const_iterator>
+            getRawSequenceInternalRange(uint64_t k) const;
     };
     vector<Branch> branches;
 
@@ -118,7 +123,7 @@ public:
     void writeEdgesCsv(const string& baseName) const;
     void writeEdgeDetailsCsv(const string& baseName) const;
 
-    void writeGfaNoSequence(const string& baseName) const;
+    void writeGfa(const string& baseName, bool writeSequence) const;
 
 private:
 
