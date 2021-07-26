@@ -82,6 +82,7 @@ public:
         // that excludes k/2 RLE bases at its beginning and its end.
         pair<uint64_t, uint64_t>
             getRawSequenceInternalRange(uint64_t k) const;
+
     };
     vector<Branch> branches;
 
@@ -115,6 +116,11 @@ public:
     // all branches at the beginning/end.
     uint64_t countCommonPrefixBases(uint64_t k) const;
     uint64_t countCommonSuffixBases(uint64_t k) const;
+
+    // The number of raw sequence bases transfered
+    // in each direction for gfa output.
+    uint64_t backwardTransferCount = 0;
+    uint64_t forwardTransferCount = 0;
 };
 
 
@@ -138,11 +144,13 @@ public:
     // This writes a gfa and a csv file with the given base name.
     // If transferCommonBubbleSequence is true,
     // common sequence at the begin/end of all branches of a
-    // bubble is donated to the preceding/followint edge, when possible.
+    // bubble is donated to the preceding/following edge, when possible.
+    // This is not const because it updates the number of bases transferred
+    // for each bubble edge.
     void writeGfa(
         const string& baseName,
         bool writeSequence,
-        bool transferCommonBubbleSequence) const;
+        bool transferCommonBubbleSequence);
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
@@ -181,6 +189,10 @@ private:
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.
     void gatherBubbles();
+
+    // For each edge, compute the number of raw sequence bases
+    // transfered in each direction for gfa output.
+    void countTransferredBases();
 
 };
 

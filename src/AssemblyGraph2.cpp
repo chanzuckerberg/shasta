@@ -451,14 +451,22 @@ void AssemblyGraph2::gatherBubbles()
 // This writes a gfa and a csv file with the given base name.
 // If transferCommonBubbleSequence is true,
 // common sequence at the begin/end of all branches of a
-// bubble is donated to the preceding/followint edge, when possible.
+// bubble is donated to the preceding/following edge, when possible.
 void AssemblyGraph2::writeGfa(
     const string& baseName,
     bool writeSequence,
-    bool transferCommonBubbleSequence) const
+    bool transferCommonBubbleSequence)
 {
     using G = AssemblyGraph2;
-    const G& g = *this;
+    G& g = *this;
+
+
+    // For each edge, compute the number of raw sequence bases
+    // transfered in each direction for gfa output.
+    if(transferCommonBubbleSequence) {
+        countTransferredBases();
+    }
+
 
     // Open the gfa and write the header.
     ofstream gfa(baseName + ".gfa");
@@ -487,64 +495,46 @@ void AssemblyGraph2::writeGfa(
                 const span<const Base> internalRawSequence = branch.getInternalRawSequence(k);
                 uint64_t begin = 0;
                 uint64_t end = internalRawSequence.size();
-
-                // If transferCommonBubbleSequence is true and this is a bubble, restrict the range,
-                // all things permitting. We donate raw sequence bases
-                // to a preceding or following non-bubble.
-                if(transferCommonBubbleSequence and edge.isBubble()) {
-                    if(in_degree(v0, g)==1) {
-                        in_edge_iterator it;
-                        tie(it, ignore) = in_edges(v0, g);
-                        const AssemblyGraph2Edge& previousEdge = g[*it];
-                        if(not previousEdge.isBubble()) {
-                            begin = max(begin, edge.countCommonPrefixBases(k));
-                        }
-                    }
-                    if(out_degree(v1, g)==1) {
-                        out_edge_iterator it;
-                        tie(it, ignore) = out_edges(v1, g);
-                        const AssemblyGraph2Edge& nextEdge = g[*it];
-                        if(not nextEdge.isBubble()) {
-                            end = internalRawSequence.size() - edge.countCommonSuffixBases(k);
-                        }
-                    }
-
-                }
-
                 uint64_t sequenceLength = 0;
 
-                // Write the sequence donated by the preceding bubble, if appropriate.
+                // If transferCommonBubbleSequence is true,  restrict the range
+                // excluding and transferred bases.
+                if(transferCommonBubbleSequence) {
+                    begin = edge.backwardTransferCount;
+                    end -= edge.forwardTransferCount;
+                }
+
+
+                // Write the sequence transferred forward by the preceding bubble, if appropriate.
                 if(transferCommonBubbleSequence and not edge.isBubble()) {
-                    if(in_degree(v0, g)==1) {
+                    if(in_degree(v0, g)==1 and out_degree(v0, g)==1) {
                         in_edge_iterator it;
                         tie(it, ignore) = in_edges(v0, g);
                         const AssemblyGraph2Edge& previousEdge = g[*it];
                         if(previousEdge.isBubble()) {
-                            const uint64_t donatedCount = previousEdge.countCommonSuffixBases(k);
                             const auto s = previousEdge.branches.front().getInternalRawSequence(k);
-                            copy(s.end()-donatedCount, s.end(),
+                            copy(s.end() - previousEdge.forwardTransferCount, s.end(),
                                 ostream_iterator<Base>(gfa));
-                            sequenceLength += donatedCount;
+                            sequenceLength += previousEdge.forwardTransferCount;
                         }
                     }
                 }
 
-                sequenceLength += (end - begin);
                 copy(internalRawSequence.begin() + begin, internalRawSequence.begin() + end,
                     ostream_iterator<Base>(gfa));
+                sequenceLength += (end - begin);
 
-                // Write the sequence donated by the following bubble, if appropriate.
+                // Write the sequence transferred backward by the following bubble, if appropriate.
                 if(transferCommonBubbleSequence and not edge.isBubble()) {
-                    if(out_degree(v1, g)==1) {
+                    if(in_degree(v1, g)==1 and out_degree(v1, g)==1) {
                         out_edge_iterator it;
                         tie(it, ignore) = out_edges(v1, g);
                         const AssemblyGraph2Edge& nextEdge = g[*it];
                         if(nextEdge.isBubble()) {
-                            const uint64_t donatedCount = nextEdge.countCommonPrefixBases(k);
                             const auto s = nextEdge.branches.front().getInternalRawSequence(k);
-                            copy(s.begin(), s.begin()+donatedCount,
+                            copy(s.begin(), s.begin() + nextEdge.backwardTransferCount,
                                 ostream_iterator<Base>(gfa));
-                            sequenceLength += donatedCount;
+                            sequenceLength += nextEdge.backwardTransferCount;
                         }
                     }
                 }
@@ -587,6 +577,90 @@ void AssemblyGraph2::writeGfa(
                     }
                 }
             }
+        }
+    }
+}
+
+
+
+// For each edge, compute the number of raw sequence bases
+// transfered in each direction for gfa output.
+void AssemblyGraph2::countTransferredBases()
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+    BGL_FORALL_EDGES(e, g, G) {
+        AssemblyGraph2Edge& edge = g[e];
+        edge.backwardTransferCount = 0;
+        edge.forwardTransferCount = 0;
+
+        // To transfer any bases, the edge
+        // must be a bubble preceded and followed by a single non-bubble.
+        // If these conditions are not satisfied, leave the numbers
+        // of transfered bases at 0.
+
+        // The edge must be a bubble.
+        if(not edge.isBubble()) {
+            continue;
+        }
+
+        // v0 must have in-degree and out-degree 1.
+        const vertex_descriptor v0 = source(e, g);
+        if(in_degree(v0, g) != 1) {
+            continue;
+        }
+        if(out_degree(v0, g) != 1) {
+            continue;
+        }
+
+        // v1 must have in-degree and out-degree 1.
+        const vertex_descriptor v1 = target(e, g);
+        if(in_degree(v1, g) != 1) {
+            continue;
+        }
+        if(out_degree(v1, g) != 1) {
+            continue;
+        }
+
+        // The previous edge must not be a bubble.
+        in_edge_iterator itPrevious;
+        tie(itPrevious, ignore) = in_edges(v0, g);
+        const AssemblyGraph2Edge& previousEdge = g[*itPrevious];
+        if(previousEdge.isBubble()) {
+            continue;
+        }
+
+        // The next edge must not be a bubble.
+        out_edge_iterator itNext;
+        tie(itNext, ignore) = out_edges(v1, g);
+        const AssemblyGraph2Edge& nextEdge = g[*itNext];
+        if(nextEdge.isBubble()) {
+            continue;
+        }
+
+        // All conditions are satisfied.
+        // Set the number of transfered bases equal to the number
+        // of common identical prefix/suffix bases for all the
+        // branches of this bubble.
+        edge.backwardTransferCount = edge.countCommonPrefixBases(k);
+        edge.forwardTransferCount = edge.countCommonSuffixBases(k);
+
+        // Make sure we don't transfer more than the length of the
+        // shortest branch of this edge.
+        uint64_t shortestBranchLength = std::numeric_limits<uint64_t>::max();
+        for(const AssemblyGraph2Edge::Branch& branch:edge.branches) {
+            shortestBranchLength = min(shortestBranchLength, branch.getInternalRawSequence(k).size());
+        }
+        while(true) {
+            if(edge.backwardTransferCount + edge.forwardTransferCount <= shortestBranchLength) {
+                break;
+            }
+            --edge.backwardTransferCount;
+            if(edge.backwardTransferCount + edge.forwardTransferCount <= shortestBranchLength) {
+                break;
+            }
+            --edge.forwardTransferCount;
         }
     }
 }
