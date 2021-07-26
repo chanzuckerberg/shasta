@@ -67,22 +67,8 @@ public:
         Branch(const MarkerGraphPath& path) : path(path) {}
 
         // Assembled sequence.
-        vector<Base> runLengthSequence;
-        vector<uint32_t> repeatCounts;
-
-        // We should only use the internal portion of the raw sequence.
-        // This excludes the first/last k/2 RLE bases.
-    private:
+        // This excludes the first and last k/2 RLE bases.
         vector<Base> rawSequence;
-    public:
-        void storeRawSequence(const vector<Base>& rawSequenceArgument);
-        span<const Base> getInternalRawSequence(uint64_t k) const;
-
-        // Return indexes pointing to the rawSequence range
-        // that excludes k/2 RLE bases at its beginning and its end.
-        pair<uint64_t, uint64_t>
-            getRawSequenceInternalRange(uint64_t k) const;
-
     };
     vector<Branch> branches;
 
@@ -112,10 +98,10 @@ public:
         return s;
     }
 
-    // Return the number of raw bases of internal sequence identical between
+    // Return the number of raw bases of sequence identical between
     // all branches at the beginning/end.
-    uint64_t countCommonPrefixBases(uint64_t k) const;
-    uint64_t countCommonSuffixBases(uint64_t k) const;
+    uint64_t countCommonPrefixBases() const;
+    uint64_t countCommonSuffixBases() const;
 
     // The number of raw sequence bases transfered
     // in each direction for gfa output.
@@ -126,7 +112,7 @@ public:
     // differences in repeats of period up to maxPeriod.
     // If this is the case, returns the shortest period for which this is true.
     // Otherwise, returns 0.
-    uint64_t isCopyNumberDifference(uint64_t k, uint64_t maxPeriod) const;
+    uint64_t isCopyNumberDifference(uint64_t maxPeriod) const;
 };
 
 

@@ -371,10 +371,27 @@ void AssemblyGraph2::assemble(edge_descriptor e)
         const span<const MarkerGraph::EdgeId> pathSpan(begin, end);
         assembleMarkerGraphPath(k, markers, markerGraph, pathSpan, false, assembledSegment);
 
-        // Store the sequence.
-        branch.runLengthSequence = assembledSegment.runLengthSequence;
-        branch.repeatCounts = assembledSegment.repeatCounts;
-        branch.storeRawSequence(assembledSegment.rawSequence);
+
+
+        // Store the sequence, excluding the first and last k/2 RLE bases.
+
+        // Compute the number of raw bases to skip at the beginning.
+        const uint64_t beginSkip = std::accumulate(
+            assembledSegment.repeatCounts.begin(),
+            assembledSegment.repeatCounts.begin() + k/2, 0);
+
+        // Compute the number of raw bases to skip at the end.
+        const uint64_t endSkip = std::accumulate(
+            assembledSegment.repeatCounts.end() - k/2,
+            assembledSegment.repeatCounts.end(), 0);
+
+        // Copy the raw bases, excluding those corresponding to the first and last
+        // k/2 RLE bases.
+        branch.rawSequence.resize(assembledSegment.rawSequence.size() - beginSkip - endSkip);
+        copy(
+            assembledSegment.rawSequence.begin() + beginSkip,
+            assembledSegment.rawSequence.end() - endSkip,
+            branch.rawSequence.begin());
     }
 }
 
@@ -467,7 +484,7 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
 
     BGL_FORALL_EDGES(e, g, G) {
         const AssemblyGraph2Edge& edge = g[e];
-        const uint64_t period = edge.isCopyNumberDifference(k, maxPeriod);
+        const uint64_t period = edge.isCopyNumberDifference(maxPeriod);
         if(period == 0) {
             continue;
         }
@@ -522,9 +539,9 @@ void AssemblyGraph2::writeGfa(
             // Write a Segment to the GFA file.
             gfa << "S\t" << edge.pathId(branchId) << "\t";
             if(writeSequence) {
-                const span<const Base> internalRawSequence = branch.getInternalRawSequence(k);
+                const vector<Base>& rawSequence = branch.rawSequence;
                 uint64_t begin = 0;
-                uint64_t end = internalRawSequence.size();
+                uint64_t end = rawSequence.size();
                 uint64_t sequenceLength = 0;
 
                 // If transferCommonBubbleSequence is true,  restrict the range
@@ -542,7 +559,7 @@ void AssemblyGraph2::writeGfa(
                         tie(it, ignore) = in_edges(v0, g);
                         const AssemblyGraph2Edge& previousEdge = g[*it];
                         if(previousEdge.isBubble()) {
-                            const auto s = previousEdge.branches.front().getInternalRawSequence(k);
+                            const vector<Base>& s = previousEdge.branches.front().rawSequence;
                             copy(s.end() - previousEdge.forwardTransferCount, s.end(),
                                 ostream_iterator<Base>(gfa));
                             sequenceLength += previousEdge.forwardTransferCount;
@@ -550,7 +567,7 @@ void AssemblyGraph2::writeGfa(
                     }
                 }
 
-                copy(internalRawSequence.begin() + begin, internalRawSequence.begin() + end,
+                copy(rawSequence.begin() + begin, rawSequence.begin() + end,
                     ostream_iterator<Base>(gfa));
                 sequenceLength += (end - begin);
 
@@ -561,7 +578,7 @@ void AssemblyGraph2::writeGfa(
                         tie(it, ignore) = out_edges(v1, g);
                         const AssemblyGraph2Edge& nextEdge = g[*it];
                         if(nextEdge.isBubble()) {
-                            const auto s = nextEdge.branches.front().getInternalRawSequence(k);
+                            const vector<Base>& s = nextEdge.branches.front().rawSequence;
                             copy(s.begin(), s.begin() + nextEdge.backwardTransferCount,
                                 ostream_iterator<Base>(gfa));
                             sequenceLength += nextEdge.backwardTransferCount;
@@ -673,14 +690,14 @@ void AssemblyGraph2::countTransferredBases()
         // Set the number of transfered bases equal to the number
         // of common identical prefix/suffix bases for all the
         // branches of this bubble.
-        edge.backwardTransferCount = edge.countCommonPrefixBases(k);
-        edge.forwardTransferCount = edge.countCommonSuffixBases(k);
+        edge.backwardTransferCount = edge.countCommonPrefixBases();
+        edge.forwardTransferCount = edge.countCommonSuffixBases();
 
         // Make sure we don't transfer more than the length of the
         // shortest branch of this edge.
         uint64_t shortestBranchLength = std::numeric_limits<uint64_t>::max();
         for(const AssemblyGraph2Edge::Branch& branch:edge.branches) {
-            shortestBranchLength = min(shortestBranchLength, uint64_t(branch.getInternalRawSequence(k).size()));
+            shortestBranchLength = min(shortestBranchLength, uint64_t(branch.rawSequence.size()));
         }
         while(true) {
             if(edge.backwardTransferCount + edge.forwardTransferCount <= shortestBranchLength) {
@@ -697,44 +714,19 @@ void AssemblyGraph2::countTransferredBases()
 
 
 
-// Return indexes pointing to the rawSequence range
-// that excludes k/2 RLE bases at its beginning and its end.
-pair<uint64_t, uint64_t>
-    AssemblyGraph2Edge::Branch::getRawSequenceInternalRange(uint64_t k) const
-{
-    const uint64_t kHalf = k /2;
-
-    const uint64_t beginSkip = std::accumulate(repeatCounts.begin(), repeatCounts.begin() + kHalf, 0);
-    const uint64_t endSkip = std::accumulate(repeatCounts.end() - kHalf, repeatCounts.end(), 0);
-
-    return make_pair(beginSkip, rawSequence.size() - endSkip);
-}
-
-
-
-span<const Base> AssemblyGraph2Edge::Branch::getInternalRawSequence(uint64_t k) const
-{
-    uint64_t begin;
-    uint64_t end;
-    tie(begin, end) = getRawSequenceInternalRange(k);
-    return span<const Base>(&rawSequence[begin], &rawSequence[end]);
-}
-
-
-
-// Return the number of raw bases of internal sequence identical between
+// Return the number of raw bases of sequence identical between
 // all branches at the beginning.
-uint64_t AssemblyGraph2Edge::countCommonPrefixBases(uint64_t k) const
+uint64_t AssemblyGraph2Edge::countCommonPrefixBases() const
 {
     SHASTA_ASSERT(isBubble());
 
-    const auto& firstRawSequence = branches.front().getInternalRawSequence(k);
+    const vector<Base>& firstRawSequence = branches.front().rawSequence;
 
     for(uint64_t position=0; position<firstRawSequence.size(); position++) {
         const Base base = firstRawSequence[position];
 
         for(uint64_t branchId=1; branchId<branches.size(); branchId++) {
-            const auto rawSequence = branches[branchId].getInternalRawSequence(k);
+            const vector<Base>& rawSequence = branches[branchId].rawSequence;
             if(position == rawSequence.size()) {
                 return position;
             }
@@ -749,19 +741,19 @@ uint64_t AssemblyGraph2Edge::countCommonPrefixBases(uint64_t k) const
 
 
 
-// Return the number of raw bases of internal sequence identical between
+// Return the number of raw bases of sequence identical between
 // all branches at the end.
-uint64_t AssemblyGraph2Edge::countCommonSuffixBases(uint64_t k) const
+uint64_t AssemblyGraph2Edge::countCommonSuffixBases() const
 {
     SHASTA_ASSERT(isBubble());
 
-    const auto& firstRawSequence = branches.front().getInternalRawSequence(k);
+    const vector<Base>& firstRawSequence = branches.front().rawSequence;
 
     for(uint64_t position=0; position<firstRawSequence.size(); position++) {
         const Base base = firstRawSequence[firstRawSequence.size() - 1 - position];
 
         for(uint64_t branchId=1; branchId<branches.size(); branchId++) {
-            const auto& rawSequence = branches[branchId].getInternalRawSequence(k);
+            const vector<Base>& rawSequence = branches[branchId].rawSequence;
             if(position == rawSequence.size()) {
                 return position;
             }
@@ -776,19 +768,12 @@ uint64_t AssemblyGraph2Edge::countCommonSuffixBases(uint64_t k) const
 
 
 
-void AssemblyGraph2Edge::Branch::storeRawSequence(const vector<Base>& rawSequenceArgument)
-{
-    rawSequence = rawSequenceArgument;
-}
-
-
-
 
 // Figure out if this is a bubble is caused by copy number
 // differences in repeats of period up to maxPeriod.
 // If this is the case, returns the shortest period for which this is true.
 // Otherwise, returns 0.
-uint64_t AssemblyGraph2Edge::isCopyNumberDifference(uint64_t k, uint64_t maxPeriod) const
+uint64_t AssemblyGraph2Edge::isCopyNumberDifference(uint64_t maxPeriod) const
 {
     if(not isBubble()) {
         return 0;
@@ -797,9 +782,9 @@ uint64_t AssemblyGraph2Edge::isCopyNumberDifference(uint64_t k, uint64_t maxPeri
     // Check all pairs of branches.
     vector<uint64_t> periods;
     for(uint64_t i=0; i<branches.size()-1; i++) {
-        const auto iSequence = branches[i].getInternalRawSequence(k);
+        const vector<Base>& iSequence = branches[i].rawSequence;
         for(uint64_t j=i+1; j<branches.size(); j++) {
-            const auto jSequence = branches[j].getInternalRawSequence(k);
+            const vector<Base>& jSequence = branches[j].rawSequence;
             const uint64_t period = shasta::isCopyNumberDifference(iSequence, jSequence, maxPeriod);
             if(period == 0) {
                 return false;
