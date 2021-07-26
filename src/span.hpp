@@ -65,6 +65,14 @@ public:
     {
         return dataEnd;
     }
+    T* rbegin() const
+    {
+        return dataEnd - 1;
+    }
+    T* rend() const
+    {
+        return dataBegin - 1;
+    }
     T& operator[](size_t i) const
     {
         return dataBegin[i];
