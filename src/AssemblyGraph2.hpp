@@ -121,6 +121,12 @@ public:
     // in each direction for gfa output.
     uint64_t backwardTransferCount = 0;
     uint64_t forwardTransferCount = 0;
+
+    // Figure out if this is a bubble is caused by copy number
+    // differences in repeats of period up to maxPeriod.
+    // If this is the case, returns the shortest period for which this is true.
+    // Otherwise, returns 0.
+    uint64_t isCopyNumberDifference(uint64_t k, uint64_t maxPeriod) const;
 };
 
 
@@ -189,6 +195,10 @@ private:
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.
     void gatherBubbles();
+
+    // Find bubbles caused by copy number changes in repeats
+    // with period up to maxPeriod.
+    void findCopyNumberBubbles(uint64_t maxPeriod);
 
     // For each edge, compute the number of raw sequence bases
     // transfered in each direction for gfa output.

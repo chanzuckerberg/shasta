@@ -1,6 +1,8 @@
 #include "AssemblyGraph2.hpp"
 #include "AssembledSegment.hpp"
 #include "assembleMarkerGraphPath.hpp"
+#include "copyNumber.hpp"
+#include "deduplicate.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
@@ -25,6 +27,9 @@ AssemblyGraph2::AssemblyGraph2(
     // k is required to be even.
     SHASTA_ASSERT((k % 2) == 0);
 
+    // Maximum period to remove bubbles caused by copy number differences.
+    const uint64_t maxPeriod = 4;
+
     // Initial creation of vertices and edges.
     // At this stage, every edge has exactly one branch (no bubbles).
     create();
@@ -41,6 +46,11 @@ AssemblyGraph2::AssemblyGraph2(
         num_edges(*this) << " edges." << endl;
     writeGfa("AssemblyGraph2-1-NoSequence", false, true);
     writeGfa("AssemblyGraph2-1", true, true);
+
+    // Find bubbles caused by copy number changes in repeats
+    // with period up to maxPeriod.
+    findCopyNumberBubbles(maxPeriod);
+
 }
 
 
@@ -448,6 +458,26 @@ void AssemblyGraph2::gatherBubbles()
 
 
 
+// Find bubbles caused by copy number changes in repeats
+// with period up to maxPeriod.
+void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+        const uint64_t period = edge.isCopyNumberDifference(k, maxPeriod);
+        if(period == 0) {
+            continue;
+        }
+        cout << "Bubble " << edge.id << " of ploidy " << edge.ploidy() <<
+            " is a copy number bubble with period " << period << endl;
+    }
+}
+
+
+
 // This writes a gfa and a csv file with the given base name.
 // If transferCommonBubbleSequence is true,
 // common sequence at the begin/end of all branches of a
@@ -752,3 +782,37 @@ void AssemblyGraph2Edge::Branch::storeRawSequence(const vector<Base>& rawSequenc
 }
 
 
+
+
+// Figure out if this is a bubble is caused by copy number
+// differences in repeats of period up to maxPeriod.
+// If this is the case, returns the shortest period for which this is true.
+// Otherwise, returns 0.
+uint64_t AssemblyGraph2Edge::isCopyNumberDifference(uint64_t k, uint64_t maxPeriod) const
+{
+    if(not isBubble()) {
+        return 0;
+    }
+
+    // Check all pairs of branches.
+    vector<uint64_t> periods;
+    for(uint64_t i=0; i<branches.size()-1; i++) {
+        const auto iSequence = branches[i].getInternalRawSequence(k);
+        for(uint64_t j=i+1; j<branches.size(); j++) {
+            const auto jSequence = branches[j].getInternalRawSequence(k);
+            const uint64_t period = shasta::isCopyNumberDifference(iSequence, jSequence, maxPeriod);
+            if(period == 0) {
+                return false;
+            }
+            periods.push_back(period);
+        }
+    }
+    deduplicate(periods);
+
+
+    if(periods.size() == 1) {
+        return periods.front();
+    } else {
+        return 0;
+    }
+}
