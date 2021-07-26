@@ -69,6 +69,9 @@ public:
         // Assembled sequence.
         // This excludes the first and last k/2 RLE bases.
         vector<Base> rawSequence;
+
+        // Sequence to be written to gfa.
+        vector<Base> gfaSequence;
     };
     vector<Branch> branches;
 
@@ -177,6 +180,8 @@ private:
     // Assemble sequence for every marker graph path of a given edge.
     void assemble(edge_descriptor);
 
+    // Store GFA sequence in each edge.
+    void storeGfaSequence(bool transferCommonBubbleSequence);
 
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.

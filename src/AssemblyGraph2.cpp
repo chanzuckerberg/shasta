@@ -507,13 +507,8 @@ void AssemblyGraph2::writeGfa(
     using G = AssemblyGraph2;
     G& g = *this;
 
-
-    // For each edge, compute the number of raw sequence bases
-    // transfered in each direction for gfa output.
-    if(transferCommonBubbleSequence) {
-        countTransferredBases();
-    }
-
+    // Compute and store gfa sequence for each edge.
+    storeGfaSequence(transferCommonBubbleSequence);
 
     // Open the gfa and write the header.
     ofstream gfa(baseName + ".gfa");
@@ -529,72 +524,24 @@ void AssemblyGraph2::writeGfa(
     // for each of its marker graph paths.
     BGL_FORALL_EDGES(e, g, G) {
         const AssemblyGraph2Edge& edge = g[e];
-        const vertex_descriptor v0 = source(e, g);
-        const vertex_descriptor v1 = target(e, g);
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
-            const MarkerGraphPath& path = branch.path;
 
             // Write a Segment to the GFA file.
             gfa << "S\t" << edge.pathId(branchId) << "\t";
             if(writeSequence) {
-                const vector<Base>& rawSequence = branch.rawSequence;
-                uint64_t begin = 0;
-                uint64_t end = rawSequence.size();
-                uint64_t sequenceLength = 0;
-
-                // If transferCommonBubbleSequence is true,  restrict the range
-                // excluding and transferred bases.
-                if(transferCommonBubbleSequence) {
-                    begin = edge.backwardTransferCount;
-                    end -= edge.forwardTransferCount;
-                }
-
-
-                // Write the sequence transferred forward by the preceding bubble, if appropriate.
-                if(transferCommonBubbleSequence and not edge.isBubble()) {
-                    if(in_degree(v0, g)==1 and out_degree(v0, g)==1) {
-                        in_edge_iterator it;
-                        tie(it, ignore) = in_edges(v0, g);
-                        const AssemblyGraph2Edge& previousEdge = g[*it];
-                        if(previousEdge.isBubble()) {
-                            const vector<Base>& s = previousEdge.branches.front().rawSequence;
-                            copy(s.end() - previousEdge.forwardTransferCount, s.end(),
-                                ostream_iterator<Base>(gfa));
-                            sequenceLength += previousEdge.forwardTransferCount;
-                        }
-                    }
-                }
-
-                copy(rawSequence.begin() + begin, rawSequence.begin() + end,
+                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
                     ostream_iterator<Base>(gfa));
-                sequenceLength += (end - begin);
-
-                // Write the sequence transferred backward by the following bubble, if appropriate.
-                if(transferCommonBubbleSequence and not edge.isBubble()) {
-                    if(in_degree(v1, g)==1 and out_degree(v1, g)==1) {
-                        out_edge_iterator it;
-                        tie(it, ignore) = out_edges(v1, g);
-                        const AssemblyGraph2Edge& nextEdge = g[*it];
-                        if(nextEdge.isBubble()) {
-                            const vector<Base>& s = nextEdge.branches.front().rawSequence;
-                            copy(s.begin(), s.begin() + nextEdge.backwardTransferCount,
-                                ostream_iterator<Base>(gfa));
-                            sequenceLength += nextEdge.backwardTransferCount;
-                        }
-                    }
-                }
-
-                gfa << "\tLN:i:" << sequenceLength << "\n";
+                gfa << "\tLN:i:" << branch.gfaSequence.size() << "\n";
             } else {
-                gfa << "*\tLN:i:" << path.size() << "\n";
+                gfa << "*\tLN:i:" << branch.path.size() << "\n";
             }
 
             // Also write a line to the csv file.
             const string color = edge.isBubble() ? "Green" : "Grey";
             csv << edge.pathId(branchId) << "," << color << "," <<
-                path.front() << "," << path.back() << "\n";
+                branch.path.front() << "," << branch.path.back() << "\n";
         }
     }
 
@@ -708,6 +655,75 @@ void AssemblyGraph2::countTransferredBases()
                 break;
             }
             --edge.forwardTransferCount;
+        }
+    }
+}
+
+
+
+// Store GFA sequence in each edge.
+void AssemblyGraph2::storeGfaSequence(bool transferCommonBubbleSequence)
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+    // Count the number of sequence bases transferred forward/backward
+    // from each bubble edje to adjacewnt non-bubble edges.
+    if(transferCommonBubbleSequence) {
+        countTransferredBases();
+    }
+
+
+
+    BGL_FORALL_EDGES(e, g, G) {
+        AssemblyGraph2Edge& edge = g[e];
+        const vertex_descriptor v0 = source(e, g);
+        const vertex_descriptor v1 = target(e, g);
+
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+
+            if(not transferCommonBubbleSequence) {
+                branch.gfaSequence = branch.rawSequence;
+                continue;
+            }
+
+            branch.gfaSequence.clear();
+
+            // Add the sequence transferred forward by the preceding bubble, if appropriate.
+            if(not edge.isBubble()) {
+                if(in_degree(v0, g)==1 and out_degree(v0, g)==1) {
+                    in_edge_iterator it;
+                    tie(it, ignore) = in_edges(v0, g);
+                    const AssemblyGraph2Edge& previousEdge = g[*it];
+                    if(previousEdge.isBubble()) {
+                        const vector<Base>& s = previousEdge.branches.front().rawSequence;
+                        copy(s.end() - previousEdge.forwardTransferCount, s.end(),
+                            back_inserter(branch.gfaSequence));
+                    }
+                }
+            }
+
+            // Add the sequence of this branch, excluding sequence
+            // that was transferred backward or forward.
+            copy(
+                branch.rawSequence.begin() + edge.backwardTransferCount,
+                branch.rawSequence.end() - edge.forwardTransferCount,
+                back_inserter(branch.gfaSequence));
+
+            // Add the sequence transferred backward by the following bubble, if appropriate.
+            if(not edge.isBubble()) {
+                if(in_degree(v1, g)==1 and out_degree(v1, g)==1) {
+                    out_edge_iterator it;
+                    tie(it, ignore) = out_edges(v1, g);
+                    const AssemblyGraph2Edge& nextEdge = g[*it];
+                    if(nextEdge.isBubble()) {
+                        const vector<Base>& s = nextEdge.branches.front().rawSequence;
+                        copy(s.begin(), s.begin() + nextEdge.backwardTransferCount,
+                            back_inserter(branch.gfaSequence));
+                    }
+                }
+            }
         }
     }
 }
