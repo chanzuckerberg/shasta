@@ -75,6 +75,11 @@ public:
     };
     vector<Branch> branches;
 
+    // The reverse complement of this edge.
+    // It contains the reverse complements of the bubbles of this edge,
+    // in the same order.
+    AssemblyGraph2BaseClass::edge_descriptor reverseComplement;
+
     // This constructor creates an edge without any paths.
     AssemblyGraph2Edge(uint64_t id) : id(id) {}
 
@@ -172,7 +177,7 @@ private:
 
     // Create a new edge corresponding to the given path.
     // Also create the vertices if necessary.
-    void addEdge(const MarkerGraphPath&);
+    edge_descriptor addEdge(const MarkerGraphPath&);
 
     // Assemble sequence for every marker graph path of every edge.
     void assemble();
@@ -194,6 +199,9 @@ private:
     // For each edge, compute the number of raw sequence bases
     // transfered in each direction for gfa output.
     void countTransferredBases();
+
+private:
+    void checkReverseComplementEdges() const;
 
 };
 

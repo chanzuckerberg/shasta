@@ -36,6 +36,7 @@ AssemblyGraph2::AssemblyGraph2(
     cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
         num_edges(*this) << " edges." << endl;
     writeGfa("AssemblyGraph2-0", false, true);
+    checkReverseComplementEdges();
 
     // Assemble sequence for every marker graph path of every edge.
     assemble();
@@ -58,6 +59,9 @@ AssemblyGraph2::AssemblyGraph2(
 // Initial creation of vertices and edges.
 void AssemblyGraph2::create()
 {
+    using G = AssemblyGraph2;
+    G& g = *this;
+
     const bool debug = false;
     ofstream debugOut;
     if(debug) {
@@ -158,7 +162,7 @@ void AssemblyGraph2::create()
         }
 
         // Store this path as a new edge of the assembly graph.
-        addEdge(path);
+        const edge_descriptor e = addEdge(path);
         if(debug) {
             for(const MarkerGraph::EdgeId edgeId: path) {
                 const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
@@ -194,11 +198,15 @@ void AssemblyGraph2::create()
 
         // Store the reverse complemented path, if different from the original one.
         if(not isSelfComplementary) {
-            addEdge(reverseComplementedPath);
+            const edge_descriptor eRc = addEdge(reverseComplementedPath);
             for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
                 SHASTA_ASSERT(not wasFound[edgeIdRc]);
                 wasFound[edgeIdRc] = true;
             }
+
+            // The two edges we added are reverse complement of each other.
+            g[e].reverseComplement = eRc;
+            g[eRc].reverseComplement = e;
 
             if(debug) {
                 for(const MarkerGraph::EdgeId edgeId: path) {
@@ -207,6 +215,9 @@ void AssemblyGraph2::create()
                         edge.source << "->" << edge.target << "\n";
                 }
             }
+        } else {
+            // The edge we added is reverse complement of itself.
+            g[e].reverseComplement = e;
         }
 
     }
@@ -216,6 +227,50 @@ void AssemblyGraph2::create()
     // Check that all edges of the marker graph were found.
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
 
+}
+
+
+
+void AssemblyGraph2::checkReverseComplementEdges() const
+{
+    using G = AssemblyGraph2;
+    const G& g = *this;
+
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+        const edge_descriptor eRc = edge.reverseComplement;
+        const AssemblyGraph2Edge& edgeRc = g[eRc];
+        SHASTA_ASSERT(edgeRc.reverseComplement == e);
+
+        if(e != eRc) {
+
+            SHASTA_ASSERT(edge.ploidy() == edgeRc.ploidy());
+            for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+                const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+                const AssemblyGraph2Edge::Branch& branchRc = edgeRc.branches[branchId];
+
+                // Check that the paths are the reverse complement of each other.
+                // For a circular path the check is more complicated, so don't bother.
+                const MarkerGraphPath& path = branch.path;
+
+                const bool isCircular =
+                    markerGraph.edges[path.front()].source ==
+                    markerGraph.edges[path.back()].target;
+
+                if(not isCircular) {
+                    const MarkerGraphPath& pathRc = branchRc.path;
+                    const uint64_t n = path.size();
+                    SHASTA_ASSERT(pathRc.size() == n);
+                    for(uint64_t i=0; i<n; i++) {
+                        const MarkerGraph::EdgeId edgeId = path[i];
+                        const MarkerGraph::EdgeId edgeIdRc = pathRc[n - 1 - i];
+                        SHASTA_ASSERT(markerGraph.reverseComplementEdge[edgeId] == edgeIdRc);
+                        SHASTA_ASSERT(markerGraph.reverseComplementEdge[edgeIdRc] == edgeId);
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -238,7 +293,7 @@ AssemblyGraph2::vertex_descriptor AssemblyGraph2::getVertex(MarkerGraph::VertexI
 
 // Create a new edges corresponding to the given path.
 // Also create the vertices if necessary.
-void AssemblyGraph2::addEdge(const MarkerGraphPath& path)
+AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(const MarkerGraphPath& path)
 {
     // Get the first and last edge of the path.
     const MarkerGraph::EdgeId edgeId0 = path.front();
@@ -254,7 +309,12 @@ void AssemblyGraph2::addEdge(const MarkerGraphPath& path)
     const vertex_descriptor v1 = getVertex(vertexId1);
 
     // Create the edge.
-    add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++, path), *this);
+    edge_descriptor e;
+    bool edgeWasAdded = false;
+    tie(e, edgeWasAdded) = add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++, path), *this);
+    SHASTA_ASSERT(edgeWasAdded);
+
+    return e;
 }
 
 
