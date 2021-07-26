@@ -680,7 +680,7 @@ void AssemblyGraph2::countTransferredBases()
         // shortest branch of this edge.
         uint64_t shortestBranchLength = std::numeric_limits<uint64_t>::max();
         for(const AssemblyGraph2Edge::Branch& branch:edge.branches) {
-            shortestBranchLength = min(shortestBranchLength, branch.getInternalRawSequence(k).size());
+            shortestBranchLength = min(shortestBranchLength, uint64_t(branch.getInternalRawSequence(k).size()));
         }
         while(true) {
             if(edge.backwardTransferCount + edge.forwardTransferCount <= shortestBranchLength) {
