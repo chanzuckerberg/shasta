@@ -54,7 +54,6 @@ AssemblyGraph2::AssemblyGraph2(
 // Initial creation of vertices and edges.
 void AssemblyGraph2::create()
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     const bool debug = false;
@@ -229,21 +228,20 @@ void AssemblyGraph2::create()
 
 void AssemblyGraph2::checkReverseComplementEdges() const
 {
-    using G = AssemblyGraph2;
     const G& g = *this;
 
     BGL_FORALL_EDGES(e, g, G) {
-        const AssemblyGraph2Edge& edge = g[e];
+        const E& edge = g[e];
         const edge_descriptor eRc = edge.reverseComplement;
-        const AssemblyGraph2Edge& edgeRc = g[eRc];
+        const E& edgeRc = g[eRc];
         SHASTA_ASSERT(edgeRc.reverseComplement == e);
 
         if(e != eRc) {
 
             SHASTA_ASSERT(edge.ploidy() == edgeRc.ploidy());
             for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-                const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
-                const AssemblyGraph2Edge::Branch& branchRc = edgeRc.branches[branchId];
+                const E::Branch& branch = edge.branches[branchId];
+                const E::Branch& branchRc = edgeRc.branches[branchId];
 
                 // Check that the paths are the reverse complement of each other.
                 // For a circular path the check is more complicated, so don't bother.
@@ -297,7 +295,7 @@ AssemblyGraph2::vertex_descriptor AssemblyGraph2::getVertex(MarkerGraph::VertexI
 {
     const auto it = vertexMap.find(vertexId);
     if(it == vertexMap.end()) {
-        const vertex_descriptor v = add_vertex(AssemblyGraph2Vertex(vertexId), *this);
+        const vertex_descriptor v = add_vertex(V(vertexId), *this);
         vertexMap.insert(make_pair(vertexId, v));
         return v;
     } else {
@@ -327,7 +325,7 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(const MarkerGraphPath& p
     // Create the edge.
     edge_descriptor e;
     bool edgeWasAdded = false;
-    tie(e, edgeWasAdded) = add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++, path), *this);
+    tie(e, edgeWasAdded) = add_edge(v0, v1, E(nextEdgeId++, path), *this);
     SHASTA_ASSERT(edgeWasAdded);
 
     return e;
@@ -376,7 +374,6 @@ void AssemblyGraph2::writeEdgesCsv(const string& fileName) const
 
 void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 {
-    using G = AssemblyGraph2;
     const G& g = *this;
 
     ofstream csv(fileName);
@@ -384,7 +381,7 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 
     // Loop over edges.
     BGL_FORALL_EDGES(e, g, G) {
-        const AssemblyGraph2Edge& edge = g[e];
+        const E& edge = g[e];
         const vertex_descriptor v0 = source(e, g);
         const vertex_descriptor v1 = target(e, g);
         const MarkerGraph::VertexId vertexId0 = g[v0].markerGraphVertexId;
@@ -392,7 +389,7 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 
         // Loop over branches of this edge.
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+            const E::Branch& branch = edge.branches[branchId];
             const MarkerGraphPath& path = branch.path;
             for(uint64_t j=0; j<path.size(); j++) {
                 const MarkerGraph::EdgeId edgeId = path[j];
@@ -419,7 +416,6 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 // The assembled sequences are the reverse complement of each other.
 void AssemblyGraph2::assemble()
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     cout << timestamp << "Assembling sequence." << endl;
@@ -441,9 +437,9 @@ void AssemblyGraph2::assemble()
         if(idIsGreaterThanReverseComplement(e)) {
 
             // Access this edge and its reverse complement.
-            AssemblyGraph2Edge& edge = g[e];
+            E& edge = g[e];
             const edge_descriptor eRc = edge.reverseComplement;
-            const AssemblyGraph2Edge& edgeRc = g[eRc];
+            const E& edgeRc = g[eRc];
 
             // Sanmity check: they must have the same ploidy.
             const uint64_t ploidy = edge.ploidy();
@@ -471,12 +467,11 @@ void AssemblyGraph2::assemble()
 // Return true if an edge has id less than its reverse complement.
 bool AssemblyGraph2::idIsLessThanReverseComplement(edge_descriptor e) const
 {
-    using G = AssemblyGraph2;
     const G& g = *this;
 
-    const AssemblyGraph2Edge& edge = g[e];
+    const E& edge = g[e];
     const edge_descriptor eRc = edge.reverseComplement;
-    const AssemblyGraph2Edge& edgeRc = g[eRc];
+    const E& edgeRc = g[eRc];
     return edge.id < edgeRc.id;
 }
 
@@ -485,12 +480,11 @@ bool AssemblyGraph2::idIsLessThanReverseComplement(edge_descriptor e) const
 // Return true if an edge has id greater than its reverse complement.
 bool AssemblyGraph2::idIsGreaterThanReverseComplement(edge_descriptor e) const
 {
-    using G = AssemblyGraph2;
     const G& g = *this;
 
-    const AssemblyGraph2Edge& edge = g[e];
+    const E& edge = g[e];
     const edge_descriptor eRc = edge.reverseComplement;
-    const AssemblyGraph2Edge& edgeRc = g[eRc];
+    const E& edgeRc = g[eRc];
     return edge.id > edgeRc.id;
 }
 
@@ -499,12 +493,11 @@ bool AssemblyGraph2::idIsGreaterThanReverseComplement(edge_descriptor e) const
 // Assemble sequence for every marker graph path of a given edge.
 void AssemblyGraph2::assemble(edge_descriptor e)
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
 
-    AssemblyGraph2Edge& edge = g[e];
-    for(AssemblyGraph2Edge::Branch& branch: edge.branches) {
+    E& edge = g[e];
+    for(E::Branch& branch: edge.branches) {
         const MarkerGraphPath& path = branch.path;
 
         AssembledSegment assembledSegment;
@@ -543,7 +536,6 @@ void AssemblyGraph2::assemble(edge_descriptor e)
 // each of them into a single edge with multiple paths.
 void AssemblyGraph2::gatherBubbles()
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
 
@@ -632,7 +624,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     vertex_descriptor v1,
     const vector<edge_descriptor>& edges01)
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     // Sanity check.
@@ -645,13 +636,13 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     // Create the new edge to replace the old ones.
     edge_descriptor eNew;
     bool edgeWasAdded = false;
-    tie(eNew, edgeWasAdded) = add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++), g);
+    tie(eNew, edgeWasAdded) = add_edge(v0, v1, E(nextEdgeId++), g);
     SHASTA_ASSERT(edgeWasAdded);
-    AssemblyGraph2Edge& edgeNew = g[eNew];
+    E& edgeNew = g[eNew];
 
     // Copy the branches to the new edge and remove the old edges.
     for(const edge_descriptor e01: edges01) {
-        const AssemblyGraph2Edge& edge01 = g[e01];
+        const E& edge01 = g[e01];
         copy(edge01.branches.begin(), edge01.branches.end(),
            back_inserter(edgeNew.branches));
         boost::remove_edge(e01, g);
@@ -666,14 +657,13 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
 // with period up to maxPeriod.
 void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     uint64_t totalCount = 0;
     uint64_t bubbleCount = 0;
     uint64_t copyNumberCount = 0;
     BGL_FORALL_EDGES(e, g, G) {
-        const AssemblyGraph2Edge& edge = g[e];
+        const E& edge = g[e];
         ++totalCount;
         if(not edge.isBubble()) {
             continue;
@@ -704,7 +694,6 @@ void AssemblyGraph2::writeGfa(
     const string& baseName,
     bool writeSequence)
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     // Open the gfa and write the header.
@@ -720,10 +709,10 @@ void AssemblyGraph2::writeGfa(
     // Each edge of the AssemblyGraph2 generates a gfa Segment
     // for each of its marker graph paths.
     BGL_FORALL_EDGES(e, g, G) {
-        const AssemblyGraph2Edge& edge = g[e];
+        const E& edge = g[e];
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            const AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+            const E::Branch& branch = edge.branches[branchId];
 
             // Write a Segment to the GFA file.
             gfa << "S\t" << edge.pathId(branchId) << "\t";
@@ -751,12 +740,12 @@ void AssemblyGraph2::writeGfa(
 
         // Loop over marker graph paths of incoming edges.
         BGL_FORALL_INEDGES(v, e0, g, G) {
-            const AssemblyGraph2Edge& edge0 = g[e0];
+            const E& edge0 = g[e0];
             for(uint64_t i0=0; i0<edge0.ploidy(); i0++) {
 
                 // Loop over marker graph paths of outgoing edges.
                 BGL_FORALL_OUTEDGES(v, e1, g, G) {
-                    const AssemblyGraph2Edge& edge1 = g[e1];
+                    const E& edge1 = g[e1];
                     for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
 
                         // To make Bandage happy, we write a Cigar string
@@ -778,11 +767,10 @@ void AssemblyGraph2::writeGfa(
 // transfered in each direction for gfa output.
 void AssemblyGraph2::countTransferredBases()
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     BGL_FORALL_EDGES(e, g, G) {
-        AssemblyGraph2Edge& edge = g[e];
+        E& edge = g[e];
         edge.backwardTransferCount = 0;
         edge.forwardTransferCount = 0;
 
@@ -823,7 +811,7 @@ void AssemblyGraph2::countTransferredBases()
         // The previous edge must not be a bubble.
         in_edge_iterator itPrevious;
         tie(itPrevious, ignore) = in_edges(v0, g);
-        const AssemblyGraph2Edge& previousEdge = g[*itPrevious];
+        const E& previousEdge = g[*itPrevious];
         if(previousEdge.isBubble()) {
             continue;
         }
@@ -831,7 +819,7 @@ void AssemblyGraph2::countTransferredBases()
         // The next edge must not be a bubble.
         out_edge_iterator itNext;
         tie(itNext, ignore) = out_edges(v1, g);
-        const AssemblyGraph2Edge& nextEdge = g[*itNext];
+        const E& nextEdge = g[*itNext];
         if(nextEdge.isBubble()) {
             continue;
         }
@@ -846,7 +834,7 @@ void AssemblyGraph2::countTransferredBases()
         // Make sure we don't transfer more than the length of the
         // shortest branch of this edge.
         uint64_t shortestBranchLength = std::numeric_limits<uint64_t>::max();
-        for(const AssemblyGraph2Edge::Branch& branch:edge.branches) {
+        for(const E::Branch& branch:edge.branches) {
             shortestBranchLength = min(shortestBranchLength, uint64_t(branch.rawSequence.size()));
         }
         while(true) {
@@ -871,9 +859,9 @@ void AssemblyGraph2::countTransferredBases()
             continue;
         }
 
-        AssemblyGraph2Edge& edge = g[e];
+        E& edge = g[e];
         const edge_descriptor eRc = edge.reverseComplement;
-        const AssemblyGraph2Edge& edgeRc = g[eRc];
+        const E& edgeRc = g[eRc];
 
         edge.backwardTransferCount = edgeRc.forwardTransferCount;
         edge.forwardTransferCount = edgeRc.backwardTransferCount;
@@ -888,7 +876,6 @@ void AssemblyGraph2::countTransferredBases()
 // preceding or following non-bubble edge.
 void AssemblyGraph2::storeGfaSequence()
 {
-    using G = AssemblyGraph2;
     G& g = *this;
 
     // Count the number of sequence bases transferred forward/backward
@@ -898,12 +885,12 @@ void AssemblyGraph2::storeGfaSequence()
 
 
     BGL_FORALL_EDGES(e, g, G) {
-        AssemblyGraph2Edge& edge = g[e];
+        E& edge = g[e];
         const vertex_descriptor v0 = source(e, g);
         const vertex_descriptor v1 = target(e, g);
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
+            E::Branch& branch = edge.branches[branchId];
 
             branch.gfaSequence.clear();
 
@@ -912,7 +899,7 @@ void AssemblyGraph2::storeGfaSequence()
                 if(in_degree(v0, g)==1 and out_degree(v0, g)==1) {
                     in_edge_iterator it;
                     tie(it, ignore) = in_edges(v0, g);
-                    const AssemblyGraph2Edge& previousEdge = g[*it];
+                    const E& previousEdge = g[*it];
                     if(previousEdge.isBubble()) {
                         const vector<Base>& s = previousEdge.branches.front().rawSequence;
                         copy(s.end() - previousEdge.forwardTransferCount, s.end(),
@@ -933,7 +920,7 @@ void AssemblyGraph2::storeGfaSequence()
                 if(in_degree(v1, g)==1 and out_degree(v1, g)==1) {
                     out_edge_iterator it;
                     tie(it, ignore) = out_edges(v1, g);
-                    const AssemblyGraph2Edge& nextEdge = g[*it];
+                    const E& nextEdge = g[*it];
                     if(nextEdge.isBubble()) {
                         const vector<Base>& s = nextEdge.branches.front().rawSequence;
                         copy(s.begin(), s.begin() + nextEdge.backwardTransferCount,

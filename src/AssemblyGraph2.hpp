@@ -156,6 +156,11 @@ public:
 
 private:
 
+    // Some shorthands for frequently used types.
+    using G = AssemblyGraph2;
+    using V = AssemblyGraph2Vertex;
+    using E = AssemblyGraph2Edge;
+
     // Some Assembler data that we need.
     uint64_t k;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
