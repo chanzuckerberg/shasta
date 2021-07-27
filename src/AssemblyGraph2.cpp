@@ -703,7 +703,7 @@ void AssemblyGraph2::writeGfaBothStrands(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",Color,First,Last\n";
+    csv << ",Color,Marker graph edges\n";
 
 
 
@@ -731,7 +731,7 @@ void AssemblyGraph2::writeGfaBothStrands(
                 color = edge.colorByPeriod();
             }
             csv << edge.pathId(branchId) << "," << color << "," <<
-                branch.path.front() << "," << branch.path.back() << "\n";
+                branch.path.front() << "..." << branch.path.back() << "\n";
         }
     }
 
@@ -804,7 +804,7 @@ void AssemblyGraph2::writeGfa(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",Color,First,Last\n";
+    csv << ",Color,Marker graph edges\n";
 
 
 
@@ -837,7 +837,7 @@ void AssemblyGraph2::writeGfa(
                 color = edge.colorByPeriod();
             }
             csv << edge.pathId(branchId) << "," << color << "," <<
-                branch.path.front() << "," << branch.path.back() << "\n";
+                branch.path.front() << "..." << branch.path.back() << "\n";
         }
     }
 
