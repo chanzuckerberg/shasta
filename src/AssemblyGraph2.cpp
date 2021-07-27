@@ -31,24 +31,15 @@ AssemblyGraph2::AssemblyGraph2(
     // Maximum period to remove bubbles caused by copy number differences.
     const uint64_t maxPeriod = 4;
 
-    // Initial creation of vertices and edges.
-    // At this stage, every edge has exactly one branch (no bubbles).
+    // Create the AssemblyGraph2 from the MarkerGraph,
+    // gather each set of bubbles in a single edge,
+    // and assemble sequence on every edge.
     create();
-    cout << "The initial AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
-        num_edges(*this) << " edges." << endl;
-    writeGfa("AssemblyGraph2-0", false, true);
-    checkReverseComplementEdges();
-
-    // Assemble sequence for every marker graph path of every edge.
-    assemble();
-
-    // Gather bubble edges.
     gatherBubbles();
-    cout << "After gathering bubbles, the AssemblyGraph2 has " << num_vertices(*this) << " vertices and " <<
-        num_edges(*this) << " edges." << endl;
-    writeGfa("AssemblyGraph2-1-NoSequence", false, true);
-    writeGfa("AssemblyGraph2-1", true, true);
+    assemble();
     checkReverseComplementEdges();
+
+    writeGfa("AssemblyGraph2-1", true, true);
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
@@ -270,6 +261,16 @@ void AssemblyGraph2::checkReverseComplementEdges() const
                         SHASTA_ASSERT(markerGraph.reverseComplementEdge[edgeId] == edgeIdRc);
                         SHASTA_ASSERT(markerGraph.reverseComplementEdge[edgeIdRc] == edgeId);
                     }
+
+                    // Also check that the sequences are reverse complement of each other.
+                    const vector<Base>& sequence = branch.rawSequence;
+                    const vector<Base>& sequenceRc = branchRc.rawSequence;
+                    SHASTA_ASSERT(sequence.size() == sequenceRc.size());
+                    for(uint64_t position=0; position<sequence.size(); position++) {
+                        const Base base = sequence[position];
+                        const Base baseRc = sequenceRc[sequence.size() - 1 - position];
+                        SHASTA_ASSERT(baseRc == base.complement());
+                    }
                 }
             }
         }
@@ -402,6 +403,8 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 
 
 // Assemble sequence for every marker graph path of every edge.
+// This guarantees that, for each pair of reverse complemented edges,
+// The assembled sequences are the reverse complement of each other.
 void AssemblyGraph2::assemble()
 {
     using G = AssemblyGraph2;
@@ -409,12 +412,76 @@ void AssemblyGraph2::assemble()
 
     cout << timestamp << "Assembling sequence." << endl;
 
+    // Use assembled sequence from the marker graph to obtain
+    // assembled sequence for all edges that have an id
+    // not greater than the id of their reverse complement.
     BGL_FORALL_EDGES(e, g, G) {
-        assemble(e);
+        if(not idIsGreaterThanReverseComplement(e)) {
+            assemble(e);
+        }
+    }
+
+
+
+    // For the remaining edges, obtain the sequence
+    // from their reverse complement.
+    BGL_FORALL_EDGES(e, g, G) {
+        if(idIsGreaterThanReverseComplement(e)) {
+
+            // Access this edge and its reverse complement.
+            AssemblyGraph2Edge& edge = g[e];
+            const edge_descriptor eRc = edge.reverseComplement;
+            const AssemblyGraph2Edge& edgeRc = g[eRc];
+
+            // Sanmity check: they must have the same ploidy.
+            const uint64_t ploidy = edge.ploidy();
+            SHASTA_ASSERT(edgeRc.ploidy() == ploidy);
+
+            // For each branch, copy the sequence from the
+            // reverse complement edge, while reverse complementing.
+            for(uint64_t branchId=0; branchId<ploidy; branchId++) {
+                const vector<Base>& sequenceRc = edgeRc.branches[branchId].rawSequence;
+                vector<Base>& sequence = edge.branches[branchId].rawSequence;
+                sequence.resize(sequenceRc.size());
+                copy(sequenceRc.rbegin(), sequenceRc.rend(), sequence.begin());
+                for(Base& b: sequence) {
+                    b.complementInPlace();
+                }
+            }
+        }
     }
 
     cout << timestamp << "Done assembling sequence." << endl;
 }
+
+
+
+// Return true if an edge has id less than its reverse complement.
+bool AssemblyGraph2::idIsLessThanReverseComplement(edge_descriptor e) const
+{
+    using G = AssemblyGraph2;
+    const G& g = *this;
+
+    const AssemblyGraph2Edge& edge = g[e];
+    const edge_descriptor eRc = edge.reverseComplement;
+    const AssemblyGraph2Edge& edgeRc = g[eRc];
+    return edge.id < edgeRc.id;
+}
+
+
+
+// Return true if an edge has id greater than its reverse complement.
+bool AssemblyGraph2::idIsGreaterThanReverseComplement(edge_descriptor e) const
+{
+    using G = AssemblyGraph2;
+    const G& g = *this;
+
+    const AssemblyGraph2Edge& edge = g[e];
+    const edge_descriptor eRc = edge.reverseComplement;
+    const AssemblyGraph2Edge& edgeRc = g[eRc];
+    return edge.id > edgeRc.id;
+}
+
 
 
 // Assemble sequence for every marker graph path of a given edge.

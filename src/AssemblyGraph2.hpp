@@ -204,6 +204,12 @@ private:
     // transfered in each direction for gfa output.
     void countTransferredBases();
 
+    // Return true if an edge has id less than its reverse complement.
+    bool idIsLessThanReverseComplement(edge_descriptor) const;
+
+    // Return true if an edge has id greater than its reverse complement.
+    bool idIsGreaterThanReverseComplement(edge_descriptor) const;
+
 private:
     void checkReverseComplementEdges() const;
 
