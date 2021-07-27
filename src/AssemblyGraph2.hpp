@@ -149,8 +149,7 @@ public:
     // for each bubble edge.
     void writeGfa(
         const string& baseName,
-        bool writeSequence,
-        bool transferCommonBubbleSequence);
+        bool writeSequence);
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
@@ -186,7 +185,7 @@ private:
     void assemble(edge_descriptor);
 
     // Store GFA sequence in each edge.
-    void storeGfaSequence(bool transferCommonBubbleSequence);
+    void storeGfaSequence();
 
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.

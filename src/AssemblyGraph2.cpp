@@ -37,9 +37,11 @@ AssemblyGraph2::AssemblyGraph2(
     create();
     gatherBubbles();
     assemble();
+    storeGfaSequence();
     checkReverseComplementEdges();
 
-    writeGfa("AssemblyGraph2-1", true, true);
+    const bool writeSequence = true;
+    writeGfa("AssemblyGraph2", writeSequence);
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
@@ -269,6 +271,16 @@ void AssemblyGraph2::checkReverseComplementEdges() const
                     for(uint64_t position=0; position<sequence.size(); position++) {
                         const Base base = sequence[position];
                         const Base baseRc = sequenceRc[sequence.size() - 1 - position];
+                        SHASTA_ASSERT(baseRc == base.complement());
+                    }
+
+                    // Also check that the gfa sequences are reverse complement of each other.
+                    const vector<Base>& gfaSequence = branch.gfaSequence;
+                    const vector<Base>& gfaSequenceRc = branchRc.gfaSequence;
+                    SHASTA_ASSERT(gfaSequence.size() == gfaSequenceRc.size());
+                    for(uint64_t position=0; position<gfaSequence.size(); position++) {
+                        const Base base = gfaSequence[position];
+                        const Base baseRc = gfaSequenceRc[gfaSequence.size() - 1 - position];
                         SHASTA_ASSERT(baseRc == base.complement());
                     }
                 }
@@ -690,14 +702,10 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
 // bubble is donated to the preceding/following edge, when possible.
 void AssemblyGraph2::writeGfa(
     const string& baseName,
-    bool writeSequence,
-    bool transferCommonBubbleSequence)
+    bool writeSequence)
 {
     using G = AssemblyGraph2;
     G& g = *this;
-
-    // Compute and store gfa sequence for each edge.
-    storeGfaSequence(transferCommonBubbleSequence);
 
     // Open the gfa and write the header.
     ofstream gfa(baseName + ".gfa");
@@ -778,6 +786,12 @@ void AssemblyGraph2::countTransferredBases()
         edge.backwardTransferCount = 0;
         edge.forwardTransferCount = 0;
 
+        // In this loop, only to it for the edges with it
+        // not geater than their reverse complement.
+        if(idIsGreaterThanReverseComplement(e)) {
+            continue;
+        }
+
         // To transfer any bases, the edge
         // must be a bubble preceded and followed by a single non-bubble.
         // If these conditions are not satisfied, leave the numbers
@@ -846,21 +860,40 @@ void AssemblyGraph2::countTransferredBases()
             --edge.forwardTransferCount;
         }
     }
+
+
+
+    // For edges with id greater than their reverse complement, get it
+    // from the reverse complemented edge.
+    BGL_FORALL_EDGES(e, g, G) {
+
+        if(not idIsGreaterThanReverseComplement(e)) {
+            continue;
+        }
+
+        AssemblyGraph2Edge& edge = g[e];
+        const edge_descriptor eRc = edge.reverseComplement;
+        const AssemblyGraph2Edge& edgeRc = g[eRc];
+
+        edge.backwardTransferCount = edgeRc.forwardTransferCount;
+        edge.forwardTransferCount = edgeRc.backwardTransferCount;
+    }
 }
 
 
 
 // Store GFA sequence in each edge.
-void AssemblyGraph2::storeGfaSequence(bool transferCommonBubbleSequence)
+// It is obtained from raw sequence by transferring identical bases
+// of common sequence between all branches of a bubble to the
+// preceding or following non-bubble edge.
+void AssemblyGraph2::storeGfaSequence()
 {
     using G = AssemblyGraph2;
     G& g = *this;
 
     // Count the number of sequence bases transferred forward/backward
-    // from each bubble edje to adjacewnt non-bubble edges.
-    if(transferCommonBubbleSequence) {
-        countTransferredBases();
-    }
+    // from each bubble edge to adjacent non-bubble edges.
+    countTransferredBases();
 
 
 
@@ -871,11 +904,6 @@ void AssemblyGraph2::storeGfaSequence(bool transferCommonBubbleSequence)
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             AssemblyGraph2Edge::Branch& branch = edge.branches[branchId];
-
-            if(not transferCommonBubbleSequence) {
-                branch.gfaSequence = branch.rawSequence;
-                continue;
-            }
 
             branch.gfaSequence.clear();
 
