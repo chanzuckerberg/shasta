@@ -11,7 +11,6 @@
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"
-#include "OrientedReadPair.hpp"
 #include "ReadGraph.hpp"
 #include "ReadId.hpp"
 
@@ -44,6 +43,7 @@ namespace shasta {
     class LocalMarkerGraphRequestParameters;
     class MarkerConnectivityGraph;
     class MarkerConnectivityGraphVertexMap;
+    class OrientedReadPair;
     class Reads;
     class ReferenceOverlapMap;
 
