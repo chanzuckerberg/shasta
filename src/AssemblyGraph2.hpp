@@ -122,6 +122,7 @@ public:
     // Otherwise, stores 0 as the period.
     void computeCopyNumberDifferencePeriod(uint64_t maxPeriod);
     uint64_t period = 0;
+    string colorByPeriod() const;
 
 };
 
@@ -144,14 +145,12 @@ public:
     void writeEdgeDetailsCsv(const string& baseName) const;
 
     // This writes a gfa and a csv file with the given base name.
-    // If transferCommonBubbleSequence is true,
-    // common sequence at the begin/end of all branches of a
-    // bubble is donated to the preceding/following edge, when possible.
-    // This is not const because it updates the number of bases transferred
-    // for each bubble edge.
     void writeGfa(
         const string& baseName,
-        bool writeSequence);
+        bool writeSequence) const;
+    void writeGfaBothStrands(
+        const string& baseName,
+        bool writeSequence) const;
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
