@@ -40,12 +40,14 @@ AssemblyGraph2::AssemblyGraph2(
     storeGfaSequence();
     checkReverseComplementEdges();
 
-    const bool writeSequence = true;
-    writeGfa("AssemblyGraph2", writeSequence);
-
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
     findCopyNumberBubbles(maxPeriod);
+
+    // Write out what we have.
+    const bool writeSequence = true;
+    writeGfa("AssemblyGraph2", writeSequence);
+
 
 }
 
@@ -663,14 +665,14 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
     uint64_t bubbleCount = 0;
     uint64_t copyNumberCount = 0;
     BGL_FORALL_EDGES(e, g, G) {
-        const E& edge = g[e];
+        E& edge = g[e];
         ++totalCount;
         if(not edge.isBubble()) {
             continue;
         }
         ++bubbleCount;
-        const uint64_t period = edge.isCopyNumberDifference(maxPeriod);
-        if(period == 0) {
+        edge.computeCopyNumberDifferencePeriod(maxPeriod);
+        if(edge.period == 0) {
             continue;
         }
         ++copyNumberCount;
@@ -725,7 +727,28 @@ void AssemblyGraph2::writeGfa(
             }
 
             // Also write a line to the csv file.
-            const string color = edge.isBubble() ? "Green" : "Grey";
+            string color = "Grey";
+            if(edge.isBubble()) {
+                switch(edge.period) {
+                case 0:
+                    color = "Green";
+                    break;
+                case 2:
+                    color = "Red";
+                    break;
+                case 3:
+                    color = "Orange";
+                    break;
+                case 4:
+                    color = "Purple";
+                    break;
+                default:
+                    color = "Brown";
+                    break;
+
+                }
+
+            }
             csv << edge.pathId(branchId) << "," << color << "," <<
                 branch.path.front() << "," << branch.path.back() << "\n";
         }
@@ -993,10 +1016,10 @@ uint64_t AssemblyGraph2Edge::countCommonSuffixBases() const
 // differences in repeats of period up to maxPeriod.
 // If this is the case, returns the shortest period for which this is true.
 // Otherwise, returns 0.
-uint64_t AssemblyGraph2Edge::isCopyNumberDifference(uint64_t maxPeriod) const
+void AssemblyGraph2Edge::computeCopyNumberDifferencePeriod(uint64_t maxPeriod)
 {
     if(not isBubble()) {
-        return 0;
+        period = 0;
     }
 
     // Check all pairs of branches.
@@ -1005,19 +1028,20 @@ uint64_t AssemblyGraph2Edge::isCopyNumberDifference(uint64_t maxPeriod) const
         const vector<Base>& iSequence = branches[i].rawSequence;
         for(uint64_t j=i+1; j<branches.size(); j++) {
             const vector<Base>& jSequence = branches[j].rawSequence;
-            const uint64_t period = shasta::isCopyNumberDifference(iSequence, jSequence, maxPeriod);
-            if(period == 0) {
-                return false;
+            const uint64_t pairPeriod = shasta::isCopyNumberDifference(iSequence, jSequence, maxPeriod);
+            if(pairPeriod == 0) {
+                period = 0;
+                return;
             }
-            periods.push_back(period);
+            periods.push_back(pairPeriod);
         }
     }
     deduplicate(periods);
 
 
     if(periods.size() == 1) {
-        return periods.front();
+        period = periods.front();
     } else {
-        return 0;
+        period = 0;
     }
 }

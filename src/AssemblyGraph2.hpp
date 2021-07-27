@@ -118,9 +118,11 @@ public:
 
     // Figure out if this is a bubble is caused by copy number
     // differences in repeats of period up to maxPeriod.
-    // If this is the case, returns the shortest period for which this is true.
-    // Otherwise, returns 0.
-    uint64_t isCopyNumberDifference(uint64_t maxPeriod) const;
+    // If this is the case, stores the shortest period for which this is true.
+    // Otherwise, stores 0 as the period.
+    void computeCopyNumberDifferencePeriod(uint64_t maxPeriod);
+    uint64_t period = 0;
+
 };
 
 
