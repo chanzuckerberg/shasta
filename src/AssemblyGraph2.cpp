@@ -48,6 +48,7 @@ AssemblyGraph2::AssemblyGraph2(
         num_edges(*this) << " edges." << endl;
     writeGfa("AssemblyGraph2-1-NoSequence", false, true);
     writeGfa("AssemblyGraph2-1", true, true);
+    checkReverseComplementEdges();
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
@@ -112,8 +113,8 @@ void AssemblyGraph2::create()
             edgeId = outEdges[0];
             if(edgeId == startEdgeId) {
                 isCircular = true;
-                if(debug) {
-                    cout << "Is circular." << endl;
+                if(true) {
+                    cout << "Found a circular edge." << endl;
                 }
                 break;
             }
@@ -219,6 +220,7 @@ void AssemblyGraph2::create()
         } else {
             // The edge we added is reverse complement of itself.
             g[e].reverseComplement = e;
+            cout << "Found a self-complementary edge." << endl;
         }
 
     }
@@ -465,8 +467,6 @@ void AssemblyGraph2::gatherBubbles()
     using G = AssemblyGraph2;
     G& g = *this;
 
-    // Ploidy histogram.
-    vector<uint64_t> ploidyHistogram;
 
 
     // Look for sets of parallel edges v0->v1.
@@ -489,11 +489,6 @@ void AssemblyGraph2::gatherBubbles()
             const vector<edge_descriptor>& edges01= p.second;
             const uint64_t ploidy = edges01.size();
 
-            // Increment the ploidy histogram.
-            if(ploidy >= ploidyHistogram.size()) {
-                ploidyHistogram.resize(ploidy + 1);
-            }
-            ++ploidyHistogram[ploidy];
 
             // If less than two edges, it is not a bubble, so there is
             // nothing to do.
@@ -502,11 +497,49 @@ void AssemblyGraph2::gatherBubbles()
             }
             const vertex_descriptor v1 = p.first;
 
-            // Create the bubble and remove these edges.
-            /*const edge_descriptor eNew = */ createBubble(v0, v1, edges01);
+            // Also gather the reverse complement edges, in the same order.
+            vector<edge_descriptor> edges01Rc(ploidy);
+            for(uint64_t branchId=0; branchId<ploidy; branchId++) {
+                const edge_descriptor e01 = edges01[branchId];
+                const edge_descriptor e01Rc = g[e01].reverseComplement;
+                edges01Rc[branchId] = e01Rc;
+            }
+
+            // Get the vertices of the reverse complemented edges.
+            const vertex_descriptor v1Rc = source(edges01Rc.front(), g);
+            const vertex_descriptor v0Rc = target(edges01Rc.front(), g);
+            for(const edge_descriptor e01Rc: edges01Rc) {
+                SHASTA_ASSERT(source(e01Rc, g) == v1Rc);
+                SHASTA_ASSERT(target(e01Rc, g) == v0Rc);
+            }
+
+
+            // Create the bubble and its reverse complement and remove these edges.
+            const edge_descriptor eNew = createBubble(v0, v1, edges01);
+            if(v0Rc == v0) {
+                // The bubble is the same as its reverse complement.
+                cout << "Found a self-complementary bubble." << endl;
+                g[eNew].reverseComplement = eNew;
+            } else {
+                const edge_descriptor eNewRc = createBubble(v1Rc, v0Rc, edges01Rc);
+                g[eNew].reverseComplement = eNewRc;
+                g[eNewRc].reverseComplement = eNew;
+
+            }
         }
     }
 
+
+
+    // Write out a ploidy histogram.
+    vector<uint64_t> ploidyHistogram;
+    BGL_FORALL_EDGES(e, g, G) {
+        const uint64_t ploidy = g[e].ploidy();
+        if(ploidy >= ploidyHistogram.size()) {
+            ploidyHistogram.resize(ploidy + 1);
+        }
+        ++ploidyHistogram[ploidy];
+    }
     cout << "Ploidy histogram (counting both strands):" << endl;
     for(uint64_t ploidy=1; ploidy<ploidyHistogram.size(); ploidy++) {
         cout << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " edges." << endl;
@@ -557,15 +590,29 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
     using G = AssemblyGraph2;
     G& g = *this;
 
+    uint64_t totalCount = 0;
+    uint64_t bubbleCount = 0;
+    uint64_t copyNumberCount = 0;
     BGL_FORALL_EDGES(e, g, G) {
         const AssemblyGraph2Edge& edge = g[e];
+        ++totalCount;
+        if(not edge.isBubble()) {
+            continue;
+        }
+        ++bubbleCount;
         const uint64_t period = edge.isCopyNumberDifference(maxPeriod);
         if(period == 0) {
             continue;
         }
+        ++copyNumberCount;
+        /*
         cout << "Bubble " << edge.id << " of ploidy " << edge.ploidy() <<
             " is a copy number bubble with period " << period << endl;
+        */
     }
+    cout << "Total number of assembly graph edges " << totalCount << endl;
+    cout << "Number of bubbles " << bubbleCount << endl;
+    cout << "Number of copy number bubbles " << copyNumberCount << endl;
 }
 
 
