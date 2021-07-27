@@ -9,6 +9,7 @@ using namespace shasta;
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
+#include <map>
 #include <numeric>
 
 
@@ -464,10 +465,6 @@ void AssemblyGraph2::gatherBubbles()
     using G = AssemblyGraph2;
     G& g = *this;
 
-    // Vector to contain pairs (v1, e01) for a single v0.
-    // Here, e01 is an edge v0->v1.
-    vector< pair<vertex_descriptor, edge_descriptor> > next;
-
     // Ploidy histogram.
     vector<uint64_t> ploidyHistogram;
 
@@ -475,54 +472,38 @@ void AssemblyGraph2::gatherBubbles()
     // Look for sets of parallel edges v0->v1.
     BGL_FORALL_VERTICES(v0, g, G) {
 
-        next.clear();
+        // Map keyed by child vertex v1, and containing for each v1
+        // a vector of all the edges v0->v1.
+        std::map< vertex_descriptor, vector<edge_descriptor> > successorMap;
         BGL_FORALL_OUTEDGES(v0, e01, g, G) {
             const vertex_descriptor v1 = target(e01, g);
-            next.push_back(make_pair(v1, e01));
+            successorMap[v1].push_back(e01);
         }
 
-        // Sort them by v1.
-        sort(next.begin(), next.end(), OrderPairsByFirstOnly<vertex_descriptor, edge_descriptor>());
 
 
-        // Find streaks with the same v1.
-        for(auto it=next.begin(); it!=next.end(); /*Incremented in the loop*/) {
-            const vertex_descriptor v1 = it->first;
+        // Process each set with the same v1.
+        for(const auto& p: successorMap) {
 
-            auto jt = it;
-            for(; jt!=next.end(); ++jt) {
-                if(jt->first != v1) {
-                    break;
-                }
-            }
+            // Get the edges v0->v1.
+            const vector<edge_descriptor>& edges01= p.second;
+            const uint64_t ploidy = edges01.size();
 
-            // Here, it and jt define a streak with the same v1.
-            const uint64_t ploidy = jt - it;
+            // Increment the ploidy histogram.
             if(ploidy >= ploidyHistogram.size()) {
                 ploidyHistogram.resize(ploidy + 1);
             }
             ++ploidyHistogram[ploidy];
 
-
-            // Combine the edges in the streak into a new edge.
-            if(ploidy > 1) {
-                edge_descriptor eNew;
-                bool edgeWasAdded = false;
-                tie(eNew, edgeWasAdded) = add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++), g);
-                SHASTA_ASSERT(edgeWasAdded);
-                AssemblyGraph2Edge& edgeNew = g[eNew];
-
-                for(auto kt=it; kt!=jt; kt++) {
-                    const edge_descriptor eOld = kt->second;
-                    const AssemblyGraph2Edge& edgeOld = g[eOld];
-                    copy(edgeOld.branches.begin(), edgeOld.branches.end(),
-                       back_inserter(edgeNew.branches));
-                    boost::remove_edge(eOld, g);
-                }
+            // If less than two edges, it is not a bubble, so there is
+            // nothing to do.
+            if(ploidy < 2) {
+                continue;
             }
+            const vertex_descriptor v1 = p.first;
 
-            // Prepare to process the next streak.
-            it = jt;
+            // Create the bubble and remove these edges.
+            /*const edge_descriptor eNew = */ createBubble(v0, v1, edges01);
         }
     }
 
@@ -531,6 +512,40 @@ void AssemblyGraph2::gatherBubbles()
         cout << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " edges." << endl;
     }
 
+}
+
+
+AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
+    vertex_descriptor v0,
+    vertex_descriptor v1,
+    const vector<edge_descriptor>& edges01)
+{
+    using G = AssemblyGraph2;
+    G& g = *this;
+
+    // Sanity check.
+    for(const edge_descriptor e01: edges01) {
+        SHASTA_ASSERT(source(e01, g) == v0);
+        SHASTA_ASSERT(target(e01, g) == v1);
+        SHASTA_ASSERT(g[e01].ploidy() == 1);
+    }
+
+    // Create the new edge to replace the old ones.
+    edge_descriptor eNew;
+    bool edgeWasAdded = false;
+    tie(eNew, edgeWasAdded) = add_edge(v0, v1, AssemblyGraph2Edge(nextEdgeId++), g);
+    SHASTA_ASSERT(edgeWasAdded);
+    AssemblyGraph2Edge& edgeNew = g[eNew];
+
+    // Copy the branches to the new edge and remove the old edges.
+    for(const edge_descriptor e01: edges01) {
+        const AssemblyGraph2Edge& edge01 = g[e01];
+        copy(edge01.branches.begin(), edge01.branches.end(),
+           back_inserter(edgeNew.branches));
+        boost::remove_edge(e01, g);
+    }
+
+    return eNew;
 }
 
 

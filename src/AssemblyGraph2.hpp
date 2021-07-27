@@ -191,6 +191,10 @@ private:
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.
     void gatherBubbles();
+    edge_descriptor createBubble(
+        vertex_descriptor v0,
+        vertex_descriptor v1,
+        const vector<edge_descriptor>&);
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
