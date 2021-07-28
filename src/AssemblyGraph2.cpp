@@ -9,6 +9,7 @@ using namespace shasta;
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
+#include <limits>
 #include <map>
 #include <numeric>
 
@@ -43,6 +44,9 @@ AssemblyGraph2::AssemblyGraph2(
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
     findCopyNumberBubbles(maxPeriod);
+
+    // Store read information on all edges.
+    storeReadInformation();
 
     // Write out what we have.
     const bool writeSequence = true;
@@ -703,7 +707,8 @@ void AssemblyGraph2::writeGfaBothStrands(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",Color,Marker graph edges\n";
+    csv << ",Color,First marker graph edge,Last marker graph edge,"
+        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
 
@@ -730,8 +735,13 @@ void AssemblyGraph2::writeGfaBothStrands(
             if(edge.isBubble()) {
                 color = edge.colorByPeriod();
             }
-            csv << edge.pathId(branchId) << "," << color << "," <<
-                branch.path.front() << "..." << branch.path.back() << "\n";
+            csv <<
+                edge.pathId(branchId) << "," <<
+                color << "," <<
+                branch.path.front() << "," << branch.path.back() << "," <<
+                branch.minimumCoverage << "," <<
+                branch.averageCoverage << "," <<
+                branch.orientedReadIds.size() << "\n";
         }
     }
 
@@ -767,29 +777,6 @@ void AssemblyGraph2::writeGfaBothStrands(
 
 
 
-string AssemblyGraph2Edge::colorByPeriod() const
-{
-    if(isBubble()) {
-        switch(period) {
-        case 0:
-            return "Green";
-        case 2:
-            return "Red";
-        case 3:
-            return "Orange";
-        case 4:
-            return "Purple";
-        default:
-            return "Brown";
-        }
-    } else {
-        return "Grey";
-    }
-
-}
-
-
-
 // Single-stranded gfa output.
 // This writes a gfa and a csv file with the given base name.
 void AssemblyGraph2::writeGfa(
@@ -804,7 +791,8 @@ void AssemblyGraph2::writeGfa(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",Color,Marker graph edges\n";
+    csv << ",Color,First marker graph edge,Last marker graph edge,"
+        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
 
@@ -836,8 +824,13 @@ void AssemblyGraph2::writeGfa(
             if(edge.isBubble()) {
                 color = edge.colorByPeriod();
             }
-            csv << edge.pathId(branchId) << "," << color << "," <<
-                branch.path.front() << "..." << branch.path.back() << "\n";
+            csv <<
+                edge.pathId(branchId) << "," <<
+                color << "," <<
+                branch.path.front() << "," << branch.path.back() << "," <<
+                branch.minimumCoverage << "," <<
+                branch.averageCoverage << "," <<
+                branch.orientedReadIds.size() << "\n";
         }
     }
 
@@ -894,6 +887,29 @@ void AssemblyGraph2::writeGfa(
             }
         }
     }
+}
+
+
+
+string AssemblyGraph2Edge::colorByPeriod() const
+{
+    if(isBubble()) {
+        switch(period) {
+        case 0:
+            return "Green";
+        case 2:
+            return "Red";
+        case 3:
+            return "Orange";
+        case 4:
+            return "Purple";
+        default:
+            return "Brown";
+        }
+    } else {
+        return "Grey";
+    }
+
 }
 
 
@@ -1157,3 +1173,54 @@ void AssemblyGraph2Edge::computeCopyNumberDifferencePeriod(uint64_t maxPeriod)
         period = 0;
     }
 }
+
+
+
+
+// Fill in orientedReads and average/minimum coverage.
+void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerGraph)
+{
+    minimumCoverage = std::numeric_limits<uint64_t>::max();
+    averageCoverage = 0;
+    orientedReadIds.clear();
+
+    // Loop over the marker graph path of this branch.
+    for(MarkerGraph::EdgeId edgeId: path) {
+
+        // Loop over the marker intervals of this edge.
+        const span<const MarkerInterval> markerIntervals =
+            markerGraph.edgeMarkerIntervals[edgeId];
+        for(const MarkerInterval& markerInterval: markerIntervals) {
+            orientedReadIds.push_back(markerInterval.orientedReadId);
+        }
+
+        // Update coverage.
+        minimumCoverage = min(minimumCoverage, markerIntervals.size());
+        averageCoverage += markerIntervals.size();
+    }
+
+    averageCoverage = uint64_t(std::round(double(averageCoverage) / double(path.size())));
+    deduplicate(orientedReadIds);
+}
+
+
+
+// Store read information on all edges.
+void AssemblyGraph2::storeReadInformation()
+{
+    G& g = *this;
+
+    BGL_FORALL_EDGES(e, g, G) {
+        g[e].storeReadInformation(markerGraph);
+    }
+}
+
+
+// Store read information on all branches.
+void AssemblyGraph2Edge::storeReadInformation(const MarkerGraph& markerGraph)
+{
+    for(Branch& branch: branches) {
+        branch.storeReadInformation(markerGraph);
+    }
+}
+

@@ -72,8 +72,23 @@ public:
 
         // Sequence to be written to gfa.
         vector<Base> gfaSequence;
+
+        // The distinct oriented reads present on edges of this branch.
+        // Sorted.
+        vector<OrientedReadId> orientedReadIds;
+
+        // Minimum and average coverage on the marker graph graph
+        // edges of this branch.
+        uint64_t minimumCoverage;
+        uint64_t averageCoverage;
+
+        // Fill in orientedReads and average/minimum coverage.
+        void storeReadInformation(const MarkerGraph&);
     };
     vector<Branch> branches;
+
+    // Store read information on all branches.
+    void storeReadInformation(const MarkerGraph&);
 
     // The reverse complement of this edge.
     // It contains the reverse complements of the bubbles of this edge,
@@ -217,6 +232,9 @@ private:
 
 private:
     void checkReverseComplementEdges() const;
+
+    // Store read information on all edges.
+    void storeReadInformation();
 
 };
 
