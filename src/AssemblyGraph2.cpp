@@ -53,6 +53,9 @@ AssemblyGraph2::AssemblyGraph2(
     writeGfaBothStrands("Assembly-BothStrands", writeSequence);
     writeGfa("Assembly", writeSequence);
 
+    // Diploid phasing of the bubbles.
+    createBubbleGraph(markers.size()/2);
+
 
 }
 
@@ -1245,3 +1248,110 @@ void AssemblyGraph2Edge::findStrongestBranch()
         }
     }
 }
+
+
+
+void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
+{
+    G& g = *this;
+
+    // Each diploid bubble in the AssemblyGraph2 generates a vertex,
+    // except for the repeat count bubbles.
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+
+        // If this is not a diploid bubble, skip.
+        if(edge.ploidy() != 2) {
+            continue;
+        }
+
+        // If this is a repeat count bubble, skip.
+        if(edge.period != 0) {
+            continue;
+        }
+
+        /*const BubbleGraph::vertex_descriptor v = */ add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
+    }
+    cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices." << endl;
+
+    bubbleGraph.createOrientedReadsTable(readCount);
+
+}
+
+
+
+AssemblyGraph2::BubbleGraphVertex::BubbleGraphVertex(
+    AssemblyGraph2::edge_descriptor e,
+    const AssemblyGraph2Edge& edge) :
+    e(e)
+{
+    SHASTA_ASSERT(edge.ploidy() == 2);
+    const vector<OrientedReadId>& orientedReadIds0 = edge.branches[0].orientedReadIds;
+    const vector<OrientedReadId>& orientedReadIds1 = edge.branches[1].orientedReadIds;
+
+
+
+    // Joint loop over the OrientedReadIds of the two sides.
+    const auto begin0 = orientedReadIds0.begin();
+    const auto begin1 = orientedReadIds1.begin();
+    const auto end0 = orientedReadIds0.end();
+    const auto end1 = orientedReadIds1.end();
+    auto it0 = begin0;
+    auto it1 = begin1;
+
+    while(true) {
+
+        // If both at end, break.
+        if(it0 == end0 and it1 == end1) {
+            break;
+        }
+
+        // If 1 at end but 0 is not, add all remaining orientedReadIds0.
+        if(it1==end1) {
+            for(; it0 != end0; ++it0) {
+                orientedReadIds.push_back(make_pair(*it0, 0));
+            }
+            break;
+        }
+
+        // If 0 at end but 1 is not, add all remaining orientedReadIds1.
+        if(it0==end0) {
+            for(; it1 != end1; ++it1) {
+                orientedReadIds.push_back(make_pair(*it1, 1));
+            }
+            break;
+        }
+
+        // Neither of them is at end.
+        if(*it0 < *it1) {
+            orientedReadIds.push_back(make_pair(*it0, 0));
+            ++it0;
+        } else if(*it1 < *it0) {
+            orientedReadIds.push_back(make_pair(*it1, 10));
+            ++it1;
+        } else {
+            // It is on both sides. don't store it.
+            ++it0;
+            ++it1;
+        }
+    }
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::createOrientedReadsTable(uint64_t readCount)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    orientedReadsTable.clear();
+    orientedReadsTable.resize(readCount * 2);
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        for(const auto& p: bubbleGraph[v].orientedReadIds) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t side = p.second;
+            orientedReadsTable[orientedReadId.getValue()].push_back(make_pair(v, side));
+        }
+    }
+}
+

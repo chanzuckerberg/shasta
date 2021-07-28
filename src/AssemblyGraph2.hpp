@@ -240,6 +240,44 @@ private:
     // Store read information on all edges.
     void storeReadInformation();
 
+
+
+    // Graph used for diploid phasing of the bubbles.
+    // Each vertex corresponds to a diploid bubble in the Assembly2Graph.
+
+    class BubbleGraphVertex {
+    public:
+        AssemblyGraph2::edge_descriptor e;
+        BubbleGraphVertex(
+            AssemblyGraph2::edge_descriptor,
+            const AssemblyGraph2Edge&);
+
+        // The vertex stores OrientedReadIds that appear on one side but not
+        // on the opposite side of the bubble.
+        // Stored as pairs (OrientedReadId, side).
+        vector< pair<OrientedReadId, uint64_t> > orientedReadIds;
+    };
+
+    class BubbleGraphEdge {
+    public:
+    };
+
+    using BubbleGraphBaseClass =
+        boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
+        BubbleGraphVertex, BubbleGraphEdge>;
+
+    class BubbleGraph: public BubbleGraphBaseClass {
+    public:
+        // A table that, for each OrientedReadId, contains a list of
+        // pairs(vertex, side) that the OrientedReadId appears on.
+        // Indexed by OrientedReadId::getValue().
+        vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
+        void createOrientedReadsTable(uint64_t readCount);
+    };
+    BubbleGraph bubbleGraph;
+    void createBubbleGraph(uint64_t readCount);
+
+
 };
 
 
