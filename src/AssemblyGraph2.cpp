@@ -1202,7 +1202,7 @@ void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerG
         }
 
         // Update coverage.
-        minimumCoverage = min(minimumCoverage, markerIntervals.size());
+        minimumCoverage = min(minimumCoverage, uint64_t(markerIntervals.size()));
         averageCoverage += markerIntervals.size();
     }
 
