@@ -733,7 +733,7 @@ void AssemblyGraph2::writeGfaBothStrands(
             // Also write a line to the csv file.
             string color = "Grey";
             if(edge.isBubble()) {
-                color = edge.colorByPeriod();
+                color = edge.colorByPeriod(branchId);
             }
             csv <<
                 edge.pathId(branchId) << "," <<
@@ -822,7 +822,7 @@ void AssemblyGraph2::writeGfa(
             // Also write a line to the csv file.
             string color = "Grey";
             if(edge.isBubble()) {
-                color = edge.colorByPeriod();
+                color = edge.colorByPeriod(branchId);
             }
             csv <<
                 edge.pathId(branchId) << "," <<
@@ -891,12 +891,16 @@ void AssemblyGraph2::writeGfa(
 
 
 
-string AssemblyGraph2Edge::colorByPeriod() const
+string AssemblyGraph2Edge::colorByPeriod(uint64_t branchId) const
 {
     if(isBubble()) {
-        switch(period) {
-        case 0:
+        if(period == 0) {
             return "Green";
+        }
+        if(branchId == strongestBranchId) {
+            return "Grey";
+        }
+        switch(period) {
         case 2:
             return "Red";
         case 3:
@@ -1222,5 +1226,22 @@ void AssemblyGraph2Edge::storeReadInformation(const MarkerGraph& markerGraph)
     for(Branch& branch: branches) {
         branch.storeReadInformation(markerGraph);
     }
+    findStrongestBranch();
 }
 
+
+
+void AssemblyGraph2Edge::findStrongestBranch()
+{
+    SHASTA_ASSERT(not branches.empty());
+    strongestBranchId = 0;
+    uint64_t strongestBranchCoverage = branches.front().averageCoverage;
+
+    for(uint64_t branchId=0; branchId<branches.size(); branchId++) {
+        const uint64_t coverage = branches[branchId].averageCoverage;
+        if (coverage > strongestBranchCoverage) {
+            strongestBranchId = branchId;
+            strongestBranchCoverage = coverage;
+        }
+    }
+}

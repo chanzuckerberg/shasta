@@ -87,6 +87,10 @@ public:
     };
     vector<Branch> branches;
 
+    // The strongest branch.
+    uint64_t strongestBranchId;
+    void findStrongestBranch();
+
     // Store read information on all branches.
     void storeReadInformation(const MarkerGraph&);
 
@@ -137,7 +141,7 @@ public:
     // Otherwise, stores 0 as the period.
     void computeCopyNumberDifferencePeriod(uint64_t maxPeriod);
     uint64_t period = 0;
-    string colorByPeriod() const;
+    string colorByPeriod(uint64_t branchId) const;
 
 };
 
