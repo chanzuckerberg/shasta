@@ -13,6 +13,7 @@
 #include <boost/graph/adjacency_list.hpp>
 
 // Standard library.
+#include "array.hpp"
 #include <map>
 #include "string.hpp"
 #include "vector.hpp"
@@ -248,6 +249,7 @@ private:
     class BubbleGraphVertex {
     public:
         AssemblyGraph2::edge_descriptor e;
+        uint64_t id;    // The same as the id of the AssemblyGraph2Edge.
         BubbleGraphVertex(
             AssemblyGraph2::edge_descriptor,
             const AssemblyGraph2Edge&);
@@ -260,6 +262,25 @@ private:
 
     class BubbleGraphEdge {
     public:
+        // Store the number of common oriented reads for each pair of
+        // branches in the two bubbles.
+        // matrix[sideA][sideB] stores the number of OrientedReadIds
+        // that appear on sideA of the "first" bubble and on
+        // sideB of the "second" bubble of this edge.
+        // The "first" bubble of the edge is the lowered numbered.
+        array<array<uint64_t, 2>, 2> matrix;
+        uint64_t totalCount() const
+        {
+            return matrix[0][0] + matrix[1][1]+ matrix[0][1] + matrix[1][0];
+        }
+        BubbleGraphEdge()
+        {
+            for(uint64_t i=0; i<2; i++) {
+                for(uint64_t j=0; j<2; j++) {
+                    matrix[i][j] = 0;
+                }
+            }
+        }
     };
 
     using BubbleGraphBaseClass =
@@ -273,6 +294,7 @@ private:
         // Indexed by OrientedReadId::getValue().
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
+        void createEdges();
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph(uint64_t readCount);

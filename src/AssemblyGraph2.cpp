@@ -1272,10 +1272,11 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
 
         /*const BubbleGraph::vertex_descriptor v = */ add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
     }
-    cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices." << endl;
 
     bubbleGraph.createOrientedReadsTable(readCount);
+    bubbleGraph.createEdges();
+    cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
 
 }
 
@@ -1284,7 +1285,8 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
 AssemblyGraph2::BubbleGraphVertex::BubbleGraphVertex(
     AssemblyGraph2::edge_descriptor e,
     const AssemblyGraph2Edge& edge) :
-    e(e)
+    e(e),
+    id(edge.id)
 {
     SHASTA_ASSERT(edge.ploidy() == 2);
     const vector<OrientedReadId>& orientedReadIds0 = edge.branches[0].orientedReadIds;
@@ -1328,7 +1330,7 @@ AssemblyGraph2::BubbleGraphVertex::BubbleGraphVertex(
             orientedReadIds.push_back(make_pair(*it0, 0));
             ++it0;
         } else if(*it1 < *it0) {
-            orientedReadIds.push_back(make_pair(*it1, 10));
+            orientedReadIds.push_back(make_pair(*it1, 1));
             ++it1;
         } else {
             // It is on both sides. don't store it.
@@ -1352,6 +1354,84 @@ void AssemblyGraph2::BubbleGraph::createOrientedReadsTable(uint64_t readCount)
             const uint64_t side = p.second;
             orientedReadsTable[orientedReadId.getValue()].push_back(make_pair(v, side));
         }
+    }
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::createEdges()
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    BGL_FORALL_VERTICES(vA, bubbleGraph, BubbleGraph) {
+        const BubbleGraphVertex& vertexA = bubbleGraph[vA];
+        const uint64_t idA = vertexA.id;
+
+        for(const auto& p: vertexA.orientedReadIds) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t sideA = p.second;
+
+            const auto& v = orientedReadsTable[orientedReadId.getValue()];
+
+            for(const auto& p: v) {
+                const vertex_descriptor vB = p.first;
+                const BubbleGraphVertex& vertexB = bubbleGraph[vB];
+                const uint64_t idB = vertexB.id;
+
+                // Don't add it twice.
+                if(idB <= idA) {
+                    continue;
+                }
+
+                const uint64_t sideB = p.second;
+
+                // Locate the edge between these two bubbles,
+                // creating it if necessary.
+                BubbleGraph::edge_descriptor e;
+                bool edgeWasFound = false;
+                tie(e, edgeWasFound) = edge(vA, vB, bubbleGraph);
+                if(not edgeWasFound) {
+                    tie(e, edgeWasFound) = add_edge(vA, vB, bubbleGraph);
+                }
+                SHASTA_ASSERT(edgeWasFound);
+
+                // Update the matrix.
+                BubbleGraphEdge& edge = bubbleGraph[e];
+                ++edge.matrix[sideA][sideB];
+
+            }
+        }
+    }
+
+
+    // Remove edges with too few reads.
+    const uint64_t minCount = 3;
+    vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        if(bubbleGraph[e].totalCount() < minCount) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const BubbleGraph::edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, bubbleGraph);
+    }
+
+
+    ofstream csv("BubbleGraphEdges.csv");
+    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        uint64_t idA = bubbleGraph[source(e, bubbleGraph)].id;
+        uint64_t idB = bubbleGraph[target(e, bubbleGraph)].id;
+        if(idB < idA) {
+            std::swap(idA, idB);
+        }
+        csv << idA << ",";
+        csv << idB << ",";
+        csv << edge.matrix[0][0] << ",";
+        csv << edge.matrix[1][1] << ",";
+        csv << edge.matrix[0][1] << ",";
+        csv << edge.matrix[1][0] << "\n";
     }
 }
 
