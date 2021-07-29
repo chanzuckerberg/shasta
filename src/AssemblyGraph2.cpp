@@ -29,9 +29,16 @@ AssemblyGraph2::AssemblyGraph2(
     markers(markers),
     markerGraph(markerGraph)
 {
+    G& g = *this;
+
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
     SHASTA_ASSERT((k % 2) == 0);
+
+
+
+    // Parameters that should be exposed as options when the
+    // code stabilizes.
 
     // Maximum period to remove bubbles caused by copy number differences.
     const uint64_t maxPeriod = 4;
@@ -40,8 +47,10 @@ AssemblyGraph2::AssemblyGraph2(
     // to be kept.
     const uint64_t minReadCount = 3;
 
-    // Threhold used to remove bad bubbles.
+    // Threshold used to remove bad bubbles.
     const double discordantRatioThreshold = 0.2;
+
+
 
     // Create the AssemblyGraph2 from the MarkerGraph,
     // gather each set of bubbles in a single edge,
@@ -59,11 +68,6 @@ AssemblyGraph2::AssemblyGraph2(
     // Store read information on all edges.
     storeReadInformation();
 
-    // Write out what we have.
-    const bool writeSequence = true;
-    writeGfaBothStrands("Assembly-BothStrands", writeSequence);
-    writeGfa("Assembly", writeSequence);
-
     // Create the bubble graph.
     createBubbleGraph(markers.size()/2);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
@@ -79,8 +83,13 @@ AssemblyGraph2::AssemblyGraph2(
     bubbleGraph.writeHtml("BubbleGraph-1.html");
     bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
 
-    // Remove weak vertices of the bubble graph.
-    bubbleGraph.removeWeakVertices(discordantRatioThreshold);
+    // Remove weak vertices of the bubble graph
+    // and flag the corresponding bubbles as bad.
+    vector<AssemblyGraph2::edge_descriptor> badBubbles;
+    bubbleGraph.removeWeakVertices(discordantRatioThreshold, badBubbles);
+    for(const AssemblyGraph2::edge_descriptor e: badBubbles) {
+        g[e].isBad = true;
+    }
     cout << "After removing weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-2.html." << endl;
     bubbleGraph.writeHtml("BubbleGraph-2.html");
@@ -89,6 +98,10 @@ AssemblyGraph2::AssemblyGraph2(
     // Compute connected components of the bubble graph.
     bubbleGraph.computeConnectedComponents();
 
+    // Write out what we have.
+    const bool writeSequence = true;
+    writeGfaBothStrands("Assembly-BothStrands", writeSequence);
+    writeGfa("Assembly", writeSequence);
 
 }
 
@@ -767,10 +780,7 @@ void AssemblyGraph2::writeGfaBothStrands(
             }
 
             // Also write a line to the csv file.
-            string color = "Grey";
-            if(edge.isBubble()) {
-                color = edge.colorByPeriod(branchId);
-            }
+            const string color = edge.color(branchId);
             csv <<
                 edge.pathId(branchId) << "," <<
                 color << "," <<
@@ -856,10 +866,7 @@ void AssemblyGraph2::writeGfa(
             }
 
             // Also write a line to the csv file.
-            string color = "Grey";
-            if(edge.isBubble()) {
-                color = edge.colorByPeriod(branchId);
-            }
+            const string color = edge.color(branchId);
             csv <<
                 edge.pathId(branchId) << "," <<
                 color << "," <<
@@ -927,18 +934,32 @@ void AssemblyGraph2::writeGfa(
 
 
 
-string AssemblyGraph2Edge::colorByPeriod(uint64_t branchId) const
+string AssemblyGraph2Edge::color(uint64_t branchId) const
 {
     if(isBubble()) {
+
+        // A bad bubble is red on the weak branch.
+        if(isBad) {
+            if(branchId == strongestBranchId) {
+                return "Grey";
+            } else {
+                return "Red";
+            }
+        }
+
+        // A good bubble that is not a repeat count bubble is green.
         if(period == 0) {
             return "Green";
         }
+
+        // If getting here, it is a repeat count bubble.
         if(branchId == strongestBranchId) {
             return "Grey";
         }
+
         switch(period) {
         case 2:
-            return "Red";
+            return "Cyan";
         case 3:
             return "Orange";
         case 4:
@@ -946,7 +967,10 @@ string AssemblyGraph2Edge::colorByPeriod(uint64_t branchId) const
         default:
             return "Brown";
         }
+
     } else {
+
+        // It is not a bubble.
         return "Grey";
     }
 
@@ -1594,14 +1618,18 @@ double AssemblyGraph2::BubbleGraph::discordantRatio(vertex_descriptor v) const
 
 
 
-void AssemblyGraph2::BubbleGraph::removeWeakVertices(double discordantRatioThreshold)
+void AssemblyGraph2::BubbleGraph::removeWeakVertices(
+    double discordantRatioThreshold,
+    vector<AssemblyGraph2::edge_descriptor>& badBubbles)
 {
     BubbleGraph& bubbleGraph = *this;
 
     vector<BubbleGraph::vertex_descriptor> verticesToBeRemoved;
+    badBubbles.clear();
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
         if(discordantRatio(v) > discordantRatioThreshold) {
             verticesToBeRemoved.push_back(v);
+            badBubbles.push_back(bubbleGraph[v].e);
         }
     }
 
@@ -1635,4 +1663,6 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
     }
 
 }
+
+
 

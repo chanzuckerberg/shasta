@@ -142,7 +142,11 @@ public:
     // Otherwise, stores 0 as the period.
     void computeCopyNumberDifferencePeriod(uint64_t maxPeriod);
     uint64_t period = 0;
-    string colorByPeriod(uint64_t branchId) const;
+    string color(uint64_t branchId) const;
+
+    // This flag is set for bubbles classified as bad and
+    // removed from the bubble graph.
+    bool isBad = false;
 
 };
 
@@ -343,7 +347,9 @@ private:
         void writeEdgesCsv(const string& fileName) const;
         void removeWeakEdges(uint64_t minReadCount);
         double discordantRatio(vertex_descriptor) const;
-        void removeWeakVertices(double discordantRatioThreshold);
+        void removeWeakVertices(
+            double discordantRatioThreshold,
+            vector<AssemblyGraph2::edge_descriptor>& badBubbles);
         void writeHtml(const string& fileName);
         void computeConnectedComponents();
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
@@ -372,6 +378,7 @@ private:
             return (*bubbleGraph)[e].relativePhase() >= minRelativePhase;
         }
     };
+
 
 };
 
