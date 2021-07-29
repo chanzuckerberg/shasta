@@ -1,12 +1,15 @@
 #include "AssemblyGraph2.hpp"
 #include "AssembledSegment.hpp"
 #include "assembleMarkerGraphPath.hpp"
+#include "computeLayout.hpp"
 #include "copyNumber.hpp"
 #include "deduplicate.hpp"
 #include "orderPairs.hpp"
+#include "writeGraph.hpp"
 using namespace shasta;
 
 #include <boost/graph/connected_components.hpp>
+#include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
@@ -33,6 +36,13 @@ AssemblyGraph2::AssemblyGraph2(
     // Maximum period to remove bubbles caused by copy number differences.
     const uint64_t maxPeriod = 4;
 
+    // Minimum number of supporting reads for a bubble graph edge
+    // to be kept.
+    const uint64_t minReadCount = 3;
+
+    // Threhold used to remove bad bubbles.
+    const double discordantRatioThreshold = 0.2;
+
     // Create the AssemblyGraph2 from the MarkerGraph,
     // gather each set of bubbles in a single edge,
     // and assemble sequence on every edge.
@@ -54,8 +64,30 @@ AssemblyGraph2::AssemblyGraph2(
     writeGfaBothStrands("Assembly-BothStrands", writeSequence);
     writeGfa("Assembly", writeSequence);
 
-    // Diploid phasing of the bubbles.
+    // Create the bubble graph.
     createBubbleGraph(markers.size()/2);
+    cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-0.html." << endl;
+    bubbleGraph.writeHtml("BubbleGraph-0.html");
+    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-0.csv");
+
+    // Remove weak edges of the bubble graph.
+    bubbleGraph.removeWeakEdges(minReadCount);
+    cout << "After removing edges supported by less than " << minReadCount <<
+        " reads, the bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-1.html." << endl;
+    bubbleGraph.writeHtml("BubbleGraph-1.html");
+    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
+
+    // Remove weak vertices of the bubble graph.
+    bubbleGraph.removeWeakVertices(discordantRatioThreshold);
+    cout << "After removing weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-2.html." << endl;
+    bubbleGraph.writeHtml("BubbleGraph-2.html");
+    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-2.csv");
+
+    // Compute connected components of the bubble graph.
+    bubbleGraph.computeConnectedComponents();
 
 
 }
@@ -1276,10 +1308,6 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
 
     bubbleGraph.createOrientedReadsTable(readCount);
     bubbleGraph.createEdges();
-    cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-
-    bubbleGraph.computeConnectedComponents();
 
 }
 
@@ -1406,12 +1434,18 @@ void AssemblyGraph2::BubbleGraph::createEdges()
         }
     }
 
+}
 
-    // Remove edges with too few reads.
-    const uint64_t minCount = 6;
+
+
+// Remove edges with too few reads.
+void AssemblyGraph2::BubbleGraph::removeWeakEdges(uint64_t minReadCount)
+{
+    BubbleGraph& bubbleGraph = *this;
+
     vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-        if(bubbleGraph[e].totalCount() < minCount) {
+        if(bubbleGraph[e].totalCount() < minReadCount) {
             edgesToBeRemoved.push_back(e);
         }
     }
@@ -1420,22 +1454,6 @@ void AssemblyGraph2::BubbleGraph::createEdges()
     }
 
 
-    ofstream csv("BubbleGraphEdges.csv");
-    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
-    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-        const BubbleGraphEdge& edge = bubbleGraph[e];
-        uint64_t idA = bubbleGraph[source(e, bubbleGraph)].id;
-        uint64_t idB = bubbleGraph[target(e, bubbleGraph)].id;
-        if(idB < idA) {
-            std::swap(idA, idB);
-        }
-        csv << idA << ",";
-        csv << idB << ",";
-        csv << edge.matrix[0][0] << ",";
-        csv << edge.matrix[1][1] << ",";
-        csv << edge.matrix[0][1] << ",";
-        csv << edge.matrix[1][0] << "\n";
-    }
 }
 
 
@@ -1469,3 +1487,152 @@ void AssemblyGraph2::BubbleGraph::computeConnectedComponents()
     }
     cout << endl;
 }
+
+
+
+
+void AssemblyGraph2::BubbleGraph::writeHtml(const string& fileName)
+{
+    using G = BubbleGraph;
+    G& g = *this;
+
+    /*
+    // Create a filtered BubbleGraph, containing only the edges
+    // with relativePhase() >= minRelativePhase.
+    const double minRelativePhase = 0.;
+    using FilteredGraph = boost::filtered_graph<G, BubbleGraphEdgePredicate>;
+    FilteredGraph filteredGraph(g, BubbleGraphEdgePredicate(g, minRelativePhase));
+
+    // Compute the layout of the filtered graph.
+    std::map<FilteredGraph::vertex_descriptor, array<double, 2> > positionMap;
+    SHASTA_ASSERT(computeLayout(filteredGraph, "sfdp", 600., positionMap) == ComputeLayoutReturnCode::Success);
+    BGL_FORALL_VERTICES(v, filteredGraph, FilteredGraph) {
+        filteredGraph[v].position = positionMap[v];
+    }
+    */
+
+    // Compute the layout.
+    std::map<BubbleGraph::vertex_descriptor, array<double, 2> > positionMap;
+    SHASTA_ASSERT(computeLayout(g, "sfdp", 600., positionMap) == ComputeLayoutReturnCode::Success);
+    BGL_FORALL_VERTICES(v, g, G) {
+        g[v].position = positionMap[v];
+    }
+
+    // Graphics scaling.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::min();
+    BGL_FORALL_VERTICES_T(v, g, G) {
+        const auto& position = g[v].position;
+        xMin = min(xMin, position[0]);
+        xMax = max(xMax, position[0]);
+        yMin = min(yMin, position[1]);
+        yMax = max(yMax, position[1]);
+    }
+    const double xyRange = max(xMax-xMin, yMax-yMin);
+    const int svgSize = 10000;
+    const double vertexRadiusPixels = 3.;
+    const double vertexRadius = vertexRadiusPixels * xyRange / double(svgSize);
+    const double edgeThicknessPixels = 1.;
+    const double edgeThickness = edgeThicknessPixels * xyRange / double(svgSize);
+
+    // Vertex attributes. Color by discordant ratio.
+    std::map<G::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
+    BGL_FORALL_VERTICES(v, g, G) {
+        const double d = discordantRatio(v);
+        const double dRed = 0.3;
+        const double hue = max(0., 120. * (1. - d / dRed)); // d=0: green, d=dRed:red
+        auto& attributes = vertexAttributes[v];
+        attributes.color = "hsl(" + to_string(int(hue)) + ",50%,50%)";
+        attributes.radius = vertexRadius;
+        attributes.tooltip = to_string(g[v].id);
+    }
+
+    // Edge attributes. Color by ambiguity.
+    std::map<G::edge_descriptor, WriteGraph::EdgeAttributes> edgeAttributes;
+    BGL_FORALL_EDGES(e, g, G) {
+        const BubbleGraphEdge& edge = g[e];
+        const double ambiguity = edge.ambiguity();
+        const double hue = (1. - ambiguity) * 120.; /// Goes from 0 (red) to 120 (green).
+        auto& attributes = edgeAttributes[e];
+        attributes.color = "hsl(" + to_string(int(hue)) + ",50%,50%)";
+        attributes.thickness = edgeThickness;
+    }
+
+
+
+    // Write it out as svg in html.
+    ofstream out(fileName);
+    out << "<html><body>";
+    WriteGraph::writeSvg(
+        g,
+        "BubbleGraph",
+        svgSize, svgSize,
+        vertexAttributes,
+        edgeAttributes,
+        out);
+    out << "</body></html>";
+}
+
+
+
+double AssemblyGraph2::BubbleGraph::discordantRatio(vertex_descriptor v) const
+{
+    const BubbleGraph& bubbleGraph = *this;
+
+    uint64_t concordantSum = 0;
+    uint64_t discordantSum = 0;
+    BGL_FORALL_OUTEDGES(v, e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        concordantSum += edge.concordantCount();
+        discordantSum += edge.discordantCount();
+    }
+
+    return double(discordantSum) / double(concordantSum + discordantSum);
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::removeWeakVertices(double discordantRatioThreshold)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    vector<BubbleGraph::vertex_descriptor> verticesToBeRemoved;
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        if(discordantRatio(v) > discordantRatioThreshold) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+
+    for(const BubbleGraph::vertex_descriptor v: verticesToBeRemoved) {
+        clear_vertex(v, bubbleGraph);
+        remove_vertex(v, bubbleGraph);
+    }
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
+{
+    const BubbleGraph& bubbleGraph = *this;
+
+    ofstream csv(fileName);
+    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        uint64_t idA = bubbleGraph[source(e, bubbleGraph)].id;
+        uint64_t idB = bubbleGraph[target(e, bubbleGraph)].id;
+        if(idB < idA) {
+            std::swap(idA, idB);
+        }
+        csv << idA << ",";
+        csv << idB << ",";
+        csv << edge.matrix[0][0] << ",";
+        csv << edge.matrix[1][1] << ",";
+        csv << edge.matrix[0][1] << ",";
+        csv << edge.matrix[1][0] << "\n";
+    }
+
+}
+

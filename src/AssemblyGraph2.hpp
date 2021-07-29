@@ -261,7 +261,13 @@ private:
 
         // The connected component this vertex belongs to.
         uint64_t componentId;
+
+        // Layout position for display.
+        array<double, 2> position;
+
     };
+
+
 
     class BubbleGraphEdge {
     public:
@@ -272,10 +278,6 @@ private:
         // sideB of the "second" bubble of this edge.
         // The "first" bubble of the edge is the lowered numbered.
         array<array<uint64_t, 2>, 2> matrix;
-        uint64_t totalCount() const
-        {
-            return matrix[0][0] + matrix[1][1]+ matrix[0][1] + matrix[1][0];
-        }
         BubbleGraphEdge()
         {
             for(uint64_t i=0; i<2; i++) {
@@ -284,7 +286,47 @@ private:
                 }
             }
         }
+
+        uint64_t diagonalCount() const
+        {
+            return matrix[0][0] + matrix[1][1];
+        }
+        uint64_t offDiagonalCount() const
+        {
+            return matrix[0][1] + matrix[1][0];
+        }
+        uint64_t totalCount() const
+        {
+            return matrix[0][0] + matrix[1][1]+ matrix[0][1] + matrix[1][0];
+        }
+        uint64_t concordantCount() const
+        {
+            return max(diagonalCount(), offDiagonalCount());
+        }
+        uint64_t discordantCount() const
+        {
+            return min(diagonalCount(), offDiagonalCount());
+        }
+
+        // Ambiguity of the edge is 0 if discordantCount() is 0
+        // and 1 if discordantCount() = totalCount()/2, in which case
+        // discordantCount() = concordantCount();
+        double ambiguity() const
+        {
+            return double(2 * discordantCount()) / double(totalCount());
+        }
+
+        // Return the relative phase implied by this edge, which is
+        // +1 if offdiagonalCount() is 0 and
+        // -1 if diagonalCount() is 0.
+        double relativePhase() const
+        {
+            const double diagonalRatio = double(diagonalCount()) / double(totalCount());
+            return 2. * diagonalRatio - 1.;
+        }
     };
+
+
 
     using BubbleGraphBaseClass =
         boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
@@ -298,12 +340,38 @@ private:
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
         void createEdges();
+        void writeEdgesCsv(const string& fileName) const;
+        void removeWeakEdges(uint64_t minReadCount);
+        double discordantRatio(vertex_descriptor) const;
+        void removeWeakVertices(double discordantRatioThreshold);
+        void writeHtml(const string& fileName);
         void computeConnectedComponents();
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph(uint64_t readCount);
 
+
+
+    // A predicate used to filter BubbleGraph edges for which
+    // relativePhase() >= minRelativePhase.
+    // This is only used for html output of the BubbleGraph.
+    class BubbleGraphEdgePredicate {
+    public:
+        BubbleGraphEdgePredicate(
+            const BubbleGraph& bubbleGraph,
+            double minRelativePhase) :
+            bubbleGraph(&bubbleGraph),
+            minRelativePhase(minRelativePhase) {}
+
+        const BubbleGraph* bubbleGraph;
+        double minRelativePhase;
+
+        bool operator() (const BubbleGraph::edge_descriptor e) const
+        {
+            return (*bubbleGraph)[e].relativePhase() >= minRelativePhase;
+        }
+    };
 
 };
 
