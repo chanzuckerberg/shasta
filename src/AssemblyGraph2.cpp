@@ -6,6 +6,7 @@
 #include "orderPairs.hpp"
 using namespace shasta;
 
+#include <boost/graph/connected_components.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
@@ -1270,13 +1271,15 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
             continue;
         }
 
-        /*const BubbleGraph::vertex_descriptor v = */ add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
+        add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
     }
 
     bubbleGraph.createOrientedReadsTable(readCount);
     bubbleGraph.createEdges();
     cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
+
+    bubbleGraph.computeConnectedComponents();
 
 }
 
@@ -1405,7 +1408,7 @@ void AssemblyGraph2::BubbleGraph::createEdges()
 
 
     // Remove edges with too few reads.
-    const uint64_t minCount = 3;
+    const uint64_t minCount = 6;
     vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         if(bubbleGraph[e].totalCount() < minCount) {
@@ -1435,3 +1438,34 @@ void AssemblyGraph2::BubbleGraph::createEdges()
     }
 }
 
+
+
+void AssemblyGraph2::BubbleGraph::computeConnectedComponents()
+{
+    using boost::connected_components;
+    using boost::get;
+    using boost::color_map;
+
+    using G = BubbleGraph;
+    G& g = *this;
+
+    std::map<vertex_descriptor, uint64_t> colorMap;
+
+    connected_components(g,
+        get(&BubbleGraphVertex::componentId, g),
+        color_map(boost::make_assoc_property_map(colorMap)));
+
+    // Gather the vertices in each connected component.
+    std::map<uint64_t, vector<vertex_descriptor> > componentMap;
+    BGL_FORALL_VERTICES(v, g, G) {
+        componentMap[g[v].componentId].push_back(v);
+    }
+    cout << "The BubbleGraph has " << componentMap.size() <<
+        " connected components of sizes:";
+    connectedComponents.clear();
+    for(const auto& p: componentMap) {
+        cout << " " << p.second.size();
+        connectedComponents.push_back(p.second);
+    }
+    cout << endl;
+}

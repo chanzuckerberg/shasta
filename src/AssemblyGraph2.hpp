@@ -258,6 +258,9 @@ private:
         // on the opposite side of the bubble.
         // Stored as pairs (OrientedReadId, side).
         vector< pair<OrientedReadId, uint64_t> > orientedReadIds;
+
+        // The connected component this vertex belongs to.
+        uint64_t componentId;
     };
 
     class BubbleGraphEdge {
@@ -295,6 +298,8 @@ private:
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
         void createEdges();
+        void computeConnectedComponents();
+        vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph(uint64_t readCount);
