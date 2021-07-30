@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "AssemblyGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "compressAlignment.hpp"
 #include "dset64-gccAtomic.hpp"
