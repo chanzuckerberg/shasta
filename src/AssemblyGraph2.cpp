@@ -29,7 +29,6 @@ AssemblyGraph2::AssemblyGraph2(
     markers(markers),
     markerGraph(markerGraph)
 {
-    G& g = *this;
 
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
@@ -49,6 +48,9 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Threshold used to remove bad bubbles.
     const double discordantRatioThreshold = 0.2;
+
+    // Ambiguity threshold for bubble graphedges.
+    double ambiguityThreshold = 0.5;
 
 
 
@@ -71,29 +73,14 @@ AssemblyGraph2::AssemblyGraph2(
     // Create the bubble graph.
     createBubbleGraph(markers.size()/2);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-0.html." << endl;
-    bubbleGraph.writeHtml("BubbleGraph-0.html");
+        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
+    bubbleGraph.writeGraphviz("BubbleGraph-0.dot");
     bubbleGraph.writeEdgesCsv("BubbleGraphEdges-0.csv");
 
-    // Remove weak edges of the bubble graph.
-    bubbleGraph.removeWeakEdges(minReadCount);
-    cout << "After removing edges supported by less than " << minReadCount <<
-        " reads, the bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-1.html." << endl;
-    bubbleGraph.writeHtml("BubbleGraph-1.html");
-    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
-
-    // Remove weak vertices of the bubble graph
-    // and flag the corresponding bubbles as bad.
-    vector<AssemblyGraph2::edge_descriptor> badBubbles;
-    bubbleGraph.removeWeakVertices(discordantRatioThreshold, badBubbles);
-    for(const AssemblyGraph2::edge_descriptor e: badBubbles) {
-        g[e].isBad = true;
-    }
-    cout << "After removing weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices and " << num_edges(bubbleGraph) << " edges. See BubbleGraph-2.html." << endl;
-    bubbleGraph.writeHtml("BubbleGraph-2.html");
-    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-2.csv");
+    // Cleanup the bubble graph.
+    // This marks as bad the bubbles corresponding to bubble graph vertices
+    // that are removed.
+    cleanupBubbleGraph(minReadCount, discordantRatioThreshold, ambiguityThreshold);
 
     // Compute connected components of the bubble graph.
     bubbleGraph.computeConnectedComponents();
@@ -103,6 +90,60 @@ AssemblyGraph2::AssemblyGraph2(
     writeGfaBothStrands("Assembly-BothStrands", writeSequence);
     writeGfa("Assembly", writeSequence);
 
+}
+
+
+
+void AssemblyGraph2::cleanupBubbleGraph(
+    uint64_t minReadCount,
+    double discordantRatioThreshold,
+    double ambiguityThreshold)
+{
+    G& g = *this;
+
+    // Remove bubble graph edges with low read support.
+    bubbleGraph.removeWeakEdges(minReadCount);
+    cout << "After removing edges supported by less than " << minReadCount <<
+        " reads, the bubble graph has " << num_vertices(bubbleGraph) <<
+        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
+    bubbleGraph.writeGraphviz("BubbleGraph-1.dot");
+    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
+
+    // Remove weak vertices of the bubble graph
+    // and flag the corresponding bubbles as bad.
+    for(uint64_t iteration=0; ; iteration++) {
+        vector<AssemblyGraph2::edge_descriptor> badBubbles;
+        bubbleGraph.removeWeakVertices(discordantRatioThreshold, badBubbles);
+        if(badBubbles.empty()) {
+            break;
+        }
+        for(const AssemblyGraph2::edge_descriptor e: badBubbles) {
+            g[e].isBad = true;
+        }
+        cout << "After removing " << badBubbles.size() <<
+            " weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
+            " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
+        bubbleGraph.writeGraphviz("BubbleGraph-Iteration-" + to_string(iteration) + ".dot");
+        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Iteration-" + to_string(iteration) + ".csv");
+    }
+
+
+    // Remove edges with high ambiguity.
+    vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        if(bubbleGraph[e].ambiguity() > ambiguityThreshold) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const BubbleGraph::edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, bubbleGraph);
+    }
+    cout << "Removed " << edgesToBeRemoved.size() <<
+        " bubble graph edges with ambiguity greater than " <<
+        ambiguityThreshold << endl;
+
+    bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
+    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
 }
 
 
@@ -1597,6 +1638,50 @@ void AssemblyGraph2::BubbleGraph::writeHtml(const string& fileName)
         edgeAttributes,
         out);
     out << "</body></html>";
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
+{
+    const BubbleGraph&  bubbleGraph = *this;
+
+    ofstream out(fileName);
+    out <<
+        "graph BubbleGraph {\n"
+        "node [shape=point];";
+
+
+    // Vertices, colored by discordant ratio.
+    // Green if discordant ratio is 0.
+    // Red if redDiscordantRatio or more.
+    const double redDiscordantRatio = 0.3;
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        const BubbleGraphVertex& vertex = bubbleGraph[v];
+        const double d = bubbleGraph.discordantRatio(v);
+        const double hue = max(0., (1. - d / redDiscordantRatio) / 3.);
+
+        out << vertex.id << " [color=\"" << hue << " 1 1\"];\n";
+    }
+
+
+    // Edges, colored by ambiguity and semi-transparent.
+    // Green if ambiguity is 0.
+    // Red if ambiguity is redAmbiguity or more.
+    const double redAmbiguity = 0.5;
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        const vertex_descriptor v0 = source(e, bubbleGraph);
+        const vertex_descriptor v1 = target(e, bubbleGraph);
+        const double ambiguity = edge.ambiguity();
+        const double hue = max(0., (1. - ambiguity / redAmbiguity) / 3.);
+
+        out << bubbleGraph[v0].id << "--" << bubbleGraph[v1].id <<
+            " [color=\"" << hue << " 1 1 0.5\"];\n";
+    }
+
+    out << "}\n";
+
 }
 
 

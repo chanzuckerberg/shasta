@@ -301,7 +301,7 @@ private:
         }
         uint64_t totalCount() const
         {
-            return matrix[0][0] + matrix[1][1]+ matrix[0][1] + matrix[1][0];
+            return diagonalCount() + offDiagonalCount();
         }
         uint64_t concordantCount() const
         {
@@ -351,11 +351,16 @@ private:
             double discordantRatioThreshold,
             vector<AssemblyGraph2::edge_descriptor>& badBubbles);
         void writeHtml(const string& fileName);
+        void writeGraphviz(const string& fileName) const;
         void computeConnectedComponents();
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph(uint64_t readCount);
+    void cleanupBubbleGraph(
+        uint64_t minReadCount,
+        double discordantRatioThreshold,
+        double ambiguityThreshold);
 
 
 
