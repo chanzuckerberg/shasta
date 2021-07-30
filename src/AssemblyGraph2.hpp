@@ -352,8 +352,12 @@ private:
             vector<AssemblyGraph2::edge_descriptor>& badBubbles);
         void writeHtml(const string& fileName);
         void writeGraphviz(const string& fileName) const;
+
         void computeConnectedComponents();
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
+
+        // Create a new BubbleGraph from a given connected component.
+        void extractComponent(uint64_t componentId, BubbleGraph&) const;
     };
     BubbleGraph bubbleGraph;
     void createBubbleGraph(uint64_t readCount);
@@ -385,6 +389,8 @@ private:
     };
 
 
+    // Use each connected component of the bubble graph to phase the bubbles.
+    void phase();
 };
 
 

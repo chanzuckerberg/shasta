@@ -10,6 +10,7 @@ using namespace shasta;
 
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
+#include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
@@ -84,6 +85,9 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Compute connected components of the bubble graph.
     bubbleGraph.computeConnectedComponents();
+
+    // Use each connected component of the bubble graph to phase the bubbles.
+    phase();
 
     // Write out what we have.
     const bool writeSequence = true;
@@ -1649,7 +1653,7 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
     ofstream out(fileName);
     out <<
         "graph BubbleGraph {\n"
-        "node [shape=point];";
+        "node [shape=point];\n";
 
 
     // Vertices, colored by discordant ratio.
@@ -1749,5 +1753,105 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
 
 }
 
+
+
+// Create a new BubbleGraph from a given connected component.
+void AssemblyGraph2::BubbleGraph::extractComponent(
+    uint64_t componentId,
+    BubbleGraph& componentGraph) const
+{
+    const BubbleGraph& bubbleGraph = *this;
+
+    SHASTA_ASSERT(componentId < connectedComponents.size());
+    const vector<vertex_descriptor>& componentVertices = connectedComponents[componentId];
+
+    SHASTA_ASSERT(num_vertices(componentGraph) == 0);
+    SHASTA_ASSERT(num_edges(componentGraph) == 0);
+
+    // Map with:
+    // Key = vertex_descriptor in the full graph.
+    // Value = vertex descriptor in the component graph.
+    std::map<vertex_descriptor, vertex_descriptor> vertexMap;
+
+    // Create the vertices.
+    for(const vertex_descriptor v: componentVertices) {
+        const vertex_descriptor vc = add_vertex(bubbleGraph[v], componentGraph);
+        vertexMap.insert(make_pair(v, vc));
+    }
+
+    // Create the edges.
+    for(const vertex_descriptor v0: componentVertices) {
+        const auto it0 = vertexMap.find(v0);
+        SHASTA_ASSERT(it0 != vertexMap.end());
+        const vertex_descriptor vc0 = it0->second;
+        BGL_FORALL_OUTEDGES(v0, e01, bubbleGraph, BubbleGraph) {
+            const vertex_descriptor v1 = target(e01, bubbleGraph);
+            if(bubbleGraph[v0].id < bubbleGraph[v1].id) {
+                const auto it1 = vertexMap.find(v1);
+                SHASTA_ASSERT(it1 != vertexMap.end());
+                const vertex_descriptor vc1 = it1->second;
+                add_edge(vc0, vc1, bubbleGraph[e01], componentGraph);
+            }
+        }
+    }
+}
+
+
+
+
+// Use each connected component of the bubble graph to phase the bubbles.
+void AssemblyGraph2::phase()
+{
+    for(uint64_t componentId=0;
+        componentId<bubbleGraph.connectedComponents.size(); componentId++) {
+        BubbleGraph componentGraph;
+        bubbleGraph.extractComponent(componentId, componentGraph);
+
+        cout << "Processing connected component " << componentId <<
+            " with " << num_vertices(componentGraph) <<
+            " vertices and " << num_edges(componentGraph) <<
+            " edges." << endl;
+
+        componentGraph.writeGraphviz("Component-" + to_string(componentId) + ".dot");
+
+        // Compute an index map, needed below, which maps vertices to integers.
+        std::map<BubbleGraph::vertex_descriptor, uint64_t> indexMap;
+        uint64_t vertexIndex = 0;
+        BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
+            indexMap.insert(make_pair(v, vertexIndex++));
+        }
+
+        // Compute a minimal spanning tree that minimizes
+        // the sum of  edge weights defined as
+        // difference discordantCount() - concordantCount()
+        std::map<BubbleGraph::edge_descriptor, int64_t> weightMap;
+        BGL_FORALL_EDGES(e, componentGraph, BubbleGraph) {
+            const BubbleGraphEdge& edge = componentGraph[e];
+            const int64_t weight = int64_t(edge.discordantCount()) - int64_t(edge.concordantCount());
+            weightMap.insert(make_pair(e, weight));
+        }
+        std::set<BubbleGraph::edge_descriptor> treeEdges;
+        boost::kruskal_minimum_spanning_tree(componentGraph, std::inserter(treeEdges, treeEdges.begin()),
+            weight_map(boost::make_assoc_property_map(weightMap)).
+            vertex_index_map(boost::make_assoc_property_map(indexMap)));
+        SHASTA_ASSERT(treeEdges.size() == indexMap.size() - 1);
+
+        // Write out the tree edges to csv.
+        ofstream csv("Component-" + to_string(componentId) + "-TreeEdges.csv");
+        csv << "BubbleId0,BubbleId1,Diagonal,OffDiagonal,Concordant,Discordant,Weight\n";
+        for(const BubbleGraph::edge_descriptor e: treeEdges) {
+            const BubbleGraphEdge& edge = componentGraph[e];
+            const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
+            const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+            csv << bubbleGraph[v0].id << ",";
+            csv << bubbleGraph[v1].id << ",";
+            csv << edge.diagonalCount() << ",";
+            csv << edge.offDiagonalCount() << ",";
+            csv << edge.concordantCount() << ",";
+            csv << edge.discordantCount() << ",";
+            csv << edge.concordantCount() - edge.discordantCount() << "\n";
+        }
+    }
+}
 
 
