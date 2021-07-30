@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblyGraph.hpp"
 #include "deduplicate.hpp"
 #include "orderPairs.hpp"
 // Shasta.
@@ -27,7 +28,7 @@ void Assembler::computePseudoPath(
     PseudoPath& pseudoPath) const
 {
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-    using SegmentId = AssemblyGraph::EdgeId;
+    using SegmentId = AssemblyGraphEdgeId;
 
     // Compute the marker graph path.
     const uint64_t markerCount = markers.size(orientedReadId.getValue());

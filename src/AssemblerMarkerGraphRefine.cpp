@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "AssemblyGraph.hpp"
 using namespace shasta;
 
 

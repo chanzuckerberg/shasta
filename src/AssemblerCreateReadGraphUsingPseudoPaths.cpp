@@ -1,6 +1,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblyGraph.hpp"
 #include "orderPairs.hpp"
 #include "Reads.hpp"
 #include "seqan.hpp"
@@ -20,7 +21,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
     uint64_t maxAlignmentCount,
     size_t threadCount)
 {
-    using SegmentId = AssemblyGraph::EdgeId;
+    using SegmentId = AssemblyGraphEdgeId;
     const bool debug = false;
 
     // Store the parameters so all threads can see them.
@@ -164,7 +165,7 @@ void Assembler::createReadGraphUsingPseudoPathsThreadFunction1(size_t threadId)
     vector<MarkerGraph::EdgeId> path;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
     PseudoPath pseudoPath;
-    using SegmentId = AssemblyGraph::EdgeId;
+    using SegmentId = AssemblyGraphEdgeId;
     vector< vector<SegmentId> >& pseudoPaths =
         createReadGraphUsingPseudoPathsData.pseudoPaths;
 
@@ -196,7 +197,7 @@ void Assembler::createReadGraphUsingPseudoPathsThreadFunction2(size_t threadId)
 
     // Access global objects.
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-    using SegmentId = AssemblyGraph::EdgeId;
+    using SegmentId = AssemblyGraphEdgeId;
     const vector< vector<SegmentId> >& pseudoPathSegments =
         createReadGraphUsingPseudoPathsData.pseudoPaths;
     auto& infos = createReadGraphUsingPseudoPathsData.alignmentInfos;

@@ -6,6 +6,7 @@
 #include "AssemblerOptions.hpp"
 #include "AlignmentGraph.hpp"
 #include "Align4.hpp"
+#include "AssemblyGraph.hpp"
 #include "Histogram.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"

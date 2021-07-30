@@ -5,6 +5,7 @@
 #include "Coverage.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
+#include "shastaTypes.hpp"
 #include "Uint.hpp"
 
 #include "cstdint.hpp"
@@ -14,14 +15,6 @@ namespace shasta {
 
     class MarkerGraph;
 
-    // Type used to globally identify a marker on an oriented read.
-    // This is the global index of the marker in Assembler::markers.
-    // For a human assembly with coverage 40X the total number
-    // of markers is more than 20 billions (counting both strands),
-    // so this needs to be uint64_t. There could, however, be situations
-    // where uint32_t is sufficient.
-    using MarkerId = uint64_t;
-
 }
 
 
@@ -29,8 +22,8 @@ namespace shasta {
 class shasta::MarkerGraph : public MultithreadedObject<MarkerGraph> {
 public:
 
-    using VertexId = MarkerId;
-    using EdgeId = MarkerId;
+    using VertexId = MarkerGraphVertexId;
+    using EdgeId = MarkerGraphEdgeId;
     static const VertexId invalidVertexId;
     static const EdgeId invalidEdgeId;
 

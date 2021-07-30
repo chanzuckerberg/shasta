@@ -7,6 +7,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
+#include "AssemblyGraph.hpp"
 #include "buildId.hpp"
 #include "filesystem.hpp"
 #include "Reads.hpp"

@@ -3,7 +3,6 @@
 
 // Shasta.
 #include "AlignmentCandidates.hpp"
-#include "AssemblyGraph.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
@@ -13,6 +12,7 @@
 #include "MultithreadedObject.hpp"
 #include "ReadGraph.hpp"
 #include "ReadId.hpp"
+#include "shastaTypes.hpp"
 
 // Standard library.
 #include "memory.hpp"
@@ -23,6 +23,7 @@ namespace shasta {
 
     class Assembler;
     class AssemblerInfo;
+    class AssemblyGraph;
     class Alignment;
     class AlignmentGraph;
     class AlignmentInfo;
@@ -41,6 +42,7 @@ namespace shasta {
     class LocalReadGraph;
     class LocalReadGraphTriangles;
     class LocalMarkerGraphRequestParameters;
+    class LongBaseSequences;
     class MarkerConnectivityGraph;
     class MarkerConnectivityGraphVertexMap;
     class OrientedReadPair;
@@ -1085,7 +1087,7 @@ public:
 
         // The pseudopaths of all oriented reads.
         // Indexed by OrientedReadId::getValue().
-        vector< vector<AssemblyGraph::EdgeId> > pseudoPaths;
+        vector< vector<AssemblyGraphEdgeId> > pseudoPaths;
 
         // Vector to store information about each alignment.
         vector<CreateReadGraphsingPseudoPathsAlignmentData> alignmentInfos;
@@ -1574,8 +1576,8 @@ private:
     // Given an edge of the pruned strong subgraph of the marker graph,
     // return the next/previous edge in the linear chain the edge belongs to.
     // If the edge is the last/first edge in its linear chain, return MarkerGraph::invalidEdgeId.
-    MarkerGraph::EdgeId nextEdgeInMarkerGraphPrunedStrongSubgraphChain(MarkerGraph::EdgeId) const;
-    MarkerGraph::EdgeId previousEdgeInMarkerGraphPrunedStrongSubgraphChain(MarkerGraph::EdgeId) const;
+    MarkerGraphEdgeId nextEdgeInMarkerGraphPrunedStrongSubgraphChain(MarkerGraphEdgeId) const;
+    MarkerGraphEdgeId previousEdgeInMarkerGraphPrunedStrongSubgraphChain(MarkerGraphEdgeId) const;
 
     // Return the out-degree or in-degree (number of outgoing/incoming edges)
     // of a vertex of the pruned strong subgraph of the marker graph.
@@ -1584,13 +1586,13 @@ private:
 
     // Return true if an edge disconnects the local subgraph.
     bool markerGraphEdgeDisconnectsLocalStrongSubgraph(
-        MarkerGraph::EdgeId edgeId,
+        MarkerGraphEdgeId edgeId,
         size_t maxDistance,
 
         // Work areas, to reduce memory allocation activity.
 
         // Each of these two must be sized maxDistance+1.
-        array<vector< vector<MarkerGraph::EdgeId> >, 2>& verticesByDistance,
+        array<vector< vector<MarkerGraphEdgeId> >, 2>& verticesByDistance,
 
         // Each of these two must be sized globalMarkerGraphVertices.size()
         // and set to all false on entry.
@@ -1608,7 +1610,7 @@ private:
         OrientedReadId,
         uint32_t firstOrdinal,
         uint32_t lastOrdinal,
-        vector<MarkerGraph::EdgeId>& path,
+        vector<MarkerGraphEdgeId>& path,
         vector< pair<uint32_t, uint32_t> >& pathOrdinals
         ) const;
 
@@ -1752,7 +1754,7 @@ private:
     // Use spoa to compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-        MarkerGraph::EdgeId,
+        MarkerGraphEdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         const std::unique_ptr<spoa::AlignmentEngine>& spoaAlignmentEngine,
         const std::unique_ptr<spoa::Graph>& spoaAlignmentGraph,
@@ -1824,13 +1826,13 @@ private:
     // Extract a local assembly graph from the global assembly graph.
     // This returns false if the timeout was exceeded.
     bool extractLocalAssemblyGraph(
-        AssemblyGraph::EdgeId,
+        AssemblyGraphEdgeId,
         int distance,
         double timeout,
         LocalAssemblyGraph&) const;
 public:
     void colorGfaBySimilarityToSegment(
-        AssemblyGraph::EdgeId,
+        AssemblyGraphEdgeId,
         uint64_t minVertexCount,
         uint64_t minEdgeCount);
 
@@ -1870,8 +1872,8 @@ private:
     // of edges in the marker graph. The given marker graph edges
     // could form a path, but don't have to.
     void findAssemblyGraphEdges(
-        const vector<MarkerGraph::EdgeId>& markerGraphEdges,
-        vector<AssemblyGraph::EdgeId>& assemblyGraphEdges
+        const vector<MarkerGraphEdgeId>& markerGraphEdges,
+        vector<AssemblyGraphEdgeId>& assemblyGraphEdges
         ) const;
 
 
@@ -1880,14 +1882,14 @@ private:
     // An oriented read corresponds to a path (sequence of adjacent edges)
     // in the marker graph, which
     // can be computed via computeOrientedReadMarkerGraphPath.
-    // That path encounters a sequence of assembly graph edges,
+    // That path encounters a sequence of assembly graph edges,AssemblyGraph::EdgeId
     // which is not necessarily a path in the assembly graph
     // because not all marker graph edges belong to an assembly graph edge.
     // We call this sequence the pseudo-path of an oriented read in the assembly graph.
 public:
     class PseudoPathEntry {
     public:
-        AssemblyGraph::EdgeId segmentId;
+        AssemblyGraphEdgeId segmentId;
 
         // The first and last ordinal on the oriented read
         // where this assembly graph edge (segment) is encountered.
@@ -1910,13 +1912,13 @@ public:
         // The marker graph path computed using computeOrientedReadMarkerGraphPath.
         // This is computed by this function - it does not neet to be filled in
         // in advance.
-        vector<MarkerGraph::EdgeId>& path,
+        vector<MarkerGraphEdgeId>& path,
         vector< pair<uint32_t, uint32_t> >& pathOrdinals,
 
         // The pseudo-path computed by this function.
         PseudoPath&) const;
     void writePseudoPath(ReadId, Strand) const;
-    static void getPseudoPathSegments(const PseudoPath&, vector<AssemblyGraph::EdgeId>&);
+    static void getPseudoPathSegments(const PseudoPath&, vector<AssemblyGraphEdgeId>&);
 
 
 
@@ -1985,7 +1987,7 @@ private:
         // MarkerGraph::edgeConsensus and MarkerGraph::edgeConsensusOverlappingBaseCount
         // before assembleMarkerGraphEdges completes.
         // See their definition for more details about their meaning.
-        vector< shared_ptr< MemoryMapped::Vector<MarkerGraph::EdgeId> > > threadEdgeIds;
+        vector< shared_ptr< MemoryMapped::Vector<MarkerGraphEdgeId> > > threadEdgeIds;
         vector< shared_ptr< MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> > > threadEdgeConsensus;
         vector< shared_ptr< MemoryMapped::Vector<uint8_t> > > threadEdgeConsensusOverlappingBaseCount;
 
@@ -2005,17 +2007,17 @@ private:
 
     // Assemble sequence for an edge of the assembly graph.
     void assembleAssemblyGraphEdge(
-        AssemblyGraph::EdgeId,
+        AssemblyGraphEdgeId,
         bool storeCoverageData,
         AssembledSegment&);
     // Lower level version that works on a generic marker graph path.
     void assembleAssemblyGraphEdge(
-        const span<const MarkerGraph::EdgeId>&,
+        const span<const MarkerGraphEdgeId>&,
         bool storeCoverageData,
         AssembledSegment&);
 public:
     AssembledSegment assembleAssemblyGraphEdge(
-        AssemblyGraph::EdgeId,
+        AssemblyGraphEdgeId,
         bool storeCoverageData);
 
 
@@ -2032,7 +2034,7 @@ private:
 
         // The results created by each thread.
         // All indexed by threadId.
-        vector< vector<AssemblyGraph::EdgeId> > edges;
+        vector< vector<AssemblyGraphEdgeId> > edges;
         vector< shared_ptr<LongBaseSequences> > sequences;
         vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > repeatCounts;
         void allocate(size_t threadCount);
@@ -2048,12 +2050,12 @@ private:
     // This will be the case if edges were created by Assembler::createMarkerGraphEdgesStrict.
 public:
     void assembleMarkerGraphPathRleStrict(
-        span<const MarkerGraph::EdgeId> path,
+        span<const MarkerGraphEdgeId> path,
         vector<Base>& rleSequence
     ) const;
     // Same, but for an assembly graph edge.
     void assembleAssemblyGraphEdgeRleStrict(
-        AssemblyGraph::EdgeId,
+        AssemblyGraphEdgeId,
         vector<Base>& rleSequence
     ) const;
 
@@ -2312,7 +2314,7 @@ private:
     void exploreAssemblyGraph(const vector<string>&, ostream&);
     class LocalAssemblyGraphRequestParameters {
     public:
-        AssemblyGraph::EdgeId edgeId;
+        AssemblyGraphEdgeId edgeId;
         bool edgeIdIsPresent;
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
@@ -2323,7 +2325,7 @@ private:
         bool sizePixelsIsPresent;
         double timeout;
         bool timeoutIsPresent;
-        void writeForm(ostream&, AssemblyGraph::EdgeId edgeCount) const;
+        void writeForm(ostream&, AssemblyGraphEdgeId edgeCount) const;
         bool hasMissingRequiredParameters() const;
     };
     void getLocalAssemblyGraphRequestParameters(
