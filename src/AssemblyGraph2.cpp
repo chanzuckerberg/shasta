@@ -132,7 +132,8 @@ void AssemblyGraph2::cleanupBubbleGraph(
     }
 
 
-    // Remove edges with high ambiguity.
+#if 0
+    // Finally, remove edges with high ambiguity.
     vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         if(bubbleGraph[e].ambiguity() > ambiguityThreshold) {
@@ -145,6 +146,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
     cout << "Removed " << edgesToBeRemoved.size() <<
         " bubble graph edges with ambiguity greater than " <<
         ambiguityThreshold << endl;
+#endif
 
     bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
     bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
@@ -1569,8 +1571,8 @@ void AssemblyGraph2::BubbleGraph::writeHtml(const string& fileName)
     // Create a filtered BubbleGraph, containing only the edges
     // with relativePhase() >= minRelativePhase.
     const double minRelativePhase = 0.;
-    using FilteredGraph = boost::filtered_graph<G, BubbleGraphEdgePredicate>;
-    FilteredGraph filteredGraph(g, BubbleGraphEdgePredicate(g, minRelativePhase));
+    using FilteredGraph = boost::filtered_graph<G, BubbleGraphEdgePredicate1>;
+    FilteredGraph filteredGraph(g, BubbleGraphEdgePredicate1(g, minRelativePhase));
 
     // Compute the layout of the filtered graph.
     std::map<FilteredGraph::vertex_descriptor, array<double, 2> > positionMap;
@@ -1686,6 +1688,118 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
 
     out << "}\n";
 
+}
+
+
+
+// Post-phasing.
+void AssemblyGraph2::BubbleGraph::writeHtml(
+    const string& fileName,
+    const std::set<edge_descriptor>& treeEdges,
+    bool onlyShowUnhappyEdges)
+{
+    BubbleGraph& g = *this;
+
+    // Create a filtered BubbleGraph, containing only the tree edges
+    // and the edges with relativePhase() >= minRelativePhase.
+    const double minRelativePhase = 0.;
+    using FilteredGraph = boost::filtered_graph<BubbleGraph, BubbleGraphEdgePredicate2>;
+    FilteredGraph filteredGraph(g, BubbleGraphEdgePredicate2(g, minRelativePhase, treeEdges));
+
+    // Compute the layout of the filtered graph.
+    // This should mostly separate the two phases.
+    std::map<FilteredGraph::vertex_descriptor, array<double, 2> > positionMap;
+    SHASTA_ASSERT(computeLayout(filteredGraph, "sfdp", 600., positionMap) == ComputeLayoutReturnCode::Success);
+    BGL_FORALL_VERTICES(v, filteredGraph, FilteredGraph) {
+        filteredGraph[v].position = positionMap[v];
+    }
+
+
+
+    // Graphics scaling.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::min();
+    BGL_FORALL_VERTICES_T(v, g, G) {
+        const auto& position = g[v].position;
+        xMin = min(xMin, position[0]);
+        xMax = max(xMax, position[0]);
+        yMin = min(yMin, position[1]);
+        yMax = max(yMax, position[1]);
+    }
+    const double xyRange = max(xMax-xMin, yMax-yMin);
+    const int svgSize = 1600;
+    const double vertexRadiusPixels = 3.;
+    const double vertexRadius = vertexRadiusPixels * xyRange / double(svgSize);
+    const double edgeThicknessPixels = 0.3;
+    const double edgeThickness = edgeThicknessPixels * xyRange / double(svgSize);
+
+    // Vertex attributes. Color by phase.
+    std::map<G::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
+    BGL_FORALL_VERTICES(v, g, BubbleGraph) {
+        auto& attributes = vertexAttributes[v];
+        if(g[v].phase == 0) {
+            attributes.color = "hsl(240,50%,50%)";
+        } else {
+            attributes.color = "hsl(300,50%,50%)";
+        }
+        attributes.radius = vertexRadius;
+        attributes.tooltip = to_string(g[v].id);
+    }
+
+    // Edge attributes.
+    std::map<BubbleGraph::edge_descriptor, WriteGraph::EdgeAttributes> edgeAttributes;
+    BGL_FORALL_EDGES(e, g, BubbleGraph) {
+        const double relativePhase = g[e].relativePhase();
+        const double hue = (1. + relativePhase) * 60.; /// Goes from 0 (red) to 120 (green).
+        auto& attributes = edgeAttributes[e];
+        attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,50%)";
+        attributes.thickness = edgeThickness;
+        if(onlyShowUnhappyEdges) {
+            if(g.edgeIsHappy(e)) {
+                attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,0%)";
+            } else {
+                attributes.thickness *= 20.;
+            }
+        }
+    }
+
+
+
+    // Write it out as svg in html.
+    ofstream out(fileName);
+    out << "<html><body>";
+    WriteGraph::writeSvg(
+        g,
+        "BubbleGraph",
+        svgSize, svgSize,
+        vertexAttributes,
+        edgeAttributes,
+        out);
+    out << "</body></html>";
+}
+
+
+
+// Return true if the give edge has relative phase consistent
+// with the phases assigned to its two vertices.
+bool AssemblyGraph2::BubbleGraph::edgeIsHappy(BubbleGraph::edge_descriptor e) const
+{
+    const BubbleGraph& g = *this;
+
+    const vertex_descriptor v0 = source(e, g);
+    const vertex_descriptor v1 = target(e, g);
+    const uint64_t phase0 = g[v0].phase;
+    const uint64_t phase1 = g[v1].phase;
+
+    const double relativePhase = g[e].relativePhase();
+
+    if(phase0 == phase1) {
+        return relativePhase > 0.;
+    } else {
+        return relativePhase < 0.;
+    }
 }
 
 
@@ -1851,6 +1965,84 @@ void AssemblyGraph2::phase()
             csv << edge.discordantCount() << ",";
             csv << edge.concordantCount() - edge.discordantCount() << "\n";
         }
+
+
+
+        // To phase, do a BFS on the spanning tree of the componentGraph.
+        // Assign phases consistent with the spanning tree edges.
+        std::queue<BubbleGraph::vertex_descriptor> q;
+        BubbleGraph::vertex_iterator it;
+        tie(it, ignore) = vertices(componentGraph);
+        BubbleGraph::vertex_descriptor vStart = *it;
+        q.push(vStart);
+        componentGraph[vStart].phase = 0;
+        while(not q.empty()) {
+
+            // Dequeue a vertex.
+            const BubbleGraph::vertex_descriptor v0 = q.front();
+            // cout << "Dequeued " << (*this)[componentGraph[v0].e].id << " " << componentGraph[v0].phase << endl;
+            q.pop();
+            const uint64_t phase0 = componentGraph[v0].phase;
+            SHASTA_ASSERT(phase0 != BubbleGraphVertex::invalidPhase);
+
+            // Loop over tree edges.
+            BGL_FORALL_OUTEDGES(v0, e01, componentGraph, BubbleGraph) {
+                if(treeEdges.find(e01) == treeEdges.end()) {
+                    continue;
+                }
+                const double relativePhase = componentGraph[e01].relativePhase();
+                const BubbleGraph::vertex_descriptor v1 = target(e01, componentGraph);
+                // cout << "Found " << (*this)[componentGraph[v1].e].id << " " << componentGraph[v1].phase << endl;
+                // cout << "Relative phase " << relativePhase << endl;
+                uint64_t& phase1 = componentGraph[v1].phase;
+                if(phase1 == BubbleGraphVertex::invalidPhase) {
+                    if(relativePhase > 0.) {
+                        phase1 = phase0;
+                    } else {
+                        phase1 = 1 - phase0;
+                    }
+                    q.push(v1);
+                    // cout << "Enqueued " << (*this)[componentGraph[v1].e].id << " " << componentGraph[v1].phase << endl;
+                } else {
+                    // We already encountered this vertex. Just check
+                    // that its phase is consistent with the edge.
+                    const uint64_t& phase1 = componentGraph[v1].phase;
+                    if(relativePhase > 0.) {
+                        SHASTA_ASSERT(phase1 == phase0);
+                    } else {
+                        SHASTA_ASSERT(phase1 == 1 - phase0);
+                    }
+                }
+            }
+        }
+
+        uint64_t unhappyCount = 0;
+        uint64_t totalCount = 0;
+        BGL_FORALL_EDGES(e, componentGraph, BubbleGraph) {
+            ++totalCount;
+            if(not componentGraph.edgeIsHappy(e)) {
+                ++unhappyCount;
+            }
+        }
+        cout << "Found " << unhappyCount << " edges inconsistent with computed bubble phasing "
+            " out of " << totalCount << " edges in this connected component." << endl;
+
+        componentGraph.writeHtml("Component-" + to_string(componentId) + ".html", treeEdges, false);
+        componentGraph.writeHtml("Component-" + to_string(componentId) + "-Unhappy.html", treeEdges, true);
+
+
+        // Copy the phasing to the global bubble graph.
+        uint64_t i = 0;
+        BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
+            BubbleGraph::vertex_descriptor vGlobal = bubbleGraph.connectedComponents[componentId][i++];
+            bubbleGraph[vGlobal].phase = bubbleGraph[v].phase;
+        }
+    }
+
+
+    // Check that all vertices of the global bubble graph are phased.
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        SHASTA_ASSERT(bubbleGraph[v].phase != BubbleGraphVertex::invalidPhase);
     }
 }
 
