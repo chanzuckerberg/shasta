@@ -148,6 +148,11 @@ public:
     // removed from the bubble graph.
     bool isBad = false;
 
+    // Phasing information - only set for bubbles not marker
+    // as bad by the above flag.
+    uint64_t componentId = std::numeric_limits<uint64_t>::max();
+    uint64_t phase = std::numeric_limits<uint64_t>::max();
+
 };
 
 

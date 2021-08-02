@@ -803,7 +803,7 @@ void AssemblyGraph2::writeGfaBothStrands(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",Color,First marker graph edge,Last marker graph edge,"
+    csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
@@ -829,7 +829,16 @@ void AssemblyGraph2::writeGfaBothStrands(
             // Also write a line to the csv file.
             const string color = edge.color(branchId);
             csv <<
-                edge.pathId(branchId) << "," <<
+                edge.pathId(branchId) << ",";
+            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
+                csv << edge.componentId;
+            }
+            csv << ",";
+            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
+                csv << (branchId == edge.phase ? 0 : 1);
+            }
+            csv <<
+                "," <<
                 color << "," <<
                 branch.path.front() << "," << branch.path.back() << "," <<
                 branch.minimumCoverage << "," <<
@@ -884,7 +893,7 @@ void AssemblyGraph2::writeGfa(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",Color,First marker graph edge,Last marker graph edge,"
+    csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
@@ -915,7 +924,16 @@ void AssemblyGraph2::writeGfa(
             // Also write a line to the csv file.
             const string color = edge.color(branchId);
             csv <<
-                edge.pathId(branchId) << "," <<
+                edge.pathId(branchId) << ",";
+            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
+                csv << edge.componentId;
+            }
+            csv << ",";
+            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
+                csv << (branchId == edge.phase ? 0 : 1);
+            }
+            csv <<
+                "," <<
                 color << "," <<
                 branch.path.front() << "," << branch.path.back() << "," <<
                 branch.minimumCoverage << "," <<
@@ -985,40 +1003,25 @@ string AssemblyGraph2Edge::color(uint64_t branchId) const
 {
     if(isBubble()) {
 
-        // A bad bubble is red on the weak branch.
-        if(isBad) {
+        // A bad or unphased bubble is grey - darker on the strongest branch.
+        if(isBad or phase == std::numeric_limits<uint64_t>::max()) {
             if(branchId == strongestBranchId) {
-                return "Grey";
+                return "#808080";
             } else {
-                return "Red";
+                return "#C0C0C0";
             }
         }
 
-        // A good bubble that is not a repeat count bubble is green.
-        if(period == 0) {
-            return "Green";
-        }
-
-        // If getting here, it is a repeat count bubble.
-        if(branchId == strongestBranchId) {
-            return "Grey";
-        }
-
-        switch(period) {
-        case 2:
-            return "Cyan";
-        case 3:
-            return "Orange";
-        case 4:
-            return "Purple";
-        default:
-            return "Brown";
+        if(branchId == phase) {
+            return "#bf4040";   // HSL(0,50%,50%) Pink
+        } else {
+            return "#4040bf";   // HSL(240,50%,50%) Blue
         }
 
     } else {
 
         // It is not a bubble.
-        return "Grey";
+        return "#808080";
     }
 
 }
@@ -2036,13 +2039,23 @@ void AssemblyGraph2::phase()
         BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
             BubbleGraph::vertex_descriptor vGlobal = bubbleGraph.connectedComponents[componentId][i++];
             bubbleGraph[vGlobal].phase = bubbleGraph[v].phase;
+            SHASTA_ASSERT(bubbleGraph[vGlobal].componentId == componentId);
         }
     }
 
 
-    // Check that all vertices of the global bubble graph are phased.
+    // Check that all vertices of the global bubble graph are phased
+    // and copy the phasing information to the AssemvblyGraph2Edges.
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
-        SHASTA_ASSERT(bubbleGraph[v].phase != BubbleGraphVertex::invalidPhase);
+        const BubbleGraphVertex& bubbleGraphVertex = bubbleGraph[v];
+        const uint64_t componentId = bubbleGraphVertex.componentId;
+        SHASTA_ASSERT(componentId != std::numeric_limits<uint64_t>::max());
+        const uint64_t phase = bubbleGraphVertex.phase;
+        SHASTA_ASSERT(phase != BubbleGraphVertex::invalidPhase);
+
+        AssemblyGraph2Edge& assemblyGraph2Edge = (*this)[bubbleGraphVertex.e];
+        assemblyGraph2Edge.componentId = componentId;
+        assemblyGraph2Edge.phase = phase;
     }
 }
 
