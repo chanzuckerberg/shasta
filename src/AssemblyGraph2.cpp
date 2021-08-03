@@ -53,13 +53,11 @@ AssemblyGraph2::AssemblyGraph2(
     // Ambiguity threshold for bubble graphedges.
     double ambiguityThreshold = 0.5;
 
-
-
-    // Create the AssemblyGraph2 from the MarkerGraph,
-    // gather each set of bubbles in a single edge,
-    // and assemble sequence on every edge.
+    // Create the assembly graph.
     create();
     gatherBubbles();
+    storeReadInformation();
+    removeSecondaryBubbles();
     assemble();
     storeGfaSequence();
     checkReverseComplementEdges();
@@ -67,9 +65,6 @@ AssemblyGraph2::AssemblyGraph2(
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
     findCopyNumberBubbles(maxPeriod);
-
-    // Store read information on all edges.
-    storeReadInformation();
 
     // Create the bubble graph.
     createBubbleGraph(markers.size()/2);
@@ -2076,4 +2071,88 @@ void AssemblyGraph2::phase()
     }
 }
 
+
+
+void AssemblyGraph2::removeSecondaryBubbles()
+{
+    G& g = *this;
+
+    // Loop over edges, in reverse complemented pairs.
+    BGL_FORALL_EDGES(e, g, G) {
+        if(idIsGreaterThanReverseComplement(e)) {
+            continue;
+        }
+
+        // If not a bubble, do nothing.
+        E& edge = g[e];
+        if(not edge.isBubble()) {
+            continue;
+        }
+
+        // See how many secondary branches we have.
+        uint64_t secondaryCount = 0;
+        for(const E::Branch& branch: edge.branches) {
+            if(branch.containsSecondaryEdges) {
+                ++secondaryCount;
+            }
+        }
+
+        // If there are no secondary branches, do nothing.
+        if(secondaryCount == 0) {
+            continue;
+        }
+        const uint64_t primaryCount = edge.ploidy() - secondaryCount;
+
+        // Access the reverse complement edge.
+        const edge_descriptor eRc = edge.reverseComplement;
+        E& edgeRc = g[eRc];
+
+
+
+        // Remove secondary branches, keeping at most one.
+        if(primaryCount > 0) {
+
+            // There is at least one primary branch, so we can
+            // remove all the secondary ones.
+            edge.removeAllSecondaryBranches();
+            edge.findStrongestBranch();
+            if(eRc != e) {
+                edgeRc.removeAllSecondaryBranches();
+                edgeRc.findStrongestBranch();
+            }
+        } else {
+
+            // There are no primary branches.
+            // Remove all secondary branches except the strongest.
+            edge.removeAllBranchesExceptStrongest();
+            edge.findStrongestBranch();
+            if(eRc != e) {
+                edgeRc.removeAllBranchesExceptStrongest();
+                edgeRc.findStrongestBranch();
+            }
+        }
+    }
+
+}
+
+
+
+void AssemblyGraph2Edge::removeAllSecondaryBranches()
+{
+    vector<Branch> newBranches;
+    for(const Branch& branch: branches) {
+        if(not branch.containsSecondaryEdges) {
+            newBranches.push_back(branch);
+        }
+    }
+    branches.swap(newBranches);
+}
+
+
+
+void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
+{
+    vector<Branch> newBranches(1, branches[strongestBranchId]);
+    branches.swap(newBranches);
+}
 

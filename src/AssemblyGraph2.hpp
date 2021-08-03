@@ -95,6 +95,10 @@ public:
     uint64_t strongestBranchId;
     void findStrongestBranch();
 
+    // Functions that remove some of the branches.
+    void removeAllSecondaryBranches();
+    void removeAllBranchesExceptStrongest();
+
     // Store read information on all branches.
     void storeReadInformation(const MarkerGraph&);
 
@@ -237,6 +241,8 @@ private:
         vertex_descriptor v0,
         vertex_descriptor v1,
         const vector<edge_descriptor>&);
+
+    void removeSecondaryBubbles();
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
