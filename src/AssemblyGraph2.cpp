@@ -258,8 +258,18 @@ void AssemblyGraph2::create()
             wasFound[edgeId] = true;
         }
 
+        // See if this path contains secondary edges.
+        bool containsSecondaryEdges = false;
+        for(const MarkerGraph::EdgeId edgeId: path) {
+            const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+            if(edge.isSecondary) {
+                containsSecondaryEdges = true;
+                break;
+            }
+        }
+
         // Store this path as a new edge of the assembly graph.
-        const edge_descriptor e = addEdge(path);
+        const edge_descriptor e = addEdge(path, containsSecondaryEdges);
         if(debug) {
             for(const MarkerGraph::EdgeId edgeId: path) {
                 const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
@@ -295,7 +305,7 @@ void AssemblyGraph2::create()
 
         // Store the reverse complemented path, if different from the original one.
         if(not isSelfComplementary) {
-            const edge_descriptor eRc = addEdge(reverseComplementedPath);
+            const edge_descriptor eRc = addEdge(reverseComplementedPath, containsSecondaryEdges);
             for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
                 SHASTA_ASSERT(not wasFound[edgeIdRc]);
                 wasFound[edgeIdRc] = true;
@@ -410,7 +420,9 @@ AssemblyGraph2::vertex_descriptor AssemblyGraph2::getVertex(MarkerGraph::VertexI
 
 // Create a new edges corresponding to the given path.
 // Also create the vertices if necessary.
-AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(const MarkerGraphPath& path)
+AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(
+    const MarkerGraphPath& path,
+    bool containsSecondaryEdges)
 {
     // Get the first and last edge of the path.
     const MarkerGraph::EdgeId edgeId0 = path.front();
@@ -428,7 +440,8 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(const MarkerGraphPath& p
     // Create the edge.
     edge_descriptor e;
     bool edgeWasAdded = false;
-    tie(e, edgeWasAdded) = add_edge(v0, v1, E(nextEdgeId++, path), *this);
+    tie(e, edgeWasAdded) = add_edge(v0, v1,
+        E(nextEdgeId++, path, containsSecondaryEdges), *this);
     SHASTA_ASSERT(edgeWasAdded);
 
     return e;
@@ -804,6 +817,7 @@ void AssemblyGraph2::writeGfaBothStrands(
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
     csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
+        "Secondary,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
@@ -841,6 +855,7 @@ void AssemblyGraph2::writeGfaBothStrands(
                 "," <<
                 color << "," <<
                 branch.path.front() << "," << branch.path.back() << "," <<
+                (branch.containsSecondaryEdges ? "S" : "") << "," <<
                 branch.minimumCoverage << "," <<
                 branch.averageCoverage << "," <<
                 branch.orientedReadIds.size() << "\n";
@@ -894,6 +909,7 @@ void AssemblyGraph2::writeGfa(
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
     csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
+        "Secondary,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
@@ -936,6 +952,7 @@ void AssemblyGraph2::writeGfa(
                 "," <<
                 color << "," <<
                 branch.path.front() << "," << branch.path.back() << "," <<
+                (branch.containsSecondaryEdges ? "S" : "") << "," <<
                 branch.minimumCoverage << "," <<
                 branch.averageCoverage << "," <<
                 branch.orientedReadIds.size() << "\n";

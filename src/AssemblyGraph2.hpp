@@ -65,7 +65,10 @@ public:
     class Branch {
     public:
         MarkerGraphPath path;
-        Branch(const MarkerGraphPath& path) : path(path) {}
+        bool containsSecondaryEdges;
+        Branch(const MarkerGraphPath& path, bool containsSecondaryEdges) :
+            path(path),
+            containsSecondaryEdges(containsSecondaryEdges) {}
 
         // Assembled sequence.
         // This excludes the first and last k/2 RLE bases.
@@ -104,8 +107,11 @@ public:
     AssemblyGraph2Edge(uint64_t id) : id(id) {}
 
     // This constructor creates an edge with a single path.
-    AssemblyGraph2Edge(uint64_t id, const MarkerGraphPath& path) :
-        id(id), branches(1, Branch(path)) {}
+    AssemblyGraph2Edge(
+        uint64_t id,
+        const MarkerGraphPath& path,
+        bool containsSecondaryEdges) :
+        id(id), branches(1, Branch(path, containsSecondaryEdges)) {}
 
     uint64_t ploidy() const {
         return branches.size();
@@ -211,7 +217,9 @@ private:
 
     // Create a new edge corresponding to the given path.
     // Also create the vertices if necessary.
-    edge_descriptor addEdge(const MarkerGraphPath&);
+    edge_descriptor addEdge(
+        const MarkerGraphPath&,
+        bool containsSecondaryEdges);
 
     // Assemble sequence for every marker graph path of every edge.
     void assemble();
