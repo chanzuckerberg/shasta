@@ -225,6 +225,9 @@ private:
         const MarkerGraphPath&,
         bool containsSecondaryEdges);
 
+    // Merge consecutive non-bubbles, when possible.
+    void merge();
+
     // Assemble sequence for every marker graph path of every edge.
     void assemble();
 

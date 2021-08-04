@@ -58,6 +58,7 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
     storeReadInformation();
     removeSecondaryBubbles();
+    merge();
     assemble();
     storeGfaSequence();
     checkReverseComplementEdges();
@@ -812,7 +813,7 @@ void AssemblyGraph2::writeGfaBothStrands(
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
     csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
-        "Secondary,"
+        "Secondary,Period,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
@@ -851,6 +852,7 @@ void AssemblyGraph2::writeGfaBothStrands(
                 color << "," <<
                 branch.path.front() << "," << branch.path.back() << "," <<
                 (branch.containsSecondaryEdges ? "S" : "") << "," <<
+                (edge.period ? to_string(edge.period) : string()) << "," <<
                 branch.minimumCoverage << "," <<
                 branch.averageCoverage << "," <<
                 branch.orientedReadIds.size() << "\n";
@@ -904,7 +906,7 @@ void AssemblyGraph2::writeGfa(
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
     csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
-        "Secondary,"
+        "Secondary,Period,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
@@ -948,6 +950,7 @@ void AssemblyGraph2::writeGfa(
                 color << "," <<
                 branch.path.front() << "," << branch.path.back() << "," <<
                 (branch.containsSecondaryEdges ? "S" : "") << "," <<
+                (edge.period ? to_string(edge.period) : string()) << "," <<
                 branch.minimumCoverage << "," <<
                 branch.averageCoverage << "," <<
                 branch.orientedReadIds.size() << "\n";
@@ -2156,3 +2159,10 @@ void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
     branches.swap(newBranches);
 }
 
+
+
+// Merge consecutive non-bubbles, when possible.
+void AssemblyGraph2::merge()
+{
+
+}
