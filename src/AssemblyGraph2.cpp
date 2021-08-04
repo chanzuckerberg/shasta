@@ -2168,20 +2168,87 @@ void AssemblyGraph2::merge()
     G& g = *this;
 
     // Find linear chains of non-bubbles.
-    vector< std::list<edge_descriptor> > chains;
+    vector< vector<edge_descriptor> > chains;
     findNonBubbleLinearChains(chains);
 
     // Find reverse complemented pairs.
     vector<uint64_t> chainTable;
     pairPaths(chains, chainTable);
 
-    for(const std::list<edge_descriptor>& chain: chains) {
-        cout << "Chain of non-bubbles:";
-        for(const edge_descriptor e: chain) {
-            cout << " " << g[e].id;
+
+    // Merge each pair.
+    for(uint64_t chainId=0; chainId<chains.size(); chainId++) {
+        const uint64_t chainIdRc = chainTable[chainId];
+
+        // Make sure to do each pair once.
+        if(chainIdRc < chainId) {
+            continue;
         }
-        cout << endl;
+
+        // Merge the chain.
+        const vector<edge_descriptor>& chain = chains[chainId];
+        const edge_descriptor e = merge(chain);
+
+        // If self-complementary, we are done.
+        if(chainIdRc == chainId) {
+            g[e].reverseComplement = e;
+            continue;
+        }
+
+        // Merge the reverse complement chain.
+        const vector<edge_descriptor>& chainRc = chains[chainIdRc];
+        const edge_descriptor eRc = merge(chainRc);
+        g[e].reverseComplement = eRc;
+        g[eRc].reverseComplement = e;
     }
+}
+
+
+
+AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(const vector<edge_descriptor>& chain)
+{
+    G& g = *this;
+
+    // Sanity checks.
+
+    // Must be more than one edge.
+    SHASTA_ASSERT(chain.size() > 1);
+
+    // There must be no bubbles.
+    for(const edge_descriptor e: chain) {
+        SHASTA_ASSERT(not g[e].isBubble());
+    }
+
+    // It must be a path.
+    for(uint64_t i=1; i<chain.size(); i++) {
+        SHASTA_ASSERT(target(chain[i-1], g) == source(chain[i], g));
+    }
+
+    // Create the merged marker graph path.
+    MarkerGraphPath newPath;
+    bool containsSecondaryEdges = false;
+    for(const edge_descriptor e: chain) {
+        const AssemblyGraph2Edge::Branch& branch = g[e].branches.front();
+        const MarkerGraphPath& path = g[e].branches.front().path;
+        newPath.insert(newPath.end(), path.begin(), path.end());
+        containsSecondaryEdges = containsSecondaryEdges or branch.containsSecondaryEdges;
+    }
+
+    // Add the new edge.
+    const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges);
+    g[eNew].storeReadInformation(markerGraph);
+
+    // Remove the old edges.
+    for(const edge_descriptor e: chain) {
+        boost::remove_edge(e, g);
+    }
+
+    // Remove the vertices in between.
+    for(uint64_t i=1; i<chain.size(); i++) {
+        boost::remove_vertex(source(chain[i], g), g);
+    }
+
+    return eNew;
 }
 
 
@@ -2189,7 +2256,7 @@ void AssemblyGraph2::merge()
 // Find linear chains of adjacent non-bubbles.
 // Used by merge.
 void AssemblyGraph2::findNonBubbleLinearChains(
-    vector< std::list<edge_descriptor> >& chains) const
+    vector< vector<edge_descriptor> >& chains) const
 {
     const G& g = *this;
 
@@ -2208,11 +2275,11 @@ void AssemblyGraph2::findNonBubbleLinearChains(
 // This assumes that, if paths contains a path,
 // it also contains its reverse complement.
 void AssemblyGraph2::pairPaths(
-    const vector< std::list<edge_descriptor> >& paths,
+    const vector< vector<edge_descriptor> >& paths,
     vector<uint64_t>& pathTable) const
 {
     const G& g = *this;
-    using Path = std::list<edge_descriptor>;
+    using Path = vector<edge_descriptor>;
 
     // Index the given paths by the first edge.
     std::map<edge_descriptor, uint64_t> pathIndex;

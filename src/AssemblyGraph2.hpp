@@ -14,7 +14,6 @@
 
 // Standard library.
 #include "array.hpp"
-#include <list>
 #include <map>
 #include "string.hpp"
 #include "vector.hpp"
@@ -228,10 +227,11 @@ private:
 
     // Merge consecutive non-bubbles, when possible.
     void merge();
+    edge_descriptor merge(const vector<edge_descriptor>&);
 
     // Find linear chains of adjacent non-bubbles.
     // Used by merge.
-    void findNonBubbleLinearChains(vector< std::list<edge_descriptor> >&) const;
+    void findNonBubbleLinearChains(vector< vector<edge_descriptor> >&) const;
 
     // Predicate used to select non-bubble edges.
     class IsNonBubbleEdge {
@@ -252,7 +252,7 @@ private:
     // This assumes that, if paths contains a path,
     // it also contains its reverse complement.
     void pairPaths(
-        const vector< std::list<edge_descriptor> >& paths,
+        const vector< vector<edge_descriptor> >& paths,
         vector<uint64_t>& pathTable) const;
 
     // Assemble sequence for every marker graph path of every edge.

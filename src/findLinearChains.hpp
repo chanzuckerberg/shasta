@@ -16,6 +16,10 @@ namespace shasta {
         const Graph&,
         uint64_t minimumLength,
         vector< std::list<typename Graph::edge_descriptor> >&);
+    template<class Graph> void findLinearChains(
+        const Graph&,
+        uint64_t minimumLength,
+        vector< vector<typename Graph::edge_descriptor> >&);
 
 
     // Find linear chains of vertices.
@@ -25,6 +29,27 @@ namespace shasta {
     template<class Graph> void findLinearVertexChains(
         const Graph&,
         vector< vector<typename Graph::vertex_descriptor> >&);
+}
+
+
+
+// Version that uses vectors.
+template<class Graph> void shasta::findLinearChains(
+    const Graph& graph,
+    uint64_t minimumLength,
+    vector< vector<typename Graph::edge_descriptor> >& chainVectors)
+{
+    using edge_descriptor = typename Graph::edge_descriptor;
+
+    // Call the version that uses lists.
+    vector< std::list<edge_descriptor> > chains;
+    findLinearChains(graph, minimumLength, chains);
+
+    // Copy the lists to vectors.
+    chainVectors.clear();
+    for(const auto& chain: chains) {
+        chainVectors.push_back(vector<edge_descriptor>(chain.begin(), chain.end()));
+    }
 }
 
 
