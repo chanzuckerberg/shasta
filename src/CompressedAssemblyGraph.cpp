@@ -178,7 +178,7 @@ void CompressedAssemblyGraph::mergeLinearChains()
 
     // Find linear chains.
     vector< std::list<edge_descriptor> > chains;
-    findLinearChains(graph, chains);
+    findLinearChains(graph, 0, chains);
 
 
 

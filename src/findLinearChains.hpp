@@ -14,6 +14,7 @@ namespace shasta {
     // Find linear chains of edges (paths).
     template<class Graph> void findLinearChains(
         const Graph&,
+        uint64_t minimumLength,
         vector< std::list<typename Graph::edge_descriptor> >&);
 
 
@@ -31,6 +32,7 @@ namespace shasta {
 // Find linear chains of edges (paths).
 template<class Graph> inline void shasta::findLinearChains(
     const Graph& graph,
+    uint64_t minimumLength,
     vector< std::list<typename Graph::edge_descriptor> >& chains)
 {
     using vertex_descriptor = typename Graph::vertex_descriptor;
@@ -106,10 +108,21 @@ template<class Graph> inline void shasta::findLinearChains(
             }
         }
 
+        // If the chain is too short, get rid of it.
+        if(chain.size() < minimumLength) {
+            chains.resize(chains.size() - 1);
+        }
+
     }
 
     // Check that all edges were found.
-    SHASTA_ASSERT(edgesFound.size() == num_edges(graph));
+    // Just using num_edges does not work if the graph is a filtered_graph.
+    // SHASTA_ASSERT(edgesFound.size() == num_edges(graph));
+    uint64_t edgeCount = 0;
+    BGL_FORALL_EDGES_T(e, graph, Graph) {
+        ++edgeCount;
+    }
+    SHASTA_ASSERT(edgesFound.size() == edgeCount);
 }
 
 

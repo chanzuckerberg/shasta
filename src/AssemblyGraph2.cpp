@@ -4,6 +4,7 @@
 #include "computeLayout.hpp"
 #include "copyNumber.hpp"
 #include "deduplicate.hpp"
+#include "findLinearChains.hpp"
 #include "orderPairs.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
@@ -2164,5 +2165,108 @@ void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
 // Merge consecutive non-bubbles, when possible.
 void AssemblyGraph2::merge()
 {
+    G& g = *this;
+
+    // Find linear chains of non-bubbles.
+    vector< std::list<edge_descriptor> > chains;
+    findNonBubbleLinearChains(chains);
+
+    // Find reverse complemented pairs.
+    vector<uint64_t> chainTable;
+    pairPaths(chains, chainTable);
+
+    for(const std::list<edge_descriptor>& chain: chains) {
+        cout << "Chain of non-bubbles:";
+        for(const edge_descriptor e: chain) {
+            cout << " " << g[e].id;
+        }
+        cout << endl;
+    }
+}
+
+
+
+// Find linear chains of adjacent non-bubbles.
+// Used by merge.
+void AssemblyGraph2::findNonBubbleLinearChains(
+    vector< std::list<edge_descriptor> >& chains) const
+{
+    const G& g = *this;
+
+    // Create a filtered graph consisting of only the non-bubble edges.
+    using FilteredGraph = boost::filtered_graph<G, IsNonBubbleEdge>;
+    FilteredGraph filteredGraph(g, IsNonBubbleEdge(g));
+
+    // Find linear chains in this filtered graph.
+    findLinearChains(filteredGraph, 2, chains);
 
 }
+
+
+// Given a set of paths in the graph, find reverse complemented pairs.
+// On return, the reverse complement of path[i] is path[[pathTable[i]].
+// This assumes that, if paths contains a path,
+// it also contains its reverse complement.
+void AssemblyGraph2::pairPaths(
+    const vector< std::list<edge_descriptor> >& paths,
+    vector<uint64_t>& pathTable) const
+{
+    const G& g = *this;
+    using Path = std::list<edge_descriptor>;
+
+    // Index the given paths by the first edge.
+    std::map<edge_descriptor, uint64_t> pathIndex;
+    for(uint64_t pathId=0; pathId<paths.size(); pathId++) {
+        const Path& path = paths[pathId];
+        SHASTA_ASSERT(not path.empty());
+        pathIndex.insert(make_pair(path.front(), pathId));
+    }
+
+
+
+    // Now we can fill up the pathTable.
+    pathTable.resize(paths.size());
+    for(uint64_t pathId=0; pathId<paths.size(); pathId++) {
+        const Path& path = paths[pathId];
+        SHASTA_ASSERT(not path.empty());
+
+        // Find the last edge of this path.
+        const edge_descriptor e = path.back();
+
+        // Its reverse complement is the first edge of the reverse
+        // complement path.
+        const edge_descriptor eRc = g[e].reverseComplement;
+
+        // Look it up in out path index.
+        auto it = pathIndex.find(eRc);
+        SHASTA_ASSERT(it != pathIndex.end());
+        pathTable[pathId] = it->second;
+
+    }
+
+
+
+    // Sanity checks.
+    for(uint64_t pathId=0; pathId<paths.size(); pathId++) {
+        const uint64_t pathIdRc = pathTable[pathId];
+        SHASTA_ASSERT(pathTable[pathIdRc] == pathId);
+
+        const Path& path = paths[pathId];
+        const Path& pathRc = paths[pathIdRc];
+
+        const uint64_t pathLength = path.size();
+        SHASTA_ASSERT(pathRc.size() == pathLength);
+
+        auto it=path.begin();
+        auto itRc=pathRc.rbegin();
+        for(; it!=path.end(); ++it, ++itRc) {
+            const edge_descriptor e = *it;
+            const edge_descriptor eRc = *itRc;
+            SHASTA_ASSERT(g[e].reverseComplement == eRc);
+            SHASTA_ASSERT(g[eRc].reverseComplement == e);
+        }
+    }
+}
+
+
+
