@@ -252,9 +252,23 @@ void AssemblyGraph2::create()
         path.push_back(startEdgeId);
         copy(nextEdges.begin(), nextEdges.end(), back_inserter(path));
 
+        if(debug) {
+            for(const MarkerGraph::EdgeId edgeId: path) {
+                const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+                debugOut << "Path " << edgeId << " " <<
+                    edge.source << "->" << edge.target << endl;
+            }
+        }
+
         // Mark all the edges in the path as found.
         for(const MarkerGraph::EdgeId edgeId: path) {
-            SHASTA_ASSERT(not wasFound[edgeId]);
+            if(wasFound[edgeId]) {
+                cout << "Assertion failed at " << edgeId << endl;
+                if(debug) {
+                    debugOut << "Assertion failed at " << edgeId << endl;
+                }
+                SHASTA_ASSERT(0);
+            }
             wasFound[edgeId] = true;
         }
 
@@ -270,13 +284,6 @@ void AssemblyGraph2::create()
 
         // Store this path as a new edge of the assembly graph.
         const edge_descriptor e = addEdge(path, containsSecondaryEdges);
-        if(debug) {
-            for(const MarkerGraph::EdgeId edgeId: path) {
-                const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
-                debugOut << "Path " << edgeId << " " <<
-                    edge.source << "->" << edge.target << endl;
-            }
-        }
 
         // Also construct the reverse complemented path.
         reverseComplementedPath.clear();
