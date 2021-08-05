@@ -283,9 +283,6 @@ void AssemblyGraph2::create()
         for(const MarkerGraph::EdgeId edgeId: path) {
             const MarkerGraph::EdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
             reverseComplementedPath.push_back(edgeIdRc);
-            if(debug) {
-                debugOut << "Reverse complemented path " << edgeIdRc << endl;
-            }
         }
         std::reverse(reverseComplementedPath.begin(), reverseComplementedPath.end());
 
