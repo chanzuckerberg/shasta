@@ -203,6 +203,10 @@ void AssemblyGraph2::create()
                 break;
             }
             edgeId = outEdges[0];
+            if(debug) {
+                debugOut << "Forward " << edgeId << " " <<
+                    edge.source << "->" << edge.target << endl;
+            }
             if(edgeId == startEdgeId) {
                 isCircular = true;
                 if(true) {
@@ -215,10 +219,6 @@ void AssemblyGraph2::create()
             }
             nextEdges.push_back(edgeId);
             SHASTA_ASSERT(not wasFound[edgeId]);
-            if(debug) {
-                debugOut << "Forward " << edgeId << " " <<
-                    edge.source << "->" << edge.target << endl;
-            }
         }
 
         // Follow the path backward.
@@ -237,12 +237,12 @@ void AssemblyGraph2::create()
                     break;
                 }
                 edgeId = inEdges[0];
-                previousEdges.push_back(edgeId);
-                SHASTA_ASSERT(not wasFound[edgeId]);
                 if(debug) {
                     debugOut << "Backward " << edgeId << " " <<
                         edge.source << "->" << edge.target << endl;
                 }
+                previousEdges.push_back(edgeId);
+                SHASTA_ASSERT(not wasFound[edgeId]);
             }
         }
 
@@ -254,6 +254,7 @@ void AssemblyGraph2::create()
 
         // Mark all the edges in the path as found.
         for(const MarkerGraph::EdgeId edgeId: path) {
+            SHASTA_ASSERT(not wasFound[edgeId]);
             wasFound[edgeId] = true;
         }
 
@@ -282,10 +283,18 @@ void AssemblyGraph2::create()
         for(const MarkerGraph::EdgeId edgeId: path) {
             const MarkerGraph::EdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
             reverseComplementedPath.push_back(edgeIdRc);
+            if(debug) {
+                debugOut << "Reverse complemented path " << edgeIdRc << endl;
+            }
         }
         std::reverse(reverseComplementedPath.begin(), reverseComplementedPath.end());
 
 
+        if(debug) {
+            for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
+                debugOut << "Reverse complemented path " << edgeIdRc << endl;
+            }
+        }
 
         // Figure out if the reverse complemented chain is the same
         // as the original chain. This can happen in exceptional cases.
@@ -305,7 +314,7 @@ void AssemblyGraph2::create()
         }
 
 
-        // Store the reverse complemented path, if different from the original one.
+        // If not self-complementary, store the reverse complemented path.
         if(not isSelfComplementary) {
             const edge_descriptor eRc = addEdge(reverseComplementedPath, containsSecondaryEdges);
             for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
