@@ -156,7 +156,7 @@ void AssemblyGraph2::create()
 {
     G& g = *this;
 
-    const bool debug = false;
+    const bool debug = true;
     ofstream debugOut;
     if(debug) {
         debugOut.open("AssemblyGraph2-Constructor.txt");
@@ -178,7 +178,7 @@ void AssemblyGraph2::create()
         if(debug) {
             const MarkerGraph::Edge& startEdge = markerGraph.edges[startEdgeId];
             debugOut << "Starting a new path at edge " << startEdgeId << " " <<
-                startEdge.source << "->" << startEdge.target << "\n";
+                startEdge.source << "->" << startEdge.target << endl;
         }
 
         // If we already found this edge, skip it.
@@ -208,14 +208,16 @@ void AssemblyGraph2::create()
                 if(true) {
                     cout << "Found a circular edge." << endl;
                 }
+                if(debug) {
+                    debugOut << "Found a circular edge." << endl;
+                }
                 break;
             }
             nextEdges.push_back(edgeId);
             SHASTA_ASSERT(not wasFound[edgeId]);
             if(debug) {
                 debugOut << "Forward " << edgeId << " " <<
-                    edge.source << "->" << edge.target << "\n";
-
+                    edge.source << "->" << edge.target << endl;
             }
         }
 
@@ -239,7 +241,7 @@ void AssemblyGraph2::create()
                 SHASTA_ASSERT(not wasFound[edgeId]);
                 if(debug) {
                     debugOut << "Backward " << edgeId << " " <<
-                        edge.source << "->" << edge.target << "\n";
+                        edge.source << "->" << edge.target << endl;
                 }
             }
         }
@@ -271,7 +273,7 @@ void AssemblyGraph2::create()
             for(const MarkerGraph::EdgeId edgeId: path) {
                 const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
                 debugOut << "Path " << edgeId << " " <<
-                    edge.source << "->" << edge.target << "\n";
+                    edge.source << "->" << edge.target << endl;
             }
         }
 
@@ -298,13 +300,19 @@ void AssemblyGraph2::create()
             isSelfComplementary =
                 find(path.begin(), path.end(), reverseComplementedPath.front()) != path.end();
         }
+        if(debug) {
+            debugOut << "isSelfComplementary " << int(isSelfComplementary) << endl;
+        }
 
 
         // Store the reverse complemented path, if different from the original one.
         if(not isSelfComplementary) {
             const edge_descriptor eRc = addEdge(reverseComplementedPath, containsSecondaryEdges);
             for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
-                SHASTA_ASSERT(not wasFound[edgeIdRc]);
+                if(wasFound[edgeIdRc]) {
+                    cout << "Assertion failed at " << edgeIdRc << endl;
+                    SHASTA_ASSERT(0);
+                }
                 wasFound[edgeIdRc] = true;
             }
 
@@ -316,13 +324,16 @@ void AssemblyGraph2::create()
                 for(const MarkerGraph::EdgeId edgeId: path) {
                     const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
                     debugOut << "Reverse complemented path " << edgeId << " " <<
-                        edge.source << "->" << edge.target << "\n";
+                        edge.source << "->" << edge.target << endl;
                 }
             }
         } else {
             // The edge we added is reverse complement of itself.
             g[e].reverseComplement = e;
             cout << "Found a self-complementary edge." << endl;
+            if(debug) {
+                debugOut << "Found a self-complementary edge." << endl;
+            }
         }
 
     }
