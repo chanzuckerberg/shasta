@@ -320,6 +320,9 @@ void AssemblyGraph2::create()
             for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
                 if(wasFound[edgeIdRc]) {
                     cout << "Assertion failed at " << edgeIdRc << endl;
+                    if(debug) {
+                        debugOut << "Assertion failed at " << edgeIdRc << endl;
+                    }
                     SHASTA_ASSERT(0);
                 }
                 wasFound[edgeIdRc] = true;
