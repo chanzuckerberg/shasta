@@ -55,20 +55,30 @@ AssemblyGraph2::AssemblyGraph2(
     double ambiguityThreshold = 0.5;
 
     // Create the assembly graph.
+    cout << "AssemblyGraph2::create begins." << endl;
     create();
+    cout << "AssemblyGraph2::gatherBubbles begins." << endl;
     gatherBubbles();
+    cout << "AssemblyGraph2::storeReadInformation begins." << endl;
     storeReadInformation();
+    cout << "AssemblyGraph2::removeSecondaryBubbles begins." << endl;
     removeSecondaryBubbles();
+    cout << "AssemblyGraph2::merge begins." << endl;
     merge();
+    cout << "AssemblyGraph2::assemble begins." << endl;
     assemble();
+    cout << "AssemblyGraph2::storeGfaSequence begins." << endl;
     storeGfaSequence();
+    cout << "AssemblyGraph2::checkReverseComplementEdges begins." << endl;
     checkReverseComplementEdges();
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
+    cout << "AssemblyGraph2::findCopyNumberBubbles begins." << endl;
     findCopyNumberBubbles(maxPeriod);
 
     // Create the bubble graph.
+    cout << "AssemblyGraph2::createBubbleGraph begins." << endl;
     createBubbleGraph(markers.size()/2);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
@@ -78,15 +88,18 @@ AssemblyGraph2::AssemblyGraph2(
     // Cleanup the bubble graph.
     // This marks as bad the bubbles corresponding to bubble graph vertices
     // that are removed.
+    cout << "AssemblyGraph2::cleanupBubbleGraph begins." << endl;
     cleanupBubbleGraph(minReadCount, discordantRatioThreshold, ambiguityThreshold);
 
     // Compute connected components of the bubble graph.
     bubbleGraph.computeConnectedComponents();
 
     // Use each connected component of the bubble graph to phase the bubbles.
+    cout << "AssemblyGraph2::phase begins." << endl;
     phase();
 
     // Write out what we have.
+    cout << "AssemblyGraph2 writing GFA output." << endl;
     const bool writeSequence = true;
     writeGfaBothStrands("Assembly-BothStrands", writeSequence);
     writeGfa("Assembly", writeSequence);
@@ -156,7 +169,7 @@ void AssemblyGraph2::create()
 {
     G& g = *this;
 
-    const bool debug = true;
+    const bool debug = false;
     ofstream debugOut;
     if(debug) {
         debugOut.open("AssemblyGraph2-Constructor.txt");
@@ -222,8 +235,8 @@ void AssemblyGraph2::create()
         }
 
         // Follow the path backward.
+        previousEdges.clear();
         if(!isCircular) {
-            previousEdges.clear();
             edgeId = startEdgeId;
             while(true) {
                 const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
