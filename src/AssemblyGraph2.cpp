@@ -1821,6 +1821,17 @@ void AssemblyGraph2::merge()
     vector< vector<edge_descriptor> > chains;
     findNonBubbleLinearChains(chains);
 
+    /*
+    cout << "Found the following linear chains that will be merged:" << endl;
+    for(const auto& chain: chains) {
+        cout << "Chain";
+        for(const edge_descriptor e: chain) {
+            cout << " " << (*this)[e].id;
+        }
+        cout << endl;
+    }
+    */
+
     // Merge each chain.
     for(const vector<edge_descriptor>& chain: chains) {
         merge(chain);
@@ -1832,6 +1843,15 @@ void AssemblyGraph2::merge()
 AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(const vector<edge_descriptor>& chain)
 {
     G& g = *this;
+
+    /*
+    cout << "Merging linear chain ";
+    for(const edge_descriptor e: chain) {
+        cout << " " << g[e].id;
+    }
+    cout << endl;
+    */
+
 
     // Sanity checks.
 
@@ -1848,6 +1868,14 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(const vector<edge_descript
         SHASTA_ASSERT(target(chain[i-1], g) == source(chain[i], g));
     }
 
+    // Check the degrees of internal vertices.
+    // It must be a linear chain.
+    for(uint64_t i=1; i<chain.size(); i++) {
+        const vertex_descriptor v = source(chain[i], g);
+        SHASTA_ASSERT(in_degree(v, g) == 1);
+        SHASTA_ASSERT(out_degree(v, g) == 1);
+    }
+
     // Create the merged marker graph path.
     MarkerGraphPath newPath;
     bool containsSecondaryEdges = false;
@@ -1862,14 +1890,22 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(const vector<edge_descript
     const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges);
     g[eNew].storeReadInformation(markerGraph);
 
+    // Gather the vertices in between, which will be removed.
+    vector<vertex_descriptor> verticesToBeRemoved;
+    for(uint64_t i=1; i<chain.size(); i++) {
+        verticesToBeRemoved.push_back(source(chain[i], g));
+    }
+
     // Remove the old edges.
     for(const edge_descriptor e: chain) {
         boost::remove_edge(e, g);
     }
 
     // Remove the vertices in between.
-    for(uint64_t i=1; i<chain.size(); i++) {
-        boost::remove_vertex(source(chain[i], g), g);
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        SHASTA_ASSERT(in_degree(v, g) == 0);
+        SHASTA_ASSERT(out_degree(v, g) == 0);
+        boost::remove_vertex(v, g);
     }
 
     return eNew;
@@ -1884,12 +1920,109 @@ void AssemblyGraph2::findNonBubbleLinearChains(
 {
     const G& g = *this;
 
-    // Create a filtered graph consisting of only the non-bubble edges.
-    using FilteredGraph = boost::filtered_graph<G, IsNonBubbleEdge>;
-    FilteredGraph filteredGraph(g, IsNonBubbleEdge(g));
+    // The edges we have already encountered.
+    std::set<edge_descriptor> edgesFound;
 
-    // Find linear chains in this filtered graph.
-    findLinearChains(filteredGraph, 2, chains);
+    // Start with no chains.
+    chains.clear();
+
+    // Work vectors used in the main loop below.
+    vector<edge_descriptor> forwardPath;
+    vector<edge_descriptor> backwardPath;
+
+    // Consider all possible start edges for the chain.
+    BGL_FORALL_EDGES_T(eStart, g, G) {
+
+        // If this is a bubble, skip it.
+        if(g[eStart].isBubble()) {
+            continue;
+        }
+
+        // If we already assigned this edge to a chain, skip it.
+        if(edgesFound.find(eStart) != edgesFound.end()) {
+            continue;
+        }
+
+        edgesFound.insert(eStart);
+
+        // Extend forward.
+        forwardPath.clear();
+        bool isCircular = false;
+        edge_descriptor e = eStart;
+        while(true) {
+            const vertex_descriptor v = target(e, g);
+            if(in_degree(v, g) != 1) {
+                break;
+            }
+            if(out_degree(v, g) != 1) {
+                break;
+            }
+            BGL_FORALL_OUTEDGES_T(v, eNext, g, G) {
+                e = eNext;
+                break;
+            }
+            if(g[e].isBubble()) {
+                break;
+            }
+            if(e == eStart) {
+                isCircular = true;
+                break;
+            }
+            forwardPath.push_back(e);
+            SHASTA_ASSERT(edgesFound.find(e) == edgesFound.end());
+            edgesFound.insert(e);
+        }
+
+
+        // Extend backward.
+        backwardPath.clear();
+        if(not isCircular) {
+            edge_descriptor e = eStart;
+            while(true) {
+                const vertex_descriptor v = source(e, g);
+                if(in_degree(v, g) != 1) {
+                    break;
+                }
+                if(out_degree(v, g) != 1) {
+                    break;
+                }
+                BGL_FORALL_INEDGES_T(v, ePrevious, g, G) {
+                    e = ePrevious;
+                    break;
+                }
+                if(g[e].isBubble()) {
+                    break;
+                }
+                if(e == eStart) {
+                    isCircular = true;
+                    break;
+                }
+                backwardPath.push_back(e);
+                SHASTA_ASSERT(edgesFound.find(e) == edgesFound.end());
+                edgesFound.insert(e);
+            }
+        }
+
+        // If the chain is too short, get rid of it.
+        if(backwardPath.size() + 1 + forwardPath.size() < 2) {
+            continue;
+        }
+
+        // Store it.
+        chains.resize(chains.size() + 1);
+        vector<edge_descriptor>& chain = chains.back();
+        copy(backwardPath.rbegin(), backwardPath.rend(), back_inserter(chain));
+        chain.push_back(eStart);
+        copy(forwardPath.begin(), forwardPath.end(), back_inserter(chain));
+
+    }
+
+    // Check that all non-bubble edges were found.
+    BGL_FORALL_EDGES_T(e, g, G) {
+        if(not g[e].isBubble()) {
+            SHASTA_ASSERT(edgesFound.find(e) != edgesFound.end());
+        }
+    }
 
 }
 
