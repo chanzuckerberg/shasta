@@ -218,10 +218,8 @@ void AssemblyGraph2::create()
             }
             if(edgeId == startEdgeId) {
                 isCircular = true;
-                if(true) {
-                    cout << "Found a circular edge." << endl;
-                }
                 if(debug) {
+                    cout << "Found a circular edge." << endl;
                     debugOut << "Found a circular edge." << endl;
                 }
                 break;
