@@ -286,7 +286,6 @@ private:
     bool idIsGreaterThanReverseComplement(edge_descriptor) const;
 
 private:
-    void checkReverseComplementEdges() const;
 
     // Store read information on all edges.
     void storeReadInformation();

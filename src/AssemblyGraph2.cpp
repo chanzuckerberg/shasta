@@ -69,8 +69,6 @@ AssemblyGraph2::AssemblyGraph2(
     assemble();
     cout << timestamp << "AssemblyGraph2::storeGfaSequence begins." << endl;
     storeGfaSequence();
-    cout << timestamp << "AssemblyGraph2::checkReverseComplementEdges begins." << endl;
-    checkReverseComplementEdges();
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
@@ -373,68 +371,6 @@ void AssemblyGraph2::create()
 
 }
 
-
-
-void AssemblyGraph2::checkReverseComplementEdges() const
-{
-    const G& g = *this;
-
-    BGL_FORALL_EDGES(e, g, G) {
-        const E& edge = g[e];
-        const edge_descriptor eRc = edge.reverseComplement;
-        const E& edgeRc = g[eRc];
-        SHASTA_ASSERT(edgeRc.reverseComplement == e);
-
-        if(e != eRc) {
-
-            SHASTA_ASSERT(edge.ploidy() == edgeRc.ploidy());
-            for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-                const E::Branch& branch = edge.branches[branchId];
-                const E::Branch& branchRc = edgeRc.branches[branchId];
-
-                // Check that the paths are the reverse complement of each other.
-                // For a circular path the check is more complicated, so don't bother.
-                const MarkerGraphPath& path = branch.path;
-
-                const bool isCircular =
-                    markerGraph.edges[path.front()].source ==
-                    markerGraph.edges[path.back()].target;
-
-                if(not isCircular) {
-                    const MarkerGraphPath& pathRc = branchRc.path;
-                    const uint64_t n = path.size();
-                    SHASTA_ASSERT(pathRc.size() == n);
-                    for(uint64_t i=0; i<n; i++) {
-                        const MarkerGraph::EdgeId edgeId = path[i];
-                        const MarkerGraph::EdgeId edgeIdRc = pathRc[n - 1 - i];
-                        SHASTA_ASSERT(markerGraph.reverseComplementEdge[edgeId] == edgeIdRc);
-                        SHASTA_ASSERT(markerGraph.reverseComplementEdge[edgeIdRc] == edgeId);
-                    }
-
-                    // Also check that the sequences are reverse complement of each other.
-                    const vector<Base>& sequence = branch.rawSequence;
-                    const vector<Base>& sequenceRc = branchRc.rawSequence;
-                    SHASTA_ASSERT(sequence.size() == sequenceRc.size());
-                    for(uint64_t position=0; position<sequence.size(); position++) {
-                        const Base base = sequence[position];
-                        const Base baseRc = sequenceRc[sequence.size() - 1 - position];
-                        SHASTA_ASSERT(baseRc == base.complement());
-                    }
-
-                    // Also check that the gfa sequences are reverse complement of each other.
-                    const vector<Base>& gfaSequence = branch.gfaSequence;
-                    const vector<Base>& gfaSequenceRc = branchRc.gfaSequence;
-                    SHASTA_ASSERT(gfaSequence.size() == gfaSequenceRc.size());
-                    for(uint64_t position=0; position<gfaSequence.size(); position++) {
-                        const Base base = gfaSequence[position];
-                        const Base baseRc = gfaSequenceRc[gfaSequence.size() - 1 - position];
-                        SHASTA_ASSERT(baseRc == base.complement());
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 
