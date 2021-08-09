@@ -517,32 +517,6 @@ void AssemblyGraph2::assemble()
 
 
 
-// Return true if an edge has id less than its reverse complement.
-bool AssemblyGraph2::idIsLessThanReverseComplement(edge_descriptor e) const
-{
-    const G& g = *this;
-
-    const E& edge = g[e];
-    const edge_descriptor eRc = edge.reverseComplement;
-    const E& edgeRc = g[eRc];
-    return edge.id < edgeRc.id;
-}
-
-
-
-// Return true if an edge has id greater than its reverse complement.
-bool AssemblyGraph2::idIsGreaterThanReverseComplement(edge_descriptor e) const
-{
-    const G& g = *this;
-
-    const E& edge = g[e];
-    const edge_descriptor eRc = edge.reverseComplement;
-    const E& edgeRc = g[eRc];
-    return edge.id > edgeRc.id;
-}
-
-
-
 // Assemble sequence for every marker graph path of a given edge.
 void AssemblyGraph2::assemble(edge_descriptor e)
 {
