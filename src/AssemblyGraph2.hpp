@@ -223,6 +223,7 @@ private:
         bool containsSecondaryEdges);
 
     // Merge consecutive non-bubbles, when possible.
+    // Also, compute read information for the merged edges.
     void merge();
     edge_descriptor merge(const vector<edge_descriptor>&);
 
@@ -243,14 +244,6 @@ private:
             return not (*g)[e].isBubble();
         }
     };
-
-    // Given a set of paths in the graph, find reverse complemented pairs.
-    // On return, the reverse complement of path[i] is path[[pathTable[i]].
-    // This assumes that, if paths contains a path,
-    // it also contains its reverse complement.
-    void pairPaths(
-        const vector< vector<edge_descriptor> >& paths,
-        vector<uint64_t>& pathTable) const;
 
     // Assemble sequence for every marker graph path of every edge.
     void assemble();
