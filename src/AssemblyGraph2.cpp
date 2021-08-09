@@ -587,7 +587,6 @@ void AssemblyGraph2::gatherBubbles()
             const vector<edge_descriptor>& edges01= p.second;
             const uint64_t ploidy = edges01.size();
 
-
             // If less than two edges, it is not a bubble, so there is
             // nothing to do.
             if(ploidy < 2) {
@@ -595,35 +594,8 @@ void AssemblyGraph2::gatherBubbles()
             }
             const vertex_descriptor v1 = p.first;
 
-            // Also gather the reverse complement edges, in the same order.
-            vector<edge_descriptor> edges01Rc(ploidy);
-            for(uint64_t branchId=0; branchId<ploidy; branchId++) {
-                const edge_descriptor e01 = edges01[branchId];
-                const edge_descriptor e01Rc = g[e01].reverseComplement;
-                edges01Rc[branchId] = e01Rc;
-            }
-
-            // Get the vertices of the reverse complemented edges.
-            const vertex_descriptor v1Rc = source(edges01Rc.front(), g);
-            const vertex_descriptor v0Rc = target(edges01Rc.front(), g);
-            for(const edge_descriptor e01Rc: edges01Rc) {
-                SHASTA_ASSERT(source(e01Rc, g) == v1Rc);
-                SHASTA_ASSERT(target(e01Rc, g) == v0Rc);
-            }
-
-
-            // Create the bubble and its reverse complement and remove these edges.
-            const edge_descriptor eNew = createBubble(v0, v1, edges01);
-            if(v0Rc == v0) {
-                // The bubble is the same as its reverse complement.
-                cout << "Found a self-complementary bubble." << endl;
-                g[eNew].reverseComplement = eNew;
-            } else {
-                const edge_descriptor eNewRc = createBubble(v1Rc, v0Rc, edges01Rc);
-                g[eNew].reverseComplement = eNewRc;
-                g[eNewRc].reverseComplement = eNew;
-
-            }
+            // Create the bubble remove these edges.
+            createBubble(v0, v1, edges01);
         }
     }
 
