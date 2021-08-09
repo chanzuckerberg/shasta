@@ -184,9 +184,6 @@ public:
     void writeEdgeDetailsCsv(const string& baseName) const;
 
     // This writes a gfa and a csv file with the given base name.
-    void writeGfa(
-        const string& baseName,
-        bool writeSequence) const;
     void writeGfaBothStrands(
         const string& baseName,
         bool writeSequence) const;

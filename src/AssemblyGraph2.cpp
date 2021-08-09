@@ -102,7 +102,6 @@ AssemblyGraph2::AssemblyGraph2(
     cout << timestamp << "AssemblyGraph2 writing GFA output." << endl;
     const bool writeSequence = true;
     writeGfaBothStrands("Assembly-BothStrands", writeSequence);
-    writeGfa("Assembly", writeSequence);
 
 }
 
@@ -922,129 +921,6 @@ void AssemblyGraph2::writeGfaBothStrands(
                         gfa << "L\t" <<
                             edge0.pathId(i0) << "\t+\t" <<
                             edge1.pathId(i1) << "\t+\t0M\n";
-
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
-// Single-stranded gfa output.
-// This writes a gfa and a csv file with the given base name.
-void AssemblyGraph2::writeGfa(
-    const string& baseName,
-    bool writeSequence) const
-{
-    const G& g = *this;
-
-    // Open the gfa and write the header.
-    ofstream gfa(baseName + ".gfa");
-    gfa << "H\tVN:Z:1.0\n";
-
-    // Open the csv and write the header.
-    ofstream csv(baseName + ".csv");
-    csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
-        "Secondary,Period,"
-        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
-
-
-
-    // Each edge of the AssemblyGraph2 generates a gfa Segment
-    // for each of its marker graph paths.
-    // For single strand output, skip edges with id
-    // greater than the id of their reverse complement.
-    BGL_FORALL_EDGES(e, g, G) {
-        if(idIsGreaterThanReverseComplement(e)) {
-            continue;
-        }
-        const E& edge = g[e];
-
-        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            const E::Branch& branch = edge.branches[branchId];
-
-            // Write a Segment to the GFA file.
-            gfa << "S\t" << edge.pathId(branchId) << "\t";
-            if(writeSequence) {
-                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
-                    ostream_iterator<Base>(gfa));
-                gfa << "\tLN:i:" << branch.gfaSequence.size() << "\n";
-            } else {
-                gfa << "*\tLN:i:" << branch.path.size() << "\n";
-            }
-
-            // Also write a line to the csv file.
-            const string color = edge.color(branchId);
-            csv <<
-                edge.pathId(branchId) << ",";
-            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
-                csv << edge.componentId;
-            }
-            csv << ",";
-            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
-                csv << (branchId == edge.phase ? 0 : 1);
-            }
-            csv <<
-                "," <<
-                color << "," <<
-                branch.path.front() << "," << branch.path.back() << "," <<
-                (branch.containsSecondaryEdges ? "S" : "") << "," <<
-                (edge.period ? to_string(edge.period) : string()) << "," <<
-                branch.minimumCoverage << "," <<
-                branch.averageCoverage << "," <<
-                branch.orientedReadIds.size() << "\n";
-        }
-    }
-
-
-    // Generate link record.
-    // For each vertex, we generate a Link for each pair of
-    // incoming/outgoing marker graph paths.
-    // Skip as necessary to avoid writing links twice.
-    BGL_FORALL_VERTICES(v, g, G) {
-
-        // Loop over branches of incoming edges.
-        BGL_FORALL_INEDGES(v, e0, g, G) {
-
-            // Reverse complement e0 if necessary.
-            edge_descriptor ee0 = e0;
-            bool reverse0 = false;
-            if(idIsGreaterThanReverseComplement(e0)) {
-                ee0 = g[e0].reverseComplement;
-                reverse0 = true;
-            }
-            const E& edge0 = g[ee0];
-
-            // Loop over branches of outgoing edges.
-            BGL_FORALL_OUTEDGES(v, e1, g, G) {
-
-                // Reverse complement e1 if necessary.
-                edge_descriptor ee1 = e1;
-                bool reverse1 = false;
-                if(idIsGreaterThanReverseComplement(e1)) {
-                    ee1 = g[e1].reverseComplement;
-                    reverse1 = true;
-                }
-                const E& edge1 = g[ee1];
-
-                // Avoid writing links twice.
-                if(g[ee0].id > g[ee1].id) {
-                    continue;
-                }
-                if(ee0 == ee1 && reverse0) {
-                    continue;
-                }
-
-                for(uint64_t i0=0; i0<edge0.ploidy(); i0++) {
-                    for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
-
-                        // To make Bandage happy, we write a Cigar string
-                        // consisting of 0M rather than an empty Cigar string.
-                        gfa << "L\t" <<
-                            edge0.pathId(i0) << "\t" << (reverse0 ? "-" : "+") << "\t" <<
-                            edge1.pathId(i1) << "\t" << (reverse1 ? "-" : "+") << "\t0M\n";
 
                     }
                 }
