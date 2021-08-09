@@ -102,11 +102,6 @@ public:
     // Store read information on all branches.
     void storeReadInformation(const MarkerGraph&);
 
-    // The reverse complement of this edge.
-    // It contains the reverse complements of the bubbles of this edge,
-    // in the same order.
-    AssemblyGraph2BaseClass::edge_descriptor reverseComplement;
-
     // This constructor creates an edge without any paths.
     AssemblyGraph2Edge(uint64_t id) : id(id) {}
 

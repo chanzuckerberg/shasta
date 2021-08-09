@@ -164,7 +164,6 @@ void AssemblyGraph2::cleanupBubbleGraph(
 // Initial creation of vertices and edges.
 void AssemblyGraph2::create()
 {
-    G& g = *this;
 
     const bool debug = false;
     ofstream debugOut;
@@ -293,75 +292,7 @@ void AssemblyGraph2::create()
         }
 
         // Store this path as a new edge of the assembly graph.
-        const edge_descriptor e = addEdge(path, containsSecondaryEdges);
-
-        // Also construct the reverse complemented path.
-        reverseComplementedPath.clear();
-        for(const MarkerGraph::EdgeId edgeId: path) {
-            const MarkerGraph::EdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
-            reverseComplementedPath.push_back(edgeIdRc);
-        }
-        std::reverse(reverseComplementedPath.begin(), reverseComplementedPath.end());
-
-
-        if(debug) {
-            for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
-                debugOut << "Reverse complemented path " << edgeIdRc << endl;
-            }
-        }
-
-        // Figure out if the reverse complemented chain is the same
-        // as the original chain. This can happen in exceptional cases.
-        bool isSelfComplementary = false;
-        if(!isCircular) {
-            isSelfComplementary = (path == reverseComplementedPath);
-        } else {
-
-            // For a circular path the test is more complex.
-            // We check if the reverse complement of the first edge
-            // is in the path.
-            isSelfComplementary =
-                find(path.begin(), path.end(), reverseComplementedPath.front()) != path.end();
-        }
-        if(debug) {
-            debugOut << "isSelfComplementary " << int(isSelfComplementary) << endl;
-        }
-
-
-        // If not self-complementary, store the reverse complemented path.
-        if(not isSelfComplementary) {
-            const edge_descriptor eRc = addEdge(reverseComplementedPath, containsSecondaryEdges);
-            for(const MarkerGraph::EdgeId edgeIdRc: reverseComplementedPath) {
-                if(wasFound[edgeIdRc]) {
-                    cout << "Assertion failed at " << edgeIdRc << endl;
-                    if(debug) {
-                        debugOut << "Assertion failed at " << edgeIdRc << endl;
-                    }
-                    SHASTA_ASSERT(0);
-                }
-                wasFound[edgeIdRc] = true;
-            }
-
-            // The two edges we added are reverse complement of each other.
-            g[e].reverseComplement = eRc;
-            g[eRc].reverseComplement = e;
-
-            if(debug) {
-                for(const MarkerGraph::EdgeId edgeId: path) {
-                    const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
-                    debugOut << "Reverse complemented path " << edgeId << " " <<
-                        edge.source << "->" << edge.target << endl;
-                }
-            }
-        } else {
-            // The edge we added is reverse complement of itself.
-            g[e].reverseComplement = e;
-            cout << "Found a self-complementary edge." << endl;
-            if(debug) {
-                debugOut << "Found a self-complementary edge." << endl;
-            }
-        }
-
+        addEdge(path, containsSecondaryEdges);
     }
 
 
