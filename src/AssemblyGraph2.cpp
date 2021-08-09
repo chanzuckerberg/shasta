@@ -861,8 +861,8 @@ string AssemblyGraph2Edge::color(uint64_t branchId) const
 
 
 
-// For each edge, compute the number of raw sequence bases
-// transfered in each direction for gfa output.
+// For each bubble edge, compute the number of raw sequence bases
+// transferred in each direction for gfa output.
 void AssemblyGraph2::countTransferredBases()
 {
     G& g = *this;
@@ -871,12 +871,6 @@ void AssemblyGraph2::countTransferredBases()
         E& edge = g[e];
         edge.backwardTransferCount = 0;
         edge.forwardTransferCount = 0;
-
-        // In this loop, only to it for the edges with it
-        // not geater than their reverse complement.
-        if(idIsGreaterThanReverseComplement(e)) {
-            continue;
-        }
 
         // To transfer any bases, the edge
         // must be a bubble preceded and followed by a single non-bubble.
@@ -945,24 +939,6 @@ void AssemblyGraph2::countTransferredBases()
             }
             --edge.forwardTransferCount;
         }
-    }
-
-
-
-    // For edges with id greater than their reverse complement, get it
-    // from the reverse complemented edge.
-    BGL_FORALL_EDGES(e, g, G) {
-
-        if(not idIsGreaterThanReverseComplement(e)) {
-            continue;
-        }
-
-        E& edge = g[e];
-        const edge_descriptor eRc = edge.reverseComplement;
-        const E& edgeRc = g[eRc];
-
-        edge.backwardTransferCount = edgeRc.forwardTransferCount;
-        edge.forwardTransferCount = edgeRc.backwardTransferCount;
     }
 }
 
