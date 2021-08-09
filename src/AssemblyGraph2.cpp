@@ -1874,11 +1874,8 @@ void AssemblyGraph2::removeSecondaryBubbles()
 {
     G& g = *this;
 
-    // Loop over edges, in reverse complemented pairs.
+    // Loop over edges.
     BGL_FORALL_EDGES(e, g, G) {
-        if(idIsGreaterThanReverseComplement(e)) {
-            continue;
-        }
 
         // If not a bubble, do nothing.
         E& edge = g[e];
@@ -1900,11 +1897,6 @@ void AssemblyGraph2::removeSecondaryBubbles()
         }
         const uint64_t primaryCount = edge.ploidy() - secondaryCount;
 
-        // Access the reverse complement edge.
-        const edge_descriptor eRc = edge.reverseComplement;
-        E& edgeRc = g[eRc];
-
-
 
         // Remove secondary branches, keeping at most one.
         if(primaryCount > 0) {
@@ -1913,20 +1905,12 @@ void AssemblyGraph2::removeSecondaryBubbles()
             // remove all the secondary ones.
             edge.removeAllSecondaryBranches();
             edge.findStrongestBranch();
-            if(eRc != e) {
-                edgeRc.removeAllSecondaryBranches();
-                edgeRc.findStrongestBranch();
-            }
         } else {
 
             // There are no primary branches.
             // Remove all secondary branches except the strongest.
             edge.removeAllBranchesExceptStrongest();
             edge.findStrongestBranch();
-            if(eRc != e) {
-                edgeRc.removeAllBranchesExceptStrongest();
-                edgeRc.findStrongestBranch();
-            }
         }
     }
 
