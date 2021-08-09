@@ -500,8 +500,6 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 
 
 // Assemble sequence for every marker graph path of every edge.
-// This guarantees that, for each pair of reverse complemented edges,
-// The assembled sequences are the reverse complement of each other.
 void AssemblyGraph2::assemble()
 {
     G& g = *this;
@@ -509,42 +507,9 @@ void AssemblyGraph2::assemble()
     cout << timestamp << "Assembling sequence." << endl;
 
     // Use assembled sequence from the marker graph to obtain
-    // assembled sequence for all edges that have an id
-    // not greater than the id of their reverse complement.
+    // assembled sequence for all edges.
     BGL_FORALL_EDGES(e, g, G) {
-        if(not idIsGreaterThanReverseComplement(e)) {
-            assemble(e);
-        }
-    }
-
-
-
-    // For the remaining edges, obtain the sequence
-    // from their reverse complement.
-    BGL_FORALL_EDGES(e, g, G) {
-        if(idIsGreaterThanReverseComplement(e)) {
-
-            // Access this edge and its reverse complement.
-            E& edge = g[e];
-            const edge_descriptor eRc = edge.reverseComplement;
-            const E& edgeRc = g[eRc];
-
-            // Sanmity check: they must have the same ploidy.
-            const uint64_t ploidy = edge.ploidy();
-            SHASTA_ASSERT(edgeRc.ploidy() == ploidy);
-
-            // For each branch, copy the sequence from the
-            // reverse complement edge, while reverse complementing.
-            for(uint64_t branchId=0; branchId<ploidy; branchId++) {
-                const vector<Base>& sequenceRc = edgeRc.branches[branchId].rawSequence;
-                vector<Base>& sequence = edge.branches[branchId].rawSequence;
-                sequence.resize(sequenceRc.size());
-                copy(sequenceRc.rbegin(), sequenceRc.rend(), sequence.begin());
-                for(Base& b: sequence) {
-                    b.complementInPlace();
-                }
-            }
-        }
+        assemble(e);
     }
 
     cout << timestamp << "Done assembling sequence." << endl;
