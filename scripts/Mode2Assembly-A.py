@@ -37,11 +37,11 @@ if readGraphCreationMethod == 0:
 elif readGraphCreationMethod == 2:
     a.createReadGraph2(
         maxAlignmentCount = int(config['ReadGraph']['maxAlignmentCount']),
-        markerCountPercentile = int(config['ReadGraph']['markerCountPercentile']),
-        alignedFractionPercentile = int(config['ReadGraph']['alignedFractionPercentile']),
-        maxSkipPercentile = int(config['ReadGraph']['maxSkipPercentile']),
-        maxDriftPercentile = int(config['ReadGraph']['maxDriftPercentile']),
-        maxTrimPercentile = int(config['ReadGraph']['maxTrimPercentile']))
+        markerCountPercentile = float(config['ReadGraph']['markerCountPercentile']),
+        alignedFractionPercentile = float(config['ReadGraph']['alignedFractionPercentile']),
+        maxSkipPercentile = float(config['ReadGraph']['maxSkipPercentile']),
+        maxDriftPercentile = float(config['ReadGraph']['maxDriftPercentile']),
+        maxTrimPercentile = float(config['ReadGraph']['maxTrimPercentile']))
 else:
     raise ValueError('Invalid value for --ReadGraph.creationMethod.')
     
