@@ -51,22 +51,36 @@ AssemblyGraph2::AssemblyGraph2(
     // Threshold used to remove bad bubbles.
     const double discordantRatioThreshold = 0.2;
 
-    // Ambiguity threshold for bubble graphedges.
+    // Ambiguity threshold for bubble graph edges.
     double ambiguityThreshold = 0.5;
 
     // Create the assembly graph.
     cout << timestamp << "AssemblyGraph2::create begins." << endl;
     create();
+
+    // Gather parallel edges into bubbles.
     cout << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
     gatherBubbles();
+
+    // Store the reads supporting each branch of each edges.
     cout << timestamp << "AssemblyGraph2::storeReadInformation begins." << endl;
     storeReadInformation();
+
+    // Remove bubbles caused by secondary edges.
     cout << timestamp << "AssemblyGraph2::removeSecondaryBubbles begins." << endl;
     removeSecondaryBubbles();
+
+    // Merge adjacent non-bubbles created by the removal of secondary bubbles.
     cout << timestamp << "AssemblyGraph2::merge begins." << endl;
     merge();
+
+    // Assemble sequence.
     cout << timestamp <<"AssemblyGraph2::assemble begins." << endl;
     assemble();
+
+    // Store the sequence to be written to gfa.
+    // This transfers common sequence out of bubbles and into adjacent
+    // non-bubbles.
     cout << timestamp << "AssemblyGraph2::storeGfaSequence begins." << endl;
     storeGfaSequence();
 
