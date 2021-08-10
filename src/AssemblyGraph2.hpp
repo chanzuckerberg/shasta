@@ -45,6 +45,10 @@ public:
 
     AssemblyGraph2Vertex(MarkerGraph::VertexId markerGraphVertexId) :
         markerGraphVertexId(markerGraphVertexId) {}
+
+    // The bubble chains that begin/end at this vertex.
+    vector<vector<AssemblyGraph2BaseClass::edge_descriptor> const *> bubbleChainsBeginningHere;
+    vector<vector<AssemblyGraph2BaseClass::edge_descriptor> const *> bubbleChainsEndingHere;
 };
 
 
@@ -158,6 +162,11 @@ public:
     uint64_t componentId = std::numeric_limits<uint64_t>::max();
     uint64_t phase = std::numeric_limits<uint64_t>::max();
 
+    // Bubble chain information.
+    // If this edge is part of a bubble chain, this stores
+    // pair(bubble chain pointer, position in bubble chain).
+    // Otherwise, it stores pair(0, 0).
+    pair<const vector<AssemblyGraph2BaseClass::edge_descriptor>*, uint64_t> bubbleChain = {0, 0};
 };
 
 

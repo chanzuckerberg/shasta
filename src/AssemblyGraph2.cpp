@@ -2073,6 +2073,8 @@ void AssemblyGraph2::findNonBubbleLinearChains(
 
 void AssemblyGraph2::findBubbleChains()
 {
+    G& g = *this;
+
     bubbleChains.clear();
     findLinearChains(*this, 2, bubbleChains);
 
@@ -2081,4 +2083,31 @@ void AssemblyGraph2::findBubbleChains()
         cout << " " << bubbleChain.size();
     }
     cout << endl;
+
+
+    // Store pointers in the begin/end vertices.
+    BGL_FORALL_VERTICES(v, g, G) {
+        V& vertex = g[v];
+        vertex.bubbleChainsBeginningHere.clear();
+        vertex.bubbleChainsEndingHere.clear();
+    }
+    for(const auto& bubbleChain: bubbleChains) {
+        SHASTA_ASSERT(not bubbleChain.empty());
+        const vertex_descriptor vBegin = source(bubbleChain.front(), g);
+        const vertex_descriptor vEnd = target(bubbleChain.back(), g);
+        g[vBegin].bubbleChainsBeginningHere.push_back(&bubbleChain);
+        g[vEnd].bubbleChainsEndingHere.push_back(&bubbleChain);
+    }
+
+
+    // Stores pointers in edges.
+    BGL_FORALL_EDGES(e, g, G) {
+        g[e].bubbleChain = {0, 0};
+    }
+    for(const auto& bubbleChain: bubbleChains) {
+        for(uint64_t position=0; position<bubbleChain.size(); position++) {
+            const edge_descriptor e = bubbleChain[position];
+            g[e].bubbleChain = make_pair(&bubbleChain, position);
+        }
+    }
 }
