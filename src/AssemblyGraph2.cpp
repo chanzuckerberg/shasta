@@ -80,8 +80,10 @@ AssemblyGraph2::AssemblyGraph2(
     createBubbleGraph(markers.size()/2);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-    bubbleGraph.writeGraphviz("BubbleGraph-0.dot");
-    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-0.csv");
+    if(false) {
+        bubbleGraph.writeGraphviz("BubbleGraph-0.dot");
+        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-0.csv");
+    }
 
     // Cleanup the bubble graph.
     // This marks as bad the bubbles corresponding to bubble graph vertices
@@ -111,14 +113,17 @@ void AssemblyGraph2::cleanupBubbleGraph(
     double ambiguityThreshold)
 {
     G& g = *this;
+    const bool debug = false;
 
     // Remove bubble graph edges with low read support.
     bubbleGraph.removeWeakEdges(minReadCount);
     cout << "After removing edges supported by less than " << minReadCount <<
         " reads, the bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-    bubbleGraph.writeGraphviz("BubbleGraph-1.dot");
-    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
+    if(debug) {
+        bubbleGraph.writeGraphviz("BubbleGraph-1.dot");
+        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
+    }
 
     // Remove weak vertices of the bubble graph
     // and flag the corresponding bubbles as bad.
@@ -134,8 +139,10 @@ void AssemblyGraph2::cleanupBubbleGraph(
         cout << "After removing " << badBubbles.size() <<
             " weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
             " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-        bubbleGraph.writeGraphviz("BubbleGraph-Iteration-" + to_string(iteration) + ".dot");
-        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Iteration-" + to_string(iteration) + ".csv");
+        if(debug) {
+            bubbleGraph.writeGraphviz("BubbleGraph-Iteration-" + to_string(iteration) + ".dot");
+            bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Iteration-" + to_string(iteration) + ".csv");
+        }
     }
 
 
@@ -155,8 +162,10 @@ void AssemblyGraph2::cleanupBubbleGraph(
         ambiguityThreshold << endl;
 #endif
 
-    bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
-    bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
+    if(debug) {
+        bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
+        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
+    }
 }
 
 
@@ -1064,7 +1073,10 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
         add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
     }
 
+    cout << timestamp << "Creating the oriented reads table." << endl;
     bubbleGraph.createOrientedReadsTable(readCount);
+
+    cout << timestamp << "Creating bubble graph edges." << endl;
     bubbleGraph.createEdges();
 
 }
@@ -1603,6 +1615,8 @@ void AssemblyGraph2::BubbleGraph::extractComponent(
 // Use each connected component of the bubble graph to phase the bubbles.
 void AssemblyGraph2::phase()
 {
+    const bool debug = false;
+
     for(uint64_t componentId=0;
         componentId<bubbleGraph.connectedComponents.size(); componentId++) {
         BubbleGraph componentGraph;
@@ -1613,7 +1627,9 @@ void AssemblyGraph2::phase()
             " vertices and " << num_edges(componentGraph) <<
             " edges." << endl;
 
-        componentGraph.writeGraphviz("Component-" + to_string(componentId) + ".dot");
+        if(debug) {
+            componentGraph.writeGraphviz("Component-" + to_string(componentId) + ".dot");
+        }
 
         // Compute an index map, needed below, which maps vertices to integers.
         std::map<BubbleGraph::vertex_descriptor, uint64_t> indexMap;
@@ -1637,20 +1653,24 @@ void AssemblyGraph2::phase()
             vertex_index_map(boost::make_assoc_property_map(indexMap)));
         SHASTA_ASSERT(treeEdges.size() == indexMap.size() - 1);
 
+
+
         // Write out the tree edges to csv.
-        ofstream csv("Component-" + to_string(componentId) + "-TreeEdges.csv");
-        csv << "BubbleId0,BubbleId1,Diagonal,OffDiagonal,Concordant,Discordant,Weight\n";
-        for(const BubbleGraph::edge_descriptor e: treeEdges) {
-            const BubbleGraphEdge& edge = componentGraph[e];
-            const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
-            const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
-            csv << bubbleGraph[v0].id << ",";
-            csv << bubbleGraph[v1].id << ",";
-            csv << edge.diagonalCount() << ",";
-            csv << edge.offDiagonalCount() << ",";
-            csv << edge.concordantCount() << ",";
-            csv << edge.discordantCount() << ",";
-            csv << edge.concordantCount() - edge.discordantCount() << "\n";
+        if(debug) {
+            ofstream csv("Component-" + to_string(componentId) + "-TreeEdges.csv");
+            csv << "BubbleId0,BubbleId1,Diagonal,OffDiagonal,Concordant,Discordant,Weight\n";
+            for(const BubbleGraph::edge_descriptor e: treeEdges) {
+                const BubbleGraphEdge& edge = componentGraph[e];
+                const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
+                const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+                csv << bubbleGraph[v0].id << ",";
+                csv << bubbleGraph[v1].id << ",";
+                csv << edge.diagonalCount() << ",";
+                csv << edge.offDiagonalCount() << ",";
+                csv << edge.concordantCount() << ",";
+                csv << edge.discordantCount() << ",";
+                csv << edge.concordantCount() - edge.discordantCount() << "\n";
+            }
         }
 
 
@@ -1714,8 +1734,10 @@ void AssemblyGraph2::phase()
         cout << "Found " << unhappyCount << " edges inconsistent with computed bubble phasing "
             " out of " << totalCount << " edges in this connected component." << endl;
 
-        componentGraph.writeHtml("Component-" + to_string(componentId) + ".html", treeEdges, false);
-        componentGraph.writeHtml("Component-" + to_string(componentId) + "-Unhappy.html", treeEdges, true);
+        if(debug) {
+            componentGraph.writeHtml("Component-" + to_string(componentId) + ".html", treeEdges, false);
+            componentGraph.writeHtml("Component-" + to_string(componentId) + "-Unhappy.html", treeEdges, true);
+        }
 
 
         // Copy the phasing to the global bubble graph.
