@@ -89,6 +89,10 @@ AssemblyGraph2::AssemblyGraph2(
     cout << timestamp << "AssemblyGraph2::findCopyNumberBubbles begins." << endl;
     findCopyNumberBubbles(maxPeriod);
 
+    // Find chains of bubbles.
+    // These are linear chains of edges of length at least 2.
+    findBubbleChains();
+
     // Create the bubble graph.
     cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
     createBubbleGraph(markers.size()/2);
@@ -113,9 +117,9 @@ AssemblyGraph2::AssemblyGraph2(
     phase();
 
     // Write out what we have.
-    cout << timestamp << "AssemblyGraph2 writing GFA output." << endl;
+    cout << timestamp << "Writing GFA output." << endl;
     const bool writeSequence = true;
-    writeGfaBothStrands("Assembly-BothStrands", writeSequence);
+    writeGfa("Assembly", writeSequence);
 
 }
 
@@ -637,9 +641,7 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
 
 
 
-// Double-stranded gfa output.
-// This writes a gfa and a csv file with the given base name.
-void AssemblyGraph2::writeGfaBothStrands(
+void AssemblyGraph2::writeGfa(
     const string& baseName,
     bool writeSequence) const
 {
@@ -2068,3 +2070,15 @@ void AssemblyGraph2::findNonBubbleLinearChains(
 }
 
 
+
+void AssemblyGraph2::findBubbleChains()
+{
+    bubbleChains.clear();
+    findLinearChains(*this, 2, bubbleChains);
+
+    cout << "Found " << bubbleChains.size() << " bubble chains with the following numbers of edges:";
+    for(const auto& bubbleChain: bubbleChains) {
+        cout << " " << bubbleChain.size();
+    }
+    cout << endl;
+}

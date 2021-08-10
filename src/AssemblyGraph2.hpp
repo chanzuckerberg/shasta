@@ -179,7 +179,10 @@ public:
     void writeEdgeDetailsCsv(const string& baseName) const;
 
     // This writes a gfa and a csv file with the given base name.
-    void writeGfaBothStrands(
+    void writeGfa(
+        const string& baseName,
+        bool writeSequence) const;
+    void writeHaploidGfa(
         const string& baseName,
         bool writeSequence) const;
 
@@ -271,6 +274,11 @@ private:
 
     // Store read information on all edges.
     void storeReadInformation();
+
+
+    // Linear chains of bubbles in the AssemblyGraph2.
+    vector< vector<edge_descriptor> > bubbleChains;
+    void findBubbleChains();
 
 
 
