@@ -539,6 +539,7 @@ void Assembler::createMarkerGraphSecondaryEdges(
                 SHASTA_ASSERT(v0Rc != v1Rc);
                 secondaryEdges.push_back({v0, v1});
                 secondaryEdges.push_back({v1Rc, v0Rc});
+                break;
             }
         }
     }
