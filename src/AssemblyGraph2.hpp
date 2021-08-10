@@ -190,10 +190,12 @@ public:
     // This writes a gfa and a csv file with the given base name.
     void writeGfa(
         const string& baseName,
-        bool writeSequence) const;
+        bool writeSequence = true) const;
+
+    // This writes the haploid gfa and no csv file.
     void writeHaploidGfa(
         const string& baseName,
-        bool writeSequence) const;
+        bool writeSequence = true) const;
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
@@ -288,6 +290,17 @@ private:
     // Linear chains of bubbles in the AssemblyGraph2.
     vector< vector<edge_descriptor> > bubbleChains;
     void findBubbleChains();
+
+    // Return the gfa id of a bubble chain.
+    string bubbleChainId(const vector<edge_descriptor>&) const;
+
+    // Compute the gfa sequence of a bubble chain
+    // by concatenating gfa sequence of the strongest branch of
+    // each of tis edges.
+    void computeBubbleChainGfaSequence(
+        const vector<edge_descriptor>&,
+        vector<Base>&
+        ) const;
 
 
 

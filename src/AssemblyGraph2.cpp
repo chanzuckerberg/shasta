@@ -93,6 +93,10 @@ AssemblyGraph2::AssemblyGraph2(
     // These are linear chains of edges of length at least 2.
     findBubbleChains();
 
+    // Haploid gfa outpout.
+    // All bubbles are collapsed to the strongest branch.
+    writeHaploidGfa("Assembly-Haploid");
+
     // Create the bubble graph.
     cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
     createBubbleGraph(markers.size()/2);
@@ -118,8 +122,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Write out what we have.
     cout << timestamp << "Writing GFA output." << endl;
-    const bool writeSequence = true;
-    writeGfa("Assembly", writeSequence);
+    writeGfa("Assembly");
 
 }
 
@@ -702,7 +705,7 @@ void AssemblyGraph2::writeGfa(
 
 
 
-    // Generate link record.
+    // Generate link records.
     // For each vertex, we generate a Link for each pair of
     // incoming/outgoing marker graph paths.
     BGL_FORALL_VERTICES(v, g, G) {
@@ -727,6 +730,184 @@ void AssemblyGraph2::writeGfa(
                 }
             }
         }
+    }
+}
+
+
+
+void AssemblyGraph2::writeHaploidGfa(
+    const string& baseName,
+    bool writeSequence) const
+{
+    const G& g = *this;
+
+    // Open the gfa and write the header.
+    ofstream gfa(baseName + ".gfa");
+    gfa << "H\tVN:Z:1.0\n";
+
+
+
+    // Each edge of the AssemblyGraph2 generates a gfa Segment
+    // for each of its marker graph paths,
+    // unless it is part of a bubble chain
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+        if(edge.bubbleChain.first) {
+            continue;
+        }
+
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            const E::Branch& branch = edge.branches[branchId];
+
+            // Write a Segment to the GFA file.
+            gfa << "S\t" << edge.pathId(branchId) << "\t";
+            if(writeSequence) {
+                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+                    ostream_iterator<Base>(gfa));
+                gfa << "\tLN:i:" << branch.gfaSequence.size() << "\n";
+            } else {
+                gfa << "*\tLN:i:" << branch.path.size() << "\n";
+            }
+        }
+    }
+
+
+
+    // Each bubble chain generates a Segment.
+    for(const auto& bubbleChain: bubbleChains) {
+        gfa << "S\t" << bubbleChainId(bubbleChain) << "\t";
+
+        vector<Base> sequence;
+        computeBubbleChainGfaSequence(bubbleChain, sequence);
+
+        if(writeSequence) {
+            copy(sequence.begin(), sequence.end(),
+                ostream_iterator<Base>(gfa));
+            gfa << "\tLN:i:" << sequence.size() << "\n";
+        } else {
+            gfa << "*\n";
+        }
+    }
+
+
+
+    // Link records between edges that are not in bubble chain.
+    BGL_FORALL_VERTICES(v, g, G) {
+
+        // Loop over marker graph paths of incoming edges.
+        BGL_FORALL_INEDGES(v, e0, g, G) {
+            const E& edge0 = g[e0];
+            if(edge0.bubbleChain.first) {
+                break;
+            }
+            for(uint64_t i0=0; i0<edge0.ploidy(); i0++) {
+
+                // Loop over marker graph paths of outgoing edges.
+                BGL_FORALL_OUTEDGES(v, e1, g, G) {
+                    const E& edge1 = g[e1];
+                    if(edge1.bubbleChain.first) {
+                        break;
+                    }
+                    for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
+
+                        // To make Bandage happy, we write a Cigar string
+                        // consisting of 0M rather than an empty Cigar string.
+                        gfa << "L\t" <<
+                            edge0.pathId(i0) << "\t+\t" <<
+                            edge1.pathId(i1) << "\t+\t0M\n";
+
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    // Link records between a bubble chain and an edge that is not in a bubble chain.
+    for(const auto& bubbleChain: bubbleChains) {
+        const vertex_descriptor v = target(bubbleChain.back(), g);
+
+        BGL_FORALL_OUTEDGES(v, e, g, G) {
+            const E& edge = g[e];
+            if(edge.bubbleChain.first) {
+                break;
+            }
+            for(uint64_t i=0; i<edge.ploidy(); i++) {
+                gfa << "L\t" <<
+                    bubbleChainId(bubbleChain) << "\t+\t" <<
+                    edge.pathId(i) << "\t+\t0M\n";
+
+            }
+        }
+    }
+
+
+
+    // Link records between an edge that is not in a bubble chain and a bubble chain.
+    for(const auto& bubbleChain: bubbleChains) {
+        const vertex_descriptor v = source(bubbleChain.front(), g);
+
+        BGL_FORALL_INEDGES(v, e, g, G) {
+            const E& edge = g[e];
+            if(edge.bubbleChain.first) {
+                break;
+            }
+            for(uint64_t i=0; i<edge.ploidy(); i++) {
+                gfa << "L\t" <<
+                    edge.pathId(i) << "\t+\t" <<
+                    bubbleChainId(bubbleChain) << "\t+\t0M\n";
+            }
+        }
+    }
+
+
+
+    // Link records between two bubble chains.
+    for(const auto& bubbleChain0: bubbleChains) {
+        const vertex_descriptor v = target(bubbleChain0.back(), g);
+        for(const auto& bubbleChainPointer1: g[v].bubbleChainsBeginningHere) {
+            const auto& bubbleChain1 = *bubbleChainPointer1;
+            gfa << "L\t" <<
+                bubbleChainId(bubbleChain0) << "\t+\t" <<
+                bubbleChainId(bubbleChain1) << "\t+\t0M\n";
+
+        }
+    }
+}
+
+
+
+// Return the gfa id of a bubble chain.
+string AssemblyGraph2::bubbleChainId(const vector<edge_descriptor>& bubbleChain) const
+{
+    const G& g = *this;
+
+    SHASTA_ASSERT(not bubbleChain.empty());
+    const edge_descriptor e0 = bubbleChain.front();
+    const edge_descriptor e1 = bubbleChain.back();
+
+    return "C" + to_string(g[e0].id) + "-" + to_string(g[e1].id);
+}
+
+
+
+// Compute the gfa sequence of a bubble chain
+// by concatenating gfa sequence of the strongest branch of
+// each of tis edges.
+void AssemblyGraph2::computeBubbleChainGfaSequence(
+    const vector<edge_descriptor>& bubbleChain,
+    vector<Base>& sequence
+    ) const
+{
+    const G& g = *this;
+
+    sequence.clear();
+    for(const edge_descriptor e: bubbleChain) {
+        const E& edge = g[e];
+        const E::Branch& branch = edge.branches[edge.strongestBranchId];
+        copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+            back_inserter(sequence));
     }
 }
 
