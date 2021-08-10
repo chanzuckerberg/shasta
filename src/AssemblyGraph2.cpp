@@ -798,7 +798,7 @@ void AssemblyGraph2::writeHaploidGfa(
         BGL_FORALL_INEDGES(v, e0, g, G) {
             const E& edge0 = g[e0];
             if(edge0.bubbleChain.first) {
-                break;
+                continue;
             }
             for(uint64_t i0=0; i0<edge0.ploidy(); i0++) {
 
@@ -806,7 +806,7 @@ void AssemblyGraph2::writeHaploidGfa(
                 BGL_FORALL_OUTEDGES(v, e1, g, G) {
                     const E& edge1 = g[e1];
                     if(edge1.bubbleChain.first) {
-                        break;
+                        continue;
                     }
                     for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
 
@@ -831,7 +831,7 @@ void AssemblyGraph2::writeHaploidGfa(
         BGL_FORALL_OUTEDGES(v, e, g, G) {
             const E& edge = g[e];
             if(edge.bubbleChain.first) {
-                break;
+                continue;
             }
             for(uint64_t i=0; i<edge.ploidy(); i++) {
                 gfa << "L\t" <<
@@ -851,7 +851,7 @@ void AssemblyGraph2::writeHaploidGfa(
         BGL_FORALL_INEDGES(v, e, g, G) {
             const E& edge = g[e];
             if(edge.bubbleChain.first) {
-                break;
+                continue;
             }
             for(uint64_t i=0; i<edge.ploidy(); i++) {
                 gfa << "L\t" <<
