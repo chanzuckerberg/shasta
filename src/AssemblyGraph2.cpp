@@ -1084,6 +1084,11 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
             continue;
         }
 
+        // If this is a degenerate bubble, skip.
+        if(edge.branches[0].rawSequence == edge.branches[1].rawSequence) {
+            continue;
+        }
+
         add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
     }
 
