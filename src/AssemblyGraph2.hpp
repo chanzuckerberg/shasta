@@ -187,12 +187,11 @@ public:
     void writeEdgesCsv(const string& baseName) const;
     void writeEdgeDetailsCsv(const string& baseName) const;
 
-    // This writes a gfa and a csv file with the given base name.
+    // Gfa output includes a csv file with the given base name.
     void writeGfa(
         const string& baseName,
         bool writeSequence = true) const;
-
-    // This writes the haploid gfa and no csv file.
+    // Haploid gfa and no csv file.
     void writeHaploidGfa(
         const string& baseName,
         bool writeSequence = true) const;
@@ -218,6 +217,7 @@ private:
 
     // Initial creation of vertices and edges.
     void create();
+    void cleanupSecondaryEdges();
 
     // Get the vertex descriptor for the vertex corresponding to
     // a given MarkerGraph::VertexId, creating the vertex if necessary.

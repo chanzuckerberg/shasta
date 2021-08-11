@@ -656,7 +656,7 @@ void AssemblyGraph2::writeGfa(
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << ",ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
+    csv << "Id,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
         "Secondary,Period,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
@@ -745,6 +745,12 @@ void AssemblyGraph2::writeHaploidGfa(
     ofstream gfa(baseName + ".gfa");
     gfa << "H\tVN:Z:1.0\n";
 
+    // Open the csv and write the header.
+    ofstream csv(baseName + ".csv");
+    csv << "Id,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
+        "Secondary,Period,"
+        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
+
 
 
     // Each edge of the AssemblyGraph2 generates a gfa Segment
@@ -768,6 +774,27 @@ void AssemblyGraph2::writeHaploidGfa(
             } else {
                 gfa << "*\tLN:i:" << branch.path.size() << "\n";
             }
+
+            // Also write a line to the csv file.
+            const string color = edge.color(branchId);
+            csv <<
+                edge.pathId(branchId) << ",";
+            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
+                csv << edge.componentId;
+            }
+            csv << ",";
+            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
+                csv << (branchId == edge.phase ? 0 : 1);
+            }
+            csv <<
+                "," <<
+                color << "," <<
+                branch.path.front() << "," << branch.path.back() << "," <<
+                (branch.containsSecondaryEdges ? "S" : "") << "," <<
+                (edge.period ? to_string(edge.period) : string()) << "," <<
+                branch.minimumCoverage << "," <<
+                branch.averageCoverage << "," <<
+                branch.orientedReadIds.size() << "\n";
         }
     }
 
@@ -787,6 +814,8 @@ void AssemblyGraph2::writeHaploidGfa(
         } else {
             gfa << "*\n";
         }
+
+        // No csv output for bubble chains.
     }
 
 
