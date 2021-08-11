@@ -887,7 +887,8 @@ void AssemblyGraph2::writeHaploidGfa(
             gfa << "*\n";
         }
 
-        // No csv output for bubble chains.
+        csv << bubbleChainId(bubbleChain) << ",,,#80ff80\n";
+
     }
 
 
