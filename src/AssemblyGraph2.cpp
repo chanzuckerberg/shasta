@@ -58,6 +58,9 @@ AssemblyGraph2::AssemblyGraph2(
     cout << timestamp << "AssemblyGraph2::create begins." << endl;
     create();
 
+    // Remove secondary edges making sure to not introduce any dead ends.
+    cleanupSecondaryEdges();
+
     // Gather parallel edges into bubbles.
     cout << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
     gatherBubbles();
@@ -330,6 +333,69 @@ void AssemblyGraph2::create()
 
 }
 
+
+
+// Remove secondary edges making sure to not introduce any dead ends.
+// This must be called early, when there are no bubbles.
+void AssemblyGraph2::cleanupSecondaryEdges()
+{
+    G& g = *this;
+
+    // Create a table of secondary edges.
+    // For each edge also store the minimum secondary coverage,
+    // that is, the minimum edge coverage of all secondary marker graph edges
+    // that correspond to the edge.
+    vector< pair<edge_descriptor, uint64_t> > edgeTable;
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+
+        // This must be called early, when there are no bubbles.
+        // Each edge has a single branch.
+        SHASTA_ASSERT(not edge.isBubble());
+        SHASTA_ASSERT(edge.branches.size() == 1);
+        const E::Branch& branch = edge.branches.front();
+
+        // If the branch does not contain secondary edges, skip it.
+        if(not branch.containsSecondaryEdges) {
+            continue;
+        }
+
+        // Find minimum edge coverage for secondary edges of this branch.
+        uint64_t minimumSecondaryCoverage = std::numeric_limits<uint64_t>::max();
+        for(const MarkerGraphEdgeId mId: branch.path) {
+            const MarkerGraph::Edge& mEdge = markerGraph.edges[mId];
+            if(mEdge.isSecondary) {
+                minimumSecondaryCoverage = min(minimumSecondaryCoverage, uint64_t(mEdge.coverage));
+            }
+        }
+        SHASTA_ASSERT(minimumSecondaryCoverage != std::numeric_limits<uint64_t>::max());
+        edgeTable.push_back(make_pair(e, minimumSecondaryCoverage));
+    }
+
+    // Sort the edge table by increasing coverage.
+    sort(edgeTable.begin(), edgeTable.end(),
+        OrderPairsBySecondOnly<edge_descriptor, uint64_t>());
+
+
+
+    // Process the edges in this order.
+    // Remove an edge if removal does not create a dead end.
+    uint64_t removedCount = 0;
+    for(const auto& p: edgeTable) {
+        const edge_descriptor e = p.first;
+        const vertex_descriptor v0 = source(e, g);
+        if(out_degree(v0, g) == 1) {
+            continue;
+        }
+        const vertex_descriptor v1 = target(e, g);
+        if(in_degree(v1, g) == 1) {
+            continue;
+        }
+        boost::remove_edge(e, g);
+        ++removedCount;
+    }
+    cout << "Removed " << removedCount << " secondary edges." << endl;
+}
 
 
 

@@ -217,6 +217,8 @@ private:
 
     // Initial creation of vertices and edges.
     void create();
+
+    // Remove secondary edges making sure to not introduce any dead ends.
     void cleanupSecondaryEdges();
 
     // Get the vertex descriptor for the vertex corresponding to
