@@ -4,6 +4,7 @@
 #include "computeLayout.hpp"
 #include "copyNumber.hpp"
 #include "deduplicate.hpp"
+#include "enumeratePaths.hpp"
 #include "findLinearChains.hpp"
 #include "orderPairs.hpp"
 #include "writeGraph.hpp"
