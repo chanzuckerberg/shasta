@@ -57,13 +57,17 @@ AssemblyGraph2::AssemblyGraph2(
     // Create the assembly graph.
     cout << timestamp << "AssemblyGraph2::create begins." << endl;
     create();
+    writeGfa("Assembly-0", false);
 
     // Remove secondary edges making sure to not introduce any dead ends.
     cleanupSecondaryEdges();
+    merge(false);
+    writeGfa("Assembly-1", false);
 
     // Gather parallel edges into bubbles.
     cout << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
     gatherBubbles();
+    writeGfa("Assembly-2", false);
 
     // Store the reads supporting each branch of each edges.
     cout << timestamp << "AssemblyGraph2::storeReadInformation begins." << endl;
@@ -72,10 +76,12 @@ AssemblyGraph2::AssemblyGraph2(
     // Remove bubbles caused by secondary edges.
     cout << timestamp << "AssemblyGraph2::removeSecondaryBubbles begins." << endl;
     removeSecondaryBubbles();
+    writeGfa("Assembly-3", false);
 
     // Merge adjacent non-bubbles created by the removal of secondary bubbles.
     cout << timestamp << "AssemblyGraph2::merge begins." << endl;
-    merge();
+    merge(true);
+    writeGfa("Assembly-4", false);
 
     // Assemble sequence.
     cout << timestamp <<"AssemblyGraph2::assemble begins." << endl;
@@ -2134,7 +2140,7 @@ void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
 
 
 // Merge consecutive non-bubbles, when possible.
-void AssemblyGraph2::merge()
+void AssemblyGraph2::merge(bool storeReadInformation)
 {
     // Find linear chains of non-bubbles.
     vector< vector<edge_descriptor> > chains;
@@ -2153,13 +2159,15 @@ void AssemblyGraph2::merge()
 
     // Merge each chain.
     for(const vector<edge_descriptor>& chain: chains) {
-        merge(chain);
+        merge(chain, storeReadInformation);
     }
 }
 
 
 
-AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(const vector<edge_descriptor>& chain)
+AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
+    const vector<edge_descriptor>& chain,
+    bool storeReadInformation)
 {
     G& g = *this;
 

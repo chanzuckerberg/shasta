@@ -235,8 +235,10 @@ private:
 
     // Merge consecutive non-bubbles, when possible.
     // Also, compute read information for the merged edges.
-    void merge();
-    edge_descriptor merge(const vector<edge_descriptor>&);
+    void merge(bool storeReadInformation);
+    edge_descriptor merge(
+        const vector<edge_descriptor>&,
+        bool storeReadInformation);
 
     // Find linear chains of adjacent non-bubbles.
     // Used by merge.
