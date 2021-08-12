@@ -337,6 +337,11 @@ private:
         vector<Superbubble::vertex_descriptor> entrances;
         vector<Superbubble::vertex_descriptor> exits;
         bool isSimpleLinearChain() const;
+
+        // Enumerate paths from the entrance to the exit.
+        // There must be exactly one entrance and one exit.
+        vector< vector<edge_descriptor> > paths;
+        void enumeratePaths();
     };
 
 

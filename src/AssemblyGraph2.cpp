@@ -2477,6 +2477,73 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
             }
             cout << "\n";
         }
+
+        // For now, ignore superbubbles that don't have exactly one entrance and one exit.
+        if((superbubble.entrances.size() != 1) or (superbubble.entrances.size() != 1)) {
+            cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
+            continue;
+        }
+
+        // If the superbubble contains any bubbles, we need to do some work first.
+        /* ********************************************* */
+
+        // Enumerate paths from the entrance to the exit.
+        superbubble.enumeratePaths();
+
+        if(debug) {
+            cout << "Found " << superbubble.paths.size() << " paths:" << endl;
+            for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
+                for(const Superbubble::edge_descriptor se: path) {
+                    const AssemblyGraph2::edge_descriptor ae = superbubble[se];
+                    cout << g[ae].id << " ";
+                }
+                cout << endl;
+            }
+        }
+
+
+
+        // Create a new edge and add a branch for each path.
+        const AssemblyGraph2::vertex_descriptor v0 = superbubble[superbubble.entrances.front()];
+        const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()];
+        AssemblyGraph2::edge_descriptor eNew;
+        bool edgeWasAdded = false;
+        tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextEdgeId++), g);
+        SHASTA_ASSERT(edgeWasAdded);
+        E& newEdge = g[eNew];
+
+        for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
+
+            // Construct the marker graph path.
+            MarkerGraphPath markerGraphPath;
+            bool containsSecondaryEdges = false;
+            for(const Superbubble::edge_descriptor se: path) {
+                const AssemblyGraph2::edge_descriptor ae = superbubble[se];
+                const E& edge = g[ae];
+                SHASTA_ASSERT(edge.branches.size() == 1);
+                const E::Branch& branch = edge.branches.front();
+                copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath));
+                if(branch.containsSecondaryEdges) {
+                    containsSecondaryEdges = true;
+                }
+            }
+
+            // Add the branch.
+            newEdge.branches.push_back(E::Branch(markerGraphPath, containsSecondaryEdges));
+        }
+
+        // Now remove all the edges internal to the superbubble.
+        BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+            boost::remove_edge(superbubble[se], g);
+        }
+
+        // Also remove any vertices that have been left isolated.
+        BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
+            AssemblyGraph2::vertex_descriptor av = superbubble[sv];
+            if(in_degree(av, g)==0 and out_degree(av, g)==0) {
+                remove_vertex(av, g);
+            }
+        }
     }
 }
 
@@ -2581,6 +2648,20 @@ bool AssemblyGraph2::Superbubble::isSimpleLinearChain() const
 
     // If getting here, all conditions for a simple linear chains are satisfied.
     return true;
+}
+
+
+
+// Enumerate paths from the entrance to the exit.
+// There must be exactly one entrance and one exit.
+void AssemblyGraph2::Superbubble::enumeratePaths()
+{
+    SHASTA_ASSERT(entrances.size() == 1);
+    SHASTA_ASSERT(exits.size() == 1);
+
+    const vertex_descriptor entrance = entrances.front();
+    const vertex_descriptor exit = exits.front();
+    enumerateSelfAvoidingPaths(*this, entrance, exit, paths);
 }
 
 
