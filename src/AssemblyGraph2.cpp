@@ -14,6 +14,7 @@ using namespace shasta;
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/pending/disjoint_sets.hpp>
 
 #include "fstream.hpp"
 #include <limits>
@@ -55,19 +56,25 @@ AssemblyGraph2::AssemblyGraph2(
     // Ambiguity threshold for bubble graph edges.
     double ambiguityThreshold = 0.5;
 
+    // Edge length threshold (in markers) for superbubbles.
+    const uint64_t edgeLengthThreshold = 6;
+
     // Create the assembly graph.
     cout << timestamp << "AssemblyGraph2::create begins." << endl;
     create();
-    writeGfa("Assembly-0", false);
 
     // Remove secondary edges making sure to not introduce any dead ends.
     cleanupSecondaryEdges();
     merge(false);
-    writeGfa("Assembly-1", false);
 
     // Gather parallel edges into bubbles.
     cout << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
     gatherBubbles();
+
+    // Handle superbubbles.
+    writeGfa("Assembly-1", false);
+    handleSuperbubbles(edgeLengthThreshold);
+    merge(false);
     writeGfa("Assembly-2", false);
 
     // Store the reads supporting each branch of each edges.
@@ -77,12 +84,10 @@ AssemblyGraph2::AssemblyGraph2(
     // Remove bubbles caused by secondary edges.
     cout << timestamp << "AssemblyGraph2::removeSecondaryBubbles begins." << endl;
     removeSecondaryBubbles();
-    writeGfa("Assembly-3", false);
 
     // Merge adjacent non-bubbles created by the removal of secondary bubbles.
     cout << timestamp << "AssemblyGraph2::merge begins." << endl;
     merge(true);
-    writeGfa("Assembly-4", false);
 
     // Assemble sequence.
     cout << timestamp <<"AssemblyGraph2::assemble begins." << endl;
@@ -2397,3 +2402,185 @@ void AssemblyGraph2::findBubbleChains()
         }
     }
 }
+
+
+
+void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
+{
+    G& g = *this;
+    const bool debug = true;
+
+    // We cannot use boost::connected_components because it
+    // only works for undirected graphs.
+
+    // Map vertices to integers.
+    std::map<vertex_descriptor, uint64_t> vertexMap;
+    uint64_t vertexIndex = 0;
+    BGL_FORALL_VERTICES(v, g, G) {
+        vertexMap.insert(make_pair(v, vertexIndex++));
+    }
+    const uint64_t n = uint64_t(vertexMap.size());
+
+    // Initialize the disjoint sets data structure.
+    vector<uint64_t> rank(n);
+    vector<uint64_t> parent(n);
+    boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint32_t i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+
+    // Main loop over short edges.
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+        if(edge.maximumPathLength() <= edgeLengthThreshold) {
+            const vertex_descriptor v0 = source(e, g);
+            const vertex_descriptor v1 = target(e, g);
+            disjointSets.union_set(vertexMap[v0], vertexMap[v1]);
+        }
+    }
+
+    // Gather the vertices in each connected component.
+    std::map<uint64_t, vector<vertex_descriptor> > components;
+    BGL_FORALL_VERTICES(v, g, G) {
+        const uint64_t component = disjointSets.find_set(vertexMap[v]);
+        components[component].push_back(v);
+    }
+
+
+
+    // Process one components one at a time.
+    // Each component is used to create a superbubble.
+    for(const auto& p: components) {
+        const vector<vertex_descriptor>& componentVertices = p.second;
+
+        // Create a superbubble with this component.
+        Superbubble superbubble(g, componentVertices);
+
+        // If there are no edges, skip it.
+        if(num_edges(superbubble) == 0) {
+            continue;
+        }
+
+        // If just a simple linear chain, skip it.
+        if(superbubble.isSimpleLinearChain()) {
+            continue;
+        }
+
+        if(debug) {
+            cout << "Found a superbubble with " <<
+                superbubble.entrances.size() << " entrances, " <<
+                superbubble.exits.size() << " exits, " <<
+                num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
+            BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+                const AssemblyGraph2::edge_descriptor ae = superbubble[se];
+                cout << " " << g[ae].id;
+            }
+            cout << "\n";
+        }
+    }
+}
+
+
+
+AssemblyGraph2::Superbubble::Superbubble(
+    const AssemblyGraph2& g,
+    const vector<AssemblyGraph2::vertex_descriptor>& aVertices)
+{
+    Superbubble& superbubble = *this;
+
+    // Create the vertices.
+    std::map<AssemblyGraph2::vertex_descriptor, Superbubble::vertex_descriptor> vertexMap;
+    for(const AssemblyGraph2::vertex_descriptor av: aVertices) {
+        Superbubble::vertex_descriptor sv = add_vertex(av, superbubble);
+        vertexMap.insert(make_pair(av, sv));
+    }
+
+    // Create the edges.
+    BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        BGL_FORALL_OUTEDGES(av0, ae, g, G) {
+            const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
+            auto it = vertexMap.find(av1);
+            if(it != vertexMap.end()) {
+                const Superbubble::vertex_descriptor sv1 = it->second;
+                add_edge(sv0, sv1, ae, superbubble);
+            }
+        }
+    }
+
+    // Find the entrances.
+    BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        BGL_FORALL_INEDGES(av0, ae, g, G) {
+            const AssemblyGraph2::vertex_descriptor av1 = source(ae, g);
+            if(vertexMap.find(av1) == vertexMap.end()) {
+                entrances.push_back(sv0);
+            }
+        }
+    }
+
+    // Find the exits.
+    BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        BGL_FORALL_OUTEDGES(av0, ae, g, G) {
+            const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
+            if(vertexMap.find(av1) == vertexMap.end()) {
+                exits.push_back(sv0);
+            }
+        }
+    }
+}
+
+
+
+bool AssemblyGraph2::Superbubble::isSimpleLinearChain() const
+{
+    const Superbubble& superbubble = *this;
+
+    // A simple linear chain must have exactly one entrance and one exit.
+    if(entrances.size() != 1) {
+        return false;
+    }
+    if(exits.size() != 1) {
+        return false;
+    }
+
+    // The entrance must have in_degree 0 and out_degree 1.
+    const vertex_descriptor entrance = entrances.front();
+    if(in_degree(entrance, superbubble) != 0) {
+        return false;
+    }
+    if(out_degree(entrance, superbubble) != 1) {
+        return false;
+    }
+
+    // The exit must have in_degree 1 and out_degree 0.
+    const vertex_descriptor exit = exits.front();
+    if(in_degree(exit, superbubble) != 1) {
+        return false;
+    }
+    if(out_degree(exit, superbubble) != 0) {
+        return false;
+    }
+
+    // All other vertices must have in_degree and out_degree 1.
+    BGL_FORALL_VERTICES(v, superbubble, Superbubble) {
+        if(v == entrance) {
+            continue;
+        }
+        if(v == exit) {
+            continue;
+        }
+        if(in_degree(v, superbubble) != 1) {
+            return false;
+        }
+        if(out_degree(v, superbubble) != 1) {
+            return false;
+        }
+    }
+
+    // If getting here, all conditions for a simple linear chains are satisfied.
+    return true;
+}
+
+

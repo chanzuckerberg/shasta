@@ -135,6 +135,15 @@ public:
         return s;
     }
 
+    uint64_t maximumPathLength() const
+    {
+        uint64_t length = 0;
+        for(const Branch& branch: branches) {
+            length = max(length, uint64_t(branch.path.size()));
+        }
+        return length;
+    }
+
     // Return the number of raw bases of sequence identical between
     // all branches at the beginning/end.
     uint64_t countCommonPrefixBases() const;
@@ -221,6 +230,9 @@ private:
     // Remove secondary edges making sure to not introduce any dead ends.
     void cleanupSecondaryEdges();
 
+    // Handle superbubbles.
+    void handleSuperbubbles(uint64_t edgeLengthThreshold);
+
     // Get the vertex descriptor for the vertex corresponding to
     // a given MarkerGraph::VertexId, creating the vertex if necessary.
     vertex_descriptor getVertex(MarkerGraph::VertexId);
@@ -244,6 +256,8 @@ private:
     // Used by merge.
     void findNonBubbleLinearChains(vector< vector<edge_descriptor> >&) const;
 
+
+
     // Predicate used to select non-bubble edges.
     class IsNonBubbleEdge {
     public:
@@ -257,6 +271,8 @@ private:
             return not (*g)[e].isBubble();
         }
     };
+
+
 
     // Assemble sequence for every marker graph path of every edge.
     void assemble();
@@ -305,6 +321,23 @@ private:
         const vector<edge_descriptor>&,
         vector<Base>&
         ) const;
+
+
+
+    // A superbubble is a subset of the Assembly2 graph.
+    using SuperbubbleBaseClass =
+        boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS,
+        vertex_descriptor, edge_descriptor>;
+    class Superbubble : public SuperbubbleBaseClass  {
+    public:
+        Superbubble(
+            const AssemblyGraph2&,
+            const vector<AssemblyGraph2::vertex_descriptor>&
+        );
+        vector<Superbubble::vertex_descriptor> entrances;
+        vector<Superbubble::vertex_descriptor> exits;
+        bool isSimpleLinearChain() const;
+    };
 
 
 
