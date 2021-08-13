@@ -358,6 +358,8 @@ private:
         // that begin/end at a given vertex.
         uint64_t originalInDegree(vertex_descriptor) const;
         uint64_t originalOutDegree(vertex_descriptor) const;
+
+        void write(ostream&, const AssemblyGraph2&) const;
     };
 
 

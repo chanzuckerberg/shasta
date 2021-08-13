@@ -2483,6 +2483,7 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         // For now, ignore superbubbles that don't have exactly one entrance and one exit.
         if((superbubble.entrances.size() != 1) or (superbubble.entrances.size() != 1)) {
             cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
+            superbubble.write(cout, g);
             continue;
         }
 
@@ -2567,6 +2568,13 @@ AssemblyGraph2::Superbubble::Superbubble(
         vertexMap.insert(make_pair(av, sv));
     }
 
+    /*
+    cout << "Vertex map:" << endl;
+    for(const auto& p: vertexMap) {
+        cout << p.second << " (" << p.first << ")" << endl;
+    }
+    */
+
     // Create the edges.
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
@@ -2584,25 +2592,70 @@ AssemblyGraph2::Superbubble::Superbubble(
     }
 
     // Find the entrances.
+    // cout << "Looking for entrances" << endl;
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        // cout << "Checking " << sv0 << " (" << av0<< ")\n";
+        bool isEntrance = false;
         BGL_FORALL_INEDGES(av0, ae, g, G) {
             const AssemblyGraph2::vertex_descriptor av1 = source(ae, g);
+            // cout << "Found (" << av1 << ")\n";
             if(vertexMap.find(av1) == vertexMap.end()) {
-                entrances.push_back(sv0);
+                isEntrance = true;
+                break;
+            } else {
+                // cout << "Corresponds to " << vertexMap[av1] << endl;
             }
+        }
+        if(isEntrance) {
+            // cout << "Entrance: " << sv0 << " (" << av0 << ")\n";
+            entrances.push_back(sv0);
         }
     }
 
     // Find the exits.
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        bool isExit = false;
         BGL_FORALL_OUTEDGES(av0, ae, g, G) {
             const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
             if(vertexMap.find(av1) == vertexMap.end()) {
-                exits.push_back(sv0);
+                isExit = true;
+                break;
             }
         }
+        if(isExit) {
+            exits.push_back(sv0);
+        }
+    }
+}
+
+
+
+void AssemblyGraph2::Superbubble::write(
+    ostream& out,
+    const AssemblyGraph2& g) const
+{
+    const Superbubble& superbubble = *this;
+
+    out << "Superbubble vertices:" << endl;
+    BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av = superbubble[sv];
+        out << sv << " (" << av << ")" << endl;
+    }
+
+    out << "Superbubble edges:" << endl;
+    BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+        const SuperbubbleEdge sEdge = superbubble[se];
+        const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+        const uint64_t branchId = sEdge.branchId;
+        const Superbubble::vertex_descriptor sv0 = source(se, superbubble);
+        const Superbubble::vertex_descriptor sv1 = target(se, superbubble);
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1];
+        out << g[ae].pathId(branchId) << " ";
+        out << " " << sv0 << "->" << sv1 << " ";
+        out << " (" << av0 << "->" << av1 << ")" << endl;
     }
 }
 
