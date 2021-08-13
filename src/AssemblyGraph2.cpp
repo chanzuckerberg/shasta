@@ -2472,8 +2472,10 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
                 superbubble.exits.size() << " exits, " <<
                 num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
             BGL_FORALL_EDGES(se, superbubble, Superbubble) {
-                const AssemblyGraph2::edge_descriptor ae = superbubble[se];
-                cout << " " << g[ae].id;
+                const SuperbubbleEdge& sEdge = superbubble[se];
+                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                const uint64_t branchId = sEdge.branchId;
+                cout << " " << g[ae].pathId(branchId);
             }
             cout << "\n";
         }
@@ -2484,9 +2486,6 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
             continue;
         }
 
-        // If the superbubble contains any bubbles, we need to do some work first.
-        /* ********************************************* */
-
         // Enumerate paths from the entrance to the exit.
         superbubble.enumeratePaths();
 
@@ -2494,8 +2493,10 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
             cout << "Found " << superbubble.paths.size() << " paths:" << endl;
             for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
                 for(const Superbubble::edge_descriptor se: path) {
-                    const AssemblyGraph2::edge_descriptor ae = superbubble[se];
-                    cout << g[ae].id << " ";
+                    const SuperbubbleEdge& sEdge = superbubble[se];
+                    const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                    const uint64_t branchId = sEdge.branchId;
+                    cout << " " << g[ae].pathId(branchId);
                 }
                 cout << endl;
             }
@@ -2518,10 +2519,11 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
             MarkerGraphPath markerGraphPath;
             bool containsSecondaryEdges = false;
             for(const Superbubble::edge_descriptor se: path) {
-                const AssemblyGraph2::edge_descriptor ae = superbubble[se];
+                const SuperbubbleEdge sEdge = superbubble[se];
+                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                const uint64_t branchId = sEdge.branchId;
                 const E& edge = g[ae];
-                SHASTA_ASSERT(edge.branches.size() == 1);
-                const E::Branch& branch = edge.branches.front();
+                const E::Branch& branch = edge.branches[branchId];
                 copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath));
                 if(branch.containsSecondaryEdges) {
                     containsSecondaryEdges = true;
@@ -2534,7 +2536,10 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
 
         // Now remove all the edges internal to the superbubble.
         BGL_FORALL_EDGES(se, superbubble, Superbubble) {
-            boost::remove_edge(superbubble[se], g);
+            const SuperbubbleEdge& sEdge = superbubble[se];
+            if(sEdge.branchId == 0) {
+                boost::remove_edge(sEdge.ae, g);
+            }
         }
 
         // Also remove any vertices that have been left isolated.
@@ -2569,8 +2574,11 @@ AssemblyGraph2::Superbubble::Superbubble(
             const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
             auto it = vertexMap.find(av1);
             if(it != vertexMap.end()) {
+                const E& aEdge = g[ae];
                 const Superbubble::vertex_descriptor sv1 = it->second;
-                add_edge(sv0, sv1, ae, superbubble);
+                for(uint64_t branchId=0; branchId<aEdge.ploidy(); branchId++) {
+                    add_edge(sv0, sv1, SuperbubbleEdge(ae, branchId), superbubble);
+                }
             }
         }
     }
@@ -2600,6 +2608,8 @@ AssemblyGraph2::Superbubble::Superbubble(
 
 
 
+// Return true if the superbubble corresponds to a simple linear chain
+// in the AssemblyGraph2.
 bool AssemblyGraph2::Superbubble::isSimpleLinearChain() const
 {
     const Superbubble& superbubble = *this;
@@ -2613,41 +2623,67 @@ bool AssemblyGraph2::Superbubble::isSimpleLinearChain() const
     }
 
     // The entrance must have in_degree 0 and out_degree 1.
-    const vertex_descriptor entrance = entrances.front();
-    if(in_degree(entrance, superbubble) != 0) {
+    const vertex_descriptor sEntrance = entrances.front();
+    if(originalInDegree(sEntrance) != 0) {
         return false;
     }
-    if(out_degree(entrance, superbubble) != 1) {
+    if(originalOutDegree(sEntrance) != 1) {
         return false;
     }
 
     // The exit must have in_degree 1 and out_degree 0.
-    const vertex_descriptor exit = exits.front();
-    if(in_degree(exit, superbubble) != 1) {
+    const vertex_descriptor sExit = exits.front();
+    if(originalInDegree(sExit) != 1) {
         return false;
     }
-    if(out_degree(exit, superbubble) != 0) {
+    if(originalOutDegree(sExit) != 0) {
         return false;
     }
 
     // All other vertices must have in_degree and out_degree 1.
-    BGL_FORALL_VERTICES(v, superbubble, Superbubble) {
-        if(v == entrance) {
+    BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
+        if(sv == sEntrance) {
             continue;
         }
-        if(v == exit) {
+        if(sv == sExit) {
             continue;
         }
-        if(in_degree(v, superbubble) != 1) {
+        if(originalInDegree(sv) != 1) {
             return false;
         }
-        if(out_degree(v, superbubble) != 1) {
+        if(originalOutDegree(sv) != 1) {
             return false;
         }
     }
 
     // If getting here, all conditions for a simple linear chains are satisfied.
     return true;
+}
+
+
+// Return the number of distinct AssemblyGraph2 edges
+// that begin/end at a given vertex.
+uint64_t AssemblyGraph2::Superbubble::originalInDegree(vertex_descriptor v) const
+{
+    const Superbubble& superbubble = *this;
+    uint64_t n = 0;
+    BGL_FORALL_INEDGES(v, e, superbubble, Superbubble) {
+        if(superbubble[e].branchId == 0) {
+            ++n;
+        }
+    }
+    return n;
+}
+uint64_t AssemblyGraph2::Superbubble::originalOutDegree(vertex_descriptor v) const
+{
+    const Superbubble& superbubble = *this;
+    uint64_t n = 0;
+    BGL_FORALL_OUTEDGES(v, e, superbubble, Superbubble) {
+        if(superbubble[e].branchId == 0) {
+            ++n;
+        }
+    }
+    return n;
 }
 
 
@@ -2663,5 +2699,3 @@ void AssemblyGraph2::Superbubble::enumeratePaths()
     const vertex_descriptor exit = exits.front();
     enumerateSelfAvoidingPaths(*this, entrance, exit, paths);
 }
-
-

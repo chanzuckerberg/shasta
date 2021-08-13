@@ -324,10 +324,21 @@ private:
 
 
 
-    // A superbubble is a subset of the Assembly2 graph.
+    // A superbubble is a subset of the AssemblyGraph2.
+    // Each vertex corresponds to a vertex of the AssemblyGraph2.
+    // Each edge corresponds to a branch of the AssemblyGraph2.
+    class SuperbubbleEdge {
+    public:
+        AssemblyGraph2::edge_descriptor ae;
+        uint64_t branchId;
+        SuperbubbleEdge(
+            AssemblyGraph2::edge_descriptor ae,
+            uint64_t branchId) :
+            ae(ae), branchId(branchId) {}
+    };
     using SuperbubbleBaseClass =
         boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS,
-        vertex_descriptor, edge_descriptor>;
+        AssemblyGraph2::vertex_descriptor, SuperbubbleEdge>;
     class Superbubble : public SuperbubbleBaseClass  {
     public:
         Superbubble(
@@ -342,6 +353,11 @@ private:
         // There must be exactly one entrance and one exit.
         vector< vector<edge_descriptor> > paths;
         void enumeratePaths();
+
+        // Return the number of distinct AssemblyGraph2 edges
+        // that begin/end at a given vertex.
+        uint64_t originalInDegree(vertex_descriptor) const;
+        uint64_t originalOutDegree(vertex_descriptor) const;
     };
 
 
