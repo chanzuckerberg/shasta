@@ -3,6 +3,7 @@
 #include "Alignment.hpp"
 #include "countingSort.hpp"
 #include "hashArray.hpp"
+#include "Marker.hpp"
 #include "orderPairs.hpp"
 #include "PngImage.hpp"
 #include "SHASTA_ASSERT.hpp"

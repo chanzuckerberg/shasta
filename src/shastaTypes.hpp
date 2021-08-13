@@ -5,6 +5,8 @@
 
 namespace shasta {
 
+    using KmerId = uint32_t;
+
     using ReadId = uint32_t;
     using Strand = ReadId;
 

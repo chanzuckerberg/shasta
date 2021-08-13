@@ -52,8 +52,8 @@ of size (deltaX, deltaY) in (X,Y) space.
 
 *******************************************************************************/
 
-#include "Marker.hpp"
 #include "MemoryMappedAllocator.hpp"
+#include "shastaTypes.hpp"
 #include "span.hpp"
 
 #include "array.hpp"
@@ -65,6 +65,7 @@ of size (deltaX, deltaY) in (X,Y) space.
 namespace shasta {
     class Alignment;
     class AlignmentInfo;
+    class CompressedMarker;
     class PngImage;
 
     namespace Align4 {
