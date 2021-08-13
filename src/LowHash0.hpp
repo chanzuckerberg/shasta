@@ -9,6 +9,9 @@
 #include "ReadId.hpp"
 #include "Reads.hpp"
 
+// Standard library.
+#include "tuple.hpp"
+
 namespace shasta {
     class LowHash0;
     class Reads;

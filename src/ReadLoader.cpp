@@ -8,6 +8,7 @@ using namespace shasta;
 #include "chrono.hpp"
 #include "iterator.hpp"
 #include <filesystem>
+#include "tuple.hpp"
 
 
 // Load reads from a fastq or fasta file.

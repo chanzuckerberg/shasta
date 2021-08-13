@@ -3,6 +3,7 @@
 
 #include "Base.hpp"
 #include "Coverage.hpp"
+#include "MarkerInterval.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
 #include "shastaTypes.hpp"

@@ -3,6 +3,7 @@
 
 // Standard Library
 #include "fstream.hpp"
+#include "tuple.hpp"
 
 using namespace shasta;
 
