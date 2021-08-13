@@ -18,6 +18,7 @@
 #include "memory.hpp"
 #include "string.hpp"
 #include "tuple.hpp"
+#include "utility.hpp"
 
 namespace shasta {
 

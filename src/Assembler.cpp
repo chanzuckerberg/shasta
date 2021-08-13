@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "buildId.hpp"
+#include "Coverage.hpp"
 #include "MedianConsensusCaller.hpp"
 #include "Reads.hpp"
 #include "SimpleConsensusCaller.hpp"

@@ -5,6 +5,7 @@
 #include "AssemblyGraph.hpp"
 #include "compressAlignment.hpp"
 #include "ConsensusCaller.hpp"
+#include "Coverage.hpp"
 #include "hsv.hpp"
 #include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"

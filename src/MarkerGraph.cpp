@@ -1,4 +1,5 @@
 #include "MarkerGraph.hpp"
+#include "Coverage.hpp"
 using namespace shasta;
 
 const MarkerGraph::VertexId MarkerGraph::invalidVertexId = std::numeric_limits<VertexId>::max();

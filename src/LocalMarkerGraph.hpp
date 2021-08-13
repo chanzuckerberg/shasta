@@ -17,6 +17,7 @@ a group of aligned markers.
 
 // Shasta.
 #include "AssemblyGraph.hpp"
+#include "Coverage.hpp"
 #include "Kmer.hpp"
 #include "LocalMarkerGraphRequestParameters.hpp"
 #include "MarkerGraph.hpp"

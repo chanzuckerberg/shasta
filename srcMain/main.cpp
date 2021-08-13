@@ -9,6 +9,7 @@
 #include "AssemblerOptions.hpp"
 #include "AssemblyGraph.hpp"
 #include "buildId.hpp"
+#include "Coverage.hpp"
 #include "filesystem.hpp"
 #include "Reads.hpp"
 #include "timestamp.hpp"

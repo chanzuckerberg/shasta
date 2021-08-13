@@ -4,6 +4,7 @@
 #include "AssemblyGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "compressAlignment.hpp"
+#include "Coverage.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "PeakFinder.hpp"
 #ifdef SHASTA_HTTP_SERVER

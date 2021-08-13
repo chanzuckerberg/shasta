@@ -3,10 +3,11 @@
 
 // Shasta.
 #include "ReadId.hpp"
-#include"tuple.hpp"
 
 // Standard library.
 #include "array.hpp"
+#include "tuple.hpp"
+#include "vector.hpp"
 
 namespace shasta {
     class MarkerInterval;
@@ -17,7 +18,7 @@ namespace shasta {
 // Class to describe the interval between
 // two markers on an oriented read.
 // The two markers are not necessarily consecutive.
-// HOoever, the second marker has a higher ordinal
+// However, the second marker has a higher ordinal
 // than the first.
 class shasta::MarkerInterval {
 public:

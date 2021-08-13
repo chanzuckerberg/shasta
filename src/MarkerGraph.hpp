@@ -2,7 +2,6 @@
 #define SHASTA_MARKER_GRAPH_HPP
 
 #include "Base.hpp"
-#include "Coverage.hpp"
 #include "MarkerInterval.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
@@ -15,6 +14,7 @@
 namespace shasta {
 
     class MarkerGraph;
+    class CompressedCoverageData;
 
 }
 

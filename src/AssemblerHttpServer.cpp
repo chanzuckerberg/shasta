@@ -2,6 +2,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblyGraph.hpp"
+#include "Coverage.hpp"
 #include "buildId.hpp"
 #include "platformDependent.hpp"
 #include "Reads.hpp"
