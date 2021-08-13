@@ -2,7 +2,6 @@
 #define SHASTA_ASSEMBLED_SEGMENT_HPP
 
 // Shasta.
-#include "AssemblyGraph.hpp"
 #include "Base.hpp"
 #include "Coverage.hpp"
 #include "MarkerGraph.hpp"

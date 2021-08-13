@@ -4,6 +4,7 @@
 #include "AssembledSegment.hpp"
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
+#include "AssemblyGraph.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
 #include "compressAlignment.hpp"
