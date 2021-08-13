@@ -3,7 +3,7 @@
 
 // Shasta.
 #include "MemoryMappedVectorOfVectors.hpp"
-#include "ReadId.hpp"
+#include "shastaTypes.hpp"
 
 // Standard library.
 #include "array.hpp"

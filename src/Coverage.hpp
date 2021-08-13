@@ -3,8 +3,8 @@
 
 // Shasta.
 #include "Base.hpp"
+#include "shastaTypes.hpp"
 #include "SHASTA_ASSERT.hpp"
-#include "ReadId.hpp"
 
 // Standard library.
 #include "algorithm.hpp"

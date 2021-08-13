@@ -15,11 +15,9 @@ or just alignments that are in the ReadGraph.
 *******************************************************************************/
 
 #include "Marker.hpp"
-#include "ReadId.hpp"
 #include <boost/graph/adjacency_list.hpp>
 
 #include <map>
-#include "utility.hpp"
 
 namespace shasta {
     class MarkerConnectivityGraph;

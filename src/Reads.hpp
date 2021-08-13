@@ -1,17 +1,18 @@
 #ifndef SHASTA_READS
 #define SHASTA_READS
 
-// shasta
+// Shasta
+#include "Base.hpp"
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
-#include "ReadId.hpp"
-#include "Base.hpp"
-#include "span.hpp"
 #include "ReadFlags.hpp"
+#include "shastaTypes.hpp"
 #include "SHASTA_ASSERT.hpp"
+#include "span.hpp"
 
 namespace shasta {
     class Reads;
+    class OrientedReadId;
 }
 
 /***************************************************************************
@@ -61,7 +62,7 @@ it cannot be stored and is discarded on input.
 The stored base repeat count is never zero, and is one
 for most bases.
 
-The run-length representation is typically around 25% shorter than
+The run-length representation is typically around 30% shorter than
 the raw representation, due to the removal of repeated bases.
 This gives some performance benefits for assembly phases that
 don't use the base repeat counts. However, the need to store
@@ -73,7 +74,7 @@ than the raw representation.
 Run-length representations that are more economic in memory are possible,
 at the price of additional code complexity and performance cost
 in assembly phases that use the base repeat counts.
->
+
 ***************************************************************************/
 
 class shasta::Reads {

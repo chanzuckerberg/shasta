@@ -6,7 +6,6 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
-#include "ReadId.hpp"
 #include "Reads.hpp"
 
 // Standard library.

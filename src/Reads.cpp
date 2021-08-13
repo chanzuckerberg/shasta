@@ -1,5 +1,6 @@
 // Shasta
 #include "Reads.hpp"
+#include "ReadId.hpp"
 
 // Standard Library
 #include "fstream.hpp"
