@@ -1,5 +1,6 @@
 // Shasta.
 #include "AssembledSegment.hpp"
+#include "MarkerGraph.hpp"
 using namespace shasta;
 
 // Boost libraries.

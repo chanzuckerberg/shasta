@@ -4,9 +4,10 @@
 // Shasta.
 #include "Base.hpp"
 #include "Coverage.hpp"
-#include "MarkerGraph.hpp"
+#include "shastaTypes.hpp"
 
 // Standard library.
+#include "utility.hpp"
 #include "vector.hpp"
 
 namespace shasta {
@@ -30,8 +31,8 @@ public:
     size_t vertexCount;
 
     // The marker graph vertices and edges of the chain corresponding to this segment.
-    vector<MarkerGraph::VertexId> vertexIds;
-    vector<MarkerGraph::EdgeId> edgeIds;
+    vector<MarkerGraphVertexId> vertexIds;
+    vector<MarkerGraphEdgeId> edgeIds;
 
     // Vertex and edge coverage.
     vector<uint32_t> vertexCoverage;
