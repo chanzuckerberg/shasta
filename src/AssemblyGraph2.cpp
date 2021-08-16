@@ -63,7 +63,7 @@ AssemblyGraph2::AssemblyGraph2(
     cout << timestamp << "AssemblyGraph2::create begins." << endl;
     create();
 
-    // Remove secondary edges making sure to not introduce any dead ends.
+    // Remove secondary edges, making sure to not introduce any dead ends.
     cleanupSecondaryEdges();
     merge(false, false);
 
@@ -72,10 +72,8 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
 
     // Handle superbubbles.
-    writeGfa("Assembly-1", false);
     handleSuperbubbles(edgeLengthThreshold);
     merge(false, false);
-    writeGfa("Assembly-2", false);
 
     // Store the reads supporting each branch of each edges.
     cout << timestamp << "AssemblyGraph2::storeReadInformation begins." << endl;
@@ -93,16 +91,18 @@ AssemblyGraph2::AssemblyGraph2(
     cout << timestamp <<"AssemblyGraph2::assemble begins." << endl;
     assemble();
 
-    // Store the sequence to be written to gfa.
-    // This transfers common sequence out of bubbles and into adjacent
-    // non-bubbles.
-    cout << timestamp << "AssemblyGraph2::storeGfaSequence begins." << endl;
-    storeGfaSequence();
+    // Remove degenerate edges (both branches have the same sequence).
+    cout << timestamp << "AssemblyGraph2::removeDegenerateBranches begins." << endl;
+    removeDegenerateBranches();
+    merge(true, true);
+
 
     // Find bubbles caused by copy number changes in repeats
-    // with period up to maxPeriod.
+    // with period up to maxPeriod, then remove them.
     cout << timestamp << "AssemblyGraph2::findCopyNumberBubbles begins." << endl;
     findCopyNumberBubbles(maxPeriod);
+    removeCopyNumberBubbles();
+    merge(true, true);
 
     // Find chains of bubbles.
     // These are linear chains of edges of length at least 2.
@@ -722,10 +722,35 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
 
 
 
+// Remove bubbles caused by copy number changes.
+void AssemblyGraph2::removeCopyNumberBubbles()
+{
+    G& g = *this;
+
+    uint64_t totalCount = 0;
+    uint64_t removedCount = 0;
+    BGL_FORALL_EDGES(e, g, G) {
+        ++totalCount;
+        E& edge = g[e];
+        if(edge.period != 0) {
+            edge.removeAllBranchesExceptStrongest();
+            ++removedCount;
+        }
+    }
+    cout << "Cleaned up " << removedCount <<
+        " bubbles caused by repeat counts out of " <<
+        totalCount << " total." << endl;
+
+}
+
+
+
 void AssemblyGraph2::writeGfa(
     const string& baseName,
-    bool writeSequence) const
+    bool writeSequence)
 {
+    storeGfaSequence();
+
     const G& g = *this;
 
     // Open the gfa and write the header.
@@ -815,8 +840,10 @@ void AssemblyGraph2::writeGfa(
 
 void AssemblyGraph2::writeHaploidGfa(
     const string& baseName,
-    bool writeSequence) const
+    bool writeSequence)
 {
+    storeGfaSequence();
+
     const G& g = *this;
 
     // Open the gfa and write the header.
@@ -2142,6 +2169,28 @@ void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
 {
     vector<Branch> newBranches(1, branches[strongestBranchId]);
     branches.swap(newBranches);
+    strongestBranchId = 0;
+}
+
+
+
+// Remove degenerate branches.
+void AssemblyGraph2::removeDegenerateBranches()
+{
+    G& g = *this;
+
+    uint64_t totalCount = 0;
+    uint64_t removedCount = 0;
+    BGL_FORALL_EDGES(e, g, G) {
+        ++totalCount;
+        E& edge = g[e];
+        if(edge.isDegenerateBubble()) {
+            edge.removeAllBranchesExceptStrongest();
+            ++removedCount;
+        }
+    }
+    cout << "Removed degenerate branches in " << removedCount <<
+        " edges out of " << totalCount << " total." << endl;
 }
 
 

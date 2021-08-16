@@ -125,6 +125,14 @@ public:
         return ploidy() > 1;
     }
 
+    bool isDegenerateBubble() const
+    {
+        return
+            (ploidy() == 2)
+            and
+            (branches[0].rawSequence == branches[1].rawSequence);
+    }
+
     // Construct a string to id each of the markerGraphPaths.
     string pathId(uint64_t branchId) const
     {
@@ -199,11 +207,11 @@ public:
     // Gfa output includes a csv file with the given base name.
     void writeGfa(
         const string& baseName,
-        bool writeSequence = true) const;
+        bool writeSequence = true);
     // Haploid gfa and no csv file.
     void writeHaploidGfa(
         const string& baseName,
-        bool writeSequence = true) const;
+        bool writeSequence = true);
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
@@ -232,6 +240,9 @@ private:
 
     // Handle superbubbles.
     void handleSuperbubbles(uint64_t edgeLengthThreshold);
+
+    // Remove degenerate branches
+    void removeDegenerateBranches();
 
     // Get the vertex descriptor for the vertex corresponding to
     // a given MarkerGraph::VertexId, creating the vertex if necessary.
@@ -297,9 +308,10 @@ private:
 
     void removeSecondaryBubbles();
 
-    // Find bubbles caused by copy number changes in repeats
+    // Find/remove bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
     void findCopyNumberBubbles(uint64_t maxPeriod);
+    void removeCopyNumberBubbles();
 
     // For each edge, compute the number of raw sequence bases
     // transfered in each direction for gfa output.
