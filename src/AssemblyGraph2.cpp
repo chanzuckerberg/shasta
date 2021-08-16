@@ -767,7 +767,11 @@ void AssemblyGraph2::writeGfa(
     ofstream csv(baseName + ".csv");
     csv << "Id,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
         "Secondary,Period,"
-        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
+        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,";
+    if(writeSequence) {
+        csv << "Sequence,";
+    }
+    csv << "\n";
 
 
 
@@ -808,7 +812,19 @@ void AssemblyGraph2::writeGfa(
                 (edge.period ? to_string(edge.period) : string()) << "," <<
                 branch.minimumCoverage << "," <<
                 branch.averageCoverage << "," <<
-                branch.orientedReadIds.size() << "\n";
+                branch.orientedReadIds.size() << ",";
+            if(writeSequence) {
+                if(branch.gfaSequence.size() == 0) {
+                    csv << "-";
+                } else if(branch.gfaSequence.size() <= 6) {
+                    copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+                        ostream_iterator<Base>(csv));
+                } else {
+                    csv << "...";
+                }
+                csv << ",";
+            }
+            csv << "\n";
         }
     }
 
@@ -2185,18 +2201,69 @@ void AssemblyGraph2::removeDegenerateBranches()
 {
     G& g = *this;
 
-    uint64_t totalCount = 0;
-    uint64_t removedCount = 0;
     BGL_FORALL_EDGES(e, g, G) {
-        ++totalCount;
         E& edge = g[e];
-        if(edge.isDegenerateBubble()) {
-            edge.removeAllBranchesExceptStrongest();
-            ++removedCount;
+
+        const uint64_t ploidy = edge.ploidy();
+
+        if(ploidy == 1) {
+            continue;
         }
+
+        if(ploidy == 2) {
+            if(edge.isDegenerateBubble()) {
+                edge.removeAllBranchesExceptStrongest();
+            }
+            continue;
+        }
+
+        // General case of ploidy 3 or more.
+
+        // Gather branches that have the same sequence.
+        // Map with:
+        // Key = raw sequence.
+        // Value = (average edge coverage, branchId).
+        std::map<vector<shasta::Base>, vector<uint64_t> > branchMap;
+        for(uint64_t branchId=0; branchId<edge.branches.size(); branchId++) {
+            const E::Branch& branch = edge.branches[branchId];
+            branchMap[branch.rawSequence].push_back(branchId);
+        }
+
+
+
+        // For each set of branches with identical sequence, only keep the strongest.
+        vector<uint64_t> keep;
+        for(const auto& p: branchMap) {
+            const vector<uint64_t>& branchIds = p.second;
+            if(branchIds.size() == 1) {
+                // There is only one branch with this sequence. Keep it.
+                keep.push_back(branchIds.front());
+                continue;
+            }
+
+            // Find the one with the most coverage.
+            uint64_t bestBranchId = branchIds.front();
+            uint64_t bestCoverage = edge.branches[bestBranchId].averageCoverage;
+            for(uint64_t branchId: branchIds) {
+                const uint64_t branchCoverage = edge.branches[branchId].averageCoverage;
+                if(branchCoverage > bestCoverage) {
+                    bestBranchId = branchId;
+                    bestCoverage = branchCoverage;
+                }
+            }
+            SHASTA_ASSERT(bestBranchId < ploidy);
+            keep.push_back(bestBranchId);
+        }
+
+        // Only keep the branches we marked to keep.
+        vector<E::Branch> newBranches;
+        for(uint64_t branchId: keep) {
+            newBranches.push_back(edge.branches[branchId]);
+        }
+        edge.branches.swap(newBranches);
+
+        edge.findStrongestBranch();
     }
-    cout << "Removed degenerate branches in " << removedCount <<
-        " edges out of " << totalCount << " total." << endl;
 }
 
 
