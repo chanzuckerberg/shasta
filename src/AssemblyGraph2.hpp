@@ -246,11 +246,15 @@ private:
         bool containsSecondaryEdges);
 
     // Merge consecutive non-bubbles, when possible.
-    // Also, compute read information for the merged edges.
-    void merge(bool storeReadInformation);
+     void merge(
+        bool storeReadInformation,  // If true, store read information for merged edges.
+        bool assemble               // If true, assemble merged edges.
+        );
     edge_descriptor merge(
         const vector<edge_descriptor>&,
-        bool storeReadInformation);
+        bool storeReadInformation,  // If true, store read information for merged edges.
+        bool assemble               // If true, assemble merged edges.
+        );
 
     // Find linear chains of adjacent non-bubbles.
     // Used by merge.

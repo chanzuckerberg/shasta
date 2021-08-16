@@ -65,7 +65,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Remove secondary edges making sure to not introduce any dead ends.
     cleanupSecondaryEdges();
-    merge(false);
+    merge(false, false);
 
     // Gather parallel edges into bubbles.
     cout << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
@@ -74,7 +74,7 @@ AssemblyGraph2::AssemblyGraph2(
     // Handle superbubbles.
     writeGfa("Assembly-1", false);
     handleSuperbubbles(edgeLengthThreshold);
-    merge(false);
+    merge(false, false);
     writeGfa("Assembly-2", false);
 
     // Store the reads supporting each branch of each edges.
@@ -87,7 +87,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Merge adjacent non-bubbles created by the removal of secondary bubbles.
     cout << timestamp << "AssemblyGraph2::merge begins." << endl;
-    merge(true);
+    merge(true, false);
 
     // Assemble sequence.
     cout << timestamp <<"AssemblyGraph2::assemble begins." << endl;
@@ -2147,7 +2147,10 @@ void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
 
 
 // Merge consecutive non-bubbles, when possible.
-void AssemblyGraph2::merge(bool storeReadInformation)
+void AssemblyGraph2::merge(
+    bool storeReadInformation,  // If true, store read information for merged edges.
+    bool assemble               // If true, assemble merged edges.
+    )
 {
     // Find linear chains of non-bubbles.
     vector< vector<edge_descriptor> > chains;
@@ -2166,7 +2169,7 @@ void AssemblyGraph2::merge(bool storeReadInformation)
 
     // Merge each chain.
     for(const vector<edge_descriptor>& chain: chains) {
-        merge(chain, storeReadInformation);
+        merge(chain, storeReadInformation, assemble);
     }
 }
 
@@ -2174,7 +2177,9 @@ void AssemblyGraph2::merge(bool storeReadInformation)
 
 AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
     const vector<edge_descriptor>& chain,
-    bool storeReadInformation)
+    bool storeReadInformation,  // If true, store read information for merged edges.
+    bool assemble               // If true, assemble merged edges.
+    )
 {
     G& g = *this;
 
@@ -2222,7 +2227,12 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
 
     // Add the new edge.
     const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges);
-    g[eNew].storeReadInformation(markerGraph);
+    if(storeReadInformation) {
+        g[eNew].storeReadInformation(markerGraph);
+    }
+    if(assemble) {
+        AssemblyGraph2::assemble(eNew);
+    }
 
     // Gather the vertices in between, which will be removed.
     vector<vertex_descriptor> verticesToBeRemoved;
