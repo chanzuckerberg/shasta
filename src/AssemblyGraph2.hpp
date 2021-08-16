@@ -313,6 +313,10 @@ private:
     void findCopyNumberBubbles(uint64_t maxPeriod);
     void removeCopyNumberBubbles();
 
+    // Remove bubbles marked isBad during phasing.
+    // Only keep the strongest branch for each.
+    void removeBadBubbles();
+
     // For each edge, compute the number of raw sequence bases
     // transfered in each direction for gfa output.
     void countTransferredBases();

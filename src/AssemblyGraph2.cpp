@@ -108,7 +108,7 @@ AssemblyGraph2::AssemblyGraph2(
     // These are linear chains of edges of length at least 2.
     findBubbleChains();
 
-    // Haploid gfa outpout.
+    // Haploid gfa output.
     // All bubbles are collapsed to the strongest branch.
     writeHaploidGfa("Assembly-Haploid");
 
@@ -134,6 +134,12 @@ AssemblyGraph2::AssemblyGraph2(
     // Use each connected component of the bubble graph to phase the bubbles.
     cout << timestamp << "AssemblyGraph2::phase begins." << endl;
     phase();
+
+    // Remove from the AssemblyGraph2 the bubbles marked isBad
+    // (only keep the strongest branch).
+    cout << timestamp << "AssemblyGraph2::removeBadBubbles begins." << endl;
+    removeBadBubbles();
+    merge(true, true);
 
     // Write out what we have.
     cout << timestamp << "Writing GFA output." << endl;
@@ -2191,6 +2197,29 @@ void AssemblyGraph2::removeDegenerateBranches()
     }
     cout << "Removed degenerate branches in " << removedCount <<
         " edges out of " << totalCount << " total." << endl;
+}
+
+
+
+// Remove bubbles marked isBad during phasing.
+// Only keep the strongest branch for each.
+void AssemblyGraph2::removeBadBubbles()
+{
+    G& g = *this;
+
+    uint64_t totalCount = 0;
+    uint64_t removedCount = 0;
+    BGL_FORALL_EDGES(e, g, G) {
+        ++totalCount;
+        E& edge = g[e];
+        if(edge.isBad) {
+            edge.removeAllBranchesExceptStrongest();
+            ++removedCount;
+        }
+    }
+    cout << "Cleaned up " << removedCount <<
+        " bad bubbles out of " << totalCount << " edges total." << endl;
+
 }
 
 
