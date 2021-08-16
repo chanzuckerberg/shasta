@@ -298,6 +298,11 @@ private:
     // Store GFA sequence in each edge.
     void storeGfaSequence();
 
+    void hetSnpStatistics(
+        uint64_t& transitionCount,
+        uint64_t& transversionCount
+    ) const;
+
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.
     void gatherBubbles();

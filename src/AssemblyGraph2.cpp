@@ -112,6 +112,14 @@ AssemblyGraph2::AssemblyGraph2(
     // All bubbles are collapsed to the strongest branch.
     writeHaploidGfa("Assembly-Haploid");
 
+    // Het snp statistics.
+    uint64_t transitionCount, transversionCount;
+    hetSnpStatistics(transitionCount, transversionCount);
+    cout << transitionCount << " transitions, " <<
+        transversionCount << " transversions.\n" <<
+        "Transition/transversion ratio is " <<
+        double(transitionCount) / double(transversionCount) << endl;
+
     // Create the bubble graph.
     cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
     createBubbleGraph(markers.size()/2);
@@ -2263,6 +2271,50 @@ void AssemblyGraph2::removeDegenerateBranches()
         edge.branches.swap(newBranches);
 
         edge.findStrongestBranch();
+    }
+}
+
+
+
+void AssemblyGraph2::hetSnpStatistics(
+    uint64_t& transitionCount,
+    uint64_t& transversionCount
+) const
+{
+    using shasta::Base;
+    const G& g = *this;
+
+    transitionCount = 0;
+    transversionCount= 0;
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+
+        if(edge.ploidy() != 2) {
+            continue;
+        }
+
+        const auto& s0 = edge.branches[0].gfaSequence;
+        const auto& s1 = edge.branches[1].gfaSequence;
+
+        if(s0.size() != 1) {
+            continue;
+        }
+        if(s1.size() != 1) {
+            continue;
+        }
+
+        const Base b0 = s0.front();
+        const Base b1 = s1.front();
+
+        const bool isPurine0 = (b0.value % 2) == 0;
+        const bool isPurine1 = (b1.value % 2) == 0;
+
+        const bool isTransition = (isPurine0 == isPurine1);
+        if(isTransition) {
+            ++transitionCount;
+        } else {
+            ++transversionCount;
+        }
     }
 }
 
