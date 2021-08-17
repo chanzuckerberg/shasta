@@ -138,7 +138,8 @@ AssemblyGraph2::AssemblyGraph2(
     // These are linear chains of edges of length at least 2.
     findBubbleChains();
     writeBubbleChains();
-
+    findPhasingRegions();
+    writePhasingRegions();
 
     // Haploid gfa output.
     // All bubbles are collapsed to the strongest branch.
@@ -2514,6 +2515,123 @@ void AssemblyGraph2::findBubbleChains()
             g[e].bubbleChain = make_pair(&bubbleChain, position);
         }
     }
+}
+
+
+
+// Find PhasingRegions within BubbleChains.
+void AssemblyGraph2::findPhasingRegions()
+{
+    for(BubbleChain& bubbleChain: bubbleChains) {
+        findPhasingRegions(bubbleChain);
+    }
+}
+
+
+
+void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
+{
+    const G& g = *this;
+    const auto& edges = bubbleChain.edges;
+
+    // Gather all the positions that have a defined componentId.
+    vector< pair<uint64_t, uint64_t> > bubbleChainTable;
+    for(uint64_t position=0; position<edges.size(); position++) {
+        const AssemblyGraph2Edge& edge = g[edges[position]];
+        const uint64_t componentId = edge.componentId;
+        if(componentId != std::numeric_limits<uint64_t>::max()) {
+            bubbleChainTable.push_back(make_pair(position, componentId));
+        }
+    }
+
+    // Use this table to find the boundaries of the phased regions.
+    vector<uint64_t> firstPositions;
+    vector<uint64_t> lastPositions;
+    for(uint64_t i=0; i<bubbleChainTable.size(); i++) {
+        const auto& p = bubbleChainTable[i];
+        const uint64_t position = p.first;
+        const uint64_t componentId = p.second;
+        if(i==0 or componentId != bubbleChainTable[i-1].second) {
+            firstPositions.push_back(position);
+        }
+        if(i==bubbleChainTable.size()-1 or componentId != bubbleChainTable[i+1].second) {
+            lastPositions.push_back(position);
+        }
+    }
+    SHASTA_ASSERT(not firstPositions.empty());
+    SHASTA_ASSERT(not lastPositions.empty());
+    SHASTA_ASSERT(firstPositions.size() == lastPositions.size());
+
+
+
+    // Now we can create the phased regions.
+    bubbleChain.phasingRegions.clear();
+
+    // Create an initial unphased region, if necessary.
+    if(firstPositions.front() != 0) {
+        BubbleChain::PhasingRegion unphasedRegion;
+        unphasedRegion.firstPosition = 0;
+        unphasedRegion.lastPosition = firstPositions.front() - 1;
+        unphasedRegion.isPhased = false;
+        bubbleChain.phasingRegions.push_back(unphasedRegion);
+    }
+
+    for(uint64_t i=0; i<firstPositions.size(); i++) {
+
+        // Add a phased region.
+        BubbleChain::PhasingRegion phasedRegion;
+        phasedRegion.firstPosition = firstPositions[i];
+        phasedRegion.lastPosition = lastPositions[i];
+        phasedRegion.isPhased = true;
+        phasedRegion.componentId = g[edges[firstPositions[i]]].componentId;
+        bubbleChain.phasingRegions.push_back(phasedRegion);
+
+        // If necessary, add an unphased region to bridge the gap to the
+        // next phased region.
+        if(i != firstPositions.size() - 1 ) {
+            if(firstPositions[i + 1] != lastPositions[i] + 1) {
+                BubbleChain::PhasingRegion unphasedRegion;
+                unphasedRegion.firstPosition = lastPositions[i] + 1;
+                unphasedRegion.lastPosition = firstPositions[i + 1] - 1;
+                unphasedRegion.isPhased = false;
+                bubbleChain.phasingRegions.push_back(unphasedRegion);
+            }
+        }
+    }
+
+    // Create a final unphased region, if necessary.
+    if(lastPositions.back() != edges.size()-1) {
+        BubbleChain::PhasingRegion unphasedRegion;
+        unphasedRegion.firstPosition = lastPositions.back() + 1;
+        unphasedRegion.lastPosition = edges.size()-1;
+        unphasedRegion.isPhased = false;
+        bubbleChain.phasingRegions.push_back(unphasedRegion);
+    }
+}
+
+
+
+void AssemblyGraph2::writePhasingRegions()
+{
+
+    ofstream csv("PhasingRegions.csv");
+    csv << "Bubble chain,First position,Last position,Phased,Component,\n";
+
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        for(const auto& phasingRegion: bubbleChain.phasingRegions) {
+            csv <<
+                bubbleChain.id << "," <<
+                phasingRegion.firstPosition << "," <<
+                phasingRegion.lastPosition << ",";
+            if(phasingRegion.isPhased) {
+                csv << "Yes," << phasingRegion.componentId << ",";
+            } else {
+                csv << "No,,";
+            }
+            csv << "\n";
+        }
+    }
+
 }
 
 

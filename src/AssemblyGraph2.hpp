@@ -45,6 +45,16 @@ class shasta::BubbleChain {
 public:
     uint64_t id;
     vector<AssemblyGraph2BaseClass::edge_descriptor> edges;
+
+    // The edges of a BubbleChain are partitioned in PhasingRegions.
+    class PhasingRegion {
+    public:
+        uint64_t firstPosition;
+        uint64_t lastPosition;
+        bool isPhased;
+        uint64_t componentId= std::numeric_limits<uint64_t>::max();   // Only valid if isPhased is true.
+    };
+    vector<PhasingRegion> phasingRegions;
 };
 
 
@@ -347,6 +357,9 @@ private:
     vector<BubbleChain> bubbleChains;
     void findBubbleChains();
     void writeBubbleChains();
+    void findPhasingRegions();
+    void findPhasingRegions(BubbleChain&);
+    void writePhasingRegions();
 
     // Compute the gfa sequence of a bubble chain
     // by concatenating gfa sequence of the strongest branch of
