@@ -6,6 +6,7 @@
 #include "deduplicate.hpp"
 #include "enumeratePaths.hpp"
 #include "findLinearChains.hpp"
+#include "GfaAssemblyGraph.hpp"
 #include "orderPairs.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
@@ -767,11 +768,28 @@ void AssemblyGraph2::writeGfa(
 
     const G& g = *this;
 
-    // Open the gfa and write the header.
-    ofstream gfa(baseName + ".gfa");
-    gfa << "H\tVN:Z:1.0\n";
+    // Create a GFA with a segment for each branch, then write it out.
+    GfaAssemblyGraph<vertex_descriptor> gfa;
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+        const vertex_descriptor v0 = source(e, g);
+        const vertex_descriptor v1 = target(e, g);
 
-    // Open the csv and write the header.
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            const E::Branch& branch = edge.branches[branchId];
+
+            if(writeSequence) {
+                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
+            } else {
+                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
+            }
+        }
+    }
+    gfa.write(baseName + ".gfa");
+
+
+
+    // Also write a csv file that can be used in Bandage.
     ofstream csv(baseName + ".csv");
     csv << "Id,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
         "Secondary,Period,"
@@ -783,23 +801,12 @@ void AssemblyGraph2::writeGfa(
 
 
 
-    // Each edge of the AssemblyGraph2 generates a gfa Segment
-    // for each of its marker graph paths.
     BGL_FORALL_EDGES(e, g, G) {
         const E& edge = g[e];
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const E::Branch& branch = edge.branches[branchId];
 
-            // Write a Segment to the GFA file.
-            gfa << "S\t" << edge.pathId(branchId) << "\t";
-            if(writeSequence) {
-                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
-                    ostream_iterator<Base>(gfa));
-                gfa << "\tLN:i:" << branch.gfaSequence.size() << "\n";
-            } else {
-                gfa << "*\tLN:i:" << branch.path.size() << "\n";
-            }
 
             // Also write a line to the csv file.
             const string color = edge.color(branchId);
@@ -833,35 +840,6 @@ void AssemblyGraph2::writeGfa(
                 csv << ",";
             }
             csv << "\n";
-        }
-    }
-
-
-
-    // Generate link records.
-    // For each vertex, we generate a Link for each pair of
-    // incoming/outgoing marker graph paths.
-    BGL_FORALL_VERTICES(v, g, G) {
-
-        // Loop over marker graph paths of incoming edges.
-        BGL_FORALL_INEDGES(v, e0, g, G) {
-            const E& edge0 = g[e0];
-            for(uint64_t i0=0; i0<edge0.ploidy(); i0++) {
-
-                // Loop over marker graph paths of outgoing edges.
-                BGL_FORALL_OUTEDGES(v, e1, g, G) {
-                    const E& edge1 = g[e1];
-                    for(uint64_t i1=0; i1<edge1.ploidy(); i1++) {
-
-                        // To make Bandage happy, we write a Cigar string
-                        // consisting of 0M rather than an empty Cigar string.
-                        gfa << "L\t" <<
-                            edge0.pathId(i0) << "\t+\t" <<
-                            edge1.pathId(i1) << "\t+\t0M\n";
-
-                    }
-                }
-            }
         }
     }
 }
