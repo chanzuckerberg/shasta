@@ -105,22 +105,6 @@ AssemblyGraph2::AssemblyGraph2(
     removeCopyNumberBubbles();
     merge(true, true);
 
-    // Find chains of bubbles.
-    // These are linear chains of edges of length at least 2.
-    findBubbleChains();
-
-    // Haploid gfa output.
-    // All bubbles are collapsed to the strongest branch.
-    writeHaploidGfa("Assembly-Haploid");
-
-    // Het snp statistics.
-    uint64_t transitionCount, transversionCount;
-    hetSnpStatistics(transitionCount, transversionCount);
-    cout << transitionCount << " transitions, " <<
-        transversionCount << " transversions.\n" <<
-        "Transition/transversion ratio is " <<
-        double(transitionCount) / double(transversionCount) << endl;
-
     // Create the bubble graph.
     cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
     createBubbleGraph(markers.size()/2);
@@ -150,9 +134,27 @@ AssemblyGraph2::AssemblyGraph2(
     removeBadBubbles();
     merge(true, true);
 
+    // Find chains of bubbles.
+    // These are linear chains of edges of length at least 2.
+    findBubbleChains();
+    writeBubbleChains();
+
+
+    // Haploid gfa output.
+    // All bubbles are collapsed to the strongest branch.
+    writeHaploidGfa("Assembly-Haploid");
+
     // Write out what we have.
     cout << timestamp << "Writing GFA output." << endl;
     writeGfa("Assembly");
+
+    // Het snp statistics.
+    uint64_t transitionCount, transversionCount;
+    hetSnpStatistics(transitionCount, transversionCount);
+    cout << transitionCount << " transitions, " <<
+        transversionCount << " transversions.\n" <<
+        "Transition/transversion ratio is " <<
+        double(transitionCount) / double(transversionCount) << endl;
 
 }
 
@@ -2512,6 +2514,37 @@ void AssemblyGraph2::findBubbleChains()
             g[e].bubbleChain = make_pair(&bubbleChain, position);
         }
     }
+}
+
+
+
+void AssemblyGraph2::writeBubbleChains()
+{
+    G& g = *this;
+
+    ofstream csv("BubbleChains.csv");
+    csv << "Bubble chain,Position,Edge,Component,\n";
+
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        const vector<edge_descriptor>& edges = bubbleChain.edges;
+
+        for(uint64_t position=0; position<uint64_t(edges.size()); position++) {
+            const edge_descriptor e = edges[position];
+            const AssemblyGraph2Edge& edge = g[e];
+
+            csv << bubbleChain.id << ",";
+            csv << position << ",";
+            csv << edge.ploidy() << ",";
+            if(edge.componentId != std::numeric_limits<uint64_t>::max()){
+                csv << edge.componentId;
+            }
+            csv << ",";
+
+            csv << "\n";
+
+        }
+    }
+
 }
 
 

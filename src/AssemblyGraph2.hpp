@@ -346,6 +346,7 @@ private:
     // Linear chains of bubbles in the AssemblyGraph2.
     vector<BubbleChain> bubbleChains;
     void findBubbleChains();
+    void writeBubbleChains();
 
     // Compute the gfa sequence of a bubble chain
     // by concatenating gfa sequence of the strongest branch of
