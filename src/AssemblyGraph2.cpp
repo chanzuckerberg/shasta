@@ -2523,7 +2523,7 @@ void AssemblyGraph2::writeBubbleChains()
     G& g = *this;
 
     ofstream csv("BubbleChains.csv");
-    csv << "Bubble chain,Position,Edge,Component,\n";
+    csv << "Bubble chain,Position,Edge,Ploidy,Component,\n";
 
     for(const BubbleChain& bubbleChain: bubbleChains) {
         const vector<edge_descriptor>& edges = bubbleChain.edges;
@@ -2534,6 +2534,7 @@ void AssemblyGraph2::writeBubbleChains()
 
             csv << bubbleChain.id << ",";
             csv << position << ",";
+            csv << edge.id << ",";
             csv << edge.ploidy() << ",";
             if(edge.componentId != std::numeric_limits<uint64_t>::max()){
                 csv << edge.componentId;
