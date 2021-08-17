@@ -465,7 +465,7 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(
     edge_descriptor e;
     bool edgeWasAdded = false;
     tie(e, edgeWasAdded) = add_edge(v0, v1,
-        E(nextEdgeId++, path, containsSecondaryEdges), *this);
+        E(nextId++, path, containsSecondaryEdges), *this);
     SHASTA_ASSERT(edgeWasAdded);
 
     return e;
@@ -687,7 +687,7 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     // Create the new edge to replace the old ones.
     edge_descriptor eNew;
     bool edgeWasAdded = false;
-    tie(eNew, edgeWasAdded) = add_edge(v0, v1, E(nextEdgeId++), g);
+    tie(eNew, edgeWasAdded) = add_edge(v0, v1, E(nextId++), g);
     SHASTA_ASSERT(edgeWasAdded);
     E& edgeNew = g[eNew];
 
@@ -880,17 +880,17 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
     // Add a segment for each bubble chain.
-    for(const auto& bubbleChain: bubbleChains) {
-        const vertex_descriptor v0 = source(bubbleChain.front(), g);
-        const vertex_descriptor v1 = target(bubbleChain.back(), g);
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        const vertex_descriptor v0 = source(bubbleChain.edges.front(), g);
+        const vertex_descriptor v1 = target(bubbleChain.edges.back(), g);
 
         vector<Base> sequence;
         computeBubbleChainGfaSequence(bubbleChain, sequence);
 
         if(writeSequence) {
-            gfa.addSegment(bubbleChainId(bubbleChain), v0, v1, sequence);
+            gfa.addSegment(to_string(bubbleChain.id), v0, v1, sequence);
         } else {
-            gfa.addSegment(bubbleChainId(bubbleChain), v0, v1, sequence.size());
+            gfa.addSegment(to_string(bubbleChain.id), v0, v1, sequence.size());
         }
     }
 
@@ -944,8 +944,8 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
     // Write a line to csv for each bubble chain.
-    for(const auto& bubbleChain: bubbleChains) {
-        csv << bubbleChainId(bubbleChain) << ",,,#80ff80\n";
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        csv << to_string(bubbleChain.id) << ",,,#80ff80\n";
     }
 
 
@@ -954,32 +954,18 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
 
-// Return the gfa id of a bubble chain.
-string AssemblyGraph2::bubbleChainId(const vector<edge_descriptor>& bubbleChain) const
-{
-    const G& g = *this;
-
-    SHASTA_ASSERT(not bubbleChain.empty());
-    const edge_descriptor e0 = bubbleChain.front();
-    const edge_descriptor e1 = bubbleChain.back();
-
-    return "C" + to_string(g[e0].id) + "-" + to_string(g[e1].id);
-}
-
-
-
 // Compute the gfa sequence of a bubble chain
 // by concatenating gfa sequence of the strongest branch of
 // each of tis edges.
 void AssemblyGraph2::computeBubbleChainGfaSequence(
-    const vector<edge_descriptor>& bubbleChain,
+    const BubbleChain& bubbleChain,
     vector<Base>& sequence
     ) const
 {
     const G& g = *this;
 
     sequence.clear();
-    for(const edge_descriptor e: bubbleChain) {
+    for(const edge_descriptor e: bubbleChain.edges) {
         const E& edge = g[e];
         const E::Branch& branch = edge.branches[edge.strongestBranchId];
         copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
@@ -2484,12 +2470,19 @@ void AssemblyGraph2::findBubbleChains()
 {
     G& g = *this;
 
+    vector< vector<edge_descriptor> > linearChains;
+    findLinearChains(*this, 2, linearChains);
     bubbleChains.clear();
-    findLinearChains(*this, 2, bubbleChains);
+    bubbleChains.resize(linearChains.size());
+    for(uint64_t i=0; i<linearChains.size(); i++) {
+        BubbleChain& bubbleChain = bubbleChains[i];
+        bubbleChain.edges.swap(linearChains[i]);
+        bubbleChain.id = nextId++;
+    }
 
     cout << "Found " << bubbleChains.size() << " bubble chains with the following numbers of edges:";
     for(const auto& bubbleChain: bubbleChains) {
-        cout << " " << bubbleChain.size();
+        cout << " " << bubbleChain.edges.size();
     }
     cout << endl;
 
@@ -2500,10 +2493,10 @@ void AssemblyGraph2::findBubbleChains()
         vertex.bubbleChainsBeginningHere.clear();
         vertex.bubbleChainsEndingHere.clear();
     }
-    for(const auto& bubbleChain: bubbleChains) {
-        SHASTA_ASSERT(not bubbleChain.empty());
-        const vertex_descriptor vBegin = source(bubbleChain.front(), g);
-        const vertex_descriptor vEnd = target(bubbleChain.back(), g);
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        SHASTA_ASSERT(not bubbleChain.edges.empty());
+        const vertex_descriptor vBegin = source(bubbleChain.edges.front(), g);
+        const vertex_descriptor vEnd = target(bubbleChain.edges.back(), g);
         g[vBegin].bubbleChainsBeginningHere.push_back(&bubbleChain);
         g[vEnd].bubbleChainsEndingHere.push_back(&bubbleChain);
     }
@@ -2513,9 +2506,9 @@ void AssemblyGraph2::findBubbleChains()
     BGL_FORALL_EDGES(e, g, G) {
         g[e].bubbleChain = {0, 0};
     }
-    for(const auto& bubbleChain: bubbleChains) {
-        for(uint64_t position=0; position<bubbleChain.size(); position++) {
-            const edge_descriptor e = bubbleChain[position];
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        for(uint64_t position=0; position<bubbleChain.edges.size(); position++) {
+            const edge_descriptor e = bubbleChain.edges[position];
             g[e].bubbleChain = make_pair(&bubbleChain, position);
         }
     }
@@ -2628,7 +2621,7 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()];
         AssemblyGraph2::edge_descriptor eNew;
         bool edgeWasAdded = false;
-        tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextEdgeId++), g);
+        tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextId++), g);
         SHASTA_ASSERT(edgeWasAdded);
         E& newEdge = g[eNew];
 

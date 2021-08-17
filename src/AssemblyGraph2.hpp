@@ -24,6 +24,7 @@ namespace shasta {
     class AssemblyGraph2;
     class AssemblyGraph2Vertex;
     class AssemblyGraph2Edge;
+    class BubbleChain;
     class MarkerGraph;
 
     using AssemblyGraph2BaseClass =
@@ -39,6 +40,15 @@ namespace shasta {
 
 
 
+// Linear chains of bubbles in the AssemblyGraph2.
+class shasta::BubbleChain {
+public:
+    uint64_t id;
+    vector<AssemblyGraph2BaseClass::edge_descriptor> edges;
+};
+
+
+
 class shasta::AssemblyGraph2Vertex {
 public:
     MarkerGraph::VertexId markerGraphVertexId;
@@ -47,8 +57,8 @@ public:
         markerGraphVertexId(markerGraphVertexId) {}
 
     // The bubble chains that begin/end at this vertex.
-    vector<vector<AssemblyGraph2BaseClass::edge_descriptor> const *> bubbleChainsBeginningHere;
-    vector<vector<AssemblyGraph2BaseClass::edge_descriptor> const *> bubbleChainsEndingHere;
+    vector<BubbleChain const *> bubbleChainsBeginningHere;
+    vector<BubbleChain const *> bubbleChainsEndingHere;
 };
 
 
@@ -183,7 +193,7 @@ public:
     // If this edge is part of a bubble chain, this stores
     // pair(bubble chain pointer, position in bubble chain).
     // Otherwise, it stores pair(0, 0).
-    pair<const vector<AssemblyGraph2BaseClass::edge_descriptor>*, uint64_t> bubbleChain = {0, 0};
+    pair<BubbleChain const *, uint64_t> bubbleChain = {0, 0};
 };
 
 
@@ -248,7 +258,8 @@ private:
     // a given MarkerGraph::VertexId, creating the vertex if necessary.
     vertex_descriptor getVertex(MarkerGraph::VertexId);
 
-    uint64_t nextEdgeId = 0;
+    // This is used to generate ids for edges (segments) and bubble chains.
+    uint64_t nextId = 0;
 
     // Create a new edge corresponding to the given path.
     // Also create the vertices if necessary.
@@ -333,17 +344,14 @@ private:
 
 
     // Linear chains of bubbles in the AssemblyGraph2.
-    vector< vector<edge_descriptor> > bubbleChains;
+    vector<BubbleChain> bubbleChains;
     void findBubbleChains();
-
-    // Return the gfa id of a bubble chain.
-    string bubbleChainId(const vector<edge_descriptor>&) const;
 
     // Compute the gfa sequence of a bubble chain
     // by concatenating gfa sequence of the strongest branch of
     // each of tis edges.
     void computeBubbleChainGfaSequence(
-        const vector<edge_descriptor>&,
+        const BubbleChain&,
         vector<Base>&
         ) const;
 
