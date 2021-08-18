@@ -124,6 +124,13 @@ public:
         boost::add_edge(v0, v1, GfaAssemblyGraphEdge(name), *this);
     }
 
+    // Add a path, specified as a sequence of segment ids
+    // (without the "+" sign which is added automatically).
+    void addPath(const string& name, const vector<string>& path)
+    {
+        paths.push_back(Path{name, path});
+    }
+
     // Write out in GFA format.
     void write(const string& fileName) const
     {
@@ -135,6 +142,7 @@ public:
         writeHeader(gfa);
         writeSegments(gfa);
         writeLinks(gfa);
+        writePaths(gfa);
     }
 
     using BaseClass = GfaAssemblyGraphBaseClass<Vertex>;
@@ -142,6 +150,16 @@ public:
     using G = GfaAssemblyGraph<Vertex>;
 
 private:
+
+    // The paths to be written in the gfa file.
+    // Each path consists of a sequence of segment ids
+    // (without "+" signs, which are added automatically).
+    class Path {
+    public:
+        string name;
+        vector<string> segmentNames;
+    };
+    vector<Path> paths;
 
     static void writeHeader(ostream& gfa)
     {
@@ -194,6 +212,27 @@ private:
         }
     }
 
+    // Write the paths.
+    void writePaths(ostream& gfa) const
+    {
+        for(const Path& path: paths) {
+            gfa << "P\t" << path.name << "\t";
+            for(uint64_t i=0; i<uint64_t(path.segmentNames.size()); i++) {
+                if(i != 0) {
+                    gfa << ",";
+                }
+                gfa << path.segmentNames[i];
+            }
+            gfa << "\t";
+            for(uint64_t i=0; i<uint64_t(path.segmentNames.size()-1); i++) {
+                if(i != 0) {
+                    gfa << ",";
+                }
+                gfa << "0M";
+            }
+
+        }
+    }
 
     // Map a user-provided Vertex to the corresponding vertex_descriptor.
     std::map<Vertex, vertex_descriptor> vertexMap;
