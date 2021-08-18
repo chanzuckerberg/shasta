@@ -49,10 +49,11 @@ public:
     // The edges of a BubbleChain are partitioned in PhasingRegions.
     class PhasingRegion {
     public:
+        uint64_t id = std::numeric_limits<uint64_t>::max();
         uint64_t firstPosition;
         uint64_t lastPosition;
         bool isPhased;
-        uint64_t componentId= std::numeric_limits<uint64_t>::max();   // Only valid if isPhased is true.
+        uint64_t componentId = std::numeric_limits<uint64_t>::max();   // Only valid if isPhased is true.
     };
     vector<PhasingRegion> phasingRegions;
 };

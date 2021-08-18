@@ -2570,6 +2570,7 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
     // Create an initial unphased region, if necessary.
     if(firstPositions.front() != 0) {
         BubbleChain::PhasingRegion unphasedRegion;
+        unphasedRegion.id = nextId++;
         unphasedRegion.firstPosition = 0;
         unphasedRegion.lastPosition = firstPositions.front() - 1;
         unphasedRegion.isPhased = false;
@@ -2580,6 +2581,7 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
 
         // Add a phased region.
         BubbleChain::PhasingRegion phasedRegion;
+        phasedRegion.id = nextId++;
         phasedRegion.firstPosition = firstPositions[i];
         phasedRegion.lastPosition = lastPositions[i];
         phasedRegion.isPhased = true;
@@ -2591,6 +2593,7 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
         if(i != firstPositions.size() - 1 ) {
             if(firstPositions[i + 1] != lastPositions[i] + 1) {
                 BubbleChain::PhasingRegion unphasedRegion;
+                unphasedRegion.id = nextId++;
                 unphasedRegion.firstPosition = lastPositions[i] + 1;
                 unphasedRegion.lastPosition = firstPositions[i + 1] - 1;
                 unphasedRegion.isPhased = false;
@@ -2602,6 +2605,7 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
     // Create a final unphased region, if necessary.
     if(lastPositions.back() != edges.size()-1) {
         BubbleChain::PhasingRegion unphasedRegion;
+        unphasedRegion.id = nextId++;
         unphasedRegion.firstPosition = lastPositions.back() + 1;
         unphasedRegion.lastPosition = edges.size()-1;
         unphasedRegion.isPhased = false;
@@ -2615,12 +2619,13 @@ void AssemblyGraph2::writePhasingRegions()
 {
 
     ofstream csv("PhasingRegions.csv");
-    csv << "Bubble chain,First position,Last position,Phased,Component,\n";
+    csv << "Bubble chain id,Phasing region id,First position,Last position,Phased,Component,\n";
 
     for(const BubbleChain& bubbleChain: bubbleChains) {
         for(const auto& phasingRegion: bubbleChain.phasingRegions) {
             csv <<
                 bubbleChain.id << "," <<
+                phasingRegion.id << "," <<
                 phasingRegion.firstPosition << "," <<
                 phasingRegion.lastPosition << ",";
             if(phasingRegion.isPhased) {
