@@ -141,13 +141,12 @@ AssemblyGraph2::AssemblyGraph2(
     findPhasingRegions();
     writePhasingRegions();
 
-    // Haploid gfa output.
-    // All bubbles are collapsed to the strongest branch.
-    writeHaploidGfa("Assembly-Haploid");
-
     // Write out what we have.
     cout << timestamp << "Writing GFA output." << endl;
+    storeGfaSequence();
     writeGfa("Assembly");
+    writeHaploidGfa("Assembly-Haploid");
+    writePhasedGfa("Assembly-Phased");
 
     // Het snp statistics.
     uint64_t transitionCount, transversionCount;
@@ -767,8 +766,6 @@ void AssemblyGraph2::writeGfa(
     const string& baseName,
     bool writeSequence)
 {
-    storeGfaSequence();
-
     const G& g = *this;
 
     // Create a GFA with a segment for each branch, then write it out.
@@ -853,8 +850,6 @@ void AssemblyGraph2::writeHaploidGfa(
     const string& baseName,
     bool writeSequence)
 {
-    storeGfaSequence();
-
     const G& g = *this;
 
     // Create a GFA and add a segment for each edge that is not part
@@ -957,6 +952,67 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
 
+void AssemblyGraph2::writePhasedGfa(const string& baseName)
+{
+
+    const G& g = *this;
+
+    // Create a GFA and add a segment for each edge that is not part
+    // of a bubble chain.
+    GfaAssemblyGraph<vertex_descriptor> gfa;
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+        if(edge.bubbleChain.first) {
+            continue;
+        }
+
+        const vertex_descriptor v0 = source(e, g);
+        const vertex_descriptor v1 = target(e, g);
+
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            const E::Branch& branch = edge.branches[branchId];
+            gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
+        }
+    }
+
+
+
+    // Add one or two segments, depending on ploidy, for each phasing region
+    // of each bubble chain.
+    vector<Base> sequence;
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        for(const BubbleChain::PhasingRegion& phasingRegion: bubbleChain.phasingRegions) {
+
+            const vertex_descriptor v0 = source(bubbleChain.edges[phasingRegion.firstPosition], g);
+            const vertex_descriptor v1 = target(bubbleChain.edges[phasingRegion.lastPosition], g);
+
+            if(phasingRegion.isPhased) {
+
+                computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
+                gfa.addSegment(to_string(phasingRegion.id) + ".0", v0, v1, sequence);
+
+                computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
+                gfa.addSegment(to_string(phasingRegion.id) + ".1", v0, v1, sequence);
+
+            } else {
+
+                computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
+                gfa.addSegment(to_string(phasingRegion.id), v0, v1, sequence);
+
+            }
+
+        }
+    }
+
+
+
+    // Write the GFA.
+    gfa.write(baseName + ".gfa");
+
+}
+
+
+
 // Compute the gfa sequence of a bubble chain
 // by concatenating gfa sequence of the strongest branch of
 // each of tis edges.
@@ -973,6 +1029,74 @@ void AssemblyGraph2::computeBubbleChainGfaSequence(
         const E::Branch& branch = edge.branches[edge.strongestBranchId];
         copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
             back_inserter(sequence));
+    }
+}
+
+
+
+// Compute the gfa sequence of an unphased region
+// by concatenating gfa sequence of the strongest branch of
+// each of this edges.
+void AssemblyGraph2::computeUnphasedRegionGfaSequence(
+    const BubbleChain& bubbleChain,
+    const BubbleChain::PhasingRegion& phasingRegion,
+    vector<Base>& sequence
+    ) const
+{
+    const G& g = *this;
+
+    sequence.clear();
+    for(uint64_t position=phasingRegion.firstPosition;
+        position<=phasingRegion.lastPosition; position++) {
+        const edge_descriptor e = bubbleChain.edges[position];
+        const E& edge = g[e];
+        const E::Branch& branch = edge.branches[edge.strongestBranchId];
+        copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+            back_inserter(sequence));
+    }
+}
+
+
+
+// Compute the gfa sequence of an haplotype of a phased region.
+void AssemblyGraph2::computePhasedRegionGfaSequence(
+    const BubbleChain& bubbleChain,
+    const BubbleChain::PhasingRegion& phasingRegion,
+    uint64_t haplotype,
+    vector<Base>& sequence
+    ) const
+{
+    const G& g = *this;
+
+    sequence.clear();
+    for(uint64_t position=phasingRegion.firstPosition;
+        position<=phasingRegion.lastPosition; position++) {
+        const edge_descriptor e = bubbleChain.edges[position];
+        const E& edge = g[e];
+
+        if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
+
+            // This edge is homozygous or unphased.
+            const E::Branch& branch = edge.branches[edge.strongestBranchId];
+            copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+                back_inserter(sequence));
+
+        } else {
+
+            // This edge is diploid and phased.
+            SHASTA_ASSERT(edge.ploidy() == 2);
+            SHASTA_ASSERT(edge.componentId == phasingRegion.componentId);
+
+            // Figure out which branch we need.
+            uint64_t branchId = 0;
+            if(edge.phase != haplotype) {
+                branchId = 1;
+            }
+
+            const E::Branch& branch = edge.branches[branchId];
+            copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+                back_inserter(sequence));
+        }
     }
 }
 

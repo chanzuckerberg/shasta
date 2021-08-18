@@ -225,14 +225,14 @@ public:
     void writeEdgesCsv(const string& baseName) const;
     void writeEdgeDetailsCsv(const string& baseName) const;
 
-    // Gfa output includes a csv file with the given base name.
+    // Gfa output.
     void writeGfa(
         const string& baseName,
         bool writeSequence = true);
-    // Haploid gfa and no csv file.
     void writeHaploidGfa(
         const string& baseName,
         bool writeSequence = true);
+    void writePhasedGfa(const string& baseName);
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
@@ -364,9 +364,26 @@ private:
 
     // Compute the gfa sequence of a bubble chain
     // by concatenating gfa sequence of the strongest branch of
-    // each of tis edges.
+    // each of this edges.
     void computeBubbleChainGfaSequence(
         const BubbleChain&,
+        vector<Base>&
+        ) const;
+
+    // Compute the gfa sequence of an unphased region
+    // by concatenating gfa sequence of the strongest branch of
+    // each of this edges.
+    void computeUnphasedRegionGfaSequence(
+        const BubbleChain&,
+        const BubbleChain::PhasingRegion&,
+        vector<Base>&
+        ) const;
+
+    // Compute the gfa sequence of an haplotype of a phased region.
+    void computePhasedRegionGfaSequence(
+        const BubbleChain&,
+        const BubbleChain::PhasingRegion&,
+        uint64_t haplotype,
         vector<Base>&
         ) const;
 
