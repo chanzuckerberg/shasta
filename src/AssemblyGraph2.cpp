@@ -785,6 +785,55 @@ void AssemblyGraph2::writeGfa(
             }
         }
     }
+
+
+
+    // Add two paths for each phased region - one for each haplotype.
+    for(const BubbleChain& bubbleChain: bubbleChains) {
+        for(const auto& phasingRegion: bubbleChain.phasingRegions) {
+
+            vector<string> path0;
+            vector<string> path1;
+
+            for(uint64_t position=phasingRegion.firstPosition;
+                position<=phasingRegion.lastPosition; position++) {
+                const edge_descriptor e = bubbleChain.edges[position];
+                const E& edge = g[e];
+
+                if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
+
+                    // This edge is homozygous or unphased.
+                    const string segmentName = edge.pathId(0);
+                    path0.push_back(segmentName);
+                    path1.push_back(segmentName);
+
+                } else {
+
+                    // This edge is diploid and phased.
+                    SHASTA_ASSERT(edge.ploidy() == 2);
+                    SHASTA_ASSERT(edge.componentId == phasingRegion.componentId);
+
+                    string segmentName0 = edge.pathId(0);
+                    string segmentName1 = edge.pathId(1);
+
+                    if(edge.phase == 0) {
+                        path0.push_back(segmentName0);
+                        path1.push_back(segmentName1);
+                    } else {
+                        path0.push_back(segmentName1);
+                        path1.push_back(segmentName0);
+                    }
+
+                }
+            }
+            gfa.addPath(to_string(phasingRegion.id) + ".0", path0);
+            gfa.addPath(to_string(phasingRegion.id) + ".1", path1);
+        }
+    }
+
+
+
+    // Write out the GFA.
     gfa.write(baseName + ".gfa");
 
 

@@ -221,7 +221,7 @@ private:
                 if(i != 0) {
                     gfa << ",";
                 }
-                gfa << path.segmentNames[i];
+                gfa << path.segmentNames[i] << "+";
             }
             gfa << "\t";
             for(uint64_t i=0; i<uint64_t(path.segmentNames.size()-1); i++) {
@@ -230,6 +230,7 @@ private:
                 }
                 gfa << "0M";
             }
+            gfa << "\n";
 
         }
     }
