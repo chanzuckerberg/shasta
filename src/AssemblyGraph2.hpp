@@ -218,7 +218,13 @@ public:
     AssemblyGraph2(
         uint64_t k, // Marker length
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&);
+        const MarkerGraph&,
+        double bubbleRemovalDiscordantRatioThreshold,
+        double bubbleRemovalAmbiguityThreshold,
+        uint64_t bubbleRemovalMaxPeriod,
+        uint64_t superbubbleRemovalEdgeLengthThreshold,
+        uint64_t phasingMinReadCount
+        );
 
     void writeCsv(const string& baseName) const;
     void writeVerticesCsv(const string& baseName) const;

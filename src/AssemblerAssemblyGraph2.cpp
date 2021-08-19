@@ -5,7 +5,13 @@ using namespace shasta;
 
 
 
-void Assembler::createAssemblyGraph2()
+void Assembler::createAssemblyGraph2(
+    double bubbleRemovalDiscordantRatioThreshold,
+    double bubbleRemovalAmbiguityThreshold,
+    uint64_t bubbleRemovalMaxPeriod,
+    uint64_t superbubbleRemovalEdgeLengthThreshold,
+    uint64_t phasingMinReadCount
+    )
 {
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
@@ -15,5 +21,14 @@ void Assembler::createAssemblyGraph2()
     SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
     SHASTA_ASSERT(markerGraph.edgesByTarget.isOpen());
 
-    assemblyGraph2Pointer = make_shared<AssemblyGraph2>(assemblerInfo->k, markers, markerGraph);
+    assemblyGraph2Pointer = make_shared<AssemblyGraph2>(
+        assemblerInfo->k,
+        markers,
+        markerGraph,
+        bubbleRemovalDiscordantRatioThreshold,
+        bubbleRemovalAmbiguityThreshold,
+        bubbleRemovalMaxPeriod,
+        superbubbleRemovalEdgeLengthThreshold,
+        phasingMinReadCount
+        );
 }

@@ -29,7 +29,13 @@ using namespace shasta;
 AssemblyGraph2::AssemblyGraph2(
     uint64_t k, // Marker length
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph) :
+    const MarkerGraph& markerGraph,
+    double bubbleRemovalDiscordantRatioThreshold,
+    double bubbleRemovalAmbiguityThreshold,
+    uint64_t bubbleRemovalMaxPeriod,
+    uint64_t superbubbleRemovalEdgeLengthThreshold,
+    uint64_t phasingMinReadCount
+    ) :
     k(k),
     markers(markers),
     markerGraph(markerGraph)
@@ -38,27 +44,6 @@ AssemblyGraph2::AssemblyGraph2(
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
     SHASTA_ASSERT((k % 2) == 0);
-
-
-
-    // Parameters that should be exposed as options when the
-    // code stabilizes.
-
-    // Maximum period to remove bubbles caused by copy number differences.
-    const uint64_t maxPeriod = 4;
-
-    // Minimum number of supporting reads for a bubble graph edge
-    // to be kept.
-    const uint64_t minReadCount = 3;
-
-    // Threshold used to remove bad bubbles.
-    const double discordantRatioThreshold = 0.2;
-
-    // Ambiguity threshold for bubble graph edges.
-    double ambiguityThreshold = 0.5;
-
-    // Edge length threshold (in markers) for superbubbles.
-    const uint64_t edgeLengthThreshold = 6;
 
     // Create the assembly graph.
     cout << timestamp << "AssemblyGraph2::create begins." << endl;
@@ -73,7 +58,7 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
 
     // Handle superbubbles.
-    handleSuperbubbles(edgeLengthThreshold);
+    handleSuperbubbles(superbubbleRemovalEdgeLengthThreshold);
     merge(false, false);
 
     // Store the reads supporting each branch of each edges.
@@ -101,7 +86,7 @@ AssemblyGraph2::AssemblyGraph2(
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod, then remove them.
     cout << timestamp << "AssemblyGraph2::findCopyNumberBubbles begins." << endl;
-    findCopyNumberBubbles(maxPeriod);
+    findCopyNumberBubbles(bubbleRemovalMaxPeriod);
     removeCopyNumberBubbles();
     merge(true, true);
 
@@ -119,7 +104,10 @@ AssemblyGraph2::AssemblyGraph2(
     // This marks as bad the bubbles corresponding to bubble graph vertices
     // that are removed.
     cout << timestamp << "AssemblyGraph2::cleanupBubbleGraph begins." << endl;
-    cleanupBubbleGraph(minReadCount, discordantRatioThreshold, ambiguityThreshold);
+    cleanupBubbleGraph(
+        phasingMinReadCount,
+        bubbleRemovalDiscordantRatioThreshold,
+        bubbleRemovalAmbiguityThreshold);
 
     // Compute connected components of the bubble graph.
     bubbleGraph.computeConnectedComponents();
