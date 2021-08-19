@@ -292,6 +292,13 @@ public:
     uint64_t iterativeBridgeRemovalIterationCount;
     uint64_t iterativeBridgeRemovalMaxDistance;
 
+    // Mode 2 assembly options.
+    double bubbleRemovalDiscordantRatioThreshold;
+    double bubbleRemovalAmbiguityThreshold;
+    uint64_t bubbleRemovalMaxPeriod;
+    uint64_t superbubbleRemovalEdgeLengthThreshold;
+    uint64_t phasingMinReadCount;
+
     void write(ostream&) const;
 
     // If a relative path is provided for a Bayesian consensus caller
