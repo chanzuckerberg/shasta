@@ -3020,40 +3020,53 @@ AssemblyGraph2::Superbubble::Superbubble(
         }
     }
 
-    // Find the entrances.
-    // cout << "Looking for entrances" << endl;
+
+
+    // Find the entrances and exits.
+    // An entrance has:
+    // - At least one in-edge from a vertex outside the superbubble.
+    // - At least one out-edge to a vertex inside the superbubble.
+    // An exit has:
+    // - At least one in-edge from a vertex inside the superbubble.
+    // - At least one out-edge to a vertex outside the superbubble.
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
-        // cout << "Checking " << sv0 << " (" << av0<< ")\n";
-        bool isEntrance = false;
+
+        // Check in-edges.
+        bool hasInedgesFromOutside = false;
+        bool hasInedgesFromInside = false;
         BGL_FORALL_INEDGES(av0, ae, g, G) {
             const AssemblyGraph2::vertex_descriptor av1 = source(ae, g);
-            // cout << "Found (" << av1 << ")\n";
+            if(av1 == av0) {
+                continue;
+            }
             if(vertexMap.find(av1) == vertexMap.end()) {
-                isEntrance = true;
-                break;
+                hasInedgesFromOutside = true;
             } else {
-                // cout << "Corresponds to " << vertexMap[av1] << endl;
+                hasInedgesFromInside = true;
             }
         }
-        if(isEntrance) {
-            // cout << "Entrance: " << sv0 << " (" << av0 << ")\n";
-            entrances.push_back(sv0);
-        }
-    }
 
-    // Find the exits.
-    BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
-        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
-        bool isExit = false;
+
+        // Check out-edges.
+        bool hasOutedgesToOutside = false;
+        bool hasOutedgesToInside = false;
         BGL_FORALL_OUTEDGES(av0, ae, g, G) {
             const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
+            if(av1 == av0) {
+                continue;
+            }
             if(vertexMap.find(av1) == vertexMap.end()) {
-                isExit = true;
-                break;
+                hasOutedgesToOutside = true;
+            } else {
+                hasOutedgesToInside = true;
             }
         }
-        if(isExit) {
+
+        if(hasInedgesFromOutside and hasOutedgesToInside) {
+            entrances.push_back(sv0);
+        }
+        if(hasInedgesFromInside and hasOutedgesToOutside) {
             exits.push_back(sv0);
         }
     }
