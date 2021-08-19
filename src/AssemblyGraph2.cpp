@@ -2910,7 +2910,7 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         }
 
         // For now, ignore superbubbles that don't have exactly one entrance and one exit.
-        if((superbubble.entrances.size() != 1) or (superbubble.entrances.size() != 1)) {
+        if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
             cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
             superbubble.write(cout, g);
             continue;
