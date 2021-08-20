@@ -92,7 +92,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Create the bubble graph.
     cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
-    createBubbleGraph(markers.size()/2);
+    createBubbleGraph(markers.size()/2, phasingMinReadCount);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
     if(false) {
@@ -105,7 +105,6 @@ AssemblyGraph2::AssemblyGraph2(
     // that are removed.
     cout << timestamp << "AssemblyGraph2::cleanupBubbleGraph begins." << endl;
     cleanupBubbleGraph(
-        phasingMinReadCount,
         bubbleRemovalDiscordantRatioThreshold,
         bubbleRemovalAmbiguityThreshold);
 
@@ -149,22 +148,11 @@ AssemblyGraph2::AssemblyGraph2(
 
 
 void AssemblyGraph2::cleanupBubbleGraph(
-    uint64_t minReadCount,
     double discordantRatioThreshold,
     double ambiguityThreshold)
 {
     G& g = *this;
     const bool debug = false;
-
-    // Remove bubble graph edges with low read support.
-    bubbleGraph.removeWeakEdges(minReadCount);
-    cout << "After removing edges supported by less than " << minReadCount <<
-        " reads, the bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-    if(debug) {
-        bubbleGraph.writeGraphviz("BubbleGraph-1.dot");
-        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-1.csv");
-    }
 
     // Remove weak vertices of the bubble graph
     // and flag the corresponding bubbles as bad.
@@ -1486,7 +1474,9 @@ void AssemblyGraph2Edge::findStrongestBranch()
 
 
 
-void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
+void AssemblyGraph2::createBubbleGraph(
+    uint64_t readCount,
+    uint64_t phasingMinReadCount)
 {
     G& g = *this;
 
@@ -1517,7 +1507,7 @@ void AssemblyGraph2::createBubbleGraph(uint64_t readCount)
     bubbleGraph.createOrientedReadsTable(readCount);
 
     cout << timestamp << "Creating bubble graph edges." << endl;
-    bubbleGraph.createEdges();
+    bubbleGraph.createEdges(phasingMinReadCount);
 
 }
 
@@ -1600,7 +1590,7 @@ void AssemblyGraph2::BubbleGraph::createOrientedReadsTable(uint64_t readCount)
 
 
 
-void AssemblyGraph2::BubbleGraph::createEdges()
+void AssemblyGraph2::BubbleGraph::createEdges(uint64_t phasingMinReadCount)
 {
     BubbleGraph& bubbleGraph = *this;
 
@@ -1643,6 +1633,9 @@ void AssemblyGraph2::BubbleGraph::createEdges()
             }
         }
     }
+
+
+    removeWeakEdges(phasingMinReadCount);
 
 }
 

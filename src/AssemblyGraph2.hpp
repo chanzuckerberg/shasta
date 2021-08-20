@@ -8,6 +8,7 @@
 // Shasta.
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
+#include "MultithreadedObject.hpp"
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
@@ -527,18 +528,23 @@ private:
 
 
 
+    // Bubble graph.
+    // It is an undirected graph where each vertex represents a bubble.
     using BubbleGraphBaseClass =
         boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
         BubbleGraphVertex, BubbleGraphEdge>;
 
-    class BubbleGraph: public BubbleGraphBaseClass {
+    class BubbleGraph:
+        public BubbleGraphBaseClass,
+        public MultithreadedObject<BubbleGraph> {
     public:
+        BubbleGraph() : MultithreadedObject<BubbleGraph>(*this) {}
+
         // A table that, for each OrientedReadId, contains a list of
         // pairs(vertex, side) that the OrientedReadId appears on.
         // Indexed by OrientedReadId::getValue().
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
-        void createEdges();
         void writeEdgesCsv(const string& fileName) const;
         void removeWeakEdges(uint64_t minReadCount);
         double discordantRatio(vertex_descriptor) const;
@@ -565,11 +571,25 @@ private:
         // Return true if the give edge has relative phase consistent
         // with the phases assigned to its two vertices.
         bool edgeIsHappy(edge_descriptor e) const;
+
+
+        // Edge creation is expensive.
+        // There is a simple sequential version and a more complex
+        // parallel version.
+        void createEdges(uint64_t phasingMinReadCount);
+        void createEdgesParallel(
+            uint64_t phasingMinReadCount,
+            size_t threadCount);
     };
+
+
+
     BubbleGraph bubbleGraph;
-    void createBubbleGraph(uint64_t readCount);
+    void createBubbleGraph(
+        uint64_t readCount,         // Total.
+        uint64_t phasingMinReadCount   // For an edge to be kept.
+        );
     void cleanupBubbleGraph(
-        uint64_t minReadCount,
         double discordantRatioThreshold,
         double ambiguityThreshold);
 
