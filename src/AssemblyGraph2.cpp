@@ -994,6 +994,10 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
     const G& g = *this;
 
+    // Also write a csv file that can be used in Bandage.
+    ofstream csv(baseName + ".csv");
+    csv << "Id,Color\n";
+
     // Create a GFA and add a segment for each edge that is not part
     // of a bubble chain.
     GfaAssemblyGraph<vertex_descriptor> gfa;
@@ -1008,7 +1012,9 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const E::Branch& branch = edge.branches[branchId];
-            gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
+            const string segmentId = edge.pathId(branchId);
+            gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
+            csv << segmentId << ",#808080\n";
         }
     }
 
@@ -1025,16 +1031,22 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
             if(phasingRegion.isPhased) {
 
+                const string segmentId0 = to_string(phasingRegion.id) + ".0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
-                gfa.addSegment(to_string(phasingRegion.id) + ".0", v0, v1, sequence);
+                gfa.addSegment(segmentId0, v0, v1, sequence);
+                csv << segmentId0 << ",#eb4034\n";
 
+                const string segmentId1 = to_string(phasingRegion.id) + ".1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
                 gfa.addSegment(to_string(phasingRegion.id) + ".1", v0, v1, sequence);
+                csv << segmentId1 << ",#eb4034\n";
 
             } else {
 
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
-                gfa.addSegment(to_string(phasingRegion.id), v0, v1, sequence);
+                const string segmentId = to_string(phasingRegion.id);
+                gfa.addSegment(segmentId, v0, v1, sequence);
+                csv << segmentId << ",Green\n";
 
             }
 
