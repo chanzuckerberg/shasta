@@ -581,6 +581,27 @@ private:
         void createEdgesParallel(
             uint64_t phasingMinReadCount,
             size_t threadCount);
+        void createEdgesParallelThreadFunction(size_t threadId);
+        class CreateEdgesParallelData {
+        public:
+            uint64_t phasingMinReadCount;
+            vector<BubbleGraph::vertex_descriptor> allVertices;
+            class EdgeData {
+            public:
+                BubbleGraph::vertex_descriptor vB;
+                uint64_t sideA;
+                uint64_t sideB;
+                bool operator<(const EdgeData& that) const
+                {
+                    return vB < that.vB;
+                }
+            };
+        };
+        CreateEdgesParallelData createEdgesParallelData;
+        void createEdges(
+            BubbleGraph::vertex_descriptor,
+            uint64_t phasingMinReadCount,
+            vector<CreateEdgesParallelData::EdgeData>&);
     };
 
 

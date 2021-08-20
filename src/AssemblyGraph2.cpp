@@ -1509,7 +1509,9 @@ void AssemblyGraph2::createBubbleGraph(
     bubbleGraph.createOrientedReadsTable(readCount);
 
     cout << timestamp << "Creating bubble graph edges." << endl;
+    // bubbleGraph.createEdges(phasingMinReadCount);
     bubbleGraph.createEdgesParallel(phasingMinReadCount, threadCount);
+    cout << timestamp << "Done creating bubble graph edges." << endl;
 
 }
 
@@ -1650,49 +1652,108 @@ void AssemblyGraph2::BubbleGraph::createEdgesParallel(
 {
     BubbleGraph& bubbleGraph = *this;
 
+    // Create a vector of all vertices, to be processed
+    // one by one in parallel.
+    createEdgesParallelData.allVertices.clear();
     BGL_FORALL_VERTICES(vA, bubbleGraph, BubbleGraph) {
-        const BubbleGraphVertex& vertexA = bubbleGraph[vA];
-        const uint64_t idA = vertexA.id;
-
-        for(const auto& p: vertexA.orientedReadIds) {
-            const OrientedReadId orientedReadId = p.first;
-            const uint64_t sideA = p.second;
-
-            const auto& v = orientedReadsTable[orientedReadId.getValue()];
-
-            for(const auto& p: v) {
-                const vertex_descriptor vB = p.first;
-                const BubbleGraphVertex& vertexB = bubbleGraph[vB];
-                const uint64_t idB = vertexB.id;
-
-                // Don't add it twice.
-                if(idB <= idA) {
-                    continue;
-                }
-
-                const uint64_t sideB = p.second;
-
-                // Locate the edge between these two bubbles,
-                // creating it if necessary.
-                BubbleGraph::edge_descriptor e;
-                bool edgeWasFound = false;
-                tie(e, edgeWasFound) = edge(vA, vB, bubbleGraph);
-                if(not edgeWasFound) {
-                    tie(e, edgeWasFound) = add_edge(vA, vB, bubbleGraph);
-                }
-                SHASTA_ASSERT(edgeWasFound);
-
-                // Update the matrix.
-                BubbleGraphEdge& edge = bubbleGraph[e];
-                ++edge.matrix[sideA][sideB];
-
-            }
-        }
+        createEdgesParallelData.allVertices.push_back(vA);
     }
 
+    createEdgesParallelData.phasingMinReadCount = phasingMinReadCount;
 
-    removeWeakEdges(phasingMinReadCount);
+    // Process all vertices in parallel.
+    const uint64_t batchSize = 1000;
+    setupLoadBalancing(createEdgesParallelData.allVertices.size(), batchSize);
+    runThreads(&BubbleGraph::createEdgesParallelThreadFunction, threadCount);
+}
 
+
+
+void AssemblyGraph2::BubbleGraph::createEdgesParallelThreadFunction(size_t threadId)
+{
+    const uint64_t phasingMinReadCount = createEdgesParallelData.phasingMinReadCount;
+    vector<CreateEdgesParallelData::EdgeData> edgeData;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all vertices assigned to this batch.
+        for(uint64_t i=begin; i!=end; ++i) {
+            createEdges(createEdgesParallelData.allVertices[i], phasingMinReadCount, edgeData);
+        }
+    }
+}
+
+
+// Create edges between vertex vA and vertices vB with id greater
+// that the id of vA.
+void AssemblyGraph2::BubbleGraph::createEdges(
+    BubbleGraph::vertex_descriptor vA,
+    uint64_t phasingMinReadCount,
+    vector<CreateEdgesParallelData::EdgeData>& edgeData)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    const BubbleGraphVertex& vertexA = bubbleGraph[vA];
+    const uint64_t idA = vertexA.id;
+
+    // Gather EdgeData for this vA.
+    edgeData.clear();
+    for(const auto& p: vertexA.orientedReadIds) {
+        const OrientedReadId orientedReadId = p.first;
+        const uint64_t sideA = p.second;
+
+        const auto& v = orientedReadsTable[orientedReadId.getValue()];
+
+        for(const auto& p: v) {
+            const vertex_descriptor vB = p.first;
+            const BubbleGraphVertex& vertexB = bubbleGraph[vB];
+            const uint64_t idB = vertexB.id;
+
+            // Don't add it twice.
+            if(idB <= idA) {
+                continue;
+            }
+
+            const uint64_t sideB = p.second;
+
+            edgeData.push_back({vB, sideA, sideB});
+        }
+
+    }
+
+    // Sort the EdgeData by vB.
+    sort(edgeData.begin(), edgeData.end());
+
+
+
+    // Each streak with the same vB generates an edge, if there
+    // is a sufficient number of reads.
+    for(auto it=edgeData.begin(); it!=edgeData.end();  /* Increment later */) {
+
+        auto streakBegin = it;
+        auto streakEnd = streakBegin;
+        const BubbleGraph::vertex_descriptor vB = streakBegin->vB;
+        while((streakEnd != edgeData.end()) and (streakEnd->vB == vB)) {
+            ++streakEnd;
+        }
+
+        // If this streak is sufficiently long, it generates an edge.
+        const uint64_t streakLength = uint64_t(streakEnd - streakBegin);
+        if(streakLength >= phasingMinReadCount) {
+            BubbleGraphEdge edge;
+            for(auto jt=streakBegin; jt!=streakEnd; ++jt) {
+                ++edge.matrix[jt->sideA][jt->sideB];
+            }
+
+            std::lock_guard<std::mutex> lock(mutex);
+            add_edge(vA, vB, edge, bubbleGraph);
+        }
+
+        // Prepare to process the next streak.
+        it = streakEnd;
+    }
 }
 
 
