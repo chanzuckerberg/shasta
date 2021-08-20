@@ -224,7 +224,8 @@ public:
         double bubbleRemovalAmbiguityThreshold,
         uint64_t bubbleRemovalMaxPeriod,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
-        uint64_t phasingMinReadCount
+        uint64_t phasingMinReadCount,
+        size_t threadCount
         );
 
     void writeCsv(const string& baseName) const;
@@ -586,8 +587,9 @@ private:
 
     BubbleGraph bubbleGraph;
     void createBubbleGraph(
-        uint64_t readCount,         // Total.
-        uint64_t phasingMinReadCount   // For an edge to be kept.
+        uint64_t readCount,             // Total.
+        uint64_t phasingMinReadCount,   // For an edge to be kept.
+        size_t threadCount
         );
     void cleanupBubbleGraph(
         double discordantRatioThreshold,

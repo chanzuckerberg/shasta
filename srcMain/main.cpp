@@ -1259,7 +1259,8 @@ void shasta::main::mode2Assembly(
         assemblerOptions.assemblyOptions.bubbleRemovalAmbiguityThreshold,
         assemblerOptions.assemblyOptions.bubbleRemovalMaxPeriod,
         assemblerOptions.assemblyOptions.superbubbleRemovalEdgeLengthThreshold,
-        assemblerOptions.assemblyOptions.phasingMinReadCount);
+        assemblerOptions.assemblyOptions.phasingMinReadCount,
+        threadCount);
 
 
 }

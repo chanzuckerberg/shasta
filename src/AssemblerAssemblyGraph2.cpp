@@ -10,7 +10,8 @@ void Assembler::createAssemblyGraph2(
     double bubbleRemovalAmbiguityThreshold,
     uint64_t bubbleRemovalMaxPeriod,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
-    uint64_t phasingMinReadCount
+    uint64_t phasingMinReadCount,
+    size_t threadCount
     )
 {
     // Check that we have what we need.
@@ -21,6 +22,11 @@ void Assembler::createAssemblyGraph2(
     SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
     SHASTA_ASSERT(markerGraph.edgesByTarget.isOpen());
 
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(
         assemblerInfo->k,
         markers,
@@ -29,6 +35,7 @@ void Assembler::createAssemblyGraph2(
         bubbleRemovalAmbiguityThreshold,
         bubbleRemovalMaxPeriod,
         superbubbleRemovalEdgeLengthThreshold,
-        phasingMinReadCount
+        phasingMinReadCount,
+        threadCount
         );
 }

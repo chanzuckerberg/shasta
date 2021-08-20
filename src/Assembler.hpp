@@ -2372,7 +2372,8 @@ public:
         double bubbleRemovalAmbiguityThreshold,
         uint64_t bubbleRemovalMaxPeriod,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
-        uint64_t phasingMinReadCount);
+        uint64_t phasingMinReadCount,
+        size_t threadCount);
 
 
 

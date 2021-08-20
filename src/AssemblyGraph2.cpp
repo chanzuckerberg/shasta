@@ -34,7 +34,8 @@ AssemblyGraph2::AssemblyGraph2(
     double bubbleRemovalAmbiguityThreshold,
     uint64_t bubbleRemovalMaxPeriod,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
-    uint64_t phasingMinReadCount
+    uint64_t phasingMinReadCount,
+    size_t threadCount
     ) :
     k(k),
     markers(markers),
@@ -92,7 +93,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Create the bubble graph.
     cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
-    createBubbleGraph(markers.size()/2, phasingMinReadCount);
+    createBubbleGraph(markers.size()/2, phasingMinReadCount, threadCount);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
     if(false) {
@@ -1476,7 +1477,8 @@ void AssemblyGraph2Edge::findStrongestBranch()
 
 void AssemblyGraph2::createBubbleGraph(
     uint64_t readCount,
-    uint64_t phasingMinReadCount)
+    uint64_t phasingMinReadCount,
+    size_t threadCount)
 {
     G& g = *this;
 
@@ -1507,7 +1509,7 @@ void AssemblyGraph2::createBubbleGraph(
     bubbleGraph.createOrientedReadsTable(readCount);
 
     cout << timestamp << "Creating bubble graph edges." << endl;
-    bubbleGraph.createEdges(phasingMinReadCount);
+    bubbleGraph.createEdgesParallel(phasingMinReadCount, threadCount);
 
 }
 
@@ -1591,6 +1593,60 @@ void AssemblyGraph2::BubbleGraph::createOrientedReadsTable(uint64_t readCount)
 
 
 void AssemblyGraph2::BubbleGraph::createEdges(uint64_t phasingMinReadCount)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    BGL_FORALL_VERTICES(vA, bubbleGraph, BubbleGraph) {
+        const BubbleGraphVertex& vertexA = bubbleGraph[vA];
+        const uint64_t idA = vertexA.id;
+
+        for(const auto& p: vertexA.orientedReadIds) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t sideA = p.second;
+
+            const auto& v = orientedReadsTable[orientedReadId.getValue()];
+
+            for(const auto& p: v) {
+                const vertex_descriptor vB = p.first;
+                const BubbleGraphVertex& vertexB = bubbleGraph[vB];
+                const uint64_t idB = vertexB.id;
+
+                // Don't add it twice.
+                if(idB <= idA) {
+                    continue;
+                }
+
+                const uint64_t sideB = p.second;
+
+                // Locate the edge between these two bubbles,
+                // creating it if necessary.
+                BubbleGraph::edge_descriptor e;
+                bool edgeWasFound = false;
+                tie(e, edgeWasFound) = edge(vA, vB, bubbleGraph);
+                if(not edgeWasFound) {
+                    tie(e, edgeWasFound) = add_edge(vA, vB, bubbleGraph);
+                }
+                SHASTA_ASSERT(edgeWasFound);
+
+                // Update the matrix.
+                BubbleGraphEdge& edge = bubbleGraph[e];
+                ++edge.matrix[sideA][sideB];
+
+            }
+        }
+    }
+
+
+    removeWeakEdges(phasingMinReadCount);
+
+}
+
+
+
+// Stil sequential for now.
+void AssemblyGraph2::BubbleGraph::createEdgesParallel(
+    uint64_t phasingMinReadCount,
+    size_t threadCount)
 {
     BubbleGraph& bubbleGraph = *this;
 

@@ -629,7 +629,8 @@ PYBIND11_MODULE(shasta, module)
             arg("bubbleRemovalAmbiguityThreshold"),
             arg("bubbleRemovalMaxPeriod"),
             arg("superbubbleRemovalEdgeLengthThreshold"),
-            arg("phasingMinReadCount"))
+            arg("phasingMinReadCount"),
+            arg("threadCount") = 0)
 
 
 
