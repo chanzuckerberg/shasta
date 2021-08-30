@@ -2817,6 +2817,8 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
     const G& g = *this;
     const auto& edges = bubbleChain.edges;
 
+    // cout << "findPhasingRegions begins for bubble chain " << bubbleChain.id << endl;
+
     // Gather all the positions that have a defined componentId.
     vector< pair<uint64_t, uint64_t> > bubbleChainTable;
     for(uint64_t position=0; position<edges.size(); position++) {
@@ -2841,14 +2843,27 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
             lastPositions.push_back(position);
         }
     }
-    SHASTA_ASSERT(not firstPositions.empty());
-    SHASTA_ASSERT(not lastPositions.empty());
-    SHASTA_ASSERT(firstPositions.size() == lastPositions.size());
 
 
 
     // Now we can create the phased regions.
     bubbleChain.phasingRegions.clear();
+
+
+
+    // If nothing was phased, generate a single phasing region for the entire bubble chain.
+    SHASTA_ASSERT(firstPositions.size() == lastPositions.size());
+    if(firstPositions.empty()) {
+        BubbleChain::PhasingRegion unphasedRegion;
+        unphasedRegion.id = nextId++;
+        unphasedRegion.firstPosition = 0;
+        unphasedRegion.lastPosition = edges.size() - 1;
+        unphasedRegion.isPhased = false;
+        bubbleChain.phasingRegions.push_back(unphasedRegion);
+        return;
+    }
+
+
 
     // Create an initial unphased region, if necessary.
     if(firstPositions.front() != 0) {
