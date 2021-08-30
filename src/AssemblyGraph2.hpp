@@ -416,7 +416,8 @@ private:
     public:
         Superbubble(
             const AssemblyGraph2&,
-            const vector<AssemblyGraph2::vertex_descriptor>&
+            const vector<AssemblyGraph2::vertex_descriptor>&,
+            uint64_t edgeLengthThreshold
         );
         vector<Superbubble::vertex_descriptor> entrances;
         vector<Superbubble::vertex_descriptor> exits;

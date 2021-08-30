@@ -3005,7 +3005,7 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         const vector<vertex_descriptor>& componentVertices = p.second;
 
         // Create a superbubble with this component.
-        Superbubble superbubble(g, componentVertices);
+        Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
         // If there are no edges, skip it.
         if(num_edges(superbubble) == 0) {
@@ -3108,7 +3108,8 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
 
 AssemblyGraph2::Superbubble::Superbubble(
     const AssemblyGraph2& g,
-    const vector<AssemblyGraph2::vertex_descriptor>& aVertices)
+    const vector<AssemblyGraph2::vertex_descriptor>& aVertices,
+    uint64_t edgeLengthThreshold)
 {
     Superbubble& superbubble = *this;
 
@@ -3127,6 +3128,9 @@ AssemblyGraph2::Superbubble::Superbubble(
     */
 
     // Create the edges.
+    // For an edge to be part of the superbubble:
+    // - Both its source and target vertices must be part of the superbubble.
+    // - It must be a short edge (maximumPathLength() <= edgeLengthThreshold).
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
         BGL_FORALL_OUTEDGES(av0, ae, g, G) {
@@ -3134,9 +3138,11 @@ AssemblyGraph2::Superbubble::Superbubble(
             auto it = vertexMap.find(av1);
             if(it != vertexMap.end()) {
                 const E& aEdge = g[ae];
-                const Superbubble::vertex_descriptor sv1 = it->second;
-                for(uint64_t branchId=0; branchId<aEdge.ploidy(); branchId++) {
-                    add_edge(sv0, sv1, SuperbubbleEdge(ae, branchId), superbubble);
+                if(aEdge.maximumPathLength() <= edgeLengthThreshold) {
+                    const Superbubble::vertex_descriptor sv1 = it->second;
+                    for(uint64_t branchId=0; branchId<aEdge.ploidy(); branchId++) {
+                        add_edge(sv0, sv1, SuperbubbleEdge(ae, branchId), superbubble);
+                    }
                 }
             }
         }
