@@ -59,7 +59,9 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
 
     // Handle superbubbles.
+    writeGfa("Assembly-0", false);
     handleSuperbubbles(superbubbleRemovalEdgeLengthThreshold);
+    writeGfa("Assembly-1", false);
     merge(false, false);
 
     // Store the reads supporting each branch of each edges.
@@ -780,7 +782,7 @@ void AssemblyGraph2::writeGfa(
                 if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
 
                     // This edge is homozygous or unphased.
-                    const string segmentName = edge.pathId(0);
+                    const string segmentName = edge.pathId(edge.strongestBranchId);
                     path0.push_back(segmentName);
                     path1.push_back(segmentName);
 
