@@ -269,6 +269,9 @@ private:
 
     // Handle superbubbles.
     void handleSuperbubbles(uint64_t edgeLengthThreshold);
+    class Superbubble;
+    void handleSuperbubble0(Superbubble&);
+    void handleSuperbubble1(Superbubble&);
 
     // Remove degenerate branches
     void removeDegenerateBranches();

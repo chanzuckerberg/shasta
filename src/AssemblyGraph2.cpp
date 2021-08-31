@@ -2976,7 +2976,6 @@ void AssemblyGraph2::writeBubbleChains()
 void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
 {
     G& g = *this;
-    const bool debug = true;
 
     // We cannot use boost::connected_components because it
     // only works for undirected graphs.
@@ -3024,99 +3023,114 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         // Create a superbubble with this component.
         Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
-        // If there are no edges, skip it.
-        if(num_edges(superbubble) == 0) {
-            continue;
-        }
+        // Process it.
+        handleSuperbubble0(superbubble);
+    }
+}
 
-        // If just a simple linear chain, skip it.
-        if(superbubble.isSimpleLinearChain()) {
-            continue;
-        }
 
-        if(debug) {
-            cout << "Found a superbubble with " <<
-                superbubble.entrances.size() << " entrances, " <<
-                superbubble.exits.size() << " exits, " <<
-                num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
-            BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+
+// This does path enumeration on the entire superbubble.
+// It can be problematic for large superbubbles.
+void AssemblyGraph2::handleSuperbubble0(Superbubble& superbubble)
+{
+    G& g = *this;
+    const bool debug = true;
+
+    // If there are no edges, don't do anything.
+    if(num_edges(superbubble) == 0) {
+        return;
+    }
+
+    // If just a simple linear chain, don't do anything.
+    if(superbubble.isSimpleLinearChain()) {
+        return;
+    }
+
+    if(debug) {
+        cout << "Processing a non-trivial superbubble with " <<
+            superbubble.entrances.size() << " entrances, " <<
+            superbubble.exits.size() << " exits, " <<
+            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
+        BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+            const SuperbubbleEdge& sEdge = superbubble[se];
+            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+            const uint64_t branchId = sEdge.branchId;
+            cout << " " << g[ae].pathId(branchId);
+        }
+        cout << "\n";
+    }
+
+
+
+    // Ignore superbubbles that don't have exactly one entrance and one exit.
+    if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
+        cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
+        superbubble.write(cout, g);
+        return;
+    }
+
+    // Enumerate paths from the entrance to the exit.
+    superbubble.enumeratePaths();
+
+    if(debug) {
+        cout << "Found " << superbubble.paths.size() << " paths:" << endl;
+        for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
+            for(const Superbubble::edge_descriptor se: path) {
                 const SuperbubbleEdge& sEdge = superbubble[se];
                 const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
                 const uint64_t branchId = sEdge.branchId;
                 cout << " " << g[ae].pathId(branchId);
             }
-            cout << "\n";
+            cout << endl;
         }
+    }
 
-        // For now, ignore superbubbles that don't have exactly one entrance and one exit.
-        if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
-            cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
-            superbubble.write(cout, g);
-            continue;
-        }
 
-        // Enumerate paths from the entrance to the exit.
-        superbubble.enumeratePaths();
 
-        if(debug) {
-            cout << "Found " << superbubble.paths.size() << " paths:" << endl;
-            for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
-                for(const Superbubble::edge_descriptor se: path) {
-                    const SuperbubbleEdge& sEdge = superbubble[se];
-                    const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-                    const uint64_t branchId = sEdge.branchId;
-                    cout << " " << g[ae].pathId(branchId);
-                }
-                cout << endl;
+    // Create a new edge and add a branch for each path.
+    const AssemblyGraph2::vertex_descriptor v0 = superbubble[superbubble.entrances.front()];
+    const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()];
+    AssemblyGraph2::edge_descriptor eNew;
+    bool edgeWasAdded = false;
+    tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextId++), g);
+    SHASTA_ASSERT(edgeWasAdded);
+    E& newEdge = g[eNew];
+
+    for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
+
+        // Construct the marker graph path.
+        MarkerGraphPath markerGraphPath;
+        bool containsSecondaryEdges = false;
+        for(const Superbubble::edge_descriptor se: path) {
+            const SuperbubbleEdge sEdge = superbubble[se];
+            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+            const uint64_t branchId = sEdge.branchId;
+            const E& edge = g[ae];
+            const E::Branch& branch = edge.branches[branchId];
+            copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath));
+            if(branch.containsSecondaryEdges) {
+                containsSecondaryEdges = true;
             }
         }
 
+        // Add the branch.
+        newEdge.branches.push_back(E::Branch(markerGraphPath, containsSecondaryEdges));
+    }
 
-
-        // Create a new edge and add a branch for each path.
-        const AssemblyGraph2::vertex_descriptor v0 = superbubble[superbubble.entrances.front()];
-        const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()];
-        AssemblyGraph2::edge_descriptor eNew;
-        bool edgeWasAdded = false;
-        tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextId++), g);
-        SHASTA_ASSERT(edgeWasAdded);
-        E& newEdge = g[eNew];
-
-        for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
-
-            // Construct the marker graph path.
-            MarkerGraphPath markerGraphPath;
-            bool containsSecondaryEdges = false;
-            for(const Superbubble::edge_descriptor se: path) {
-                const SuperbubbleEdge sEdge = superbubble[se];
-                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-                const uint64_t branchId = sEdge.branchId;
-                const E& edge = g[ae];
-                const E::Branch& branch = edge.branches[branchId];
-                copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath));
-                if(branch.containsSecondaryEdges) {
-                    containsSecondaryEdges = true;
-                }
-            }
-
-            // Add the branch.
-            newEdge.branches.push_back(E::Branch(markerGraphPath, containsSecondaryEdges));
+    // Now remove all the edges internal to the superbubble.
+    BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+        const SuperbubbleEdge& sEdge = superbubble[se];
+        if(sEdge.branchId == 0) {
+            boost::remove_edge(sEdge.ae, g);
         }
+    }
 
-        // Now remove all the edges internal to the superbubble.
-        BGL_FORALL_EDGES(se, superbubble, Superbubble) {
-            const SuperbubbleEdge& sEdge = superbubble[se];
-            if(sEdge.branchId == 0) {
-                boost::remove_edge(sEdge.ae, g);
-            }
-        }
-
-        // Also remove any vertices that have been left isolated.
-        BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
-            AssemblyGraph2::vertex_descriptor av = superbubble[sv];
-            if(in_degree(av, g)==0 and out_degree(av, g)==0) {
-                remove_vertex(av, g);
-            }
+    // Also remove any vertices that have been left isolated.
+    BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
+        AssemblyGraph2::vertex_descriptor av = superbubble[sv];
+        if(in_degree(av, g)==0 and out_degree(av, g)==0) {
+            remove_vertex(av, g);
         }
     }
 }
