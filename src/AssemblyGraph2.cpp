@@ -1,3 +1,4 @@
+// Shasta.
 #include "AssemblyGraph2.hpp"
 #include "AssembledSegment.hpp"
 #include "assembleMarkerGraphPath.hpp"
@@ -11,12 +12,15 @@
 #include "writeGraph.hpp"
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/graph/dominator_tree.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/pending/disjoint_sets.hpp>
 
+// Standard library.
 #include "fstream.hpp"
 #include <limits>
 #include <map>
@@ -3089,8 +3093,8 @@ void AssemblyGraph2::handleSuperbubble0(Superbubble& superbubble)
 
 
     // Create a new edge and add a branch for each path.
-    const AssemblyGraph2::vertex_descriptor v0 = superbubble[superbubble.entrances.front()];
-    const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()];
+    const AssemblyGraph2::vertex_descriptor v0 = superbubble[superbubble.entrances.front()].av;
+    const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()].av;
     AssemblyGraph2::edge_descriptor eNew;
     bool edgeWasAdded = false;
     tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextId++), g);
@@ -3128,11 +3132,118 @@ void AssemblyGraph2::handleSuperbubble0(Superbubble& superbubble)
 
     // Also remove any vertices that have been left isolated.
     BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
-        AssemblyGraph2::vertex_descriptor av = superbubble[sv];
+        AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
         if(in_degree(av, g)==0 and out_degree(av, g)==0) {
             remove_vertex(av, g);
         }
     }
+}
+
+
+
+/*******************************************************************************
+
+Better version that avoids enumerating paths over the entire superbubble.
+
+For a superbubble with exactly one entrance and one exit, this uses
+a dominator tree to divide the superbubble in chunks, and then
+does path enumeration over each chunk separately.
+
+Some nomenclature:
+
+- On the dominator tree, there is only one path between the entrance
+  and the exit. We call this the critical path. This does not necessarily
+  corresponds to a path in the superbubble.
+
+- The vertices on the critical path are called the choke points.
+  They are numbered consecutively starting at 0.
+  The entrance is choke point 0.
+
+- Vertices that are not in the dominator tree are unreachable from the
+  entrance. We call these the unreachable vertices.
+  The remaining vertices are the reachable vertices.
+
+- Superbubble edges for which the source vertex is reachable are called reachable.
+  Superbubble edges for which the source vertex is unreachable are called unreachable.
+
+- From each reachable vertex, we can follow the dominator tree up
+  until we encounter the first choke point. This choke point
+  is called the parent choke point of the vertex that we started from.
+
+- For each reachable edge, the parent choke point of the source vertex of
+  the edge is called the parent choke point of the edge.
+
+- A chunk is the set of all reachable edges with the same parent choke point.
+  That common parent choke point is the called the source of the chunk.
+  The next choke point on the critical path is called the target of the chunk.
+
+- A chunk is called trivial if all of its edges have as source the source
+  of the chunk and as target the target of the chunk.
+
+With these definitions, a superbubble with exactly one entrance and
+one exit is processed as follows:
+
+- The AssemblyGraph2 edges corresponding to all unreachable edges
+  are removed from the AssemblyGraph2.
+
+- For trivial chunks, no processing takes place.
+
+- For non-trivial chunks:
+  * We do path enumeration from the source to the target of the chunk
+    and keep only the two strongest paths. These are used
+    to generate a new bubble in the AssemblyGraph2.
+  * All AssemblyGraph2 edges corresponding to edges in the chunk are removed.
+
+*******************************************************************************/
+
+void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
+{
+    G& g = *this;
+    const bool debug = true;
+
+    // If there are no edges, don't do anything.
+    if(num_edges(superbubble) == 0) {
+        return;
+    }
+
+    // If just a simple linear chain, don't do anything.
+    if(superbubble.isSimpleLinearChain()) {
+        return;
+    }
+
+    if(debug) {
+        cout << "Processing a non-trivial superbubble with " <<
+            superbubble.entrances.size() << " entrances, " <<
+            superbubble.exits.size() << " exits, " <<
+            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
+        BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+            const SuperbubbleEdge& sEdge = superbubble[se];
+            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+            const uint64_t branchId = sEdge.branchId;
+            cout << " " << g[ae].pathId(branchId);
+        }
+        cout << "\n";
+    }
+
+
+
+    // Ignore superbubbles that don't have exactly one entrance and one exit.
+    if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
+        cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
+        superbubble.write(cout, g);
+        return;
+    }
+
+#if 0
+    const Superbubble::vertex_descriptor entrance = superbubble.entrances.front();
+    const Superbubble::vertex_descriptor exit = superbubble.exits.front();
+
+    // Compute the dominator tree.
+    boost::lengauer_tarjan_dominator_tree(
+        superbubble,
+        entrance,
+        boost::get(&SuperbubbleVertex::immediateDominator, superbubble);
+#endif
 }
 
 
@@ -3147,7 +3258,7 @@ AssemblyGraph2::Superbubble::Superbubble(
     // Create the vertices.
     std::map<AssemblyGraph2::vertex_descriptor, Superbubble::vertex_descriptor> vertexMap;
     for(const AssemblyGraph2::vertex_descriptor av: aVertices) {
-        Superbubble::vertex_descriptor sv = add_vertex(av, superbubble);
+        Superbubble::vertex_descriptor sv = boost::add_vertex(SuperbubbleVertex(av), superbubble);
         vertexMap.insert(make_pair(av, sv));
     }
 
@@ -3163,7 +3274,7 @@ AssemblyGraph2::Superbubble::Superbubble(
     // - Both its source and target vertices must be part of the superbubble.
     // - It must be a short edge (maximumPathLength() <= edgeLengthThreshold).
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
-        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
         BGL_FORALL_OUTEDGES(av0, ae, g, G) {
             const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
             auto it = vertexMap.find(av1);
@@ -3189,7 +3300,7 @@ AssemblyGraph2::Superbubble::Superbubble(
     // - At least one in-edge from a vertex inside the superbubble.
     // - At least one out-edge to a vertex outside the superbubble.
     BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
-        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
 
         // Check in-edges.
         bool hasInedgesFromOutside = false;
@@ -3241,7 +3352,7 @@ void AssemblyGraph2::Superbubble::write(
 
     out << "Superbubble vertices:" << endl;
     BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
-        const AssemblyGraph2::vertex_descriptor av = superbubble[sv];
+        const AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
         out << sv << " (" << av << ")" << endl;
     }
 
@@ -3252,8 +3363,8 @@ void AssemblyGraph2::Superbubble::write(
         const uint64_t branchId = sEdge.branchId;
         const Superbubble::vertex_descriptor sv0 = source(se, superbubble);
         const Superbubble::vertex_descriptor sv1 = target(se, superbubble);
-        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0];
-        const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1];
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+        const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
         out << g[ae].pathId(branchId) << " ";
         out << " " << sv0 << "->" << sv1 << " ";
         out << " (" << av0 << "->" << av1 << ")" << endl;
