@@ -406,15 +406,22 @@ private:
     class SuperbubbleVertex;
     class SuperbubbleEdge;
     using SuperbubbleBaseClass =
-        boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS,
+        boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
         SuperbubbleVertex, SuperbubbleEdge>;
 
     class SuperbubbleVertex {
     public:
-        // The AssemblyGraph2 vertex correspondign to this Superbubble vertex.
+        // The AssemblyGraph2 vertex corresponding to this Superbubble vertex.
         AssemblyGraph2::vertex_descriptor av;
 
-        SuperbubbleVertex(AssemblyGraph2::vertex_descriptor av) : av(av) {}
+        SuperbubbleVertex(AssemblyGraph2::vertex_descriptor av = AssemblyGraph2::null_vertex()) : av(av) {}
+
+        // The immediate dominator of this vertex (its parent
+        // in the dominator tree).
+        // This remains set to null_vertex for vertices unreachable from
+        // the entrance.
+        SuperbubbleBaseClass::vertex_descriptor immediateDominator =
+            SuperbubbleBaseClass::null_vertex();
     };
 
     class SuperbubbleEdge {
@@ -448,7 +455,8 @@ private:
         uint64_t originalInDegree(vertex_descriptor) const;
         uint64_t originalOutDegree(vertex_descriptor) const;
 
-        void write(ostream&, const AssemblyGraph2&) const;
+        void writeGraphviz(ostream&, const AssemblyGraph2&) const;
+        void writeGraphviz1(ostream&, const AssemblyGraph2&) const;
     };
 
 

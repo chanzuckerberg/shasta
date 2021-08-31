@@ -3030,6 +3030,7 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         // Process it.
         handleSuperbubble0(superbubble);
     }
+
 }
 
 
@@ -3055,14 +3056,8 @@ void AssemblyGraph2::handleSuperbubble0(Superbubble& superbubble)
         cout << "Processing a non-trivial superbubble with " <<
             superbubble.entrances.size() << " entrances, " <<
             superbubble.exits.size() << " exits, " <<
-            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
-        BGL_FORALL_EDGES(se, superbubble, Superbubble) {
-            const SuperbubbleEdge& sEdge = superbubble[se];
-            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-            const uint64_t branchId = sEdge.branchId;
-            cout << " " << g[ae].pathId(branchId);
-        }
-        cout << "\n";
+            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:\n";
+        superbubble.writeGraphviz(cout, g);
     }
 
 
@@ -3070,7 +3065,6 @@ void AssemblyGraph2::handleSuperbubble0(Superbubble& superbubble)
     // Ignore superbubbles that don't have exactly one entrance and one exit.
     if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
         cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
-        superbubble.write(cout, g);
         return;
     }
 
@@ -3215,14 +3209,8 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
         cout << "Processing a non-trivial superbubble with " <<
             superbubble.entrances.size() << " entrances, " <<
             superbubble.exits.size() << " exits, " <<
-            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:";
-        BGL_FORALL_EDGES(se, superbubble, Superbubble) {
-            const SuperbubbleEdge& sEdge = superbubble[se];
-            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-            const uint64_t branchId = sEdge.branchId;
-            cout << " " << g[ae].pathId(branchId);
-        }
-        cout << "\n";
+            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:\n";
+        superbubble.writeGraphviz(cout, g);
     }
 
 
@@ -3230,20 +3218,46 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
     // Ignore superbubbles that don't have exactly one entrance and one exit.
     if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
         cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
-        superbubble.write(cout, g);
         return;
     }
 
-#if 0
     const Superbubble::vertex_descriptor entrance = superbubble.entrances.front();
-    const Superbubble::vertex_descriptor exit = superbubble.exits.front();
+    //const Superbubble::vertex_descriptor exit = superbubble.exits.front();
 
     // Compute the dominator tree.
     boost::lengauer_tarjan_dominator_tree(
         superbubble,
         entrance,
-        boost::get(&SuperbubbleVertex::immediateDominator, superbubble);
-#endif
+        boost::get(&SuperbubbleVertex::immediateDominator, superbubble));
+
+    if(debug) {
+        cout << "Dominator tree:" << endl;
+        BGL_FORALL_VERTICES (sv1, superbubble, Superbubble) {
+            const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
+            const AssemblyGraph2Vertex& aVertex1 = g[av1];
+
+            cout << aVertex1.markerGraphVertexId;
+
+            if(sv1 == entrance) {
+                cout << " entrance" << endl;
+            } else {
+
+                const Superbubble::vertex_descriptor sv0 = superbubble[sv1].immediateDominator;
+                if(sv0 == Superbubble::null_vertex()) {
+                    cout << " unreachable" << endl;
+                } else {
+                    const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+                    const AssemblyGraph2Vertex& aVertex0 = g[av0];
+                    cout << " parent is " << aVertex0.markerGraphVertexId << endl;
+                }
+            }
+        }
+    }
+
+
+    if(debug) {
+        superbubble.writeGraphviz1(cout, g);
+    }
 }
 
 
@@ -3344,31 +3358,90 @@ AssemblyGraph2::Superbubble::Superbubble(
 
 
 
-void AssemblyGraph2::Superbubble::write(
+void AssemblyGraph2::Superbubble::writeGraphviz(
     ostream& out,
     const AssemblyGraph2& g) const
 {
     const Superbubble& superbubble = *this;
 
-    out << "Superbubble vertices:" << endl;
+    out << "digraph Superbubble {" << endl;
     BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
-        out << sv << " (" << av << ")" << endl;
+        const AssemblyGraph2Vertex& aVertex = g[av];
+        out << aVertex.markerGraphVertexId << ";\n";
     }
 
-    out << "Superbubble edges:" << endl;
     BGL_FORALL_EDGES(se, superbubble, Superbubble) {
         const SuperbubbleEdge sEdge = superbubble[se];
         const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
         const uint64_t branchId = sEdge.branchId;
+
         const Superbubble::vertex_descriptor sv0 = source(se, superbubble);
         const Superbubble::vertex_descriptor sv1 = target(se, superbubble);
+
         const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
         const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
-        out << g[ae].pathId(branchId) << " ";
-        out << " " << sv0 << "->" << sv1 << " ";
-        out << " (" << av0 << "->" << av1 << ")" << endl;
+
+        const AssemblyGraph2Vertex& aVertex0 = g[av0];
+        const AssemblyGraph2Vertex& aVertex1 = g[av1];
+
+        out <<
+            aVertex0.markerGraphVertexId << "->" <<
+            aVertex1.markerGraphVertexId <<
+            " [label=\"" << g[ae].pathId(branchId) << "\"];\n";
     }
+
+    out << "}" << endl;
+}
+
+
+
+// This assumes that there is exactly one entrance and one exit,
+// and that the data structures created by handleSuperbubble1
+// are available.
+void AssemblyGraph2::Superbubble::writeGraphviz1(
+    ostream& out,
+    const AssemblyGraph2& g) const
+{
+    const Superbubble& superbubble = *this;
+    SHASTA_ASSERT(entrances.size() == 1);
+    SHASTA_ASSERT(exits.size() == 1);
+
+    out << "digraph Superbubble {" << endl;
+    BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
+        const AssemblyGraph2Vertex& aVertex = g[av];
+        out << aVertex.markerGraphVertexId;
+        if(sv == entrances.front()) {
+            out << " [style=filled fillcolor=green]";
+        }
+        if(sv == exits.front()) {
+            out << " [style=filled fillcolor=red]";
+        }
+        out << ";\n";
+    }
+
+    BGL_FORALL_EDGES(se, superbubble, Superbubble) {
+        const SuperbubbleEdge sEdge = superbubble[se];
+        const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+        const uint64_t branchId = sEdge.branchId;
+
+        const Superbubble::vertex_descriptor sv0 = source(se, superbubble);
+        const Superbubble::vertex_descriptor sv1 = target(se, superbubble);
+
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+        const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
+
+        const AssemblyGraph2Vertex& aVertex0 = g[av0];
+        const AssemblyGraph2Vertex& aVertex1 = g[av1];
+
+        out <<
+            aVertex0.markerGraphVertexId << "->" <<
+            aVertex1.markerGraphVertexId <<
+            " [label=\"" << g[ae].pathId(branchId) << "\"];\n";
+    }
+
+    out << "}" << endl;
 }
 
 
