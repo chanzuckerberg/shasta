@@ -1025,19 +1025,19 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 const string segmentId0 = to_string(phasingRegion.id) + ".0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
                 gfa.addSegment(segmentId0, v0, v1, sequence);
-                csv << segmentId0 << ",#eb4034\n";
+                csv << segmentId0 << ",Green\n";
 
                 const string segmentId1 = to_string(phasingRegion.id) + ".1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
                 gfa.addSegment(to_string(phasingRegion.id) + ".1", v0, v1, sequence);
-                csv << segmentId1 << ",#eb4034\n";
+                csv << segmentId1 << ",Green\n";
 
             } else {
 
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
                 const string segmentId = to_string(phasingRegion.id);
                 gfa.addSegment(segmentId, v0, v1, sequence);
-                csv << segmentId << ",Green\n";
+                csv << segmentId << ",#eb4034\n";   // Near red.
 
             }
 
