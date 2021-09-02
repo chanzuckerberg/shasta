@@ -3222,7 +3222,7 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
     }
 
     const Superbubble::vertex_descriptor entrance = superbubble.entrances.front();
-    //const Superbubble::vertex_descriptor exit = superbubble.exits.front();
+    const Superbubble::vertex_descriptor exit = superbubble.exits.front();
 
     // Compute the dominator tree.
     boost::lengauer_tarjan_dominator_tree(
@@ -3254,6 +3254,32 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
         }
     }
 
+
+
+    // Construct the critical path.
+    // Start at the exit and walk up the dominator tree
+    // until we reach the entrance.
+    superbubble.criticalPath.clear();
+    for(Superbubble::vertex_descriptor v = exit; ; ) {
+        superbubble.criticalPath.push_back(v);
+        if(v == entrance) {
+            break;
+        }
+        v = superbubble[v].immediateDominator;
+    }
+    reverse(superbubble.criticalPath.begin(), superbubble.criticalPath.end());
+    for(uint64_t i=0; i<superbubble.criticalPath.size(); i++) {
+        const auto v = superbubble.criticalPath[i];
+        superbubble[v].positionInCriticalPath = i;
+    }
+    if(debug) {
+        cout << "Critical path:" << endl;
+        for(const auto sv: superbubble.criticalPath) {
+            const AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
+            const AssemblyGraph2Vertex& aVertex = g[av];
+            cout << aVertex.markerGraphVertexId << endl;
+        }
+    }
 
     if(debug) {
         superbubble.writeGraphviz1(cout, g);
@@ -3407,19 +3433,43 @@ void AssemblyGraph2::Superbubble::writeGraphviz1(
     SHASTA_ASSERT(entrances.size() == 1);
     SHASTA_ASSERT(exits.size() == 1);
 
+
+
     out << "digraph Superbubble {" << endl;
+
+
+
     BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
         const AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
         const AssemblyGraph2Vertex& aVertex = g[av];
+        const uint64_t positionInCriticalPath = superbubble[sv].positionInCriticalPath;
+
         out << aVertex.markerGraphVertexId;
+        out << "[";
+
+        // Label.
+        out << "label=\"" << aVertex.markerGraphVertexId;
+        if(positionInCriticalPath != std::numeric_limits<uint64_t>::max()) {
+            out << "\\n" << positionInCriticalPath;
+        }
+        out << "\"";
+
+
+        // Color.
         if(sv == entrances.front()) {
-            out << " [style=filled fillcolor=green]";
+            out << " style=filled fillcolor=green";
+        } else if(sv == exits.front()) {
+            out << " style=filled fillcolor=red";
+        } else {
+            if(positionInCriticalPath != std::numeric_limits<uint64_t>::max()) {
+                out << " style=filled fillcolor=cyan";
+            }
         }
-        if(sv == exits.front()) {
-            out << " [style=filled fillcolor=red]";
-        }
-        out << ";\n";
+
+        out << "];\n";
     }
+
+
 
     BGL_FORALL_EDGES(se, superbubble, Superbubble) {
         const SuperbubbleEdge sEdge = superbubble[se];

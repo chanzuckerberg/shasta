@@ -422,6 +422,11 @@ private:
         // the entrance.
         SuperbubbleBaseClass::vertex_descriptor immediateDominator =
             SuperbubbleBaseClass::null_vertex();
+
+        // And index that gives the positiion of this vertex on the critical path,
+        // if this vertex isa on the critical path.
+        // See AssemblyGraph2::handleSuperbubble1 for details.
+        uint64_t positionInCriticalPath = std::numeric_limits<uint64_t>::max();
     };
 
     class SuperbubbleEdge {
@@ -457,6 +462,10 @@ private:
 
         void writeGraphviz(ostream&, const AssemblyGraph2&) const;
         void writeGraphviz1(ostream&, const AssemblyGraph2&) const;
+
+        // The critical path.
+        // See AssemblyGraph2::handleSuperbubble1 for details.
+        vector<vertex_descriptor> criticalPath;
     };
 
 
