@@ -1436,6 +1436,7 @@ void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerG
         minimumCoverage = min(minimumCoverage, uint64_t(markerIntervals.size()));
         coverageSum += markerIntervals.size();
     }
+    cout << "*** " << path.size() << " " << coverageSum << " " << averageCoverage() << endl;
 
     deduplicate(orientedReadIds);
 }
@@ -3028,10 +3029,10 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
         // Process it.
-        handleSuperbubble0(superbubble);
+        handleSuperbubble1(superbubble);
     }
 
-    // SHASTA_ASSERT(0);
+    SHASTA_ASSERT(0);
 
 }
 
@@ -3368,25 +3369,88 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
             continue;
         }
 
+
+
         // If getting here, we have a non-trivial chunk.
+
+        // At this stage, read support has not yet been computed.
+        // So let's compute it for the edges in this chunk.
+        for(const Superbubble::edge_descriptor se: superbubble.chunkEdges[chunkId]) {
+            const SuperbubbleEdge& sEdge = superbubble[se];
+            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+            AssemblyGraph2Edge& aEdge = g[ae];
+            AssemblyGraph2Edge::Branch& branch = aEdge.branches[sEdge.branchId];
+            branch.storeReadInformation(markerGraph);
+        }
+
         // Enumerate paths between chunkEntrance and chunkExit.
         superbubble.enumeratePaths(chunkEntrance, chunkExit);
 
         if(debug) {
             cout << "Found " << superbubble.paths.size() << " paths for this chunk:" << endl;
             for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
+
+                uint64_t coverageSum = 0;
+                uint64_t lengthSum = 0;
+
+                for(const Superbubble::edge_descriptor se: path) {
+                    const SuperbubbleEdge& sEdge = superbubble[se];
+                    const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                    const uint64_t branchId = sEdge.branchId;
+                    const auto& branch = g[ae].branches[branchId];
+                    cout << " " << g[ae].pathId(branchId);
+
+                    coverageSum += branch.coverageSum;
+                    lengthSum += branch.path.size();
+                }
+
+                cout << " average coverage " << double(coverageSum) / double(lengthSum);
+                cout << endl;
+            }
+        }
+
+
+
+        // Compute average coverage for each path.
+        SHASTA_ASSERT(superbubble.paths.size() > 1);
+        vector< pair<uint64_t, double> > pathCoverageTable;
+        for(uint64_t i=0 ; i<superbubble.paths.size(); i++) {
+            const auto& path = superbubble.paths[i];
+            uint64_t coverageSum = 0;
+            uint64_t lengthSum = 0;
+
+            for(const Superbubble::edge_descriptor se: path) {
+                const SuperbubbleEdge& sEdge = superbubble[se];
+                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                const uint64_t branchId = sEdge.branchId;
+                const auto& branch = g[ae].branches[branchId];
+                coverageSum += branch.coverageSum;
+                lengthSum += branch.path.size();
+            }
+            const double averageCoverage = double(coverageSum) / double(lengthSum);
+            pathCoverageTable.push_back(make_pair(i, averageCoverage));
+        }
+        sort(pathCoverageTable.begin(), pathCoverageTable.end(),
+            OrderPairsBySecondOnlyGreater<uint64_t, double>());
+        const array<vector<Superbubble::edge_descriptor>, 2> bestPaths = {
+            superbubble.paths[pathCoverageTable[0].first],
+            superbubble.paths[pathCoverageTable[1].first]};
+
+        if(debug) {
+            cout << "Best paths for this chunk:" << endl;
+            for(const vector<Superbubble::edge_descriptor>& path: bestPaths) {
+
                 for(const Superbubble::edge_descriptor se: path) {
                     const SuperbubbleEdge& sEdge = superbubble[se];
                     const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
                     const uint64_t branchId = sEdge.branchId;
                     cout << " " << g[ae].pathId(branchId);
+
                 }
                 cout << endl;
             }
         }
     }
-
-
 
     if(debug) {
         superbubble.writeGraphviz1(cout, g);
