@@ -142,6 +142,15 @@ public:
         bool containsSecondaryEdges) :
         id(id), branches(1, Branch(path, containsSecondaryEdges)) {}
 
+    // This constructor creates an edge with two paths.
+    AssemblyGraph2Edge(
+        uint64_t id,
+        const MarkerGraphPath& path0,
+        bool containsSecondaryEdges0,
+        const MarkerGraphPath& path1,
+        bool containsSecondaryEdges1) :
+        id(id), branches({Branch(path0, containsSecondaryEdges0), Branch(path1, containsSecondaryEdges1)}) {}
+
     uint64_t ploidy() const {
         return branches.size();
     }
