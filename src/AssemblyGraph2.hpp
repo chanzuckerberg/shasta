@@ -420,11 +420,17 @@ private:
         // in the dominator tree).
         // This remains set to null_vertex for vertices unreachable from
         // the entrance.
-        SuperbubbleBaseClass::vertex_descriptor immediateDominator =
+        // immediateDominator0 is used for the forward dominator tree,
+        // from the entrance to the exit.
+        // immediateDominator1 is used for the backward dominator tree,
+        // from the exit to the entrance.
+        SuperbubbleBaseClass::vertex_descriptor immediateDominator0 =
+            SuperbubbleBaseClass::null_vertex();
+        SuperbubbleBaseClass::vertex_descriptor immediateDominator1 =
             SuperbubbleBaseClass::null_vertex();
 
-        // And index that gives the positiion of this vertex on the critical path,
-        // if this vertex isa on the critical path.
+        // And index that gives the position of this vertex on the critical path,
+        // if this vertex is a on the critical path.
         // See AssemblyGraph2::handleSuperbubble1 for details.
         uint64_t positionInCriticalPath = std::numeric_limits<uint64_t>::max();
     };
@@ -437,6 +443,7 @@ private:
             AssemblyGraph2::edge_descriptor ae,
             uint64_t branchId) :
             ae(ae), branchId(branchId) {}
+        uint64_t chunk = std::numeric_limits<uint64_t>::max();
     };
 
     class Superbubble : public SuperbubbleBaseClass  {
@@ -454,6 +461,9 @@ private:
         // There must be exactly one entrance and one exit.
         vector< vector<edge_descriptor> > paths;
         void enumeratePaths();
+        void enumeratePaths(
+            vertex_descriptor entrance,
+            vertex_descriptor exit);
 
         // Return the number of distinct AssemblyGraph2 edges
         // that begin/end at a given vertex.
@@ -466,6 +476,14 @@ private:
         // The critical path.
         // See AssemblyGraph2::handleSuperbubble1 for details.
         vector<vertex_descriptor> criticalPath;
+        void computeCriticalPath();
+
+        // Find the chunk that each edge belongs to.
+        // This must be called after the dominator trees
+        // and the critical path are computed.
+        void findChunks();
+        void findChunk(edge_descriptor);
+        vector< vector<edge_descriptor> > chunkEdges;
     };
 
 

@@ -18,6 +18,7 @@ using namespace shasta;
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/graph/reverse_graph.hpp>
 #include <boost/pending/disjoint_sets.hpp>
 
 // Standard library.
@@ -3028,8 +3029,10 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
         // Process it.
-        handleSuperbubble0(superbubble);
+        handleSuperbubble1(superbubble);
     }
+
+    SHASTA_ASSERT(0);
 
 }
 
@@ -3224,31 +3227,63 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
     const Superbubble::vertex_descriptor entrance = superbubble.entrances.front();
     const Superbubble::vertex_descriptor exit = superbubble.exits.front();
 
-    // Compute the dominator tree.
+    // Compute the forward dominator tree.
     boost::lengauer_tarjan_dominator_tree(
         superbubble,
         entrance,
-        boost::get(&SuperbubbleVertex::immediateDominator, superbubble));
+        boost::get(&SuperbubbleVertex::immediateDominator0, superbubble));
+
+    // Compute the backward dominator tree.
+    boost::lengauer_tarjan_dominator_tree(
+        boost::reverse_graph<Superbubble>(superbubble),
+        exit,
+        boost::get(&SuperbubbleVertex::immediateDominator1, superbubble));
+
+
 
     if(debug) {
-        cout << "Dominator tree:" << endl;
-        BGL_FORALL_VERTICES (sv1, superbubble, Superbubble) {
-            const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
-            const AssemblyGraph2Vertex& aVertex1 = g[av1];
+        cout << "Forward dominator tree:" << endl;
+        BGL_FORALL_VERTICES (sv0, superbubble, Superbubble) {
+            const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+            const AssemblyGraph2Vertex& aVertex0 = g[av0];
 
-            cout << aVertex1.markerGraphVertexId;
+            cout << aVertex0.markerGraphVertexId;
 
-            if(sv1 == entrance) {
+            if(sv0 == entrance) {
                 cout << " entrance" << endl;
             } else {
 
-                const Superbubble::vertex_descriptor sv0 = superbubble[sv1].immediateDominator;
-                if(sv0 == Superbubble::null_vertex()) {
+                const Superbubble::vertex_descriptor sv1 = superbubble[sv0].immediateDominator0;
+                if(sv1 == Superbubble::null_vertex()) {
                     cout << " unreachable" << endl;
                 } else {
-                    const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
-                    const AssemblyGraph2Vertex& aVertex0 = g[av0];
-                    cout << " parent is " << aVertex0.markerGraphVertexId << endl;
+                    const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
+                    const AssemblyGraph2Vertex& aVertex1 = g[av1];
+                    cout << " parent is " << aVertex1.markerGraphVertexId << endl;
+                }
+            }
+        }
+
+
+
+        cout << "Backward dominator tree:" << endl;
+        BGL_FORALL_VERTICES (sv0, superbubble, Superbubble) {
+            const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+            const AssemblyGraph2Vertex& aVertex0 = g[av0];
+
+            cout << aVertex0.markerGraphVertexId;
+
+            if(sv0 == exit) {
+                cout << " exit" << endl;
+            } else {
+
+                const Superbubble::vertex_descriptor sv1 = superbubble[sv0].immediateDominator1;
+                if(sv1 == Superbubble::null_vertex()) {
+                    cout << " unreachable" << endl;
+                } else {
+                    const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
+                    const AssemblyGraph2Vertex& aVertex1 = g[av1];
+                    cout << " parent is " << aVertex1.markerGraphVertexId << endl;
                 }
             }
         }
@@ -3257,21 +3292,7 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 
 
     // Construct the critical path.
-    // Start at the exit and walk up the dominator tree
-    // until we reach the entrance.
-    superbubble.criticalPath.clear();
-    for(Superbubble::vertex_descriptor v = exit; ; ) {
-        superbubble.criticalPath.push_back(v);
-        if(v == entrance) {
-            break;
-        }
-        v = superbubble[v].immediateDominator;
-    }
-    reverse(superbubble.criticalPath.begin(), superbubble.criticalPath.end());
-    for(uint64_t i=0; i<superbubble.criticalPath.size(); i++) {
-        const auto v = superbubble.criticalPath[i];
-        superbubble[v].positionInCriticalPath = i;
-    }
+    superbubble.computeCriticalPath();
     if(debug) {
         cout << "Critical path:" << endl;
         for(const auto sv: superbubble.criticalPath) {
@@ -3281,8 +3302,204 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
         }
     }
 
+    // Assign edges to chunks.
+    superbubble.findChunks();
+    if(debug) {
+        for(uint64_t chunk=0; chunk<superbubble.chunkEdges.size(); chunk++) {
+            cout << "Chunk " << chunk;
+            for(const Superbubble::edge_descriptor se: superbubble.chunkEdges[chunk]) {
+                const SuperbubbleEdge& sEdge = superbubble[se];
+                cout << " " << g[sEdge.ae].pathId(sEdge.branchId);
+            }
+            cout << endl;
+        }
+    }
+
+
+
+    // Remove edges not assigned to a chunk from both the Superbubble and the AssemblyGraph2.
+    // These edges cannot belong to any path between the entrance and the exit.
+    vector<Superbubble::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, superbubble, Superbubble) {
+        const SuperbubbleEdge& edge = superbubble[e];
+        if(edge.chunk == std::numeric_limits<uint64_t>::max()) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const Superbubble::edge_descriptor se: edgesToBeRemoved) {
+        const SuperbubbleEdge& sEdge = superbubble[se];
+        if(debug) {
+            cout << "Removing edge " << g[sEdge.ae].pathId(sEdge.branchId) << endl;
+        }
+        if(sEdge.branchId==0) {
+            boost::remove_edge(sEdge.ae, g);
+        }
+        boost::remove_edge(se, superbubble);
+    }
+
+
+
+    // Loop over the chunks.
+    // Chunk chunkId consists of all edges reachable forward from choke point chunkId
+    // and backward from choke point chunkId+1.
+    for(uint64_t chunkId=0; chunkId<superbubble.criticalPath.size()-1; chunkId++) {
+        const Superbubble::vertex_descriptor chunkEntrance = superbubble.criticalPath[chunkId];
+        const Superbubble::vertex_descriptor chunkExit = superbubble.criticalPath[chunkId+1];
+        if(debug) {
+            cout << "Working on chunk " << chunkId << endl;
+            cout << "Chunk entrance " << g[superbubble[chunkEntrance].av].markerGraphVertexId << endl;
+            cout << "Chunk exit " << g[superbubble[chunkExit].av].markerGraphVertexId << endl;
+        }
+
+
+        // If this is a trivial chunk, skip it.
+        // A chunk is trivial if all out-edges of chunkEntrance have chunkExit
+        // as their target vertex.
+        bool isNonTrivial = false;
+        BGL_FORALL_OUTEDGES(chunkEntrance, e, superbubble, Superbubble) {
+            if(target(e, superbubble) != chunkExit) {
+                isNonTrivial = true;
+                break;
+            }
+        }
+        if(not isNonTrivial) {
+            if(debug) {
+                cout << "This chunk is trivial. Nothing done." << endl;
+            }
+            continue;
+        }
+
+        // If getting here, we have a non-trivial chunk.
+        // Enumerate paths between chunkEntrance and chunkExit.
+        superbubble.enumeratePaths(chunkEntrance, chunkExit);
+
+        if(debug) {
+            cout << "Found " << superbubble.paths.size() << " paths for this chunk:" << endl;
+            for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
+                for(const Superbubble::edge_descriptor se: path) {
+                    const SuperbubbleEdge& sEdge = superbubble[se];
+                    const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                    const uint64_t branchId = sEdge.branchId;
+                    cout << " " << g[ae].pathId(branchId);
+                }
+                cout << endl;
+            }
+        }
+    }
+
+
+
     if(debug) {
         superbubble.writeGraphviz1(cout, g);
+    }
+}
+
+
+
+// Find the chunk that each edge belongs to.
+// This must be called after the dominator trees
+// and the critical path are computed.
+void AssemblyGraph2::Superbubble::findChunks()
+{
+    Superbubble& superbubble = *this;
+    SHASTA_ASSERT(entrances.size() == 1);
+    SHASTA_ASSERT(exits.size() == 1);
+
+    chunkEdges.clear();
+    const uint64_t chunkCount = superbubble[exits.front()].positionInCriticalPath;
+    chunkEdges.resize(chunkCount);
+
+    BGL_FORALL_EDGES(e, superbubble, Superbubble) {
+        findChunk(e);
+
+        const uint64_t chunk = superbubble[e].chunk;
+        if(chunk != std::numeric_limits<uint64_t>::max()) {
+            chunkEdges[chunk].push_back(e);
+        }
+    }
+}
+
+
+
+void AssemblyGraph2::Superbubble::findChunk(edge_descriptor e)
+{
+    Superbubble& superbubble = *this;
+
+    vertex_descriptor v0 = source(e, superbubble);
+    vertex_descriptor v1 = target(e, superbubble);
+
+    // Walk the forward dominator tree up starting at v0
+    // and until we get on the critical path.
+    uint64_t chunk;
+    while(true) {
+        if(superbubble[v0].positionInCriticalPath != std::numeric_limits<uint64_t>::max()) {
+            chunk = superbubble[v0].positionInCriticalPath;
+            break;
+        }
+        v0 = superbubble[v0].immediateDominator0;
+        if(v0 == null_vertex()) {
+            return;
+        }
+    }
+
+    // Do the same in the opposite direction.
+    uint64_t nextChunk;
+    while(true) {
+        if(superbubble[v1].positionInCriticalPath != std::numeric_limits<uint64_t>::max()) {
+            nextChunk = superbubble[v1].positionInCriticalPath;
+            break;
+        }
+        v1 = superbubble[v1].immediateDominator1;
+        if(v1 == null_vertex()) {
+            return;
+        }
+    }
+
+    if(nextChunk == chunk + 1) {
+        superbubble[e].chunk = chunk;
+    }
+}
+
+
+
+// This computes the critical path from the entrance to the exit
+// for a superbubble with a single entrance and exit.
+// This assumes that the dominator tree were already computed.
+void AssemblyGraph2::Superbubble::computeCriticalPath()
+{
+    Superbubble& superbubble = *this;
+    SHASTA_ASSERT(entrances.size() == 1);
+    SHASTA_ASSERT(exits.size() == 1);
+    const vertex_descriptor entrance = entrances.front();
+    const vertex_descriptor exit = exits.front();
+
+    // Compute the critical path using the forward dominator tree.
+    criticalPath.clear();
+    for(Superbubble::vertex_descriptor v = exit; ; ) {
+        superbubble.criticalPath.push_back(v);
+        if(v == entrance) {
+            break;
+        }
+        v = superbubble[v].immediateDominator0;
+    }
+    reverse(superbubble.criticalPath.begin(), superbubble.criticalPath.end());
+
+    // Also compute the critical path using the fbackward dominator tree
+    // and check that we get the same result.
+    vector<vertex_descriptor> criticalPathCheck;
+    for(Superbubble::vertex_descriptor v = entrance; ; ) {
+        criticalPathCheck.push_back(v);
+        if(v == exit) {
+            break;
+        }
+        v = superbubble[v].immediateDominator1;
+    }
+    SHASTA_ASSERT(criticalPathCheck == criticalPath);
+
+    // Store positions in the critical path in the critical path vertices.
+    for(uint64_t i=0; i<criticalPath.size(); i++) {
+        const auto v = criticalPath[i];
+        superbubble[v].positionInCriticalPath = i;
     }
 }
 
@@ -3488,7 +3705,11 @@ void AssemblyGraph2::Superbubble::writeGraphviz1(
         out <<
             aVertex0.markerGraphVertexId << "->" <<
             aVertex1.markerGraphVertexId <<
-            " [label=\"" << g[ae].pathId(branchId) << "\"];\n";
+            " [label=\"" << g[ae].pathId(branchId);
+        if(sEdge.chunk != std::numeric_limits<uint64_t>::max()) {
+            out << "\\n" << sEdge.chunk;
+        }
+        out << "\"];\n";
     }
 
     out << "}" << endl;
@@ -3585,5 +3806,15 @@ void AssemblyGraph2::Superbubble::enumeratePaths()
 
     const vertex_descriptor entrance = entrances.front();
     const vertex_descriptor exit = exits.front();
+    enumeratePaths(entrance, exit);
+}
+
+
+
+// Enumerate paths from an entrance to an exit.
+void AssemblyGraph2::Superbubble::enumeratePaths(
+    vertex_descriptor entrance,
+    vertex_descriptor exit)
+{
     enumerateSelfAvoidingPaths(*this, entrance, exit, paths);
 }
