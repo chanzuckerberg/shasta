@@ -107,10 +107,14 @@ public:
         // Sorted.
         vector<OrientedReadId> orientedReadIds;
 
-        // Minimum and average coverage on the marker graph graph
+        // Minimum and sum of coverage on the marker graph graph
         // edges of this branch.
         uint64_t minimumCoverage;
-        uint64_t averageCoverage;
+        uint64_t coverageSum;
+        uint64_t averageCoverage() const
+        {
+            return uint64_t(std::round(double(coverageSum) / double(path.size())));
+        }
 
         // Fill in orientedReads and average/minimum coverage.
         void storeReadInformation(const MarkerGraph&);

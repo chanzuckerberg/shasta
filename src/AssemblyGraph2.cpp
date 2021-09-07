@@ -859,7 +859,7 @@ void AssemblyGraph2::writeGfa(
                 (branch.containsSecondaryEdges ? "S" : "") << "," <<
                 (edge.period ? to_string(edge.period) : string()) << "," <<
                 branch.minimumCoverage << "," <<
-                branch.averageCoverage << "," <<
+                branch.averageCoverage() << "," <<
                 branch.orientedReadIds.size() << ",";
             if(writeSequence) {
                 if(branch.gfaSequence.size() == 0) {
@@ -967,7 +967,7 @@ void AssemblyGraph2::writeHaploidGfa(
                 (branch.containsSecondaryEdges ? "S" : "") << "," <<
                 (edge.period ? to_string(edge.period) : string()) << "," <<
                 branch.minimumCoverage << "," <<
-                branch.averageCoverage << "," <<
+                branch.averageCoverage() << "," <<
                 branch.orientedReadIds.size() << "\n";
         }
     }
@@ -1419,7 +1419,7 @@ void AssemblyGraph2Edge::computeCopyNumberDifferencePeriod(uint64_t maxPeriod)
 void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerGraph)
 {
     minimumCoverage = std::numeric_limits<uint64_t>::max();
-    averageCoverage = 0;
+    coverageSum = 0;
     orientedReadIds.clear();
 
     // Loop over the marker graph path of this branch.
@@ -1434,10 +1434,9 @@ void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerG
 
         // Update coverage.
         minimumCoverage = min(minimumCoverage, uint64_t(markerIntervals.size()));
-        averageCoverage += markerIntervals.size();
+        coverageSum += markerIntervals.size();
     }
 
-    averageCoverage = uint64_t(std::round(double(averageCoverage) / double(path.size())));
     deduplicate(orientedReadIds);
 }
 
@@ -1469,10 +1468,10 @@ void AssemblyGraph2Edge::findStrongestBranch()
 {
     SHASTA_ASSERT(not branches.empty());
     strongestBranchId = 0;
-    uint64_t strongestBranchCoverage = branches.front().averageCoverage;
+    uint64_t strongestBranchCoverage = branches.front().averageCoverage();
 
     for(uint64_t branchId=0; branchId<branches.size(); branchId++) {
-        const uint64_t coverage = branches[branchId].averageCoverage;
+        const uint64_t coverage = branches[branchId].averageCoverage();
         if (coverage > strongestBranchCoverage) {
             strongestBranchId = branchId;
             strongestBranchCoverage = coverage;
@@ -2441,9 +2440,9 @@ void AssemblyGraph2::removeDegenerateBranches()
 
             // Find the one with the most coverage.
             uint64_t bestBranchId = branchIds.front();
-            uint64_t bestCoverage = edge.branches[bestBranchId].averageCoverage;
+            uint64_t bestCoverage = edge.branches[bestBranchId].averageCoverage();
             for(uint64_t branchId: branchIds) {
-                const uint64_t branchCoverage = edge.branches[branchId].averageCoverage;
+                const uint64_t branchCoverage = edge.branches[branchId].averageCoverage();
                 if(branchCoverage > bestCoverage) {
                     bestBranchId = branchId;
                     bestCoverage = branchCoverage;
@@ -3029,10 +3028,10 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
         // Process it.
-        handleSuperbubble1(superbubble);
+        handleSuperbubble0(superbubble);
     }
 
-    SHASTA_ASSERT(0);
+    // SHASTA_ASSERT(0);
 
 }
 
