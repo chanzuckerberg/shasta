@@ -3470,8 +3470,6 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
         if(suffixLength) {
             cout << "The two best path have a common suffix of length " << suffixLength << endl;
         }
-        SHASTA_ASSERT(prefixLength + suffixLength < bestPaths[0].size());
-        SHASTA_ASSERT(prefixLength + suffixLength < bestPaths[1].size());
 
 
 
@@ -3503,59 +3501,63 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 
         // Create a new AssemblyGraph2 edge to represent a bubble with the
         // two best paths, excluding their common prefix and suffix.
-        const auto begin0 = bestPaths[0].begin() + prefixLength;
-        const auto end0 = bestPaths[0].end() - suffixLength;
-        const auto begin1 = bestPaths[1].begin() + prefixLength;
-        const auto end1 = bestPaths[1].end() - suffixLength;
+        if(
+            (prefixLength + suffixLength < bestPaths[0].size()) and
+            (prefixLength + suffixLength < bestPaths[1].size())) {
+            const auto begin0 = bestPaths[0].begin() + prefixLength;
+            const auto end0 = bestPaths[0].end() - suffixLength;
+            const auto begin1 = bestPaths[1].begin() + prefixLength;
+            const auto end1 = bestPaths[1].end() - suffixLength;
 
-        const Superbubble::edge_descriptor first0 = *begin0;
-        const Superbubble::edge_descriptor last0 = *(end0 - 1);
-        const Superbubble::edge_descriptor first1 = *begin1;
-        const Superbubble::edge_descriptor last1 = *(end1 - 1);
+            const Superbubble::edge_descriptor first0 = *begin0;
+            const Superbubble::edge_descriptor last0 = *(end0 - 1);
+            const Superbubble::edge_descriptor first1 = *begin1;
+            const Superbubble::edge_descriptor last1 = *(end1 - 1);
 
-        // Find the source and target vertices.
-        const Superbubble::vertex_descriptor sv0 = source(first0, superbubble);
-        SHASTA_ASSERT(sv0 == source(first1, superbubble));
-        const Superbubble::vertex_descriptor sv1 = target(last0, superbubble);
-        SHASTA_ASSERT(sv1 == target(last1, superbubble));
-        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
-        const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
+            // Find the source and target vertices.
+            const Superbubble::vertex_descriptor sv0 = source(first0, superbubble);
+            SHASTA_ASSERT(sv0 == source(first1, superbubble));
+            const Superbubble::vertex_descriptor sv1 = target(last0, superbubble);
+            SHASTA_ASSERT(sv1 == target(last1, superbubble));
+            const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+            const AssemblyGraph2::vertex_descriptor av1 = superbubble[sv1].av;
 
 
-        // Create the new edge with two branches, one for each of our best paths.
-        MarkerGraphPath markerGraphPath0;
-        bool containsSecondaryEdges0 = false;
-        for(auto it=begin0; it!=end0; ++it) {
-            const Superbubble::edge_descriptor se = *it;
-            const SuperbubbleEdge& sEdge = superbubble[se];
-            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-            const AssemblyGraph2Edge& aEdge = g[ae];
-            const AssemblyGraph2Edge::Branch& branch = aEdge.branches[sEdge.branchId];
-            copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath0));
-            if(branch.containsSecondaryEdges) {
-                containsSecondaryEdges0 = true;
+            // Create the new edge with two branches, one for each of our best paths.
+            MarkerGraphPath markerGraphPath0;
+            bool containsSecondaryEdges0 = false;
+            for(auto it=begin0; it!=end0; ++it) {
+                const Superbubble::edge_descriptor se = *it;
+                const SuperbubbleEdge& sEdge = superbubble[se];
+                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                const AssemblyGraph2Edge& aEdge = g[ae];
+                const AssemblyGraph2Edge::Branch& branch = aEdge.branches[sEdge.branchId];
+                copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath0));
+                if(branch.containsSecondaryEdges) {
+                    containsSecondaryEdges0 = true;
+                }
             }
-        }
-        MarkerGraphPath markerGraphPath1;
-        bool containsSecondaryEdges1 = false;
-        for(auto it=begin1; it!=end1; ++it) {
-            const Superbubble::edge_descriptor se = *it;
-            const SuperbubbleEdge& sEdge = superbubble[se];
-            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-            const AssemblyGraph2Edge& aEdge = g[ae];
-            const AssemblyGraph2Edge::Branch& branch = aEdge.branches[sEdge.branchId];
-            copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath1));
-            if(branch.containsSecondaryEdges) {
-                containsSecondaryEdges1 = true;
+            MarkerGraphPath markerGraphPath1;
+            bool containsSecondaryEdges1 = false;
+            for(auto it=begin1; it!=end1; ++it) {
+                const Superbubble::edge_descriptor se = *it;
+                const SuperbubbleEdge& sEdge = superbubble[se];
+                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
+                const AssemblyGraph2Edge& aEdge = g[ae];
+                const AssemblyGraph2Edge::Branch& branch = aEdge.branches[sEdge.branchId];
+                copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath1));
+                if(branch.containsSecondaryEdges) {
+                    containsSecondaryEdges1 = true;
+                }
             }
+            bool edgeWasAdded = false;
+            tie(ignore, edgeWasAdded) = add_edge(av0, av1,
+                E(nextId++,
+                markerGraphPath0, containsSecondaryEdges0,
+                markerGraphPath1, containsSecondaryEdges1),
+                g);
+            SHASTA_ASSERT(edgeWasAdded);
         }
-        bool edgeWasAdded = false;
-        tie(ignore, edgeWasAdded) = add_edge(av0, av1,
-            E(nextId++,
-            markerGraphPath0, containsSecondaryEdges0,
-            markerGraphPath1, containsSecondaryEdges1),
-            g);
-        SHASTA_ASSERT(edgeWasAdded);
 
 
         // If there is a common suffix, generate a new haploid edge of the AssemblyGraph2.
