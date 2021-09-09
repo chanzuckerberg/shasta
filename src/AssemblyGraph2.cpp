@@ -5,6 +5,7 @@
 #include "computeLayout.hpp"
 #include "copyNumber.hpp"
 #include "deduplicate.hpp"
+#include "dominatorTree.hpp"
 #include "enumeratePaths.hpp"
 #include "findLinearChains.hpp"
 #include "GfaAssemblyGraph.hpp"
@@ -3224,13 +3225,15 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
     const Superbubble::vertex_descriptor exit = superbubble.exits.front();
 
     // Compute the forward dominator tree.
-    boost::lengauer_tarjan_dominator_tree(
+    // Use the shasta version which includes a bug fix
+    // (see dominatorTree.hpp).
+    shasta::lengauer_tarjan_dominator_tree(
         superbubble,
         entrance,
         boost::get(&SuperbubbleVertex::immediateDominator0, superbubble));
 
     // Compute the backward dominator tree.
-    boost::lengauer_tarjan_dominator_tree(
+    shasta::lengauer_tarjan_dominator_tree(
         boost::reverse_graph<Superbubble>(superbubble),
         exit,
         boost::get(&SuperbubbleVertex::immediateDominator1, superbubble));
