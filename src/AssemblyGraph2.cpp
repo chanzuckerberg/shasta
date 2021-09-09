@@ -3289,6 +3289,14 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
     }
 
 
+    // In the exceptional case that the exit is unreachable from entrance,
+    // do nothing.
+    if(
+        superbubble[exit].immediateDominator0 == Superbubble::null_vertex() or
+        superbubble[entrance].immediateDominator1 == Superbubble::null_vertex()) {
+        return;
+    }
+
 
     // Construct the critical path.
     superbubble.computeCriticalPath();
