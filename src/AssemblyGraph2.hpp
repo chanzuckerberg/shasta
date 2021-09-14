@@ -223,7 +223,9 @@ public:
 
 
 
-class shasta::AssemblyGraph2 : public AssemblyGraph2BaseClass {
+class shasta::AssemblyGraph2 :
+    public AssemblyGraph2BaseClass,
+    public MultithreadedObject<AssemblyGraph2> {
 public:
 
     // The constructor creates an edge for each linear path
@@ -733,7 +735,9 @@ private:
 
 
     // Use each connected component of the bubble graph to phase the bubbles.
-    void phase();
+    void phase(size_t threadCount);
+    void phaseThreadFunction(size_t threadId);
+    void phaseBubbleGraphComponent(uint64_t componentId);
 
 };
 

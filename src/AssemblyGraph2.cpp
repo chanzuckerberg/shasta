@@ -43,6 +43,7 @@ AssemblyGraph2::AssemblyGraph2(
     uint64_t phasingMinReadCount,
     size_t threadCount
     ) :
+    MultithreadedObject<AssemblyGraph2>(*this),
     k(k),
     markers(markers),
     markerGraph(markerGraph)
@@ -122,7 +123,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Use each connected component of the bubble graph to phase the bubbles.
     cout << timestamp << "AssemblyGraph2::phase begins." << endl;
-    phase();
+    phase(threadCount);
 
     // Remove from the AssemblyGraph2 the bubbles marked isBad
     // (only keep the strongest branch).
@@ -2170,144 +2171,19 @@ void AssemblyGraph2::BubbleGraph::extractComponent(
 
 
 // Use each connected component of the bubble graph to phase the bubbles.
-void AssemblyGraph2::phase()
+void AssemblyGraph2::phase(size_t threadCount)
 {
-    const bool debug = false;
-
-    for(uint64_t componentId=0;
-        componentId<bubbleGraph.connectedComponents.size(); componentId++) {
-        BubbleGraph componentGraph;
-        bubbleGraph.extractComponent(componentId, componentGraph);
-
-        cout << "Processing connected component " << componentId <<
-            " with " << num_vertices(componentGraph) <<
-            " vertices and " << num_edges(componentGraph) <<
-            " edges." << endl;
-
-        if(debug) {
-            componentGraph.writeGraphviz("Component-" + to_string(componentId) + ".dot");
-        }
-
-        // Compute an index map, needed below, which maps vertices to integers.
-        std::map<BubbleGraph::vertex_descriptor, uint64_t> indexMap;
-        uint64_t vertexIndex = 0;
-        BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
-            indexMap.insert(make_pair(v, vertexIndex++));
-        }
-
-        // Compute a minimal spanning tree that minimizes
-        // the sum of  edge weights defined as
-        // difference discordantCount() - concordantCount()
-        std::map<BubbleGraph::edge_descriptor, int64_t> weightMap;
-        BGL_FORALL_EDGES(e, componentGraph, BubbleGraph) {
-            const BubbleGraphEdge& edge = componentGraph[e];
-            const int64_t weight = int64_t(edge.discordantCount()) - int64_t(edge.concordantCount());
-            weightMap.insert(make_pair(e, weight));
-        }
-        std::set<BubbleGraph::edge_descriptor> treeEdges;
-        boost::kruskal_minimum_spanning_tree(componentGraph, std::inserter(treeEdges, treeEdges.begin()),
-            weight_map(boost::make_assoc_property_map(weightMap)).
-            vertex_index_map(boost::make_assoc_property_map(indexMap)));
-        SHASTA_ASSERT(treeEdges.size() == indexMap.size() - 1);
+    // In parallel, [hase each connected component of the BubbleGraph.
+    // each thread writes the results in its portion of the global BubbleGraph.
+    const uint64_t batchSize = 1;
+    setupLoadBalancing(bubbleGraph.connectedComponents.size(), batchSize);
+    cout << timestamp << "Phasing " << bubbleGraph.connectedComponents.size() <<
+        " connected components of the bubble graph." << endl;
+    runThreads(&AssemblyGraph2::phaseThreadFunction, threadCount);
+    cout << timestamp << "Done phasing." << endl;
 
 
-
-        // Write out the tree edges to csv.
-        if(debug) {
-            ofstream csv("Component-" + to_string(componentId) + "-TreeEdges.csv");
-            csv << "BubbleId0,BubbleId1,Diagonal,OffDiagonal,Concordant,Discordant,Weight\n";
-            for(const BubbleGraph::edge_descriptor e: treeEdges) {
-                const BubbleGraphEdge& edge = componentGraph[e];
-                const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
-                const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
-                csv << bubbleGraph[v0].id << ",";
-                csv << bubbleGraph[v1].id << ",";
-                csv << edge.diagonalCount() << ",";
-                csv << edge.offDiagonalCount() << ",";
-                csv << edge.concordantCount() << ",";
-                csv << edge.discordantCount() << ",";
-                csv << edge.concordantCount() - edge.discordantCount() << "\n";
-            }
-        }
-
-
-
-        // To phase, do a BFS on the spanning tree of the componentGraph.
-        // Assign phases consistent with the spanning tree edges.
-        std::queue<BubbleGraph::vertex_descriptor> q;
-        BubbleGraph::vertex_iterator it;
-        tie(it, ignore) = vertices(componentGraph);
-        BubbleGraph::vertex_descriptor vStart = *it;
-        q.push(vStart);
-        componentGraph[vStart].phase = 0;
-        while(not q.empty()) {
-
-            // Dequeue a vertex.
-            const BubbleGraph::vertex_descriptor v0 = q.front();
-            // cout << "Dequeued " << (*this)[componentGraph[v0].e].id << " " << componentGraph[v0].phase << endl;
-            q.pop();
-            const uint64_t phase0 = componentGraph[v0].phase;
-            SHASTA_ASSERT(phase0 != BubbleGraphVertex::invalidPhase);
-
-            // Loop over tree edges.
-            BGL_FORALL_OUTEDGES(v0, e01, componentGraph, BubbleGraph) {
-                if(treeEdges.find(e01) == treeEdges.end()) {
-                    continue;
-                }
-                const double relativePhase = componentGraph[e01].relativePhase();
-                const BubbleGraph::vertex_descriptor v1 = target(e01, componentGraph);
-                // cout << "Found " << (*this)[componentGraph[v1].e].id << " " << componentGraph[v1].phase << endl;
-                // cout << "Relative phase " << relativePhase << endl;
-                uint64_t& phase1 = componentGraph[v1].phase;
-                if(phase1 == BubbleGraphVertex::invalidPhase) {
-                    if(relativePhase > 0.) {
-                        phase1 = phase0;
-                    } else {
-                        phase1 = 1 - phase0;
-                    }
-                    q.push(v1);
-                    // cout << "Enqueued " << (*this)[componentGraph[v1].e].id << " " << componentGraph[v1].phase << endl;
-                } else {
-                    // We already encountered this vertex. Just check
-                    // that its phase is consistent with the edge.
-                    const uint64_t& phase1 = componentGraph[v1].phase;
-                    if(relativePhase > 0.) {
-                        SHASTA_ASSERT(phase1 == phase0);
-                    } else {
-                        SHASTA_ASSERT(phase1 == 1 - phase0);
-                    }
-                }
-            }
-        }
-
-        uint64_t unhappyCount = 0;
-        uint64_t totalCount = 0;
-        BGL_FORALL_EDGES(e, componentGraph, BubbleGraph) {
-            ++totalCount;
-            if(not componentGraph.edgeIsHappy(e)) {
-                ++unhappyCount;
-            }
-        }
-        cout << "Found " << unhappyCount << " edges inconsistent with computed bubble phasing "
-            " out of " << totalCount << " edges in this connected component." << endl;
-
-        if(debug) {
-            componentGraph.writeHtml("Component-" + to_string(componentId) + ".html", treeEdges, false);
-            componentGraph.writeHtml("Component-" + to_string(componentId) + "-Unhappy.html", treeEdges, true);
-        }
-
-
-        // Copy the phasing to the global bubble graph.
-        uint64_t i = 0;
-        BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
-            BubbleGraph::vertex_descriptor vGlobal = bubbleGraph.connectedComponents[componentId][i++];
-            bubbleGraph[vGlobal].phase = bubbleGraph[v].phase;
-            SHASTA_ASSERT(bubbleGraph[vGlobal].componentId == componentId);
-        }
-    }
-
-
-    // Check that all vertices of the global bubble graph are phased
+    // Check that all vertices of the global BubbleGraph are phased
     // and copy the phasing information to the AssemvblyGraph2Edges.
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
         const BubbleGraphVertex& bubbleGraphVertex = bubbleGraph[v];
@@ -2319,6 +2195,160 @@ void AssemblyGraph2::phase()
         AssemblyGraph2Edge& assemblyGraph2Edge = (*this)[bubbleGraphVertex.e];
         assemblyGraph2Edge.componentId = componentId;
         assemblyGraph2Edge.phase = phase;
+    }
+}
+
+
+
+void AssemblyGraph2::phaseThreadFunction(size_t threadId)
+{
+    // Loop over batchEs assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over BubbleGraph connected components that belong to this batch.
+        for(uint64_t componentId=begin; componentId!=end; componentId++) {
+            phaseBubbleGraphComponent(componentId);
+        }
+    }
+}
+
+
+
+void AssemblyGraph2::phaseBubbleGraphComponent(uint64_t componentId)
+{
+    const bool debug = false;
+
+    BubbleGraph componentGraph;
+    bubbleGraph.extractComponent(componentId, componentGraph);
+
+    if(debug) {
+        cout << "Processing connected component " << componentId <<
+            " with " << num_vertices(componentGraph) <<
+            " vertices and " << num_edges(componentGraph) <<
+            " edges." << endl;
+            componentGraph.writeGraphviz("Component-" + to_string(componentId) + ".dot");
+    }
+
+    // Compute an index map, needed below, which maps vertices to integers.
+    std::map<BubbleGraph::vertex_descriptor, uint64_t> indexMap;
+    uint64_t vertexIndex = 0;
+    BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
+        indexMap.insert(make_pair(v, vertexIndex++));
+    }
+
+    // Compute a minimal spanning tree that minimizes
+    // the sum of  edge weights defined as
+    // difference discordantCount() - concordantCount()
+    std::map<BubbleGraph::edge_descriptor, int64_t> weightMap;
+    BGL_FORALL_EDGES(e, componentGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = componentGraph[e];
+        const int64_t weight = int64_t(edge.discordantCount()) - int64_t(edge.concordantCount());
+        weightMap.insert(make_pair(e, weight));
+    }
+    std::set<BubbleGraph::edge_descriptor> treeEdges;
+    boost::kruskal_minimum_spanning_tree(componentGraph, std::inserter(treeEdges, treeEdges.begin()),
+        weight_map(boost::make_assoc_property_map(weightMap)).
+        vertex_index_map(boost::make_assoc_property_map(indexMap)));
+    SHASTA_ASSERT(treeEdges.size() == indexMap.size() - 1);
+
+
+
+    // Write out the tree edges to csv.
+    if(debug) {
+        ofstream csv("Component-" + to_string(componentId) + "-TreeEdges.csv");
+        csv << "BubbleId0,BubbleId1,Diagonal,OffDiagonal,Concordant,Discordant,Weight\n";
+        for(const BubbleGraph::edge_descriptor e: treeEdges) {
+            const BubbleGraphEdge& edge = componentGraph[e];
+            const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
+            const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+            csv << bubbleGraph[v0].id << ",";
+            csv << bubbleGraph[v1].id << ",";
+            csv << edge.diagonalCount() << ",";
+            csv << edge.offDiagonalCount() << ",";
+            csv << edge.concordantCount() << ",";
+            csv << edge.discordantCount() << ",";
+            csv << edge.concordantCount() - edge.discordantCount() << "\n";
+        }
+    }
+
+
+
+    // To phase, do a BFS on the spanning tree of the componentGraph.
+    // Assign phases consistent with the spanning tree edges.
+    std::queue<BubbleGraph::vertex_descriptor> q;
+    BubbleGraph::vertex_iterator it;
+    tie(it, ignore) = vertices(componentGraph);
+    BubbleGraph::vertex_descriptor vStart = *it;
+    q.push(vStart);
+    componentGraph[vStart].phase = 0;
+    while(not q.empty()) {
+
+        // Dequeue a vertex.
+        const BubbleGraph::vertex_descriptor v0 = q.front();
+        // cout << "Dequeued " << (*this)[componentGraph[v0].e].id << " " << componentGraph[v0].phase << endl;
+        q.pop();
+        const uint64_t phase0 = componentGraph[v0].phase;
+        SHASTA_ASSERT(phase0 != BubbleGraphVertex::invalidPhase);
+
+        // Loop over tree edges.
+        BGL_FORALL_OUTEDGES(v0, e01, componentGraph, BubbleGraph) {
+            if(treeEdges.find(e01) == treeEdges.end()) {
+                continue;
+            }
+            const double relativePhase = componentGraph[e01].relativePhase();
+            const BubbleGraph::vertex_descriptor v1 = target(e01, componentGraph);
+            // cout << "Found " << (*this)[componentGraph[v1].e].id << " " << componentGraph[v1].phase << endl;
+            // cout << "Relative phase " << relativePhase << endl;
+            uint64_t& phase1 = componentGraph[v1].phase;
+            if(phase1 == BubbleGraphVertex::invalidPhase) {
+                if(relativePhase > 0.) {
+                    phase1 = phase0;
+                } else {
+                    phase1 = 1 - phase0;
+                }
+                q.push(v1);
+                // cout << "Enqueued " << (*this)[componentGraph[v1].e].id << " " << componentGraph[v1].phase << endl;
+            } else {
+                // We already encountered this vertex. Just check
+                // that its phase is consistent with the edge.
+                const uint64_t& phase1 = componentGraph[v1].phase;
+                if(relativePhase > 0.) {
+                    SHASTA_ASSERT(phase1 == phase0);
+                } else {
+                    SHASTA_ASSERT(phase1 == 1 - phase0);
+                }
+            }
+        }
+    }
+
+    uint64_t unhappyCount = 0;
+    uint64_t totalCount = 0;
+    BGL_FORALL_EDGES(e, componentGraph, BubbleGraph) {
+        ++totalCount;
+        if(not componentGraph.edgeIsHappy(e)) {
+            ++unhappyCount;
+        }
+    }
+
+    if(debug) {
+        cout << "Found " << unhappyCount << " edges inconsistent with computed bubble phasing "
+            " out of " << totalCount << " edges in this connected component." << endl;
+        componentGraph.writeHtml("Component-" + to_string(componentId) + ".html", treeEdges, false);
+        componentGraph.writeHtml("Component-" + to_string(componentId) + "-Unhappy.html", treeEdges, true);
+    }
+
+
+
+    // Copy the phasing to the global bubble graph.
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        uint64_t i = 0;
+        BGL_FORALL_VERTICES(v, componentGraph, BubbleGraph) {
+            BubbleGraph::vertex_descriptor vGlobal = bubbleGraph.connectedComponents[componentId][i++];
+            bubbleGraph[vGlobal].phase = bubbleGraph[v].phase;
+            SHASTA_ASSERT(bubbleGraph[vGlobal].componentId == componentId);
+        }
     }
 }
 
