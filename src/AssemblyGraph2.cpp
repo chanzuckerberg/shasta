@@ -3223,7 +3223,7 @@ one exit is processed as follows:
 void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 {
     G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     // If there are no edges, don't do anything.
     if(num_edges(superbubble) == 0) {
@@ -3494,11 +3494,13 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
         // Find the length of the common portions.
         const uint64_t prefixLength = commonPrefixLength(bestPaths[0], bestPaths[1]);
         const uint64_t suffixLength = commonSuffixLength(bestPaths[0], bestPaths[1]);
-        if(prefixLength) {
-            cout << "The two best path have a common prefix of length " << prefixLength << endl;
-        }
-        if(suffixLength) {
-            cout << "The two best path have a common suffix of length " << suffixLength << endl;
+        if(debug) {
+            if(prefixLength) {
+                cout << "The two best path have a common prefix of length " << prefixLength << endl;
+            }
+            if(suffixLength) {
+                cout << "The two best path have a common suffix of length " << suffixLength << endl;
+            }
         }
 
 
