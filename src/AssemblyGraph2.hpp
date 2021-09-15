@@ -44,7 +44,6 @@ namespace shasta {
 // Linear chains of bubbles in the AssemblyGraph2.
 class shasta::BubbleChain {
 public:
-    uint64_t id;
     vector<AssemblyGraph2BaseClass::edge_descriptor> edges;
 
     // The edges of a BubbleChain are partitioned in PhasingRegions.

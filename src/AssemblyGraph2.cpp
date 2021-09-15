@@ -915,17 +915,20 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
     // Add a segment for each bubble chain.
-    for(const BubbleChain& bubbleChain: bubbleChains) {
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
         const vertex_descriptor v0 = source(bubbleChain.edges.front(), g);
         const vertex_descriptor v1 = target(bubbleChain.edges.back(), g);
 
         vector<Base> sequence;
         computeBubbleChainGfaSequence(bubbleChain, sequence);
 
+        const string idString = "BC" + to_string(bubbleChainId);
+
         if(writeSequence) {
-            gfa.addSegment(to_string(bubbleChain.id), v0, v1, sequence);
+            gfa.addSegment(idString, v0, v1, sequence);
         } else {
-            gfa.addSegment(to_string(bubbleChain.id), v0, v1, sequence.size());
+            gfa.addSegment(idString, v0, v1, sequence.size());
         }
     }
 
@@ -979,8 +982,9 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
     // Write a line to csv for each bubble chain.
-    for(const BubbleChain& bubbleChain: bubbleChains) {
-        csv << to_string(bubbleChain.id) << ",,,#80ff80\n";
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const string idString = "BC" + to_string(bubbleChainId);
+        csv << idString << ",,,#80ff80\n"; // Light green.
     }
 
 
@@ -2820,7 +2824,6 @@ void AssemblyGraph2::findBubbleChains()
     for(uint64_t i=0; i<linearChains.size(); i++) {
         BubbleChain& bubbleChain = bubbleChains[i];
         bubbleChain.edges.swap(linearChains[i]);
-        bubbleChain.id = nextId++;
     }
 
     cout << "Found " << bubbleChains.size() << " bubble chains with the following numbers of edges:";
@@ -2976,10 +2979,11 @@ void AssemblyGraph2::writePhasingRegions()
     ofstream csv("PhasingRegions.csv");
     csv << "Bubble chain id,Phasing region id,First position,Last position,Phased,Component,\n";
 
-    for(const BubbleChain& bubbleChain: bubbleChains) {
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
         for(const auto& phasingRegion: bubbleChain.phasingRegions) {
             csv <<
-                bubbleChain.id << "," <<
+                bubbleChainId << "," <<
                 phasingRegion.id << "," <<
                 phasingRegion.firstPosition << "," <<
                 phasingRegion.lastPosition << ",";
@@ -3003,14 +3007,15 @@ void AssemblyGraph2::writeBubbleChains()
     ofstream csv("BubbleChains.csv");
     csv << "Bubble chain,Position,Edge,Ploidy,Component,\n";
 
-    for(const BubbleChain& bubbleChain: bubbleChains) {
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
         const vector<edge_descriptor>& edges = bubbleChain.edges;
 
         for(uint64_t position=0; position<uint64_t(edges.size()); position++) {
             const edge_descriptor e = edges[position];
             const AssemblyGraph2Edge& edge = g[e];
 
-            csv << bubbleChain.id << ",";
+            csv << bubbleChainId << ",";
             csv << position << ",";
             csv << edge.id << ",";
             csv << edge.ploidy() << ",";
