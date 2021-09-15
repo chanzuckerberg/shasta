@@ -54,7 +54,6 @@ AssemblyGraph2::AssemblyGraph2(
     SHASTA_ASSERT((k % 2) == 0);
 
     // Create the assembly graph.
-    cout << timestamp << "AssemblyGraph2::create begins." << endl;
     create();
 
     // Remove secondary edges, making sure to not introduce any dead ends.
@@ -62,46 +61,34 @@ AssemblyGraph2::AssemblyGraph2(
     merge(false, false);
 
     // Gather parallel edges into bubbles.
-    cout << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
     gatherBubbles();
 
     // Handle superbubbles.
-    writeGfa("Assembly-0", false);
     handleSuperbubbles(superbubbleRemovalEdgeLengthThreshold);
-    writeGfa("Assembly-1", false);
     merge(false, false);
 
     // Store the reads supporting each branch of each edges.
-    cout << timestamp << "AssemblyGraph2::storeReadInformation begins." << endl;
     storeReadInformation();
 
     // Remove bubbles caused by secondary edges.
-    cout << timestamp << "AssemblyGraph2::removeSecondaryBubbles begins." << endl;
     removeSecondaryBubbles();
-
-    // Merge adjacent non-bubbles created by the removal of secondary bubbles.
-    cout << timestamp << "AssemblyGraph2::merge begins." << endl;
     merge(true, false);
 
     // Assemble sequence.
-    cout << timestamp <<"AssemblyGraph2::assemble begins." << endl;
     assemble();
 
     // Remove degenerate edges (both branches have the same sequence).
-    cout << timestamp << "AssemblyGraph2::removeDegenerateBranches begins." << endl;
     removeDegenerateBranches();
     merge(true, true);
 
 
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod, then remove them.
-    cout << timestamp << "AssemblyGraph2::findCopyNumberBubbles begins." << endl;
     findCopyNumberBubbles(bubbleRemovalMaxPeriod);
     removeCopyNumberBubbles();
     merge(true, true);
 
     // Create the bubble graph.
-    cout << timestamp << "AssemblyGraph2::createBubbleGraph begins." << endl;
     createBubbleGraph(markers.size()/2, phasingMinReadCount, threadCount);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
@@ -113,7 +100,6 @@ AssemblyGraph2::AssemblyGraph2(
     // Cleanup the bubble graph.
     // This marks as bad the bubbles corresponding to bubble graph vertices
     // that are removed.
-    cout << timestamp << "AssemblyGraph2::cleanupBubbleGraph begins." << endl;
     cleanupBubbleGraph(
         bubbleRemovalDiscordantRatioThreshold,
         bubbleRemovalAmbiguityThreshold);
@@ -122,12 +108,10 @@ AssemblyGraph2::AssemblyGraph2(
     bubbleGraph.computeConnectedComponents();
 
     // Use each connected component of the bubble graph to phase the bubbles.
-    cout << timestamp << "AssemblyGraph2::phase begins." << endl;
     phase(threadCount);
 
     // Remove from the AssemblyGraph2 the bubbles marked isBad
     // (only keep the strongest branch).
-    cout << timestamp << "AssemblyGraph2::removeBadBubbles begins." << endl;
     removeBadBubbles();
     merge(true, true);
 
@@ -139,7 +123,6 @@ AssemblyGraph2::AssemblyGraph2(
     writePhasingRegions();
 
     // Write out what we have.
-    cout << timestamp << "Writing GFA output." << endl;
     storeGfaSequence();
     writeGfa("Assembly");
     writeHaploidGfa("Assembly-Haploid");
@@ -161,6 +144,8 @@ void AssemblyGraph2::cleanupBubbleGraph(
     double discordantRatioThreshold,
     double ambiguityThreshold)
 {
+    cout << timestamp << "cleanupBubbleGraph begins." << endl;
+
     G& g = *this;
     const bool debug = false;
 
@@ -205,6 +190,8 @@ void AssemblyGraph2::cleanupBubbleGraph(
         bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
         bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
     }
+
+    cout << timestamp << "cleanupBubbleGraph ends." << endl;
 }
 
 
@@ -544,7 +531,7 @@ void AssemblyGraph2::assemble()
 {
     G& g = *this;
 
-    cout << timestamp << "Assembling sequence." << endl;
+    cout << timestamp << "assemble begins." << endl;
 
     // Use assembled sequence from the marker graph to obtain
     // assembled sequence for all edges.
@@ -552,7 +539,7 @@ void AssemblyGraph2::assemble()
         assemble(e);
     }
 
-    cout << timestamp << "Done assembling sequence." << endl;
+    cout << timestamp << "assemble ends." << endl;
 }
 
 
@@ -696,6 +683,7 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
 // with period up to maxPeriod.
 void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
 {
+    cout << timestamp << "findCopyNumberBubbles begins." << endl;
     G& g = *this;
 
     uint64_t totalCount = 0;
@@ -721,6 +709,8 @@ void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
     cout << "Total number of assembly graph edges " << totalCount << endl;
     cout << "Number of bubbles " << bubbleCount << endl;
     cout << "Number of copy number bubbles " << copyNumberCount << endl;
+
+    cout << timestamp << "findCopyNumberBubbles ends." << endl;
 }
 
 
@@ -752,6 +742,8 @@ void AssemblyGraph2::writeGfa(
     const string& baseName,
     bool writeSequence)
 {
+    cout << timestamp << "writeGfa begins." << endl;
+
     const G& g = *this;
 
     // Create a GFA with a segment for each branch, then write it out.
@@ -877,6 +869,7 @@ void AssemblyGraph2::writeGfa(
             csv << "\n";
         }
     }
+    cout << timestamp << "writeGfa ends." << endl;
 }
 
 
@@ -885,6 +878,7 @@ void AssemblyGraph2::writeHaploidGfa(
     const string& baseName,
     bool writeSequence)
 {
+    cout << timestamp << "writeHaploidGfa begins." << endl;
     const G& g = *this;
 
     // Create a GFA and add a segment for each edge that is not part
@@ -982,6 +976,7 @@ void AssemblyGraph2::writeHaploidGfa(
     }
 
 
+    cout << timestamp << "writeHaploidGfa ends." << endl;
 
 }
 
@@ -989,6 +984,7 @@ void AssemblyGraph2::writeHaploidGfa(
 
 void AssemblyGraph2::writePhasedGfa(const string& baseName)
 {
+    cout << timestamp << "writePhasedGfa begins." << endl;
 
     const G& g = *this;
 
@@ -1056,6 +1052,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
     // Write the GFA.
     gfa.write(baseName + ".gfa");
 
+    cout << timestamp << "writePhasedGfa ends." << endl;
 }
 
 
@@ -1267,6 +1264,8 @@ void AssemblyGraph2::countTransferredBases()
 // preceding or following non-bubble edge.
 void AssemblyGraph2::storeGfaSequence()
 {
+    cout << timestamp << "storeGfaSequence begins." << endl;
+
     G& g = *this;
 
     // Count the number of sequence bases transferred forward/backward
@@ -1321,6 +1320,8 @@ void AssemblyGraph2::storeGfaSequence()
             }
         }
     }
+
+    cout << timestamp << "storeGfaSequence ends." << endl;
 }
 
 
@@ -1447,11 +1448,13 @@ void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerG
 // Store read information on all edges.
 void AssemblyGraph2::storeReadInformation()
 {
+    cout << timestamp << "storeReadInformation begins." << endl;
     G& g = *this;
 
     BGL_FORALL_EDGES(e, g, G) {
         g[e].storeReadInformation(markerGraph);
     }
+    cout << timestamp << "storeReadInformation ends." << endl;
 }
 
 
@@ -1488,6 +1491,8 @@ void AssemblyGraph2::createBubbleGraph(
     uint64_t phasingMinReadCount,
     size_t threadCount)
 {
+    cout << timestamp << "createBubbleGraph begins." << endl;
+
     G& g = *this;
 
     // Each diploid bubble in the AssemblyGraph2 generates a vertex,
@@ -1519,8 +1524,8 @@ void AssemblyGraph2::createBubbleGraph(
     cout << timestamp << "Creating bubble graph edges." << endl;
     // bubbleGraph.createEdges(phasingMinReadCount);
     bubbleGraph.createEdgesParallel(phasingMinReadCount, threadCount);
-    cout << timestamp << "Done creating bubble graph edges." << endl;
 
+    cout << timestamp << "createBubbleGraph ends." << endl;
 }
 
 
@@ -2173,14 +2178,16 @@ void AssemblyGraph2::BubbleGraph::extractComponent(
 // Use each connected component of the bubble graph to phase the bubbles.
 void AssemblyGraph2::phase(size_t threadCount)
 {
+    cout << timestamp << "phase begins." << endl;
+
     // In parallel, [hase each connected component of the BubbleGraph.
     // each thread writes the results in its portion of the global BubbleGraph.
     const uint64_t batchSize = 1;
     setupLoadBalancing(bubbleGraph.connectedComponents.size(), batchSize);
-    cout << timestamp << "Phasing " << bubbleGraph.connectedComponents.size() <<
+    cout << timestamp << "Multithreaded phasing for " << bubbleGraph.connectedComponents.size() <<
         " connected components of the bubble graph." << endl;
     runThreads(&AssemblyGraph2::phaseThreadFunction, threadCount);
-    cout << timestamp << "Done phasing." << endl;
+    cout << timestamp << "Multithreaded phasing ends." << endl;
 
 
     // Check that all vertices of the global BubbleGraph are phased
@@ -2196,6 +2203,8 @@ void AssemblyGraph2::phase(size_t threadCount)
         assemblyGraph2Edge.componentId = componentId;
         assemblyGraph2Edge.phase = phase;
     }
+
+    cout << timestamp << "phase ends." << endl;
 }
 
 
@@ -2544,6 +2553,8 @@ void AssemblyGraph2::hetSnpStatistics(
 // Only keep the strongest branch for each.
 void AssemblyGraph2::removeBadBubbles()
 {
+    cout << timestamp << "removeBadBubbles begins." << endl;
+
     G& g = *this;
 
     uint64_t totalCount = 0;
@@ -2559,6 +2570,7 @@ void AssemblyGraph2::removeBadBubbles()
     cout << "Cleaned up " << removedCount <<
         " bad bubbles out of " << totalCount << " edges total." << endl;
 
+    cout << timestamp << "removeBadBubbles ends." << endl;
 }
 
 

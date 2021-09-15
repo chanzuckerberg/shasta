@@ -27,6 +27,8 @@ void Assembler::createAssemblyGraph2(
         threadCount = std::thread::hardware_concurrency();
     }
 
+    cout << timestamp << "Assembler::createAssemblyGraph2 begins." << endl;
+
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(
         assemblerInfo->k,
         markers,
@@ -38,4 +40,6 @@ void Assembler::createAssemblyGraph2(
         phasingMinReadCount,
         threadCount
         );
+
+    cout << timestamp << "Assembler::createAssemblyGraph2 ends." << endl;
 }
