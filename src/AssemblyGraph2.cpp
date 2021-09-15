@@ -766,7 +766,7 @@ void AssemblyGraph2::writeGfa(
 
 
 
-    // Add two paths for each phased region - one for each haplotype.
+    // Add paths.
     for(const BubbleChain& bubbleChain: bubbleChains) {
         for(const auto& phasingRegion: bubbleChain.phasingRegions) {
 
@@ -804,8 +804,16 @@ void AssemblyGraph2::writeGfa(
 
                 }
             }
-            gfa.addPath(to_string(phasingRegion.id) + ".0", path0);
-            gfa.addPath(to_string(phasingRegion.id) + ".1", path1);
+
+            // Each phased (diploid) region generates two paths.
+            // Each unphased (haploid) region generates one path.
+            if(phasingRegion.isPhased) {
+                gfa.addPath(to_string(phasingRegion.id) + ".0", path0);
+                gfa.addPath(to_string(phasingRegion.id) + ".1", path1);
+            } else {
+                SHASTA_ASSERT(path0 == path1);
+                gfa.addPath(to_string(phasingRegion.id), path0);
+            }
         }
     }
 
