@@ -767,8 +767,11 @@ void AssemblyGraph2::writeGfa(
 
 
     // Add paths.
-    for(const BubbleChain& bubbleChain: bubbleChains) {
-        for(const auto& phasingRegion: bubbleChain.phasingRegions) {
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
+        for(uint64_t phasingRegionId=0;
+            phasingRegionId<uint64_t(bubbleChain.phasingRegions.size()); phasingRegionId++) {
+            const auto& phasingRegion = bubbleChain.phasingRegions[phasingRegionId];
 
             vector<string> path0;
             vector<string> path1;
@@ -808,11 +811,19 @@ void AssemblyGraph2::writeGfa(
             // Each phased (diploid) region generates two paths.
             // Each unphased (haploid) region generates one path.
             if(phasingRegion.isPhased) {
-                gfa.addPath(to_string(phasingRegion.id) + ".0", path0);
-                gfa.addPath(to_string(phasingRegion.id) + ".1", path1);
+                const string idPrefix =
+                    "PR." +
+                    to_string(bubbleChainId) + "." +
+                    to_string(phasingRegionId) + ".";
+                gfa.addPath(idPrefix + "0", path0);
+                gfa.addPath(idPrefix + "1", path1);
             } else {
                 SHASTA_ASSERT(path0 == path1);
-                gfa.addPath(to_string(phasingRegion.id), path0);
+                const string idString =
+                    "UR." +
+                    to_string(bubbleChainId) + "." +
+                    to_string(phasingRegionId);
+                gfa.addPath(idString, path0);
             }
         }
     }
@@ -1029,28 +1040,33 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
     // Add one or two segments, depending on ploidy, for each phasing region
     // of each bubble chain.
     vector<Base> sequence;
-    for(const BubbleChain& bubbleChain: bubbleChains) {
-        for(const BubbleChain::PhasingRegion& phasingRegion: bubbleChain.phasingRegions) {
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
+        for(uint64_t phasingRegionId=0;
+            phasingRegionId<uint64_t(bubbleChain.phasingRegions.size()); phasingRegionId++) {
+            const auto& phasingRegion = bubbleChain.phasingRegions[phasingRegionId];
 
             const vertex_descriptor v0 = source(bubbleChain.edges[phasingRegion.firstPosition], g);
             const vertex_descriptor v1 = target(bubbleChain.edges[phasingRegion.lastPosition], g);
 
             if(phasingRegion.isPhased) {
 
-                const string segmentId0 = to_string(phasingRegion.id) + ".0";
+                const string idPrefix = "PR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId) + ".";
+
+                const string segmentId0 = idPrefix + "0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
                 gfa.addSegment(segmentId0, v0, v1, sequence);
                 csv << segmentId0 << ",Green\n";
 
-                const string segmentId1 = to_string(phasingRegion.id) + ".1";
+                const string segmentId1 = idPrefix + "1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
-                gfa.addSegment(to_string(phasingRegion.id) + ".1", v0, v1, sequence);
+                gfa.addSegment(segmentId1, v0, v1, sequence);
                 csv << segmentId1 << ",Green\n";
 
             } else {
 
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
-                const string segmentId = to_string(phasingRegion.id);
+                const string segmentId = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
                 gfa.addSegment(segmentId, v0, v1, sequence);
                 csv << segmentId << ",#eb4034\n";   // Near red.
 
@@ -2915,7 +2931,6 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
     SHASTA_ASSERT(firstPositions.size() == lastPositions.size());
     if(firstPositions.empty()) {
         BubbleChain::PhasingRegion unphasedRegion;
-        unphasedRegion.id = nextId++;
         unphasedRegion.firstPosition = 0;
         unphasedRegion.lastPosition = edges.size() - 1;
         unphasedRegion.isPhased = false;
@@ -2928,7 +2943,6 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
     // Create an initial unphased region, if necessary.
     if(firstPositions.front() != 0) {
         BubbleChain::PhasingRegion unphasedRegion;
-        unphasedRegion.id = nextId++;
         unphasedRegion.firstPosition = 0;
         unphasedRegion.lastPosition = firstPositions.front() - 1;
         unphasedRegion.isPhased = false;
@@ -2939,7 +2953,6 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
 
         // Add a phased region.
         BubbleChain::PhasingRegion phasedRegion;
-        phasedRegion.id = nextId++;
         phasedRegion.firstPosition = firstPositions[i];
         phasedRegion.lastPosition = lastPositions[i];
         phasedRegion.isPhased = true;
@@ -2951,7 +2964,6 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
         if(i != firstPositions.size() - 1 ) {
             if(firstPositions[i + 1] != lastPositions[i] + 1) {
                 BubbleChain::PhasingRegion unphasedRegion;
-                unphasedRegion.id = nextId++;
                 unphasedRegion.firstPosition = lastPositions[i] + 1;
                 unphasedRegion.lastPosition = firstPositions[i + 1] - 1;
                 unphasedRegion.isPhased = false;
@@ -2963,7 +2975,6 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
     // Create a final unphased region, if necessary.
     if(lastPositions.back() != edges.size()-1) {
         BubbleChain::PhasingRegion unphasedRegion;
-        unphasedRegion.id = nextId++;
         unphasedRegion.firstPosition = lastPositions.back() + 1;
         unphasedRegion.lastPosition = edges.size()-1;
         unphasedRegion.isPhased = false;
@@ -2981,10 +2992,11 @@ void AssemblyGraph2::writePhasingRegions()
 
     for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
         const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
-        for(const auto& phasingRegion: bubbleChain.phasingRegions) {
+        for(uint64_t phasingRegionId=0; phasingRegionId<uint64_t(bubbleChain.phasingRegions.size()); phasingRegionId++) {
+            const auto& phasingRegion = bubbleChain.phasingRegions[phasingRegionId];
             csv <<
                 bubbleChainId << "," <<
-                phasingRegion.id << "," <<
+                phasingRegionId << "," <<
                 phasingRegion.firstPosition << "," <<
                 phasingRegion.lastPosition << ",";
             if(phasingRegion.isPhased) {
