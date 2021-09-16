@@ -749,7 +749,7 @@ void AssemblyGraph2::writeGfa(
 
     // Open the accompanying csv file and write the header.
     ofstream csv(baseName + ".csv");
-    csv << "Name,Component,Phase,Color,"
+    csv << "Name,Component,Phase,Unphased strength,Color,"
         "First marker graph vertex,Last marker graph vertex,"
         "First marker graph edge,Last marker graph edge,"
         "Length in markers,"
@@ -795,11 +795,23 @@ void AssemblyGraph2::writeGfa(
                 csv << edge.componentId;
             }
             csv << ",";
+
             if(edge.phase != std::numeric_limits<uint64_t>::max()) {
                 csv << (branchId == edge.phase ? 0 : 1);
             }
+            csv << ",";
+
+            if(edge.isBubble() and (edge.isBad or edge.phase == std::numeric_limits<uint64_t>::max())) {
+                if(branchId == edge.strongestBranchId) {
+                    csv << "Strong";
+                } else {
+                    csv << "Weak";
+                }
+            }
+            csv << ",";
+
+
             csv <<
-                "," <<
                 color << "," <<
                 firstMarkerGraphVertexId << "," <<
                 lastMarkerGraphVertexId << "," <<
