@@ -746,6 +746,18 @@ void AssemblyGraph2::writeGfa(
 
     const G& g = *this;
 
+
+    // Open the accompanying csv file and write the header.
+    ofstream csv(baseName + ".csv");
+    csv << "Name,Component,Phase,Color,First marker graph edge,Last marker graph edge,"
+        "Secondary,Period,"
+        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,";
+    if(writeSequence) {
+        csv << "Sequence,";
+    }
+    csv << "\n";
+
+
     // Create a GFA with a segment for each branch, then write it out.
     GfaAssemblyGraph<vertex_descriptor> gfa;
     BGL_FORALL_EDGES(e, g, G) {
@@ -761,6 +773,41 @@ void AssemblyGraph2::writeGfa(
             } else {
                 gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
             }
+
+
+
+            // Write a line for this segment to the csv file.
+            const string color = edge.color(branchId);
+            csv <<
+                edge.pathId(branchId) << ",";
+            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
+                csv << edge.componentId;
+            }
+            csv << ",";
+            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
+                csv << (branchId == edge.phase ? 0 : 1);
+            }
+            csv <<
+                "," <<
+                color << "," <<
+                branch.path.front() << "," << branch.path.back() << "," <<
+                (branch.containsSecondaryEdges ? "S" : "") << "," <<
+                (edge.period ? to_string(edge.period) : string()) << "," <<
+                branch.minimumCoverage << "," <<
+                branch.averageCoverage() << "," <<
+                branch.orientedReadIds.size() << ",";
+            if(writeSequence) {
+                if(branch.gfaSequence.size() == 0) {
+                    csv << "-";
+                } else if(branch.gfaSequence.size() <= 6) {
+                    copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+                        ostream_iterator<Base>(csv));
+                } else {
+                    csv << "...";
+                }
+                csv << ",";
+            }
+            csv << "\n";
         }
     }
 
@@ -835,15 +882,6 @@ void AssemblyGraph2::writeGfa(
 
 
 
-    // Also write a csv file that can be used in Bandage.
-    ofstream csv(baseName + ".csv");
-    csv << "Id,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
-        "Secondary,Period,"
-        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,";
-    if(writeSequence) {
-        csv << "Sequence,";
-    }
-    csv << "\n";
 
 
 
