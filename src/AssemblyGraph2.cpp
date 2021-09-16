@@ -749,9 +749,12 @@ void AssemblyGraph2::writeGfa(
 
     // Open the accompanying csv file and write the header.
     ofstream csv(baseName + ".csv");
-    csv << "Name,Component,Phase,Color,First marker graph edge,Last marker graph edge,"
+    csv << "Name,Component,Phase,Color,"
+        "First marker graph vertex,Last marker graph vertex,"
+        "First marker graph edge,Last marker graph edge,"
+        "Length in markers,"
         "Secondary,Period,"
-        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,";
+        "Minimum marker graph edge coverage,Average marker graph edge coverage,Number of distinct oriented reads,";
     if(writeSequence) {
         csv << "Sequence,";
     }
@@ -775,6 +778,14 @@ void AssemblyGraph2::writeGfa(
             }
 
 
+            // Get some information we need below.
+            const uint64_t lengthInMarkers = branch.path.size();
+            SHASTA_ASSERT(lengthInMarkers > 0);
+            const MarkerGraphEdgeId firstMarkerGraphEdgeId = branch.path.front();
+            const MarkerGraphEdgeId lastMarkerGraphEdgeId = branch.path.back();
+            const MarkerGraphVertexId firstMarkerGraphVertexId = markerGraph.edges[firstMarkerGraphEdgeId].source;
+            const MarkerGraphVertexId lastMarkerGraphVertexId = markerGraph.edges[lastMarkerGraphEdgeId].target;
+
 
             // Write a line for this segment to the csv file.
             const string color = edge.color(branchId);
@@ -790,7 +801,11 @@ void AssemblyGraph2::writeGfa(
             csv <<
                 "," <<
                 color << "," <<
-                branch.path.front() << "," << branch.path.back() << "," <<
+                firstMarkerGraphVertexId << "," <<
+                lastMarkerGraphVertexId << "," <<
+                firstMarkerGraphEdgeId << "," <<
+                lastMarkerGraphEdgeId << "," <<
+                lengthInMarkers << "," <<
                 (branch.containsSecondaryEdges ? "S" : "") << "," <<
                 (edge.period ? to_string(edge.period) : string()) << "," <<
                 branch.minimumCoverage << "," <<
@@ -882,50 +897,6 @@ void AssemblyGraph2::writeGfa(
 
 
 
-
-
-
-    BGL_FORALL_EDGES(e, g, G) {
-        const E& edge = g[e];
-
-        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            const E::Branch& branch = edge.branches[branchId];
-
-
-            // Also write a line to the csv file.
-            const string color = edge.color(branchId);
-            csv <<
-                edge.pathId(branchId) << ",";
-            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
-                csv << edge.componentId;
-            }
-            csv << ",";
-            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
-                csv << (branchId == edge.phase ? 0 : 1);
-            }
-            csv <<
-                "," <<
-                color << "," <<
-                branch.path.front() << "," << branch.path.back() << "," <<
-                (branch.containsSecondaryEdges ? "S" : "") << "," <<
-                (edge.period ? to_string(edge.period) : string()) << "," <<
-                branch.minimumCoverage << "," <<
-                branch.averageCoverage() << "," <<
-                branch.orientedReadIds.size() << ",";
-            if(writeSequence) {
-                if(branch.gfaSequence.size() == 0) {
-                    csv << "-";
-                } else if(branch.gfaSequence.size() <= 6) {
-                    copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
-                        ostream_iterator<Base>(csv));
-                } else {
-                    csv << "...";
-                }
-                csv << ",";
-            }
-            csv << "\n";
-        }
-    }
     cout << timestamp << "writeGfa ends." << endl;
 }
 
