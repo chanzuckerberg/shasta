@@ -955,7 +955,7 @@ void AssemblyGraph2::writeHaploidGfa(
         vector<Base> sequence;
         computeBubbleChainGfaSequence(bubbleChain, sequence);
 
-        const string idString = "BC" + to_string(bubbleChainId);
+        const string idString = "BC." + to_string(bubbleChainId);
 
         if(writeSequence) {
             gfa.addSegment(idString, v0, v1, sequence);
@@ -973,7 +973,7 @@ void AssemblyGraph2::writeHaploidGfa(
 
     // Also write a csv file that can be used in Bandage.
     ofstream csv(baseName + ".csv");
-    csv << "Id,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
+    csv << "Name,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
         "Secondary,Period,"
         "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
@@ -1015,8 +1015,8 @@ void AssemblyGraph2::writeHaploidGfa(
 
     // Write a line to csv for each bubble chain.
     for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
-        const string idString = "BC" + to_string(bubbleChainId);
-        csv << idString << ",,,#80ff80\n"; // Light green.
+        const string idString = "BC." + to_string(bubbleChainId);
+        csv << idString << ",,,Cyan\n";
     }
 
 
