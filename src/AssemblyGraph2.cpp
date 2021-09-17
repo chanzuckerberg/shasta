@@ -888,7 +888,8 @@ void AssemblyGraph2::writeGfa(
                 const string idPrefix =
                     "PR." +
                     to_string(bubbleChainId) + "." +
-                    to_string(phasingRegionId) + ".";
+                    to_string(phasingRegionId) + "." +
+                    to_string(phasingRegion.componentId) + ".";
                 gfa.addPath(idPrefix + "0", path0);
                 gfa.addPath(idPrefix + "1", path1);
             } else {
@@ -1072,7 +1073,11 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
             if(phasingRegion.isPhased) {
 
-                const string idPrefix = "PR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId) + ".";
+                const string idPrefix =
+                    "PR." +
+                    to_string(bubbleChainId) + "." +
+                    to_string(phasingRegionId) + "." +
+                    to_string(phasingRegion.componentId) + ".";
 
                 const string segmentId0 = idPrefix + "0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
