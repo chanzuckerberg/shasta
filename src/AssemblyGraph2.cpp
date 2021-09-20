@@ -922,6 +922,9 @@ void AssemblyGraph2::writeHaploidGfa(
     cout << timestamp << "writeHaploidGfa begins." << endl;
     const G& g = *this;
 
+    vector<uint64_t> bubbleChainLengths;
+    uint64_t totalNonBubbleChainLength = 0;
+
     // Create a GFA and add a segment for each edge that is not part
     // of a bubble chain.
     GfaAssemblyGraph<vertex_descriptor> gfa;
@@ -939,6 +942,7 @@ void AssemblyGraph2::writeHaploidGfa(
 
             if(writeSequence) {
                 gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
+                totalNonBubbleChainLength += branch.gfaSequence.size();
             } else {
                 gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
             }
@@ -955,6 +959,7 @@ void AssemblyGraph2::writeHaploidGfa(
 
         vector<Base> sequence;
         computeBubbleChainGfaSequence(bubbleChain, sequence);
+        bubbleChainLengths.push_back(uint64_t(sequence.size()));
 
         const string idString = "BC." + to_string(bubbleChainId);
 
@@ -1020,6 +1025,24 @@ void AssemblyGraph2::writeHaploidGfa(
         csv << idString << ",,,Cyan\n";
     }
 
+
+
+    // Statistics.
+    const uint64_t totalLength =
+        accumulate(bubbleChainLengths.begin(), bubbleChainLengths.end(), 0);
+    sort(bubbleChainLengths.begin(), bubbleChainLengths.end(), std::greater<uint64_t>());
+    uint64_t n50 = 0;
+    uint64_t cumulativeLength = 0;
+    for(const uint64_t length: bubbleChainLengths) {
+        cumulativeLength += length;
+        if(cumulativeLength >= totalLength/2) {
+            n50 = length;
+            break;
+        }
+    }
+    cout << "Total length of bubble chains " << totalLength <<
+        ", N50 " << n50 << endl;
+    cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
 
     cout << timestamp << "writeHaploidGfa ends." << endl;
 
