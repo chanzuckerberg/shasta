@@ -1035,7 +1035,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
     // Also write a csv file that can be used in Bandage.
     ofstream csv(baseName + ".csv");
-    csv << "Id,Color\n";
+    csv << "Name,Position in bubble chain,Ploidy,Bubble chain,Component,Haplotype,Length,Color\n";
 
     // Create a GFA and add a segment for each edge that is not part
     // of a bubble chain.
@@ -1053,7 +1053,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
             const E::Branch& branch = edge.branches[branchId];
             const string segmentId = edge.pathId(branchId);
             gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
-            csv << segmentId << ",#808080\n";
+            csv << segmentId << ",,,,,,,#808080\n";
         }
     }
 
@@ -1073,28 +1073,55 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
             if(phasingRegion.isPhased) {
 
-                const string idPrefix =
+                const string namePrefix =
                     "PR." +
                     to_string(bubbleChainId) + "." +
                     to_string(phasingRegionId) + "." +
                     to_string(phasingRegion.componentId) + ".";
 
-                const string segmentId0 = idPrefix + "0";
+                const string name0 = namePrefix + "0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
-                gfa.addSegment(segmentId0, v0, v1, sequence);
-                csv << segmentId0 << ",Green\n";
+                gfa.addSegment(name0, v0, v1, sequence);
 
-                const string segmentId1 = idPrefix + "1";
+                csv <<
+                    name0 << "," <<
+                    phasingRegionId << "," <<
+                    "2," <<
+                    bubbleChainId << "," <<
+                    phasingRegion.componentId << "," <<
+                    "0," <<
+                    sequence.size() << ","
+                    "Green\n";
+
+                const string name1 = namePrefix + "1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
-                gfa.addSegment(segmentId1, v0, v1, sequence);
-                csv << segmentId1 << ",Green\n";
+                gfa.addSegment(name1, v0, v1, sequence);
+
+                csv <<
+                    name1 << "," <<
+                    phasingRegionId << "," <<
+                    "2," <<
+                    bubbleChainId << "," <<
+                    phasingRegion.componentId << "," <<
+                    "1," <<
+                    sequence.size() << ","
+                    "Green\n";
 
             } else {
 
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
-                const string segmentId = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
-                gfa.addSegment(segmentId, v0, v1, sequence);
-                csv << segmentId << ",#eb4034\n";   // Near red.
+                const string name = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
+                gfa.addSegment(name, v0, v1, sequence);
+
+                csv <<
+                    name << "," <<
+                    phasingRegionId << "," <<
+                    "1," <<
+                    bubbleChainId << "," <<
+                    "," <<
+                    "," <<
+                    sequence.size() << ","
+                    "#eb4034\n";   // Near red.
 
             }
 
