@@ -400,7 +400,7 @@ void AlignmentCandidates::computeCandidateTable(ReadId readCount, string largeDa
         candidateTable.incrementCount(orientedReadId1.getValue());
     }
     candidateTable.beginPass2();
-    for(uint32_t i=0; i<candidates.size(); i++) {
+    for(uint64_t i=0; i<candidates.size(); i++) {
         const OrientedReadPair& pair = candidates[i];
         OrientedReadId orientedReadId0(pair.readIds[0], 0);
         OrientedReadId orientedReadId1(pair.readIds[1], pair.isSameStrand ? 0 : 1);
@@ -422,12 +422,12 @@ void AlignmentCandidates::computeCandidateTable(ReadId readCount, string largeDa
             const OrientedReadId orientedReadId0(readId0, strand0);
 
             // Access the section of the candidate table for this oriented read.
-            const span<uint32_t> candidateTableSection =
+            const span<uint64_t> candidateTableSection =
                     candidateTable[orientedReadId0.getValue()];
 
             // Store pairs(OrientedReadId, candidateIndex).
             v.clear();
-            for(uint32_t candidateIndex: candidateTableSection) {
+            for(uint64_t candidateIndex: candidateTableSection) {
                 const OrientedReadPair& pair = candidates[candidateIndex];
                 const OrientedReadId orientedReadId1 = pair.getOther(orientedReadId0);
                 v.push_back(make_pair(orientedReadId1, candidateIndex));
@@ -437,7 +437,7 @@ void AlignmentCandidates::computeCandidateTable(ReadId readCount, string largeDa
             sort(v.begin(), v.end());
 
             // Store the sorted candidateIndex.
-            for(size_t i=0; i<v.size(); i++) {
+            for(uint64_t i=0; i<v.size(); i++) {
                 candidateTableSection[i] = v[i].second;
             }
         }

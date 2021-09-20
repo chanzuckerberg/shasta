@@ -35,7 +35,7 @@ public:
     // The candidate table stores the read pair that each oriented read is involved in.
     // Stores, for each OrientedReadId, a vector of indexes into the alignmentCandidate vector.
     // Indexed by OrientedReadId::getValue(),
-    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> candidateTable;
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> candidateTable;
 
     // Method to perform the indexing that fills candidateTable. Allocation of the memory mapped vector requires
     // knowing the number of reads participating in the candidate pairs, and a name + page size to initialize with.
