@@ -1033,9 +1033,15 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
     const G& g = *this;
 
+    // Length statistics.
     uint64_t totalHaploidBases = 0;
     uint64_t totalDiploidBases = 0;
     uint64_t totalNonBubbleChainBases = 0;
+
+    // Tables used to compute N50 for diploid and haploid segments
+    // that are part of bubble chains.
+    vector<uint64_t> haploidLengths;
+    vector<uint64_t> diploidLengths;
 
     // Also write a csv file that can be used in Bandage.
     ofstream csv(baseName + ".csv");
@@ -1088,6 +1094,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
                 gfa.addSegment(name0, v0, v1, sequence);
                 totalDiploidBases += uint64_t(sequence.size());
+                diploidLengths.push_back(uint64_t(sequence.size()));
 
                 csv <<
                     name0 << "," <<
@@ -1103,6 +1110,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
                 gfa.addSegment(name1, v0, v1, sequence);
                 totalDiploidBases += uint64_t(sequence.size());
+                diploidLengths.push_back(uint64_t(sequence.size()));
 
                 csv <<
                     name1 << "," <<
@@ -1120,6 +1128,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 const string name = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
                 gfa.addSegment(name, v0, v1, sequence);
                 totalHaploidBases += uint64_t(sequence.size());
+                haploidLengths.push_back(uint64_t(sequence.size()));
 
                 csv <<
                     name << "," <<
@@ -1141,15 +1150,50 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
     // Write the GFA.
     gfa.write(baseName + ".gfa");
 
-    cout << "Total length assembled diploid in bubble chains and phased: " << totalDiploidBases <<
-        " (" << totalDiploidBases/2 << " bases per haplotype)." << endl;
+
+
+    // Compute N50 for regions assembled diploid and phased.
+    sort(diploidLengths.begin(), diploidLengths.end(), std::greater<uint64_t>());
+    /*
+    cout << "Diploid lengths: ";
+    copy(diploidLengths.begin(), diploidLengths.end(), ostream_iterator<uint64_t>(cout, " "));
+    cout << endl;
+    */
+    uint64_t diploidN50 = 0;
+    uint64_t cumulativeDiploidLength = 0;
+    for(const uint64_t length: diploidLengths) {
+        cumulativeDiploidLength += length;
+        if(cumulativeDiploidLength >= totalDiploidBases/2) {
+            diploidN50 = length;
+            break;
+        }
+    }
+
+    // Compute N50 for regions assembled haploid in bubble chains
+    sort(haploidLengths.begin(), haploidLengths.end(), std::greater<uint64_t>());
+    /*
+    cout << "Haploid lengths: ";
+    copy(haploidLengths.begin(), haploidLengths.end(), ostream_iterator<uint64_t>(cout, " "));
+    cout << endl;
+    */
+    uint64_t haploidN50 = 0;
+    uint64_t cumulativeHaploidLength = 0;
+    for(const uint64_t length: haploidLengths) {
+        cumulativeHaploidLength += length;
+        if(cumulativeHaploidLength >= totalHaploidBases/2) {
+            haploidN50 = length;
+            break;
+        }
+    }
+
+    cout << "Assembled diploid in bubble chains and phased: total " << totalDiploidBases <<
+        " (" << totalDiploidBases/2 << " per haplotype), N50 " << diploidN50 << "."  << endl;
     cout << "Total length assembled haploid in bubble chains: " << totalHaploidBases <<
-        " bases." << endl;
+        ", N50 " << haploidN50 << "." << endl;
     cout << "Total genome length assembled in bubble chains, averaged over haplotypes: " <<
         totalDiploidBases/2 + totalHaploidBases << endl;
     cout << "Total length assembled outside bubble chains: " <<
         totalNonBubbleChainBases << endl;
-
 
 
     cout << timestamp << "writePhasedGfa ends." << endl;
