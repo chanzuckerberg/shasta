@@ -1033,6 +1033,10 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
     const G& g = *this;
 
+    uint64_t totalHaploidBases = 0;
+    uint64_t totalDiploidBases = 0;
+    uint64_t totalNonBubbleChainBases = 0;
+
     // Also write a csv file that can be used in Bandage.
     ofstream csv(baseName + ".csv");
     csv << "Name,Position in bubble chain,Ploidy,Bubble chain,Component,Haplotype,Length,Color\n";
@@ -1054,6 +1058,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
             const string segmentId = edge.pathId(branchId);
             gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
             csv << segmentId << ",,,,,,,#808080\n";
+            totalNonBubbleChainBases += uint64_t(branch.gfaSequence.size());
         }
     }
 
@@ -1082,6 +1087,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 const string name0 = namePrefix + "0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
                 gfa.addSegment(name0, v0, v1, sequence);
+                totalDiploidBases += uint64_t(sequence.size());
 
                 csv <<
                     name0 << "," <<
@@ -1096,6 +1102,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 const string name1 = namePrefix + "1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
                 gfa.addSegment(name1, v0, v1, sequence);
+                totalDiploidBases += uint64_t(sequence.size());
 
                 csv <<
                     name1 << "," <<
@@ -1112,6 +1119,7 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
                 const string name = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
                 gfa.addSegment(name, v0, v1, sequence);
+                totalHaploidBases += uint64_t(sequence.size());
 
                 csv <<
                     name << "," <<
@@ -1132,6 +1140,17 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
     // Write the GFA.
     gfa.write(baseName + ".gfa");
+
+    cout << "Total length assembled diploid in bubble chains and phased: " << totalDiploidBases <<
+        " (" << totalDiploidBases/2 << " bases per haplotype)." << endl;
+    cout << "Total length assembled haploid in bubble chains: " << totalHaploidBases <<
+        " bases." << endl;
+    cout << "Total genome length assembled in bubble chains, averaged over haplotypes: " <<
+        totalDiploidBases/2 + totalHaploidBases << endl;
+    cout << "Total length assembled outside bubble chains: " <<
+        totalNonBubbleChainBases << endl;
+
+
 
     cout << timestamp << "writePhasedGfa ends." << endl;
 }
