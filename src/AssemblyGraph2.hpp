@@ -247,6 +247,7 @@ public:
     void writeEdgeDetailsCsv(const string& baseName) const;
 
     // Gfa output.
+    // The last two can only be called after storeGfaSequence.
     void writeGfa(
         const string& baseName,
         bool writeSequence,
@@ -254,7 +255,8 @@ public:
         bool writeCsv);
     void writeHaploidGfa(
         const string& baseName,
-        bool writeSequence = true);
+        bool writeSequence,
+        bool writeCsv);
     void writePhasedGfa(const string& baseName);
 
     // Hide a AssemblyGraph2BaseClass::Base.

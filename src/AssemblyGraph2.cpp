@@ -126,9 +126,10 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Write out what we have.
     storeGfaSequence();
-    writeGfa("Assembly", true, false, true);                // All
-    writeGfa("Assembly-NoSequence", false, false, false);   // No sequence, no csv
-    writeHaploidGfa("Assembly-Haploid");
+    writeGfa("Assembly", true, false, true);                                // All
+    writeGfa("Assembly-NoSequence", false, false, false);                   // No sequence, no csv
+    writeHaploidGfa("Assembly-Haploid", true, true);                        // All
+    writeHaploidGfa("Assembly-Haploid-NoSequence", false, false);           // No sequence, no csv
     writePhasedGfa("Assembly-Phased");
 
 
@@ -743,7 +744,7 @@ void AssemblyGraph2::removeCopyNumberBubbles()
 
 
 
-// The bool flags work as follows:
+// The first two bool flags work as follows:
 
 // - writeSequence=false, writeSequenceLengthInMarkers=false:
 //   No sequence output (sequence is written as * instead),
@@ -967,8 +968,10 @@ void AssemblyGraph2::writeGfa(
 
 void AssemblyGraph2::writeHaploidGfa(
     const string& baseName,
-    bool writeSequence)
+    bool writeSequence,
+    bool writeCsv)
 {
+
     cout << timestamp << "writeHaploidGfa begins." << endl;
     const G& g = *this;
 
@@ -989,12 +992,12 @@ void AssemblyGraph2::writeHaploidGfa(
 
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const E::Branch& branch = edge.branches[branchId];
+            totalNonBubbleChainLength += branch.gfaSequence.size();
 
             if(writeSequence) {
                 gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
-                totalNonBubbleChainLength += branch.gfaSequence.size();
             } else {
-                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
+                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
             }
         }
     }
@@ -1028,74 +1031,75 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
     // Also write a csv file that can be used in Bandage.
-    ofstream csv(baseName + ".csv");
-    csv << "Name,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
-        "Secondary,Period,"
-        "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
+    if(writeCsv) {
+        ofstream csv(baseName + ".csv");
+        csv << "Name,ComponentId,Phase,Color,First marker graph edge,Last marker graph edge,"
+            "Secondary,Period,"
+            "Minimum edge coverage,Average edge coverage,Number of distinct oriented reads,\n";
 
 
 
-    // Write a line to csv for each edge that is not part of a bubble chain.
-    BGL_FORALL_EDGES(e, g, G) {
-        const E& edge = g[e];
-        if(edge.bubbleChain.first) {
-            continue;
-        }
-
-        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
-            const E::Branch& branch = edge.branches[branchId];
-
-            const string color = edge.color(branchId);
-            csv <<
-                edge.pathId(branchId) << ",";
-            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
-                csv << edge.componentId;
+        // Write a line to csv for each edge that is not part of a bubble chain.
+        BGL_FORALL_EDGES(e, g, G) {
+            const E& edge = g[e];
+            if(edge.bubbleChain.first) {
+                continue;
             }
-            csv << ",";
-            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
-                csv << (branchId == edge.phase ? 0 : 1);
+
+            for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+                const E::Branch& branch = edge.branches[branchId];
+
+                const string color = edge.color(branchId);
+                csv <<
+                    edge.pathId(branchId) << ",";
+                if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
+                    csv << edge.componentId;
+                }
+                csv << ",";
+                if(edge.phase != std::numeric_limits<uint64_t>::max()) {
+                    csv << (branchId == edge.phase ? 0 : 1);
+                }
+                csv <<
+                    "," <<
+                    color << "," <<
+                    branch.path.front() << "," << branch.path.back() << "," <<
+                    (branch.containsSecondaryEdges ? "S" : "") << "," <<
+                    (edge.period ? to_string(edge.period) : string()) << "," <<
+                    branch.minimumCoverage << "," <<
+                    branch.averageCoverage() << "," <<
+                    branch.orientedReadIds.size() << "\n";
             }
-            csv <<
-                "," <<
-                color << "," <<
-                branch.path.front() << "," << branch.path.back() << "," <<
-                (branch.containsSecondaryEdges ? "S" : "") << "," <<
-                (edge.period ? to_string(edge.period) : string()) << "," <<
-                branch.minimumCoverage << "," <<
-                branch.averageCoverage() << "," <<
-                branch.orientedReadIds.size() << "\n";
         }
-    }
 
 
 
-    // Write a line to csv for each bubble chain.
-    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
-        const string idString = "BC." + to_string(bubbleChainId);
-        csv << idString << ",,,Cyan\n";
-    }
-
-
-
-    // Statistics.
-    const uint64_t totalLength =
-        accumulate(bubbleChainLengths.begin(), bubbleChainLengths.end(), 0);
-    sort(bubbleChainLengths.begin(), bubbleChainLengths.end(), std::greater<uint64_t>());
-    uint64_t n50 = 0;
-    uint64_t cumulativeLength = 0;
-    for(const uint64_t length: bubbleChainLengths) {
-        cumulativeLength += length;
-        if(cumulativeLength >= totalLength/2) {
-            n50 = length;
-            break;
+        // Write a line to csv for each bubble chain.
+        for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+            const string idString = "BC." + to_string(bubbleChainId);
+            csv << idString << ",,,Cyan\n";
         }
+
+
+
+        // Statistics.
+        const uint64_t totalLength =
+            accumulate(bubbleChainLengths.begin(), bubbleChainLengths.end(), 0);
+        sort(bubbleChainLengths.begin(), bubbleChainLengths.end(), std::greater<uint64_t>());
+        uint64_t n50 = 0;
+        uint64_t cumulativeLength = 0;
+        for(const uint64_t length: bubbleChainLengths) {
+            cumulativeLength += length;
+            if(cumulativeLength >= totalLength/2) {
+                n50 = length;
+                break;
+            }
+        }
+        cout << "Total length of bubble chains " << totalLength <<
+            ", N50 " << n50 << endl;
+        cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
     }
-    cout << "Total length of bubble chains " << totalLength <<
-        ", N50 " << n50 << endl;
-    cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
 
     cout << timestamp << "writeHaploidGfa ends." << endl;
-
 }
 
 
