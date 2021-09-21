@@ -130,7 +130,8 @@ AssemblyGraph2::AssemblyGraph2(
     writeGfa("Assembly-NoSequence", false, false, false);                   // No sequence, no csv
     writeHaploidGfa("Assembly-Haploid", true, true);                        // All
     writeHaploidGfa("Assembly-Haploid-NoSequence", false, false);           // No sequence, no csv
-    writePhasedGfa("Assembly-Phased");
+    writePhasedGfa("Assembly-Phased", true, true);                          // All
+    writePhasedGfa("Assembly-Phased-NoSequence", false, false);             // No sequence, no csv
 
 
 
@@ -1104,7 +1105,10 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
 
-void AssemblyGraph2::writePhasedGfa(const string& baseName)
+void AssemblyGraph2::writePhasedGfa(
+    const string& baseName,
+    bool writeSequence,
+    bool writeCsv)
 {
     cout << timestamp << "writePhasedGfa begins." << endl;
 
@@ -1121,8 +1125,11 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
     vector<uint64_t> diploidLengths;
 
     // Also write a csv file that can be used in Bandage.
-    ofstream csv(baseName + ".csv");
-    csv << "Name,Position in bubble chain,Ploidy,Bubble chain,Component,Haplotype,Length,Color\n";
+    ofstream csv;
+    if(writeCsv) {
+        csv.open(baseName + ".csv");
+        csv << "Name,Position in bubble chain,Ploidy,Bubble chain,Component,Haplotype,Length,Color\n";
+    }
 
     // Create a GFA and add a segment for each edge that is not part
     // of a bubble chain.
@@ -1139,8 +1146,16 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const E::Branch& branch = edge.branches[branchId];
             const string segmentId = edge.pathId(branchId);
-            gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
-            csv << segmentId << ",,,,,,,#808080\n";
+
+            if(writeSequence) {
+                gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
+            } else {
+                gfa.addSegment(segmentId, v0, v1, branch.gfaSequence.size());
+            }
+
+            if(writeCsv) {
+                csv << segmentId << ",,,,,,,#808080\n";
+            }
             totalNonBubbleChainBases += uint64_t(branch.gfaSequence.size());
         }
     }
@@ -1169,53 +1184,77 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
                 const string name0 = namePrefix + "0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
-                gfa.addSegment(name0, v0, v1, sequence);
+
+                if(writeSequence) {
+                    gfa.addSegment(name0, v0, v1, sequence);
+                } else {
+                    gfa.addSegment(name0, v0, v1, sequence.size());
+                }
+
                 totalDiploidBases += uint64_t(sequence.size());
                 diploidLengths.push_back(uint64_t(sequence.size()));
 
-                csv <<
-                    name0 << "," <<
-                    phasingRegionId << "," <<
-                    "2," <<
-                    bubbleChainId << "," <<
-                    phasingRegion.componentId << "," <<
-                    "0," <<
-                    sequence.size() << ","
-                    "Green\n";
+                if(writeCsv) {
+                    csv <<
+                        name0 << "," <<
+                        phasingRegionId << "," <<
+                        "2," <<
+                        bubbleChainId << "," <<
+                        phasingRegion.componentId << "," <<
+                        "0," <<
+                        sequence.size() << ","
+                        "Green\n";
+                }
 
                 const string name1 = namePrefix + "1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
-                gfa.addSegment(name1, v0, v1, sequence);
+
+                if(writeSequence) {
+                    gfa.addSegment(name1, v0, v1, sequence);
+                } else {
+                    gfa.addSegment(name1, v0, v1, sequence.size());
+                }
+
                 totalDiploidBases += uint64_t(sequence.size());
                 diploidLengths.push_back(uint64_t(sequence.size()));
 
-                csv <<
-                    name1 << "," <<
-                    phasingRegionId << "," <<
-                    "2," <<
-                    bubbleChainId << "," <<
-                    phasingRegion.componentId << "," <<
-                    "1," <<
-                    sequence.size() << ","
-                    "Green\n";
+                if(writeCsv) {
+                    csv <<
+                        name1 << "," <<
+                        phasingRegionId << "," <<
+                        "2," <<
+                        bubbleChainId << "," <<
+                        phasingRegion.componentId << "," <<
+                        "1," <<
+                        sequence.size() << ","
+                        "Green\n";
+                }
 
             } else {
 
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
                 const string name = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
-                gfa.addSegment(name, v0, v1, sequence);
+
+                if(writeSequence) {
+                    gfa.addSegment(name, v0, v1, sequence);
+                } else {
+                    gfa.addSegment(name, v0, v1, sequence.size());
+                }
+
                 totalHaploidBases += uint64_t(sequence.size());
                 haploidLengths.push_back(uint64_t(sequence.size()));
 
-                csv <<
-                    name << "," <<
-                    phasingRegionId << "," <<
-                    "1," <<
-                    bubbleChainId << "," <<
-                    "," <<
-                    "," <<
-                    sequence.size() << ","
-                    "#eb4034\n";   // Near red.
+                if(writeCsv) {
+                    csv <<
+                        name << "," <<
+                        phasingRegionId << "," <<
+                        "1," <<
+                        bubbleChainId << "," <<
+                        "," <<
+                        "," <<
+                        sequence.size() << ","
+                        "#eb4034\n";   // Near red.
+                }
 
             }
 
@@ -1229,48 +1268,50 @@ void AssemblyGraph2::writePhasedGfa(const string& baseName)
 
 
 
-    // Compute N50 for regions assembled diploid and phased.
-    sort(diploidLengths.begin(), diploidLengths.end(), std::greater<uint64_t>());
-    /*
-    cout << "Diploid lengths: ";
-    copy(diploidLengths.begin(), diploidLengths.end(), ostream_iterator<uint64_t>(cout, " "));
-    cout << endl;
-    */
-    uint64_t diploidN50 = 0;
-    uint64_t cumulativeDiploidLength = 0;
-    for(const uint64_t length: diploidLengths) {
-        cumulativeDiploidLength += length;
-        if(cumulativeDiploidLength >= totalDiploidBases/2) {
-            diploidN50 = length;
-            break;
+    if(writeCsv) {
+        // Compute N50 for regions assembled diploid and phased.
+        sort(diploidLengths.begin(), diploidLengths.end(), std::greater<uint64_t>());
+        /*
+        cout << "Diploid lengths: ";
+        copy(diploidLengths.begin(), diploidLengths.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+        */
+        uint64_t diploidN50 = 0;
+        uint64_t cumulativeDiploidLength = 0;
+        for(const uint64_t length: diploidLengths) {
+            cumulativeDiploidLength += length;
+            if(cumulativeDiploidLength >= totalDiploidBases/2) {
+                diploidN50 = length;
+                break;
+            }
         }
-    }
 
-    // Compute N50 for regions assembled haploid in bubble chains
-    sort(haploidLengths.begin(), haploidLengths.end(), std::greater<uint64_t>());
-    /*
-    cout << "Haploid lengths: ";
-    copy(haploidLengths.begin(), haploidLengths.end(), ostream_iterator<uint64_t>(cout, " "));
-    cout << endl;
-    */
-    uint64_t haploidN50 = 0;
-    uint64_t cumulativeHaploidLength = 0;
-    for(const uint64_t length: haploidLengths) {
-        cumulativeHaploidLength += length;
-        if(cumulativeHaploidLength >= totalHaploidBases/2) {
-            haploidN50 = length;
-            break;
+        // Compute N50 for regions assembled haploid in bubble chains
+        sort(haploidLengths.begin(), haploidLengths.end(), std::greater<uint64_t>());
+        /*
+        cout << "Haploid lengths: ";
+        copy(haploidLengths.begin(), haploidLengths.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+        */
+        uint64_t haploidN50 = 0;
+        uint64_t cumulativeHaploidLength = 0;
+        for(const uint64_t length: haploidLengths) {
+            cumulativeHaploidLength += length;
+            if(cumulativeHaploidLength >= totalHaploidBases/2) {
+                haploidN50 = length;
+                break;
+            }
         }
-    }
 
-    cout << "Assembled diploid in bubble chains and phased: total " << totalDiploidBases <<
-        " (" << totalDiploidBases/2 << " per haplotype), N50 " << diploidN50 << "."  << endl;
-    cout << "Total length assembled haploid in bubble chains: " << totalHaploidBases <<
-        ", N50 " << haploidN50 << "." << endl;
-    cout << "Total genome length assembled in bubble chains, averaged over haplotypes: " <<
-        totalDiploidBases/2 + totalHaploidBases << endl;
-    cout << "Total length assembled outside bubble chains: " <<
-        totalNonBubbleChainBases << endl;
+        cout << "Assembled diploid in bubble chains and phased: total " << totalDiploidBases <<
+            " (" << totalDiploidBases/2 << " per haplotype), N50 " << diploidN50 << "."  << endl;
+        cout << "Total length assembled haploid in bubble chains: " << totalHaploidBases <<
+            ", N50 " << haploidN50 << "." << endl;
+        cout << "Total genome length assembled in bubble chains, averaged over haplotypes: " <<
+            totalDiploidBases/2 + totalHaploidBases << endl;
+        cout << "Total length assembled outside bubble chains: " <<
+            totalNonBubbleChainBases << endl;
+    }
 
 
     cout << timestamp << "writePhasedGfa ends." << endl;

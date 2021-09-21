@@ -257,7 +257,10 @@ public:
         const string& baseName,
         bool writeSequence,
         bool writeCsv);
-    void writePhasedGfa(const string& baseName);
+    void writePhasedGfa(
+        const string& baseName,
+        bool writeSequence,
+        bool writeCsv);
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
