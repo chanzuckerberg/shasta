@@ -122,11 +122,16 @@ AssemblyGraph2::AssemblyGraph2(
     findPhasingRegions();
     writePhasingRegions();
 
+
+
     // Write out what we have.
     storeGfaSequence();
-    writeGfa("Assembly");
+    writeGfa("Assembly", true, false, true);                // All
+    writeGfa("Assembly-NoSequence", false, false, false);   // No sequence, no csv
     writeHaploidGfa("Assembly-Haploid");
     writePhasedGfa("Assembly-Phased");
+
+
 
     // Het snp statistics.
     uint64_t transitionCount, transversionCount;
@@ -738,27 +743,59 @@ void AssemblyGraph2::removeCopyNumberBubbles()
 
 
 
+// The bool flags work as follows:
+
+// - writeSequence=false, writeSequenceLengthInMarkers=false:
+//   No sequence output (sequence is written as * instead),
+//   and sequence length is expressed in bases.
+//   This can only be called after storeGfaSequence has been called.
+
+// - writeSequence=false, writeSequenceLengthInMarkers=true:
+//   No sequence output (sequence is written as * instead),
+//   and sequence length is expressed in markers.
+//   This does not use the stored gfa sequences and
+//   so can be called early, before storeGfaSequence has been called.
+
+// - writeSequence=true, writeSequenceLengthInMarkers=false:
+//   Complete output of sequence, with length in bases.
+//   This can only be called after storeGfaSequence has been called.
+
+// - writeSequence=true, writeSequenceLengthInMarkers=true:
+//   This comnbination is illegal and causes an assertion.
+
 void AssemblyGraph2::writeGfa(
     const string& baseName,
-    bool writeSequence)
+    bool writeSequence,
+    bool writeSequenceLengthInMarkers,
+    bool writeCsv)
 {
+    // Check that we are not called with the forbidden combination
+    // (see above comments).
+    SHASTA_ASSERT(not(writeSequence and writeSequenceLengthInMarkers));
+
+
     cout << timestamp << "writeGfa begins." << endl;
 
     const G& g = *this;
 
 
     // Open the accompanying csv file and write the header.
-    ofstream csv(baseName + ".csv");
-    csv << "Name,Component,Phase,Unphased strength,Color,"
-        "First marker graph vertex,Last marker graph vertex,"
-        "First marker graph edge,Last marker graph edge,"
-        "Length in markers,"
-        "Secondary,Period,"
-        "Minimum marker graph edge coverage,Average marker graph edge coverage,Number of distinct oriented reads,";
-    if(writeSequence) {
-        csv << "Sequence,";
+    ofstream csv;
+    if(writeCsv) {
+        csv.open(baseName + ".csv");
+        csv << "Name,Component,Phase,Unphased strength,Color,"
+            "First marker graph vertex,Last marker graph vertex,"
+            "First marker graph edge,Last marker graph edge,"
+            "Length in markers,"
+            "Length in bases,"
+            "Secondary,Period,"
+            "Minimum marker graph edge coverage,Average marker graph edge coverage,Number of distinct oriented reads,";
+        if(writeSequence) {
+            csv << "Sequence,";
+        }
+        csv << "\n";
     }
-    csv << "\n";
+
 
 
     // Create a GFA with a segment for each branch, then write it out.
@@ -774,67 +811,80 @@ void AssemblyGraph2::writeGfa(
             if(writeSequence) {
                 gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
             } else {
-                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
+                if(writeSequenceLengthInMarkers) {
+                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
+                } else {
+                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
+                }
             }
 
-
-            // Get some information we need below.
-            const uint64_t lengthInMarkers = branch.path.size();
-            SHASTA_ASSERT(lengthInMarkers > 0);
-            const MarkerGraphEdgeId firstMarkerGraphEdgeId = branch.path.front();
-            const MarkerGraphEdgeId lastMarkerGraphEdgeId = branch.path.back();
-            const MarkerGraphVertexId firstMarkerGraphVertexId = markerGraph.edges[firstMarkerGraphEdgeId].source;
-            const MarkerGraphVertexId lastMarkerGraphVertexId = markerGraph.edges[lastMarkerGraphEdgeId].target;
 
 
             // Write a line for this segment to the csv file.
-            const string color = edge.color(branchId);
-            csv <<
-                edge.pathId(branchId) << ",";
-            if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
-                csv << edge.componentId;
-            }
-            csv << ",";
+            if(writeCsv) {
 
-            if(edge.phase != std::numeric_limits<uint64_t>::max()) {
-                csv << (branchId == edge.phase ? 0 : 1);
-            }
-            csv << ",";
+                // Get some information we need below.
+                const uint64_t lengthInMarkers = branch.path.size();
+                SHASTA_ASSERT(lengthInMarkers > 0);
+                const MarkerGraphEdgeId firstMarkerGraphEdgeId = branch.path.front();
+                const MarkerGraphEdgeId lastMarkerGraphEdgeId = branch.path.back();
+                const MarkerGraphVertexId firstMarkerGraphVertexId = markerGraph.edges[firstMarkerGraphEdgeId].source;
+                const MarkerGraphVertexId lastMarkerGraphVertexId = markerGraph.edges[lastMarkerGraphEdgeId].target;
+                const string color = edge.color(branchId);
 
-            if(edge.isBubble() and (edge.isBad or edge.phase == std::numeric_limits<uint64_t>::max())) {
-                if(branchId == edge.strongestBranchId) {
-                    csv << "Strong";
-                } else {
-                    csv << "Weak";
-                }
-            }
-            csv << ",";
-
-
-            csv <<
-                color << "," <<
-                firstMarkerGraphVertexId << "," <<
-                lastMarkerGraphVertexId << "," <<
-                firstMarkerGraphEdgeId << "," <<
-                lastMarkerGraphEdgeId << "," <<
-                lengthInMarkers << "," <<
-                (branch.containsSecondaryEdges ? "S" : "") << "," <<
-                (edge.period ? to_string(edge.period) : string()) << "," <<
-                branch.minimumCoverage << "," <<
-                branch.averageCoverage() << "," <<
-                branch.orientedReadIds.size() << ",";
-            if(writeSequence) {
-                if(branch.gfaSequence.size() == 0) {
-                    csv << "-";
-                } else if(branch.gfaSequence.size() <= 6) {
-                    copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
-                        ostream_iterator<Base>(csv));
-                } else {
-                    csv << "...";
+                csv <<
+                    edge.pathId(branchId) << ",";
+                if(edge.componentId != std::numeric_limits<uint64_t>::max()) {
+                    csv << edge.componentId;
                 }
                 csv << ",";
+
+                if(edge.phase != std::numeric_limits<uint64_t>::max()) {
+                    csv << (branchId == edge.phase ? 0 : 1);
+                }
+                csv << ",";
+
+                if(edge.isBubble() and (edge.isBad or edge.phase == std::numeric_limits<uint64_t>::max())) {
+                    if(branchId == edge.strongestBranchId) {
+                        csv << "Strong";
+                    } else {
+                        csv << "Weak";
+                    }
+                }
+                csv << ",";
+
+                csv <<
+                    color << "," <<
+                    firstMarkerGraphVertexId << "," <<
+                    lastMarkerGraphVertexId << "," <<
+                    firstMarkerGraphEdgeId << "," <<
+                    lastMarkerGraphEdgeId << "," <<
+                    lengthInMarkers << ",";
+
+                if(writeSequence or (not writeSequenceLengthInMarkers)) {
+                    csv << branch.gfaSequence.size();
+                }
+                csv << ",";
+
+                csv <<
+                    (branch.containsSecondaryEdges ? "S" : "") << "," <<
+                    (edge.period ? to_string(edge.period) : string()) << "," <<
+                    branch.minimumCoverage << "," <<
+                    branch.averageCoverage() << "," <<
+                    branch.orientedReadIds.size() << ",";
+                if(writeSequence) {
+                    if(branch.gfaSequence.size() == 0) {
+                        csv << "-";
+                    } else if(branch.gfaSequence.size() <= 6) {
+                        copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
+                            ostream_iterator<Base>(csv));
+                    } else {
+                        csv << "...";
+                    }
+                    csv << ",";
+                }
+                csv << "\n";
             }
-            csv << "\n";
         }
     }
 

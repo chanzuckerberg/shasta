@@ -249,7 +249,9 @@ public:
     // Gfa output.
     void writeGfa(
         const string& baseName,
-        bool writeSequence = true);
+        bool writeSequence,
+        bool writeSequenceLengthInMarkers,
+        bool writeCsv);
     void writeHaploidGfa(
         const string& baseName,
         bool writeSequence = true);
