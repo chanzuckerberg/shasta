@@ -252,15 +252,18 @@ public:
         const string& baseName,
         bool writeSequence,
         bool writeSequenceLengthInMarkers,
-        bool writeCsv);
+        bool writeCsv,
+        bool writeFasta);
     void writeHaploidGfa(
         const string& baseName,
         bool writeSequence,
-        bool writeCsv);
+        bool writeCsv,
+        bool writeFasta);
     void writePhasedGfa(
         const string& baseName,
         bool writeSequence,
-        bool writeCsv);
+        bool writeCsv,
+        bool writeFasta);
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;

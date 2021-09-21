@@ -126,12 +126,12 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Write out what we have.
     storeGfaSequence();
-    writeGfa("Assembly", true, false, true);                                // All
-    writeGfa("Assembly-NoSequence", false, false, false);                   // No sequence, no csv
-    writeHaploidGfa("Assembly-Haploid", true, true);                        // All
-    writeHaploidGfa("Assembly-Haploid-NoSequence", false, false);           // No sequence, no csv
-    writePhasedGfa("Assembly-Phased", true, true);                          // All
-    writePhasedGfa("Assembly-Phased-NoSequence", false, false);             // No sequence, no csv
+    writeGfa("Assembly", true, false, true, true);
+    writeGfa("Assembly-NoSequence", false, false, false, false);
+    writeHaploidGfa("Assembly-Haploid", true, true, true);
+    writeHaploidGfa("Assembly-Haploid-NoSequence", false, false, false);
+    writePhasedGfa("Assembly-Phased", true, true, true);
+    writePhasedGfa("Assembly-Phased-NoSequence", false, false, false);
 
 
 
@@ -769,7 +769,8 @@ void AssemblyGraph2::writeGfa(
     const string& baseName,
     bool writeSequence,
     bool writeSequenceLengthInMarkers,
-    bool writeCsv)
+    bool writeCsv,
+    bool writeFasta)
 {
     // Check that we are not called with the forbidden combination
     // (see above comments).
@@ -799,6 +800,11 @@ void AssemblyGraph2::writeGfa(
     }
 
 
+    // Open the fasta file.
+    ofstream fasta;
+    if(writeFasta) {
+        fasta.open(baseName + ".fasta");
+    }
 
     // Create a GFA with a segment for each branch, then write it out.
     GfaAssemblyGraph<vertex_descriptor> gfa;
@@ -818,6 +824,12 @@ void AssemblyGraph2::writeGfa(
                 } else {
                     gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
                 }
+            }
+
+            if(writeFasta) {
+                fasta << ">" << edge.pathId(branchId) << " " << branch.gfaSequence.size() << "\n";
+                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(), ostream_iterator<Base>(fasta));
+                fasta << "\n";
             }
 
 
@@ -970,7 +982,8 @@ void AssemblyGraph2::writeGfa(
 void AssemblyGraph2::writeHaploidGfa(
     const string& baseName,
     bool writeSequence,
-    bool writeCsv)
+    bool writeCsv,
+    bool writeFasta)
 {
 
     cout << timestamp << "writeHaploidGfa begins." << endl;
@@ -978,6 +991,12 @@ void AssemblyGraph2::writeHaploidGfa(
 
     vector<uint64_t> bubbleChainLengths;
     uint64_t totalNonBubbleChainLength = 0;
+
+    // Open the fasta file.
+    ofstream fasta;
+    if(writeFasta) {
+        fasta.open(baseName + ".fasta");
+    }
 
     // Create a GFA and add a segment for each edge that is not part
     // of a bubble chain.
@@ -1000,6 +1019,12 @@ void AssemblyGraph2::writeHaploidGfa(
             } else {
                 gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
             }
+
+            if(writeFasta) {
+                fasta << ">" << edge.pathId(branchId) << " " << branch.gfaSequence.size() << "\n";
+                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(), ostream_iterator<Base>(fasta));
+                fasta << "\n";
+            }
         }
     }
 
@@ -1021,6 +1046,12 @@ void AssemblyGraph2::writeHaploidGfa(
             gfa.addSegment(idString, v0, v1, sequence);
         } else {
             gfa.addSegment(idString, v0, v1, sequence.size());
+        }
+
+        if(writeFasta) {
+            fasta << ">" << idString << " " << sequence.size() << "\n";
+            copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fasta));
+            fasta << "\n";
         }
     }
 
@@ -1108,7 +1139,8 @@ void AssemblyGraph2::writeHaploidGfa(
 void AssemblyGraph2::writePhasedGfa(
     const string& baseName,
     bool writeSequence,
-    bool writeCsv)
+    bool writeCsv,
+    bool writeFasta)
 {
     cout << timestamp << "writePhasedGfa begins." << endl;
 
@@ -1131,6 +1163,12 @@ void AssemblyGraph2::writePhasedGfa(
         csv << "Name,Position in bubble chain,Ploidy,Bubble chain,Component,Haplotype,Length,Color\n";
     }
 
+    // Open the fasta file.
+    ofstream fasta;
+    if(writeFasta) {
+        fasta.open(baseName + ".fasta");
+    }
+
     // Create a GFA and add a segment for each edge that is not part
     // of a bubble chain.
     GfaAssemblyGraph<vertex_descriptor> gfa;
@@ -1151,6 +1189,12 @@ void AssemblyGraph2::writePhasedGfa(
                 gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
             } else {
                 gfa.addSegment(segmentId, v0, v1, branch.gfaSequence.size());
+            }
+
+            if(writeFasta) {
+                fasta << ">" << segmentId << " " << branch.gfaSequence.size() << "\n";
+                copy(branch.gfaSequence.begin(), branch.gfaSequence.end(), ostream_iterator<Base>(fasta));
+                fasta << "\n";
             }
 
             if(writeCsv) {
@@ -1191,6 +1235,12 @@ void AssemblyGraph2::writePhasedGfa(
                     gfa.addSegment(name0, v0, v1, sequence.size());
                 }
 
+                if(writeFasta) {
+                    fasta << ">" << name0 << " " << sequence.size() << "\n";
+                    copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fasta));
+                    fasta << "\n";
+                }
+
                 totalDiploidBases += uint64_t(sequence.size());
                 diploidLengths.push_back(uint64_t(sequence.size()));
 
@@ -1213,6 +1263,12 @@ void AssemblyGraph2::writePhasedGfa(
                     gfa.addSegment(name1, v0, v1, sequence);
                 } else {
                     gfa.addSegment(name1, v0, v1, sequence.size());
+                }
+
+                if(writeFasta) {
+                    fasta << ">" << name1 << " " << sequence.size() << "\n";
+                    copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fasta));
+                    fasta << "\n";
                 }
 
                 totalDiploidBases += uint64_t(sequence.size());
@@ -1243,6 +1299,12 @@ void AssemblyGraph2::writePhasedGfa(
 
                 totalHaploidBases += uint64_t(sequence.size());
                 haploidLengths.push_back(uint64_t(sequence.size()));
+
+                if(writeFasta) {
+                    fasta << ">" << name << " " << sequence.size() << "\n";
+                    copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fasta));
+                    fasta << "\n";
+                }
 
                 if(writeCsv) {
                     csv <<
