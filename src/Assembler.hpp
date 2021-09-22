@@ -1023,7 +1023,7 @@ public:
     bool passesReadGraph2Criteria(const AlignmentInfo& info) const;
     void accessReadGraph();
     void accessReadGraphReadWrite();
-    void checkReadGraphIsOpen();
+    void checkReadGraphIsOpen() const;
     void removeReadGraphBridges(uint64_t maxDistance);
     void analyzeReadGraph();
     void readGraphClustering();
@@ -1203,11 +1203,9 @@ public:
 
 
     // Compute connected components of the read graph.
-    // This treats chimeric reads as isolated.
-    // Components with fewer than minComponentSize are considered
-    // small and excluded from assembly by setting the
-    // isInSmallComponent for all the reads they contain.
-    void computeReadGraphConnectedComponents(size_t minComponentSize);
+    // This just writes a csv file and has no other side effects
+    // (nothing is stored).
+    void computeReadGraphConnectedComponents() const;
 
 
 

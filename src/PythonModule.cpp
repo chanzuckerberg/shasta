@@ -373,8 +373,7 @@ PYBIND11_MODULE(shasta, module)
             arg("maxChimericReadDistance"),
             arg("threadCount") = 0)
         .def("computeReadGraphConnectedComponents",
-            &Assembler::computeReadGraphConnectedComponents,
-            arg("minComponentSize"))
+            &Assembler::computeReadGraphConnectedComponents)
         .def("writeLocalReadGraphReads",
             &Assembler::writeLocalReadGraphReads,
             arg("readId"),

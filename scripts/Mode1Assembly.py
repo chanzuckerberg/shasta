@@ -58,8 +58,7 @@ if flagInconsistentAlignments:
 
 # Compute connected components of the read graph.
 # These are currently not used.
-a.computeReadGraphConnectedComponents(
-    int(config['ReadGraph']['minComponentSize']))
+a.computeReadGraphConnectedComponents()
     
 # Create the marker graph.    
 a.createMarkerGraphVertices(

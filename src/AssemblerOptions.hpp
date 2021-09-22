@@ -210,7 +210,6 @@ class shasta::ReadGraphOptions {
 public:
     int creationMethod;
     int maxAlignmentCount;
-    int minComponentSize;
     int maxChimericReadDistance;
     int crossStrandMaxDistance;
     bool removeConflicts;

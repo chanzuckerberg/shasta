@@ -503,12 +503,6 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(6),
         "The maximum number of alignments to be kept for each read.")
 
-        ("ReadGraph.minComponentSize",
-        value<int>(&readGraphOptions.minComponentSize)->
-        default_value(100),
-        "The minimum size (number of oriented reads) of a connected component "
-        "of the read graph to be kept. This is currently ignored.")
-
         ("ReadGraph.maxChimericReadDistance",
         value<int>(&readGraphOptions.maxChimericReadDistance)->
         default_value(2),
@@ -958,7 +952,6 @@ void ReadGraphOptions::write(ostream& s) const
     s << "[ReadGraph]\n";
     s << "creationMethod = " << creationMethod << "\n";
     s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
-    s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
     s << "removeConflicts = " <<

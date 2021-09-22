@@ -786,7 +786,7 @@ void shasta::main::assemble(
 
     // Compute connected components of the read graph.
     // These are currently not used.
-    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+    assembler.computeReadGraphConnectedComponents();
 
 
 
@@ -1127,7 +1127,7 @@ void shasta::main::mode1Assembly(
 
     // Compute connected components of the read graph.
     // These are currently not used.
-    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+    assembler.computeReadGraphConnectedComponents();
 
 
 

@@ -169,14 +169,6 @@ public:
     inline void setChimericFlag(ReadId readId, bool value) {
         readFlags[readId].isChimeric = value;
     }
-    inline void setIsInSmallComponentFlag(ReadId readId, bool value) {
-        readFlags[readId].isInSmallComponent = value;
-    }
-    inline void setIsInSmallComponentFlagForAll(bool value) {
-        for (ReadId i = 0; i < readFlags.size(); i++) {
-            setIsInSmallComponentFlag(i, value);
-        }
-    }
 
     // Function to write one or all reads in Fasta format.
     void writeReads(const string& fileName);
@@ -222,8 +214,6 @@ public:
                 " inclusive.");
         }
     }
-
-    void checkIfAChimericIsAlsoInSmallComponent() const;
 
     inline void assertReadsAndFlagsOfSameSize() const {
         SHASTA_ASSERT(reads.size() == readFlags.size());

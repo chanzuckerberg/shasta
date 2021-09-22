@@ -112,13 +112,6 @@ void Reads::remove() {
     readFlags.remove();
 }
 
-void Reads::checkIfAChimericIsAlsoInSmallComponent() const {
-    for (const ReadFlags& flags: readFlags) {
-        if (flags.isChimeric) {
-            SHASTA_ASSERT(flags.isInSmallComponent);
-        }
-    }
-}
 
 
 // Return a base of an oriented read.

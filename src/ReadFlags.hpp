@@ -17,16 +17,6 @@ public:
     // Set if the read is marked as chimeric.
     uint8_t isChimeric : 1;
 
-    // Set if the read belongs to a small component of the read graph
-    // that is not used for assembly.
-    // If isChimeric is set, this is also set.
-    uint8_t isInSmallComponent : 1;
-
-    // Unused bits.
-    uint8_t bit4 : 1;
-    uint8_t bit5 : 1;
-    uint8_t bit6 : 1;
-    uint8_t bit7 : 1;
     ReadFlags()
     {
         static_assert(sizeof(ReadFlags) == 1, "Unexpected size of ReadFlags.");

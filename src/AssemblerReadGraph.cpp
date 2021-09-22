@@ -186,7 +186,7 @@ void Assembler::accessReadGraphReadWrite()
     readGraph.edges.accessExistingReadWrite(largeDataName("ReadGraphEdges"));
     readGraph.connectivity.accessExistingReadWrite(largeDataName("ReadGraphConnectivity"));
 }
-void Assembler::checkReadGraphIsOpen()
+void Assembler::checkReadGraphIsOpen() const
 {
     if(!readGraph.edges.isOpen) {
         throw runtime_error("Read graph edges are not accessible.");
@@ -585,16 +585,12 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
 
 
 // Compute connected components of the read graph.
-// This treats chimeric reads as isolated.
-// Components with fewer than minComponentSize are considered
-// small and excluded from assembly by setting the
-// isInSmallComponent for all the reads they contain.
-void Assembler::computeReadGraphConnectedComponents(
-    size_t minComponentSize
-    )
+// This just writes a csv file and has no other side effects
+// (nothing is stored).
+void Assembler::computeReadGraphConnectedComponents() const
 {
     // Check that we have what we need.
-    reads->checkReadFlagsAreOpenForWriting();
+    reads->checkReadFlagsAreOpen();
     checkReadGraphIsOpen();
     const size_t readCount = reads->readCount();
     const size_t orientedReadCount = 2*readCount;
@@ -604,7 +600,8 @@ void Assembler::computeReadGraphConnectedComponents(
 
 
     // Compute connected components of the read graph,
-    // treating chimeric reads as isolated.
+    // treating chimeric reads as isolated and ignoring
+    // edges flagged as crossesStrands or hasInconsistentAlignment.
     vector<ReadId> rank(orientedReadCount);
     vector<ReadId> parent(orientedReadCount);
     boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
@@ -672,7 +669,7 @@ void Assembler::computeReadGraphConnectedComponents(
 
     // Write information for each component.
     ofstream csv("ReadGraphComponents.csv");
-    csv << "Component,RepresentingRead,OrientedReadCount,IsSmall,IsSelfComplementary,"
+    csv << "Component,RepresentingRead,OrientedReadCount,IsSelfComplementary,"
         "AccumulatedOrientedReadCount,"
         "AccumulatedOrientedReadCountFraction\n";
     size_t accumulatedOrientedReadCount = 0;
@@ -691,49 +688,11 @@ void Assembler::computeReadGraphConnectedComponents(
         csv << componentId << ",";
         csv << component.front() << ",";
         csv << component.size() << ",";
-        csv << ((component.size() < minComponentSize) ? "Yes" : "No") << ",";
         csv << (isSelfComplementary ? "Yes" : "No") << ",";
         csv << accumulatedOrientedReadCount << ",";
         csv << accumulatedOrientedReadCountFraction << "\n";
     }
 
-
-
-    // Clear the read flags that will be set below.
-    // Note that we are not changing the isChimeric flags.
-    reads->setIsInSmallComponentFlagForAll(false);
-
-
-    // Process the connected components one at a time.
-    for(ReadId componentId=0; componentId<components.size(); componentId++) {
-        const vector<OrientedReadId>& component = components[componentId];
-
-        // If this component is small, set the isInSmallComponent flag for all
-        // the reads it contains.
-        if(component.size() < minComponentSize) {
-            for(const OrientedReadId orientedReadId: component) {
-                const ReadId readId = orientedReadId.getReadId();
-                reads->setIsInSmallComponentFlag(readId, true);
-            }
-            continue;
-        }
-
-        // Find out if this component is self-complementary.
-        const bool isSelfComplementary =
-            component.size() > 1 &&
-            (component[0].getReadId() == component[1].getReadId());
-        if(isSelfComplementary) {
-            SHASTA_ASSERT((component.size() % 2) == 0);
-        }
-
-        // If getting here, the component is self-complementary.
-        SHASTA_ASSERT(isSelfComplementary);
-    }
-
-
-
-    // Check that any read flagged isChimeric is also flagged isInSmallComponent.
-    reads->checkIfAChimericIsAlsoInSmallComponent();
 }
 
 
