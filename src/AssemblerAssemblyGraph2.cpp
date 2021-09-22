@@ -11,6 +11,11 @@ void Assembler::createAssemblyGraph2(
     uint64_t bubbleRemovalMaxPeriod,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t phasingMinReadCount,
+    bool suppressGfaOutput,
+    bool suppressFastaOutput,
+    bool suppressDetailedOutput,
+    bool suppressPhasedOutput,
+    bool suppressHaploidOutput,
     size_t threadCount
     )
 {
@@ -38,6 +43,11 @@ void Assembler::createAssemblyGraph2(
         bubbleRemovalMaxPeriod,
         superbubbleRemovalEdgeLengthThreshold,
         phasingMinReadCount,
+        suppressGfaOutput,
+        suppressFastaOutput,
+        suppressDetailedOutput,
+        suppressPhasedOutput,
+        suppressHaploidOutput,
         threadCount
         );
 

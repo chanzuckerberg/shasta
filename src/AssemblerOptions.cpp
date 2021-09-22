@@ -837,6 +837,31 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(3),
         "Minimum number of reads for phasing (assembly mode 2 only, experimental).")
 
+        ("Assembly.suppressGfaOutput",
+        bool_switch(&assemblyOptions.suppressGfaOutput)->
+        default_value(false),
+        "Suppress all GFA output (Mode 2 assembly only).")
+
+        ("Assembly.suppressFastaOutput",
+        bool_switch(&assemblyOptions.suppressFastaOutput)->
+        default_value(false),
+        "Suppress all FASTA output (Mode 2 assembly only).")
+
+        ("Assembly.suppressDetailedOutput",
+        bool_switch(&assemblyOptions.suppressDetailedOutput)->
+        default_value(false),
+        "Suppress output of detailed representation of the assembly (Mode 2 assembly only).")
+
+        ("Assembly.suppressPhasedOutput",
+        bool_switch(&assemblyOptions.suppressPhasedOutput)->
+        default_value(false),
+        "Suppress output of phased representation of the assembly (Mode 2 assembly only).")
+
+        ("Assembly.suppressHaploidOutput",
+        bool_switch(&assemblyOptions.suppressHaploidOutput)->
+        default_value(false),
+        "Suppress output of haploid representation of the assembly (Mode 2 assembly only).")
+
         ;
 }
 
@@ -1020,6 +1045,12 @@ void AssemblyOptions::write(ostream& s) const
     s << "bubbleRemoval.maxPeriod = " << bubbleRemovalMaxPeriod << "\n";
     s << "superbubbleRemoval.edgeLengthThreshold = " << superbubbleRemovalEdgeLengthThreshold << "\n";
     s << "phasing.minReadCount = " << phasingMinReadCount << "\n";
+
+    s << "suppressGfaOutput = " << convertBoolToPythonString(suppressGfaOutput) << "\n";
+    s << "suppressFastaOutput = " << convertBoolToPythonString(suppressFastaOutput) << "\n";
+    s << "suppressDetailedOutput = " << convertBoolToPythonString(suppressDetailedOutput) << "\n";
+    s << "suppressPhasedOutput = " << convertBoolToPythonString(suppressPhasedOutput) << "\n";
+    s << "suppressHaploidOutput = " << convertBoolToPythonString(suppressHaploidOutput) << "\n";
 }
 
 

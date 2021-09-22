@@ -41,6 +41,11 @@ AssemblyGraph2::AssemblyGraph2(
     uint64_t bubbleRemovalMaxPeriod,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t phasingMinReadCount,
+    bool suppressGfaOutput,
+    bool suppressFastaOutput,
+    bool suppressDetailedOutput,
+    bool suppressPhasedOutput,
+    bool suppressHaploidOutput,
     size_t threadCount
     ) :
     MultithreadedObject<AssemblyGraph2>(*this),
@@ -126,12 +131,24 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Write out what we have.
     storeGfaSequence();
-    writeGfa("Assembly", true, false, true, true);
-    writeGfa("Assembly-NoSequence", false, false, false, false);
-    writeHaploidGfa("Assembly-Haploid", true, true, true);
-    writeHaploidGfa("Assembly-Haploid-NoSequence", false, false, false);
-    writePhasedGfa("Assembly-Phased", true, true, true);
-    writePhasedGfa("Assembly-Phased-NoSequence", false, false, false);
+    if(not suppressDetailedOutput) {
+        writeDetailed("Assembly-Detailed", true, false, true, not suppressGfaOutput, not suppressFastaOutput);
+        if(not suppressGfaOutput) {
+            writeDetailed("Assembly-Detailed-NoSequence", false, false, false, true, false);
+        }
+    }
+    if(not suppressHaploidOutput) {
+        writeHaploid("Assembly-Haploid", true, true, not suppressGfaOutput, not suppressFastaOutput);
+        if(not suppressGfaOutput) {
+            writeHaploid("Assembly-Haploid-NoSequence", false, false, true, false);
+        }
+    }
+    if(not suppressPhasedOutput) {
+        writePhased("Assembly-Phased", true, true, not suppressGfaOutput, not suppressFastaOutput);
+        if(not suppressGfaOutput) {
+            writePhased("Assembly-Phased-NoSequence", false, false, true, false);
+        }
+    }
 
 
 
@@ -765,11 +782,12 @@ void AssemblyGraph2::removeCopyNumberBubbles()
 // - writeSequence=true, writeSequenceLengthInMarkers=true:
 //   This comnbination is illegal and causes an assertion.
 
-void AssemblyGraph2::writeGfa(
+void AssemblyGraph2::writeDetailed(
     const string& baseName,
     bool writeSequence,
     bool writeSequenceLengthInMarkers,
     bool writeCsv,
+    bool writeGfa,
     bool writeFasta)
 {
     // Check that we are not called with the forbidden combination
@@ -777,7 +795,7 @@ void AssemblyGraph2::writeGfa(
     SHASTA_ASSERT(not(writeSequence and writeSequenceLengthInMarkers));
 
 
-    cout << timestamp << "writeGfa begins." << endl;
+    cout << timestamp << "writeDetailed begins." << endl;
 
     const G& g = *this;
 
@@ -816,13 +834,15 @@ void AssemblyGraph2::writeGfa(
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const E::Branch& branch = edge.branches[branchId];
 
-            if(writeSequence) {
-                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
-            } else {
-                if(writeSequenceLengthInMarkers) {
-                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
+            if(writeGfa) {
+                if(writeSequence) {
+                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
                 } else {
-                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
+                    if(writeSequenceLengthInMarkers) {
+                        gfa.addSegment(edge.pathId(branchId), v0, v1, branch.path.size());
+                    } else {
+                        gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
+                    }
                 }
             }
 
@@ -905,64 +925,66 @@ void AssemblyGraph2::writeGfa(
 
 
     // Add paths.
-    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
-        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
-        for(uint64_t phasingRegionId=0;
-            phasingRegionId<uint64_t(bubbleChain.phasingRegions.size()); phasingRegionId++) {
-            const auto& phasingRegion = bubbleChain.phasingRegions[phasingRegionId];
+    if(writeGfa) {
+        for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+            const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
+            for(uint64_t phasingRegionId=0;
+                phasingRegionId<uint64_t(bubbleChain.phasingRegions.size()); phasingRegionId++) {
+                const auto& phasingRegion = bubbleChain.phasingRegions[phasingRegionId];
 
-            vector<string> path0;
-            vector<string> path1;
+                vector<string> path0;
+                vector<string> path1;
 
-            for(uint64_t position=phasingRegion.firstPosition;
-                position<=phasingRegion.lastPosition; position++) {
-                const edge_descriptor e = bubbleChain.edges[position];
-                const E& edge = g[e];
+                for(uint64_t position=phasingRegion.firstPosition;
+                    position<=phasingRegion.lastPosition; position++) {
+                    const edge_descriptor e = bubbleChain.edges[position];
+                    const E& edge = g[e];
 
-                if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
+                    if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
 
-                    // This edge is homozygous or unphased.
-                    const string segmentName = edge.pathId(edge.strongestBranchId);
-                    path0.push_back(segmentName);
-                    path1.push_back(segmentName);
+                        // This edge is homozygous or unphased.
+                        const string segmentName = edge.pathId(edge.strongestBranchId);
+                        path0.push_back(segmentName);
+                        path1.push_back(segmentName);
 
-                } else {
-
-                    // This edge is diploid and phased.
-                    SHASTA_ASSERT(edge.ploidy() == 2);
-                    SHASTA_ASSERT(edge.componentId == phasingRegion.componentId);
-
-                    string segmentName0 = edge.pathId(0);
-                    string segmentName1 = edge.pathId(1);
-
-                    if(edge.phase == 0) {
-                        path0.push_back(segmentName0);
-                        path1.push_back(segmentName1);
                     } else {
-                        path0.push_back(segmentName1);
-                        path1.push_back(segmentName0);
+
+                        // This edge is diploid and phased.
+                        SHASTA_ASSERT(edge.ploidy() == 2);
+                        SHASTA_ASSERT(edge.componentId == phasingRegion.componentId);
+
+                        string segmentName0 = edge.pathId(0);
+                        string segmentName1 = edge.pathId(1);
+
+                        if(edge.phase == 0) {
+                            path0.push_back(segmentName0);
+                            path1.push_back(segmentName1);
+                        } else {
+                            path0.push_back(segmentName1);
+                            path1.push_back(segmentName0);
+                        }
+
                     }
-
                 }
-            }
 
-            // Each phased (diploid) region generates two paths.
-            // Each unphased (haploid) region generates one path.
-            if(phasingRegion.isPhased) {
-                const string idPrefix =
-                    "PR." +
-                    to_string(bubbleChainId) + "." +
-                    to_string(phasingRegionId) + "." +
-                    to_string(phasingRegion.componentId) + ".";
-                gfa.addPath(idPrefix + "0", path0);
-                gfa.addPath(idPrefix + "1", path1);
-            } else {
-                SHASTA_ASSERT(path0 == path1);
-                const string idString =
-                    "UR." +
-                    to_string(bubbleChainId) + "." +
-                    to_string(phasingRegionId);
-                gfa.addPath(idString, path0);
+                // Each phased (diploid) region generates two paths.
+                // Each unphased (haploid) region generates one path.
+                if(phasingRegion.isPhased) {
+                    const string idPrefix =
+                        "PR." +
+                        to_string(bubbleChainId) + "." +
+                        to_string(phasingRegionId) + "." +
+                        to_string(phasingRegion.componentId) + ".";
+                    gfa.addPath(idPrefix + "0", path0);
+                    gfa.addPath(idPrefix + "1", path1);
+                } else {
+                    SHASTA_ASSERT(path0 == path1);
+                    const string idString =
+                        "UR." +
+                        to_string(bubbleChainId) + "." +
+                        to_string(phasingRegionId);
+                    gfa.addPath(idString, path0);
+                }
             }
         }
     }
@@ -970,23 +992,26 @@ void AssemblyGraph2::writeGfa(
 
 
     // Write out the GFA.
-    gfa.write(baseName + ".gfa");
+    if(writeGfa) {
+        gfa.write(baseName + ".gfa");
+    }
 
 
 
-    cout << timestamp << "writeGfa ends." << endl;
+    cout << timestamp << "writeDetailed ends." << endl;
 }
 
 
 
-void AssemblyGraph2::writeHaploidGfa(
+void AssemblyGraph2::writeHaploid(
     const string& baseName,
     bool writeSequence,
     bool writeCsv,
+    bool writeGfa,
     bool writeFasta)
 {
 
-    cout << timestamp << "writeHaploidGfa begins." << endl;
+    cout << timestamp << "writeHaploid begins." << endl;
     const G& g = *this;
 
     vector<uint64_t> bubbleChainLengths;
@@ -1014,10 +1039,12 @@ void AssemblyGraph2::writeHaploidGfa(
             const E::Branch& branch = edge.branches[branchId];
             totalNonBubbleChainLength += branch.gfaSequence.size();
 
-            if(writeSequence) {
-                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
-            } else {
-                gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
+            if(writeGfa) {
+                if(writeSequence) {
+                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence);
+                } else {
+                    gfa.addSegment(edge.pathId(branchId), v0, v1, branch.gfaSequence.size());
+                }
             }
 
             if(writeFasta) {
@@ -1042,10 +1069,12 @@ void AssemblyGraph2::writeHaploidGfa(
 
         const string idString = "BC." + to_string(bubbleChainId);
 
-        if(writeSequence) {
-            gfa.addSegment(idString, v0, v1, sequence);
-        } else {
-            gfa.addSegment(idString, v0, v1, sequence.size());
+        if(writeGfa) {
+            if(writeSequence) {
+                gfa.addSegment(idString, v0, v1, sequence);
+            } else {
+                gfa.addSegment(idString, v0, v1, sequence.size());
+            }
         }
 
         if(writeFasta) {
@@ -1058,7 +1087,9 @@ void AssemblyGraph2::writeHaploidGfa(
 
 
     // Write the GFA.
-    gfa.write(baseName + ".gfa");
+    if(writeGfa) {
+        gfa.write(baseName + ".gfa");
+    }
 
 
 
@@ -1131,18 +1162,19 @@ void AssemblyGraph2::writeHaploidGfa(
         cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
     }
 
-    cout << timestamp << "writeHaploidGfa ends." << endl;
+    cout << timestamp << "writeHaploid ends." << endl;
 }
 
 
 
-void AssemblyGraph2::writePhasedGfa(
+void AssemblyGraph2::writePhased(
     const string& baseName,
     bool writeSequence,
     bool writeCsv,
+    bool writeGfa,
     bool writeFasta)
 {
-    cout << timestamp << "writePhasedGfa begins." << endl;
+    cout << timestamp << "writePhased begins." << endl;
 
     const G& g = *this;
 
@@ -1185,10 +1217,12 @@ void AssemblyGraph2::writePhasedGfa(
             const E::Branch& branch = edge.branches[branchId];
             const string segmentId = edge.pathId(branchId);
 
-            if(writeSequence) {
-                gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
-            } else {
-                gfa.addSegment(segmentId, v0, v1, branch.gfaSequence.size());
+            if(writeGfa) {
+                if(writeSequence) {
+                    gfa.addSegment(segmentId, v0, v1, branch.gfaSequence);
+                } else {
+                    gfa.addSegment(segmentId, v0, v1, branch.gfaSequence.size());
+                }
             }
 
             if(writeFasta) {
@@ -1229,10 +1263,12 @@ void AssemblyGraph2::writePhasedGfa(
                 const string name0 = namePrefix + "0";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 0, sequence);
 
-                if(writeSequence) {
-                    gfa.addSegment(name0, v0, v1, sequence);
-                } else {
-                    gfa.addSegment(name0, v0, v1, sequence.size());
+                if(writeGfa) {
+                    if(writeSequence) {
+                        gfa.addSegment(name0, v0, v1, sequence);
+                    } else {
+                        gfa.addSegment(name0, v0, v1, sequence.size());
+                    }
                 }
 
                 if(writeFasta) {
@@ -1259,10 +1295,12 @@ void AssemblyGraph2::writePhasedGfa(
                 const string name1 = namePrefix + "1";
                 computePhasedRegionGfaSequence(bubbleChain, phasingRegion, 1, sequence);
 
-                if(writeSequence) {
-                    gfa.addSegment(name1, v0, v1, sequence);
-                } else {
-                    gfa.addSegment(name1, v0, v1, sequence.size());
+                if(writeGfa) {
+                    if(writeSequence) {
+                        gfa.addSegment(name1, v0, v1, sequence);
+                    } else {
+                        gfa.addSegment(name1, v0, v1, sequence.size());
+                    }
                 }
 
                 if(writeFasta) {
@@ -1291,10 +1329,12 @@ void AssemblyGraph2::writePhasedGfa(
                 computeUnphasedRegionGfaSequence(bubbleChain, phasingRegion, sequence);
                 const string name = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
 
-                if(writeSequence) {
-                    gfa.addSegment(name, v0, v1, sequence);
-                } else {
-                    gfa.addSegment(name, v0, v1, sequence.size());
+                if(writeGfa) {
+                    if(writeSequence) {
+                        gfa.addSegment(name, v0, v1, sequence);
+                    } else {
+                        gfa.addSegment(name, v0, v1, sequence.size());
+                    }
                 }
 
                 totalHaploidBases += uint64_t(sequence.size());
@@ -1326,7 +1366,9 @@ void AssemblyGraph2::writePhasedGfa(
 
 
     // Write the GFA.
-    gfa.write(baseName + ".gfa");
+    if(writeGfa) {
+        gfa.write(baseName + ".gfa");
+    }
 
 
 
@@ -1376,7 +1418,7 @@ void AssemblyGraph2::writePhasedGfa(
     }
 
 
-    cout << timestamp << "writePhasedGfa ends." << endl;
+    cout << timestamp << "writePhased ends." << endl;
 }
 
 

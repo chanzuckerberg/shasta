@@ -1260,6 +1260,11 @@ void shasta::main::mode2Assembly(
         assemblerOptions.assemblyOptions.bubbleRemovalMaxPeriod,
         assemblerOptions.assemblyOptions.superbubbleRemovalEdgeLengthThreshold,
         assemblerOptions.assemblyOptions.phasingMinReadCount,
+        assemblerOptions.assemblyOptions.suppressGfaOutput,
+        assemblerOptions.assemblyOptions.suppressFastaOutput,
+        assemblerOptions.assemblyOptions.suppressDetailedOutput,
+        assemblerOptions.assemblyOptions.suppressPhasedOutput,
+        assemblerOptions.assemblyOptions.suppressHaploidOutput,
         threadCount);
 
 

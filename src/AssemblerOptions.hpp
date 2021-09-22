@@ -298,6 +298,11 @@ public:
     uint64_t bubbleRemovalMaxPeriod;
     uint64_t superbubbleRemovalEdgeLengthThreshold;
     uint64_t phasingMinReadCount;
+    bool suppressGfaOutput;
+    bool suppressFastaOutput;
+    bool suppressDetailedOutput;
+    bool suppressPhasedOutput;
+    bool suppressHaploidOutput;
 
     void write(ostream&) const;
 

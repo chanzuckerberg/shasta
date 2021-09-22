@@ -238,6 +238,11 @@ public:
         uint64_t bubbleRemovalMaxPeriod,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t phasingMinReadCount,
+        bool suppressGfaOutput,
+        bool suppressFastaOutput,
+        bool suppressSmallBubblesOutput,
+        bool suppressPhasedOutput,
+        bool suppressHaploidOutput,
         size_t threadCount
         );
 
@@ -246,23 +251,27 @@ public:
     void writeEdgesCsv(const string& baseName) const;
     void writeEdgeDetailsCsv(const string& baseName) const;
 
-    // Gfa output.
-    // The last two can only be called after storeGfaSequence.
-    void writeGfa(
+    // GFA and FASTA output.
+    // These must be called after storeGfaSequence,
+    // but writeDetailed can be caller earlier for some combinations of flags.
+    void writeDetailed(
         const string& baseName,
         bool writeSequence,
         bool writeSequenceLengthInMarkers,
         bool writeCsv,
+        bool writeGfa,
         bool writeFasta);
-    void writeHaploidGfa(
+    void writeHaploid(
         const string& baseName,
         bool writeSequence,
         bool writeCsv,
+        bool writeGfa,
         bool writeFasta);
-    void writePhasedGfa(
+    void writePhased(
         const string& baseName,
         bool writeSequence,
         bool writeCsv,
+        bool writeGfa,
         bool writeFasta);
 
     // Hide a AssemblyGraph2BaseClass::Base.
