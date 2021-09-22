@@ -177,14 +177,6 @@ public:
             setIsInSmallComponentFlag(i, value);
         }
     }
-    inline void setStrandFlag(ReadId readId, Strand strand) {
-        readFlags[readId].strand = strand & 1;
-    }
-    inline void setStrandFlagForAll(Strand strand) {
-        for (ReadId i = 0; i < readFlags.size(); i++) {
-            setStrandFlag(i, strand & 1);
-        }
-    }
 
     // Function to write one or all reads in Fasta format.
     void writeReads(const string& fileName);

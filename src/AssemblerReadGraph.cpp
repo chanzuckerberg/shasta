@@ -702,10 +702,9 @@ void Assembler::computeReadGraphConnectedComponents(
     // Clear the read flags that will be set below.
     // Note that we are not changing the isChimeric flags.
     reads->setIsInSmallComponentFlagForAll(false);
-    reads->setStrandFlagForAll(Strand(0));
 
 
-    // Strand separation. Process the connected components one at a time.
+    // Process the connected components one at a time.
     for(ReadId componentId=0; componentId<components.size(); componentId++) {
         const vector<OrientedReadId>& component = components[componentId];
 
@@ -727,30 +726,8 @@ void Assembler::computeReadGraphConnectedComponents(
             SHASTA_ASSERT((component.size() % 2) == 0);
         }
 
-        // If this component is not self-complementary,
-        // use it for assembly only if its first read is on strand 0.
-        // Set the strand of all the reads as
-        // the strand present in this component.
-        if(!isSelfComplementary) {
-            if(component[0].getStrand() == 0) {
-                for(const OrientedReadId orientedReadId: component) {
-                    const ReadId readId = orientedReadId.getReadId();
-                    const Strand strand = orientedReadId.getStrand();
-                    reads->setStrandFlag(readId, strand);
-                }
-            } else {
-                // No need to set any strand flags here.
-                // They will be set when processing the complementary component.
-            }
-            continue;
-        }
-
-        // If getting here, the component is self-complementary
-        // and we need to do strand separation.
+        // If getting here, the component is self-complementary.
         SHASTA_ASSERT(isSelfComplementary);
-        cout << "Processing self-complementary component " << componentId <<
-            " with " << component.size() << " oriented reads." << endl;
-
     }
 
 
