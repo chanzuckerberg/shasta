@@ -508,11 +508,18 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(2),
         "Used for chimeric read detection.")
 
+        ("ReadGraph.strandSeparationMethod",
+        value<uint64_t>(&readGraphOptions.strandSeparationMethod)->
+        default_value(1),
+        "Strand separation method: "
+        "0 = no strand separation, "
+        "1 = limited strand separation, "
+        "2 = strict strand separation.")
+
         ("ReadGraph.crossStrandMaxDistance",
         value<int>(&readGraphOptions.crossStrandMaxDistance)->
         default_value(6),
-        "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
-        "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
+        "Maximum distance (edges) for strand separation method 1.")
 
         ("ReadGraph.removeConflicts",
         bool_switch(&readGraphOptions.removeConflicts)->
@@ -522,27 +529,32 @@ void AssemblerOptions::addConfigurableOptions()
         ("ReadGraph.markerCountPercentile",
         value<double>(&readGraphOptions.markerCountPercentile)->
         default_value(0.015, "0.015"),
-        "Percentile for markerCount (only used when creationMethod is 2).")
+        "Percentile for --ReadGraph.markerCount "
+        "(only used when --ReadGraph.creationMethod is 2).")
 
         ("ReadGraph.alignedFractionPercentile",
         value<double>(&readGraphOptions.alignedFractionPercentile)->
         default_value(0.12, "0.12"),
-        "Percentile for alignedFraction (only used when creationMethod is 2).")
+        "Percentile for adaptive selection of --ReadGraph.alignedFraction "
+        "(only used when --ReadGraph.creationMethod is 2).")
 
         ("ReadGraph.maxSkipPercentile",
         value<double>(&readGraphOptions.maxSkipPercentile)->
         default_value(0.12, "0.12"),
-        "Percentile for maxSkip (only used when creationMethod is 2).")
+        "Percentile for adaptive selection of --ReadGraph.maxSkip "
+        "(only used when --ReadGraph.creationMethod is 2).")
 
         ("ReadGraph.maxDriftPercentile",
         value<double>(&readGraphOptions.maxDriftPercentile)->
         default_value(0.12, "0.12"),
-        "Percentile for maxDrift (only used when creationMethod is 2).")
+        "Percentile for adaptive selection of --ReadGraph.maxDrift "
+        "(only used when --ReadGraph.creationMethod is 2).")
 
         ("ReadGraph.maxTrimPercentile",
         value<double>(&readGraphOptions.maxTrimPercentile)->
         default_value(0.015, "0.015"),
-        "Percentile for maxTrim (only used when creationMethod is 2).")
+        "Percentile for adaptive selection of --ReadGraph.maxTrim "
+        "(only used when --ReadGraph.creationMethod is 2).")
 
         ("ReadGraph.flagInconsistentAlignments",
         bool_switch(&readGraphOptions.flagInconsistentAlignments)->
@@ -953,6 +965,7 @@ void ReadGraphOptions::write(ostream& s) const
     s << "creationMethod = " << creationMethod << "\n";
     s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
+    s << "strandSeparationMethod = " << strandSeparationMethod << "\n";
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
     s << "removeConflicts = " <<
         convertBoolToPythonString(removeConflicts) << "\n";

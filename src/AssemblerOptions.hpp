@@ -211,6 +211,7 @@ public:
     int creationMethod;
     int maxAlignmentCount;
     int maxChimericReadDistance;
+    uint64_t strandSeparationMethod;
     int crossStrandMaxDistance;
     bool removeConflicts;
     double markerCountPercentile;

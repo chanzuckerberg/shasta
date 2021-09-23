@@ -1121,15 +1121,23 @@ public:
 
 
 
-    void flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount);
+    // Approximate strand separation in the read graph.
+    void flagCrossStrandReadGraphEdges1(int maxDistance, size_t threadCount);
 private:
-    void flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId);
-    class FlagCrossStrandReadGraphEdgesData {
+    void flagCrossStrandReadGraphEdges1ThreadFunction(size_t threadId);
+    class FlagCrossStrandReadGraphEdges1Data {
     public:
         size_t maxDistance;
         vector<bool> isNearStrandJump;
     };
-    FlagCrossStrandReadGraphEdgesData flagCrossStrandReadGraphEdgesData;
+    FlagCrossStrandReadGraphEdges1Data flagCrossStrandReadGraphEdges1Data;
+public:
+
+
+    // Strict strand separation in the read graph.
+    void flagCrossStrandReadGraphEdges2();
+
+
 
     // Create the ReadGraph given a bool vector that specifies which
     // alignments should be used in the read graph.

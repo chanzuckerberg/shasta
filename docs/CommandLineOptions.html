@@ -650,6 +650,60 @@ The maximum alignments to be kept in the read graph for each read.
 Used for chimeric read detection.
 <a class=qm href='ComputationalMethods.html#ReadGraph'/>
 
+<tr id='ReadGraph.strandSeparationMethod'>
+<td><code>--ReadGraph.strandSeparationMethod</code><td class=centered><code>1</code><td>
+Strand separation method. Spwecify one of the following values:
+<ul>
+<li>0 = No strand separation.
+<li>1 = Limited strand separation (default).
+<li>2 = Strict strand separation.
+</ul>        
+
+<tr id='ReadGraph.crossStrandMaxDistance'>
+<td><code>--ReadGraph.crossStrandMaxDistance</code><td class=centered><code>False</code><td>
+Maximum distance (edges) for strand separation method 1.
+
+
+<tr id='ReadGraph.removeConflicts'>
+<td><code>--ReadGraph.removeConflicts</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+Remove conflicts from the read graph. Experimental - do not use.
+
+
+
+<tr id='ReadGraph.markerCountPercentile'>
+<td><code>--ReadGraph.markerCountPercentile</code>
+<td class=centered><code>0.015</code><td>
+Percentile for adaptive selection of <code>--ReadGraph. markerCount</code> 
+(only used when <code>--ReadGraph.creationMethod</code> is 2).
+
+<tr id='ReadGraph.alignedFractionPercentile'>
+<td><code>--ReadGraph.alignedFractionPercentile</code>
+<td class=centered><code>0.12</code><td>
+Percentile for adaptive selection of <code>--ReadGraph.alignedFraction</code> 
+(only used when <code>--ReadGraph.creationMethod</code> is 2).
+
+<tr id='ReadGraph.maxSkipPercentile'>
+<td><code>--ReadGraph.maxSkipPercentile</code>
+<td class=centered><code>0.12</code><td>
+Percentile for adaptive selection of <code>--ReadGraph.maxSkip</code> 
+(only used when <code>--ReadGraph.creationMethod</code> is 2).
+
+<tr id='ReadGraph.maxDriftPercentile'>
+<td><code>--ReadGraph.maxDriftPercentile</code>
+<td class=centered><code>0.12</code><td>
+Percentile for adaptive selection of <code>--ReadGraph.maxDrift</code> 
+(only used when <code>--ReadGraph.creationMethod</code> is 2).
+
+<tr id='ReadGraph.maxTrimPercentile'>
+<td><code>--ReadGraph.maxTrimPercentile</code>
+<td class=centered><code>0.015</code><td>
+Percentile for adaptive selection of <code>--ReadGraph.maxTrim</code> 
+(only used when <code>--ReadGraph.creationMethod</code> is 2).
+
+
+
 <tr id='ReadGraph.flagInconsistentAlignments'>
 <td><code>--ReadGraph.flagInconsistentAlignments</code><td class=centered><code>False</code><td>
 This is a 

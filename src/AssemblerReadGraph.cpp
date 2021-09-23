@@ -771,7 +771,8 @@ void Assembler::writeLocalReadGraphReads(
 
 
 
-void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount)
+// Limited strand separation in the read graph.
+void Assembler::flagCrossStrandReadGraphEdges1(int maxDistance, size_t threadCount)
 {
     const bool debug = false;
 
@@ -803,16 +804,16 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
     }
 
     // Store the maximum distance so all threads can see it.
-    flagCrossStrandReadGraphEdgesData.maxDistance = maxDistance;
+    flagCrossStrandReadGraphEdges1Data.maxDistance = maxDistance;
 
     // Find which vertices are close to their reverse complement.
     // "Close" means that there is a path of distance up to maxDistance.
-    flagCrossStrandReadGraphEdgesData.isNearStrandJump.clear();
-    flagCrossStrandReadGraphEdgesData.isNearStrandJump.resize(orientedReadCount, false);
+    flagCrossStrandReadGraphEdges1Data.isNearStrandJump.clear();
+    flagCrossStrandReadGraphEdges1Data.isNearStrandJump.resize(orientedReadCount, false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&Assembler::flagCrossStrandReadGraphEdgesThreadFunction, threadCount);
-    const auto& isNearStrandJump = flagCrossStrandReadGraphEdgesData.isNearStrandJump;
+    runThreads(&Assembler::flagCrossStrandReadGraphEdges1ThreadFunction, threadCount);
+    const auto& isNearStrandJump = flagCrossStrandReadGraphEdges1Data.isNearStrandJump;
 
 
     size_t nearStrandJumpVertexCount = 0;
@@ -1011,11 +1012,11 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
 
 
 
-void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
+void Assembler::flagCrossStrandReadGraphEdges1ThreadFunction(size_t threadId)
 {
     const size_t readCount = reads->readCount();
-    const size_t maxDistance = flagCrossStrandReadGraphEdgesData.maxDistance;
-    auto& isNearStrandJump = flagCrossStrandReadGraphEdgesData.isNearStrandJump;
+    const size_t maxDistance = flagCrossStrandReadGraphEdges1Data.maxDistance;
+    auto& isNearStrandJump = flagCrossStrandReadGraphEdges1Data.isNearStrandJump;
     vector<uint32_t> distance(2*readCount, ReadGraph::infiniteDistance);
     vector<OrientedReadId> reachedVertices;
     vector<uint32_t> parentEdges(2*readCount);
@@ -1041,6 +1042,109 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
         }
     }
 
+}
+
+
+
+// Strict strand separation in the read graph.
+// This guarantees that the read graph contains no self-complementary
+// connected components.
+// In other words, for any ReadId x, the two oriented reads
+// x-0 and x-1 are guaranteed to be in distinct components of the
+// read graph.
+void Assembler::flagCrossStrandReadGraphEdges2()
+{
+    // Each alignment used in the read graph generates a pair of
+    // consecutively numbered edges in the read graph
+    // which are the reverse complement of each other.
+    SHASTA_ASSERT((readGraph.edges.size() % 2) == 0);
+
+    // Below, each pair is identified by the (even) index of
+    // the first edge in the pair.
+
+    // For each number of aligned markers alignedMarkerCount,
+    // Gather in edgeTable[alignedMarkerCount] pairs
+    // with that number of aligned markers.
+    vector< vector<uint64_t> > edgeTable;
+
+    // To loop over pairs of edges, increment by 2.
+    for(uint64_t edgeId=0; edgeId<readGraph.edges.size(); edgeId+=2) {
+        const ReadGraphEdge& edge = readGraph.edges[edgeId];
+        SHASTA_ASSERT(not edge.crossesStrands);
+
+        // Skip edges flagged as inconsistent.
+        if(edge.hasInconsistentAlignment) {
+            continue;
+        }
+
+        const uint64_t alignmentId = edge.alignmentId;
+        const AlignmentData& alignment = alignmentData[alignmentId];
+
+        // Skip edges involving reads classified as chimeric.
+        if(getReads().getFlags(alignment.readIds[0]).isChimeric) {
+            continue;
+        }
+        if(getReads().getFlags(alignment.readIds[1]).isChimeric) {
+            continue;
+        }
+
+        // Sanity check.
+        SHASTA_ASSERT(alignmentData[alignmentId].info.isInReadGraph);
+
+        // Check that the next edge is the reverse complement of
+        // this edge.
+        {
+            const ReadGraphEdge& nextEdge = readGraph.edges[edgeId + 1];
+            SHASTA_ASSERT(not nextEdge.crossesStrands);
+            array<OrientedReadId, 2> nextEdgeOrientedReadIds = nextEdge.orientedReadIds;
+            nextEdgeOrientedReadIds[0].flipStrand();
+            nextEdgeOrientedReadIds[1].flipStrand();
+            SHASTA_ASSERT(nextEdgeOrientedReadIds == edge.orientedReadIds);
+            SHASTA_ASSERT(nextEdge.alignmentId == alignmentId);
+        }
+
+        // Store this pair of edges in our edgeTable.
+        const uint32_t alignedMarkerCount = alignment.info.markerCount;
+        if(edgeTable.size() <= alignedMarkerCount) {
+            edgeTable.resize(alignedMarkerCount + 1);
+        }
+        edgeTable[alignedMarkerCount].push_back(edgeId);
+    }
+
+
+
+    // Now process our edge table in order of decreasing alignedMarkerCount.
+    // Each pair consists of two edges:
+    // A0--B0
+    // A1--B1
+    // where A1 is the reverse complement of A0 and B1 is the reverse complement of B0.
+    // Maintain a disjoint set data structure for read graph vertices.
+    // For each pair, compute the current connected components
+    // for A0 B0 A1 B1 from the disjoint set data structure, call them a0 b0 a1 b1.
+    // If a1==b0 (in which case also b1==a0), adding these edges
+    // would create a self-complementary connected component,
+    // so we mark them as cross-strand edges and don't add them to the
+    // disjoint set data structure.
+    // Otherwise, the two edges are added to the disjoint set data structure.
+    for(auto it=edgeTable.rbegin(); it!=edgeTable.rend(); ++it) {
+        const vector<uint64_t>& v = *it;
+        for(const uint64_t edgeId: v) {
+            const ReadGraphEdge& edge = readGraph.edges[edgeId];
+            const ReadGraphEdge& nextEdge = readGraph.edges[edgeId + 1];
+            const OrientedReadId A0 = edge.orientedReadIds[0];
+            const OrientedReadId B0 = edge.orientedReadIds[1];
+            const OrientedReadId A1 = nextEdge.orientedReadIds[0];
+            const OrientedReadId B1 = nextEdge.orientedReadIds[1];
+
+            SHASTA_ASSERT(A0.getReadId() == A1.getReadId());
+            SHASTA_ASSERT(B0.getReadId() == B1.getReadId());
+            SHASTA_ASSERT(A0.getStrand() == 1 - A1.getStrand());
+            SHASTA_ASSERT(B0.getStrand() == 1 - B1.getStrand());
+        }
+    }
+
+    // Missing code.
+    SHASTA_ASSERT(0);
 }
 
 

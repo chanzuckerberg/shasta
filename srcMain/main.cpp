@@ -767,10 +767,14 @@ void shasta::main::assemble(
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
 
-    // Flag read graph edges that cross strands.
-    assembler.flagCrossStrandReadGraphEdges(
-        assemblerOptions.readGraphOptions.crossStrandMaxDistance,
-        threadCount);
+    // Limited strand separation.
+    // If strict strand separation is requested, it is done later,
+    // after chimera detection.
+    if(assemblerOptions.readGraphOptions.strandSeparationMethod == 1) {
+        assembler.flagCrossStrandReadGraphEdges1(
+            assemblerOptions.readGraphOptions.crossStrandMaxDistance,
+            threadCount);
+    }
 
     // Flag chimeric reads.
     assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
@@ -784,9 +788,18 @@ void shasta::main::assemble(
             threadCount);
     }
 
+    // Strict strand separation.
+    if(assemblerOptions.readGraphOptions.strandSeparationMethod == 2) {
+        assembler.flagCrossStrandReadGraphEdges2();
+    }
+
     // Compute connected components of the read graph.
     // These are currently not used.
-    assembler.computeReadGraphConnectedComponents();
+    // For strand separation method 2 this was already done
+    // in flagCrossStrandReadGraphEdges2.
+    if(assemblerOptions.readGraphOptions.strandSeparationMethod != 2) {
+        assembler.computeReadGraphConnectedComponents();
+    }
 
 
 

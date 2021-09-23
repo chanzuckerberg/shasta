@@ -41,12 +41,14 @@ elif readGraphCreationMethod == 2:
 else:
     raise ValueError('Invalid value for --ReadGraph.creationMethod.')
     
-a.flagCrossStrandReadGraphEdges(
-    maxDistance = int(config['ReadGraph']['crossStrandMaxDistance']))
-a.flagChimericReads(
-    maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
-    
+strandSeparationMethod = int(config['ReadGraph']['strandSeparationMethod'])
 
+if strandSeparationMethod==1:
+    a.flagCrossStrandReadGraphEdges1(
+        maxDistance = int(config['ReadGraph']['crossStrandMaxDistance']))
+        
+a.flagChimericReads(
+    maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))    
 
 # Flag inconsistent alignments, if requested.
 flagInconsistentAlignments = ast.literal_eval(config['ReadGraph']['flagInconsistentAlignments'])
@@ -56,9 +58,13 @@ if flagInconsistentAlignments:
         leastSquareErrorThreshold = config['ReadGraph']['flagInconsistentAlignmentsLeastSquareErrorThreshold'],
         leastSquareMaxDistance = config['ReadGraph']['flagInconsistentAlignmentsLeastSquareMaxDistance'])
 
+if strandSeparationMethod == 2:
+    a.flagCrossStrandReadGraphEdges2()
+
 # Compute connected components of the read graph.
 # These are currently not used.
-a.computeReadGraphConnectedComponents()
+if not strandSeparationMethod == 2:
+    a.computeReadGraphConnectedComponents()
     
 # Create the marker graph.    
 a.createMarkerGraphVertices(
