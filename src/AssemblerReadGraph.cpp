@@ -1112,6 +1112,19 @@ void Assembler::flagCrossStrandReadGraphEdges2()
     }
 
 
+    // Create and initialize the disjoint sets data structure needed below.
+    const size_t readCount = reads->readCount();
+    const size_t orientedReadCount = 2*readCount;
+    SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
+    vector<ReadId> rank(orientedReadCount);
+    vector<ReadId> parent(orientedReadCount);
+    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
+        }
+    }
+
 
     // Now process our edge table in order of decreasing alignedMarkerCount.
     // Each pair consists of two edges:
@@ -1126,11 +1139,12 @@ void Assembler::flagCrossStrandReadGraphEdges2()
     // so we mark them as cross-strand edges and don't add them to the
     // disjoint set data structure.
     // Otherwise, the two edges are added to the disjoint set data structure.
+    uint64_t crossStrandEdgeCount = 0;
     for(auto it=edgeTable.rbegin(); it!=edgeTable.rend(); ++it) {
         const vector<uint64_t>& v = *it;
         for(const uint64_t edgeId: v) {
-            const ReadGraphEdge& edge = readGraph.edges[edgeId];
-            const ReadGraphEdge& nextEdge = readGraph.edges[edgeId + 1];
+            ReadGraphEdge& edge = readGraph.edges[edgeId];
+            ReadGraphEdge& nextEdge = readGraph.edges[edgeId + 1];
             const OrientedReadId A0 = edge.orientedReadIds[0];
             const OrientedReadId B0 = edge.orientedReadIds[1];
             const OrientedReadId A1 = nextEdge.orientedReadIds[0];
@@ -1140,11 +1154,59 @@ void Assembler::flagCrossStrandReadGraphEdges2()
             SHASTA_ASSERT(B0.getReadId() == B1.getReadId());
             SHASTA_ASSERT(A0.getStrand() == 1 - A1.getStrand());
             SHASTA_ASSERT(B0.getStrand() == 1 - B1.getStrand());
+
+            // Get the connected components that these oriented reads are in.
+            const uint32_t a0 = disjointSets.find_set(A0.getValue());
+            const uint32_t b0 = disjointSets.find_set(B0.getValue());
+            const uint32_t a1 = disjointSets.find_set(A1.getValue());
+            const uint32_t b1 = disjointSets.find_set(B1.getValue());
+
+            // If A0 and B0 are in the same connected component,
+            // A1 and B1 also must be in the same connected component.
+            // There is nothing to do as this pair of edges
+            // does not affect the connected components.
+            if (a0 == b0) {
+                SHASTA_ASSERT(a1 == b1);
+                continue;
+            }
+
+            // If A0 and B1 are in the same connected component,
+            // A1 and B0 also must be in the same connected component.
+            // Adding this pair of edges would create a self-complementary
+            // connected component containing A0, B0, A1, and B1,
+            // and to ensure strand separation we don't want to do that.
+            // So we mark these edges as cross-strand edges
+            // and don't use them to update the disjoint set data structure.
+            if(a0 == b1) {
+                SHASTA_ASSERT(a1 == b0);
+                edge.crossesStrands = 1;
+                nextEdge.crossesStrands = 1;
+                alignmentData[edge.alignmentId].info.isInReadGraph = false;
+                crossStrandEdgeCount += 2;
+                continue;
+            }
+
+            // Otherwise, just update the disjoint sets data structure
+            // with these two edges.
+            disjointSets.union_set(a0, b0);
+            disjointSets.union_set(a1, b1);
         }
     }
 
-    // Missing code.
-    SHASTA_ASSERT(0);
+    cout << "Strand separation flagged " << crossStrandEdgeCount <<
+        " read graph edges out of " << readGraph.edges.size() << " total." << endl;
+
+
+    // Verify that for any read the two oriented reads are in distinct
+    // connected components.
+    for(ReadId readId=0; readId<readCount; readId++) {
+        const OrientedReadId orientedReadId0(readId, 0);
+        const OrientedReadId orientedReadId1(readId, 1);
+        SHASTA_ASSERT(
+            disjointSets.find_set(orientedReadId0.getValue()) !=
+            disjointSets.find_set(orientedReadId1.getValue())
+        );
+    }
 }
 
 
