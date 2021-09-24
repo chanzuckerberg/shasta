@@ -233,6 +233,12 @@ void shasta::main::assemble(
             " specified for --AssemblyOptions.detangleMethod. Must be 0, 1, or 2.");
     }
 
+    // Check readGraphOptions.strandSeparationMethod.
+    if(assemblerOptions.assemblyOptions.mode == 2 and
+        assemblerOptions.readGraphOptions.strandSeparationMethod != 2) {
+        throw runtime_error("--Assembly.mode 2 requires --ReadGraph.strandSeparationMethod 2.");
+    }
+
     // Write a startup message.
     cout << timestamp << startupMessage << endl;
 

@@ -675,6 +675,13 @@ void Assembler::computeReadGraphConnectedComponents() const
     size_t accumulatedOrientedReadCount = 0;
     for(ReadId componentId=0; componentId<components.size(); componentId++) {
         const vector<OrientedReadId>& component = components[componentId];
+
+        // Stop writing when we reach connected components
+        // consisting of a single isolated read.
+        if(component.size() == 1) {
+            break;
+        }
+
         accumulatedOrientedReadCount += component.size();
         const double accumulatedOrientedReadCountFraction =
             double(accumulatedOrientedReadCount)/double(orientedReadCount);
@@ -692,7 +699,6 @@ void Assembler::computeReadGraphConnectedComponents() const
         csv << accumulatedOrientedReadCount << ",";
         csv << accumulatedOrientedReadCountFraction << "\n";
     }
-
 }
 
 
@@ -1197,6 +1203,7 @@ void Assembler::flagCrossStrandReadGraphEdges2()
         " read graph edges out of " << readGraph.edges.size() << " total." << endl;
 
 
+
     // Verify that for any read the two oriented reads are in distinct
     // connected components.
     for(ReadId readId=0; readId<readCount; readId++) {
@@ -1207,6 +1214,104 @@ void Assembler::flagCrossStrandReadGraphEdges2()
             disjointSets.find_set(orientedReadId1.getValue())
         );
     }
+
+
+    // Gather the vertices of each component.
+    std::map<ReadId, vector<OrientedReadId> > componentMap;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const ReadId componentId = disjointSets.find_set(orientedReadId.getValue());
+            componentMap[componentId].push_back(orientedReadId);
+        }
+    }
+    cout << "The read graph has " << componentMap.size() <<
+        " connected components." << endl;
+
+
+
+    // Sort the components by decreasing size (number of reads).
+    // componentTable contains pairs(size, componentId as key in componentMap).
+    vector< pair<size_t, uint32_t> > componentTable;
+    for(const auto& p: componentMap) {
+        const vector<OrientedReadId>& component = p.second;
+        componentTable.push_back(make_pair(component.size(), p.first));
+    }
+    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, uint32_t>>());
+
+
+
+    // Store components in this order of decreasing size.
+    vector< vector<OrientedReadId> > components;
+    for(const auto& p: componentTable) {
+        components.push_back(componentMap[p.second]);
+    }
+    cout << timestamp << "Done computing connected components of the read graph." << endl;
+
+
+
+    // Write information for each component.
+    ofstream csv("ReadGraphComponents.csv");
+    csv << "Component,RepresentingRead,OrientedReadCount,"
+        "AccumulatedOrientedReadCount,"
+        "AccumulatedOrientedReadCountFraction\n";
+    size_t accumulatedOrientedReadCount = 0;
+    for(ReadId componentId=0; componentId<components.size(); componentId++) {
+        const vector<OrientedReadId>& component = components[componentId];
+
+        // Stop writing when we reach connected components
+        // consisting of a single isolated read.
+        if(component.size() == 1) {
+            break;
+        }
+
+        accumulatedOrientedReadCount += component.size();
+        const double accumulatedOrientedReadCountFraction =
+            double(accumulatedOrientedReadCount)/double(orientedReadCount);
+
+        // The above process of strand separation should have removed
+        // all self-complementary components.
+        const bool isSelfComplementary =
+            component.size() > 1 &&
+            (component[0].getReadId() == component[1].getReadId());
+        SHASTA_ASSERT(not isSelfComplementary);
+
+
+        // Write out.
+        csv << componentId << ",";
+        csv << component.front() << ",";
+        csv << component.size() << ",";
+        csv << accumulatedOrientedReadCount << ",";
+        csv << accumulatedOrientedReadCountFraction << "\n";
+    }
+
+
+
+    // For Mode 2 assembly, we will only assemble one connected component
+    // of each pair. In each pair, we choose the component in the pair
+    // that has the lowest numbered read on strand 0.
+    // Then, for each read we store in its ReadFlags the strand
+    // that the read appears in in this component.
+    // That flag will be used in Mode 2 assembly to
+    // select portions of the marker graph that should be assembled.
+    uint64_t n = 0;
+    for(ReadId componentId=0; componentId<components.size(); componentId++) {
+        const vector<OrientedReadId>& component = components[componentId];
+
+        // If the lowest numbered read is on strand 1, this is not one of
+        // the connected components we want to use.
+        if(component.front().getStrand() == 1) {
+            continue;
+        }
+
+        // Store the strand for each read in this component.
+        for(const OrientedReadId orientedReadId: component) {
+            reads->setStrandFlag(orientedReadId.getReadId(), orientedReadId.getStrand());
+        }
+        n += component.size();
+    }
+    SHASTA_ASSERT(n == readCount);
+
 }
 
 

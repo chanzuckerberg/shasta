@@ -169,6 +169,9 @@ public:
     inline void setChimericFlag(ReadId readId, bool value) {
         readFlags[readId].isChimeric = value;
     }
+    inline void setStrandFlag(ReadId readId, bool value) {
+        readFlags[readId].strand = value;
+    }
 
     // Function to write one or all reads in Fasta format.
     void writeReads(const string& fileName);

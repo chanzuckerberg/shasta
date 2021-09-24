@@ -17,6 +17,11 @@ public:
     // Set if the read is marked as chimeric.
     uint8_t isChimeric : 1;
 
+    // The strand that this read will be assembled on.
+    // Only used by Mode 2 assembly.
+    // Set in flagCrossStrandReadGraphEdges2.
+    uint8_t strand : 1;
+
     ReadFlags()
     {
         static_assert(sizeof(ReadFlags) == 1, "Unexpected size of ReadFlags.");
