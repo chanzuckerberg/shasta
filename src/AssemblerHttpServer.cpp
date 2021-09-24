@@ -4,6 +4,7 @@
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
 #include "buildId.hpp"
+#include "filesystem.hpp"
 #include "platformDependent.hpp"
 #include "Reads.hpp"
 using namespace shasta;
@@ -15,6 +16,89 @@ using namespace shasta;
 
 // Standard library.
 #include <filesystem>
+
+
+// A map containing descriptions of output files.
+namespace shasta {
+    std::map<string, string> outputDescriptionTable = {
+        {
+            "index.html",
+            "Html file containing a list of assembly output files and their descriptions."
+        },
+        {
+            "AssemblySummary.json",
+            "Assembly summary information in json format."
+        },
+        {
+            "AssemblySummary.html",
+            "Assembly summary information in html format."
+        },
+        {
+            "Assembly.fasta",
+            "Assembly in FASTA format (one strand only)."
+        },
+        {
+            "Assembly.gfa",
+            "Assembly in GFA format (one strand only)."
+        },
+        {
+            "Assembly-BothStrands.gfa",
+            "Assembly in GFA format (both strands)."
+        },
+        {
+            "Assembly-BothStrands-NoSequence.gfa",
+            "Assembly in GFA format (compact output without sequence, both strands)."
+        },
+        {
+            "AssemblySummary.csv",
+            "List of assembled segments in order of decreasing length."
+        },
+        {
+            "Binned-ReadLengthHistogram.csv",
+            "Read length distribution in 1 kb bins."
+        },
+        {
+            "ReadLengthHistogram.csv",
+            "Detailed read length distribution."
+        },
+        {
+            "ReadSummary.csv",
+            "Summary file containing one line of information for each read."
+        },
+        {
+            "LowHashBucketHistogram.csv",
+            "MinHash bucket population histogram."
+        },
+        {
+            "DisjointSetsHistogram.csv",
+            "Coverage histogram for all disjoint sets."
+        },
+        {
+            "MarkerGraphVertexCoverageHistogram.csv",
+            "Coverage histogram for marker graph vertices."
+        },
+        {
+            "MarkerGraphEdgeCoverageHistogram.csv",
+            "Coverage histogram for marker graph edges."
+        },
+        {
+            "SuppressedAlignmentCandidates.csv",
+            "Details of suppressed alignment candidates."
+        },
+        {
+            "ReadGraphComponents.csv",
+            "Information about connected components of the read graph."
+        },
+        {
+            "shasta.conf",
+            "Configuration file containing options in effect for this assembly."
+        },
+        {
+            "ReadLowHashStatistics.csv",
+            "MinHash/LowHash statistics for each read."
+        }
+    };
+}
 
 
 
@@ -1153,77 +1237,30 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
 void Assembler::writeAssemblyIndex(ostream& html) const
 {
     writeHtmlBegin(html);
+    html << "<body><h1>Shasta assembly output files</h1><table>";
 
-    const string s = R"ABCDE(
-    <body>
-    <h1>Assembly output files</h1>
-    <table>
+    // Loop over files in the assembly directory,
+    // in alphabetic order.
+    vector<string> assemblyFiles = shasta::filesystem::directoryContents(".");
+    sort(assemblyFiles.begin(), assemblyFiles.end());
+    for(string file: assemblyFiles) {
 
-    <tr>
-    <td><a href='AssemblySummary.html'>AssemblySummary.html</a>
-    <td>Assembly summary information.
+        // Take out "./"
+        file = file.substr(2);
 
-    <tr>
-    <td><a href='Assembly.fasta'>Assembly.fasta</a>
-    <td>Assembly in Fasta format (one strand only).
+        // Get the description.
+        string description;
+        auto it = outputDescriptionTable.find(file);
+        if(it != outputDescriptionTable.end()) {
+            description = it->second;
+        }
 
-    <tr>
-    <td><a href='Assembly.gfa'>Assembly.gfa</a>
-    <td>Assembly in gfa format (one strand only).
+        // Write a row in the table for this file.
+        html <<
+            "<tr><td><a href='" << file << "'>" << file <<
+            "</a><td>" << description << endl;
+    }
 
-    <tr>
-    <td><a href='Assembly-BothStrands.gfa'>Assembly-BothStrands.gfa</a>
-    <td>Assembly in gfa format (both strands).
-
-    <tr>
-    <td><a href='Assembly-BothStrands-NoSequence.gfa'>Assembly-BothStrandsNoSequence.gfa</a>
-    <td>Assembly in gfa format (compact output without sequence, both strands).
-
-    <tr>
-    <td><a href='AssemblySummary.csv'>AssemblySummary.csv</a>
-    <td>List of assembled segments in order of decreasing length.
-
-    <tr>
-    <td><a href='Binned-ReadLengthHistogram.csv'>Binned-ReadLengthHistogram.csv</a>
-    <td>Read length distribution in 1 kb bins.
-
-    <tr>
-    <td><a href='ReadLengthHistogram.csv'>ReadLengthHistogram.csv</a>
-    <td>Detailed read length distribution.
-
-    <tr>
-    <td><a href='ReadSummary.csv'>ReadSummary.csv</a>
-    <td>Summary file containing one line of information for each read.
-
-    <tr>
-    <td><a href='LowHashBucketHistogram.csv'>LowHashBucketHistogram.csv</a>
-    <td>MinHash bucket population histogram.
-
-    <tr>
-    <td><a href='DisjointSetsHistogram.csv'>DisjointSetsHistogram.csv</a>
-    <td>Coverage histogram for all disjoint sets.
-
-    <tr>
-    <td><a href='MarkerGraphVertexCoverageHistogram.csv'>MarkerGraphVertexCoverageHistogram.csv</a>
-    <td>Coverage histogram for marker graph vertices.
-
-    <tr>
-    <td><a href='MarkerGraphEdgeCoverageHistogram.csv'>MarkerGraphEdgeCoverageHistogram.csv</a>
-    <td>Coverage histogram for marker graph edges.
-
-    <tr>
-    <td><a href='ReadLengthHistogram.csv'>ReadLengthHistogram.csv</a>
-    <td>Detailed read length distribution.
-
-    <tr>
-    <td><a href='SuppressedAlignmentCandidates.csv'>SuppressedAlignmentCandidates.csv</a>
-    <td>Details of suppressed alignment candidates.
-
-    </table>
-    </body>
-)ABCDE";
-
-    html << s;
     writeHtmlEnd(html);
 }
 
