@@ -812,7 +812,7 @@ void AssemblyGraph2::writeDetailed(
     bool writeSequenceLengthInMarkers,
     bool writeCsv,
     bool writeGfa,
-    bool writeFasta)
+    bool writeFasta) const
 {
     // Check that we are not called with the forbidden combination
     // (see above comments).
@@ -1027,12 +1027,26 @@ void AssemblyGraph2::writeDetailed(
 
 
 
+void AssemblyGraph2::writeDetailedEarly(const string& baseName)
+{
+    const bool writeSequence = false;
+    const bool writeSequenceLengthInMarkers = true;
+    const bool writeCsv = true;
+    const bool writeGfa = true;
+    const bool writeFasta = false;
+
+    writeDetailed(baseName,
+        writeSequence, writeSequenceLengthInMarkers, writeCsv, writeGfa, writeFasta);
+}
+
+
+
 void AssemblyGraph2::writeHaploid(
     const string& baseName,
     bool writeSequence,
     bool writeCsv,
     bool writeGfa,
-    bool writeFasta)
+    bool writeFasta) const
 {
 
     cout << timestamp << "writeHaploid begins." << endl;
@@ -1196,7 +1210,7 @@ void AssemblyGraph2::writePhased(
     bool writeSequence,
     bool writeCsv,
     bool writeGfa,
-    bool writeFasta)
+    bool writeFasta) const
 {
     cout << timestamp << "writePhased begins." << endl;
 

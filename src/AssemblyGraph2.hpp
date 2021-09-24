@@ -255,26 +255,28 @@ public:
 
     // GFA and FASTA output.
     // These must be called after storeGfaSequence,
-    // but writeDetailed can be caller earlier for some combinations of flags.
+    // but writeDetailed can be caller earlier for some combinations of flags
+    // (see writeDetailedEarly).
     void writeDetailed(
         const string& baseName,
         bool writeSequence,
         bool writeSequenceLengthInMarkers,
         bool writeCsv,
         bool writeGfa,
-        bool writeFasta);
+        bool writeFasta) const;
+    void writeDetailedEarly(const string& baseName);
     void writeHaploid(
         const string& baseName,
         bool writeSequence,
         bool writeCsv,
         bool writeGfa,
-        bool writeFasta);
+        bool writeFasta) const;
     void writePhased(
         const string& baseName,
         bool writeSequence,
         bool writeCsv,
         bool writeGfa,
-        bool writeFasta);
+        bool writeFasta) const;
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;
