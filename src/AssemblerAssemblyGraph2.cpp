@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "AssemblyGraph2.hpp"
+#include "Reads.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace shasta;
 
@@ -36,6 +37,7 @@ void Assembler::createAssemblyGraph2(
 
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(
         assemblerInfo->k,
+        getReads().getFlags(),
         markers,
         markerGraph,
         bubbleRemovalDiscordantRatioThreshold,

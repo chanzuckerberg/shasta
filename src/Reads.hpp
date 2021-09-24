@@ -130,6 +130,9 @@ public:
     inline const ReadFlags& getFlags(ReadId readId) const {
         return readFlags[readId];
     }
+    inline const MemoryMapped::Vector<ReadFlags>& getFlags() const {
+        return readFlags;
+    }
 
     
     Base getOrientedReadBase(

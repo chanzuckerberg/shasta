@@ -27,6 +27,7 @@ namespace shasta {
     class AssemblyGraph2Edge;
     class BubbleChain;
     class MarkerGraph;
+    class ReadFlags;
 
     using AssemblyGraph2BaseClass =
         boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS,
@@ -231,6 +232,7 @@ public:
     // each edge has a single MarkerGraphPath (no bubbles).
     AssemblyGraph2(
         uint64_t k, // Marker length
+        const MemoryMapped::Vector<ReadFlags>& readFlags,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&,
         double bubbleRemovalDiscordantRatioThreshold,
@@ -286,6 +288,7 @@ private:
 
     // Some Assembler data that we need.
     uint64_t k;
+    const MemoryMapped::Vector<ReadFlags>& readFlags;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 

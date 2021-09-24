@@ -8,8 +8,10 @@
 #include "dominatorTree.hpp"
 #include "enumeratePaths.hpp"
 #include "findLinearChains.hpp"
+#include "findMarkerId.hpp"
 #include "GfaAssemblyGraph.hpp"
 #include "orderPairs.hpp"
+#include "ReadFlags.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
 
@@ -34,6 +36,7 @@ using namespace shasta;
 // each edge has a single MarkerGraphPath (no bubbles).
 AssemblyGraph2::AssemblyGraph2(
     uint64_t k, // Marker length
+    const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph,
     double bubbleRemovalDiscordantRatioThreshold,
@@ -50,6 +53,7 @@ AssemblyGraph2::AssemblyGraph2(
     ) :
     MultithreadedObject<AssemblyGraph2>(*this),
     k(k),
+    readFlags(readFlags),
     markers(markers),
     markerGraph(markerGraph)
 {
@@ -336,6 +340,26 @@ void AssemblyGraph2::create()
                 SHASTA_ASSERT(0);
             }
             wasFound[edgeId] = true;
+        }
+
+
+
+        // Check if this path originated from one of the read graph
+        // components that we want to assemble
+        // (one of each reverse complemented pair).
+        // If not, don't store it.
+        // This way we do a single-stranded assembly.
+        {
+            const MarkerGraph::Edge& edge = markerGraph.edges[path.front()];
+            const MarkerGraphVertexId vertexId = edge.source;
+            const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+            const MarkerId markerId = markerIds[0];
+            const OrientedReadId orientedReadId = findMarkerId(markerId, markers).first;
+            const ReadId readId = orientedReadId.getReadId();
+            const Strand strand = orientedReadId.getStrand();
+            if(readFlags[readId].strand != strand) {
+                continue;
+            }
         }
 
         // See if this path contains secondary edges.
