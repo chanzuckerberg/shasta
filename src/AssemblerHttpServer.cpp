@@ -1240,9 +1240,16 @@ void Assembler::writeAssemblyIndex(ostream& html) const
     html << "<body><h1>Shasta assembly output files</h1><table>";
 
     // Loop over files in the assembly directory,
-    // in alphabetic order.
+    // in case-insensitive alphabetic order.
     vector<string> assemblyFiles = shasta::filesystem::directoryContents(".");
-    sort(assemblyFiles.begin(), assemblyFiles.end());
+    sort(assemblyFiles.begin(), assemblyFiles.end(),
+        [](const string& s1, const string& s2) {
+        return lexicographical_compare(
+        s1.begin(), s1.end(),
+        s2.begin(), s2.end(),
+        [](const char& c1, const char& c2) {
+        return tolower(c1) < tolower(c2);
+        });});
     for(string file: assemblyFiles) {
 
         // Take out "./"
