@@ -96,6 +96,94 @@ namespace shasta {
         {
             "ReadLowHashStatistics.csv",
             "MinHash/LowHash statistics for each read."
+        },
+        {
+            "AlignedFractionHistogram.csv",
+            "Histogram of aligned fraction for all computed alignments."
+        },
+        {
+            "AlignmentDriftHistogram.csv",
+            "Histogram of marker drift for all computed alignments."
+        },
+        {
+            "AlignmentMarkerCountHistogram.csv",
+            "Histogram of number of aligned markers for all computed alignments."
+        },
+        {
+            "AlignmentSkipHistogram.csv",
+            "Histogram of marker skip for all computed alignments."
+        },
+        {
+            "AlignmentTrimHistogram.csv",
+            "Histogram of marker trim for all computed alignments."
+        },
+        {
+            "BubbleChains.csv",
+            "Information about bubble chains in the assembly."
+        },
+        {
+            "PhasingRegions.csv",
+            "Information about Phasing regions in the assembly."
+        },
+        {
+            "Assembly-Detailed-NoSequence.gfa",
+            "Detailed assembly representation with small bubbles: "
+            "compact GFA file without sequence."
+        },
+        {
+            "Assembly-Detailed.csv",
+            "Detailed assembly representation with small bubbles: "
+            "csv companion for the GFA files."
+        },
+        {
+            "Assembly-Detailed.fasta",
+            "Detailed assembly representation with small bubbles: "
+            "FASTA file."
+        },
+        {
+            "Assembly-Detailed.gfa",
+            "Detailed assembly representation with small bubbles: "
+            "complete GFA file."
+        },
+        {
+            "Assembly-Haploid-NoSequence.gfa",
+            "Haploid assembly representation: "
+            "compact GFA file without sequence."
+        },
+        {
+            "Assembly-Haploid.csv",
+            "Haploid assembly representation: "
+            "csv companion for the GFA files."
+        },
+        {
+            "Assembly-Haploid.fasta",
+            "Haploid assembly representation: "
+            "FASTA file."
+        },
+        {
+            "Assembly-Haploid.gfa",
+            "Haploid assembly representation: "
+            "complete GFA file."
+        },
+        {
+            "Assembly-Phased-NoSequence.gfa",
+            "Phased assembly representation with large bubbles: "
+            "compact GFA file without sequence."
+        },
+        {
+            "Assembly-Phased.csv",
+            "Phased assembly representation with large bubbles: "
+            "csv companion for the GFA files."
+        },
+        {
+            "Assembly-Phased.fasta",
+            "Phased assembly representation with large bubbles: "
+            "FASTA file."
+        },
+        {
+            "Assembly-Phased.gfa",
+            "Phased assembly representation with large bubbles: "
+            "complete GFA file."
         }
     };
 }
