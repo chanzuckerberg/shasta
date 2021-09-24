@@ -615,12 +615,12 @@ void AssemblyGraph2::assemble(edge_descriptor e)
         // Compute the number of raw bases to skip at the beginning.
         const uint64_t beginSkip = std::accumulate(
             assembledSegment.repeatCounts.begin(),
-            assembledSegment.repeatCounts.begin() + k/2, 0);
+            assembledSegment.repeatCounts.begin() + k/2, 0ULL);
 
         // Compute the number of raw bases to skip at the end.
         const uint64_t endSkip = std::accumulate(
             assembledSegment.repeatCounts.end() - k/2,
-            assembledSegment.repeatCounts.end(), 0);
+            assembledSegment.repeatCounts.end(), 0ULL);
 
         // Copy the raw bases, excluding those corresponding to the first and last
         // k/2 RLE bases.
@@ -1184,7 +1184,7 @@ void AssemblyGraph2::writeHaploid(
 
         // Statistics.
         const uint64_t totalLength =
-            accumulate(bubbleChainLengths.begin(), bubbleChainLengths.end(), 0);
+            accumulate(bubbleChainLengths.begin(), bubbleChainLengths.end(), 0ULL);
         sort(bubbleChainLengths.begin(), bubbleChainLengths.end(), std::greater<uint64_t>());
         uint64_t n50 = 0;
         uint64_t cumulativeLength = 0;
