@@ -419,9 +419,9 @@ void AssemblyPathGraph2::detangle(
         removeIsolatedVertices();
     }
 
-    graph.writeGraphviz("AssemblyPathGraph2-Final.dot");
-    graph.writeHtml("AssemblyPathGraph2-Final.html");
-    graph.writeGfa("AssemblyPathGraph2-Final.gfa", basesPerMarker);
+    // graph.writeGraphviz("AssemblyPathGraph2-Final.dot");
+    // graph.writeHtml("AssemblyPathGraph2-Final.html");
+    // graph.writeGfa("AssemblyPathGraph2-Final.gfa", basesPerMarker);
 }
 
 

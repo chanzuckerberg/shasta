@@ -157,12 +157,12 @@ void Assembler::detangle()
     newAssemblyGraph.edgeLists.createNew(
         largeDataName("New-AssemblyGraphEdgeLists"),
         largeDataPageSize);
-    ofstream csv("DetangleMap.csv");
-    csv << "Path before detangle,Edge after detangle\n";
+    // ofstream csv("DetangleMap.csv");
+    // csv << "Path before detangle,Edge after detangle\n";
     for(AssemblyGraph::EdgeId newEdgeId=0; newEdgeId<newEdges.size(); newEdgeId++) {
         const AssemblyPathGraph::edge_descriptor e = newEdges[newEdgeId];
         const AssemblyPathGraphEdge edge = graph[e];
-        csv << edge << "," << newEdgeId << "\n";
+        // csv << edge << "," << newEdgeId << "\n";
         const AssemblyPathGraph::vertex_descriptor v0 = source(e, graph);
         const AssemblyPathGraph::vertex_descriptor v1 = target(e, graph);
 
@@ -459,12 +459,12 @@ void Assembler::detangle2(
     newAssemblyGraph.edgeLists.createNew(
         largeDataName("New-AssemblyGraphEdgeLists"),
         largeDataPageSize);
-    ofstream csv("DetangleMap.csv");
-    csv << "Path before detangle,Edge after detangle\n";
+    // ofstream csv("DetangleMap.csv");
+    // csv << "Path before detangle,Edge after detangle\n";
     for(AssemblyGraph::EdgeId newEdgeId=0; newEdgeId<newEdges.size(); newEdgeId++) {
         const AssemblyPathGraph2::edge_descriptor e = newEdges[newEdgeId];
         const AssemblyPathGraph2Edge edge = graph[e];
-        csv << edge << "," << newEdgeId << "\n";
+        // csv << edge << "," << newEdgeId << "\n";
         const AssemblyPathGraph2::vertex_descriptor v0 = source(e, graph);
         const AssemblyPathGraph2::vertex_descriptor v1 = target(e, graph);
 
