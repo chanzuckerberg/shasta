@@ -1063,8 +1063,6 @@ void shasta::main::mode0Assembly(
         assembler.createAssemblyGraphVertices();
     }
 
-    assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
-
     // Compute optimal repeat counts for each vertex of the marker graph.
     assembler.assembleMarkerGraphVertices(threadCount);
 

@@ -243,8 +243,8 @@ void Assembler::createAssemblyGraphEdges()
     assemblyGraph.createMarkerToAssemblyTable(edges.size());
 
 
-
-    // Create a histogram of size (chain length) of assembly graph vertices.
+#if 0
+    // Create a histogram of size (chain length) of assembly graph edges.
     vector<size_t> histogram;
     for(EdgeId edgeId=0; edgeId<assemblyGraph.edgeLists.size(); edgeId++) {
         const size_t size = assemblyGraph.edgeLists.size(edgeId);
@@ -261,6 +261,7 @@ void Assembler::createAssemblyGraphEdges()
             csv << size << "," << frequency << "\n";
         }
     }
+#endif
 }
 
 
