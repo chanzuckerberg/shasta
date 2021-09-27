@@ -100,7 +100,7 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
             // See if --config specifies a configuration file.
             ifstream configFile(commandLineOnlyOptions.configName);
             if (!configFile) {
-                throw runtime_error("The --config option does not specify a built-in configuration, and config file. " +
+                throw runtime_error("The --config option does not specify a built-in configuration, and config file " +
                     commandLineOnlyOptions.configName + " could not be opened.");
             }
             store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);

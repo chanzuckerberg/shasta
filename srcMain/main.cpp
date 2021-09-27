@@ -60,6 +60,7 @@ namespace shasta {
         void createBashCompletionScript(const AssemblerOptions&);
         void listCommands();
         void listConfigurations();
+        void listConfiguration(const AssemblerOptions&);
 
 #ifdef SHASTA_HTTP_SERVER
         void explore(const AssemblerOptions&);
@@ -72,6 +73,7 @@ namespace shasta {
             "explore",
             "filterReads",
             "listCommands",
+            "listConfiguration",
             "listConfigurations",
             "saveBinaryData"};
 
@@ -186,6 +188,9 @@ void shasta::main::main(int argumentCount, const char** arguments)
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "listConfigurations") {
         listConfigurations();
+        return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "listConfiguration") {
+        listConfiguration(assemblerOptions);
         return;
     }
 
@@ -1608,6 +1613,28 @@ void shasta::main::listConfigurations()
         "See shasta/conf for examples of configuration files. "
         "Each of the above configurations has a corresponding "
         "configuration file in shasta/conf." << endl;
+}
+
+
+
+void shasta::main::listConfiguration(const AssemblerOptions& options)
+{
+    const string& configName = options.commandLineOnlyOptions.configName;
+
+    if(configName.empty()) {
+        throw runtime_error("Specify --config with a valid configuration name.");
+    }
+
+    auto it = configurationTable.find(configName);
+    if(it == configurationTable.end()) {
+        const string message = configName + " is not a valid configuration name.";
+        cout << message << endl;
+        listConfigurations();
+        throw runtime_error(configName);
+    }
+
+    const string& configuration = it->second;
+    cout << configuration << flush;
 }
 
 
