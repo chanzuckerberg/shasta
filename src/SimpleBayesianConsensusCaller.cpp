@@ -142,19 +142,24 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
     } else {
 
         if(constructorString.size()==0 || constructorString[0]!='/') {
-            const string errorMessage = constructorString + " is not the name of a built-in Bayesian model "
+            string errorMessage = constructorString + " is not the name of a built-in Bayesian model "
                 "and therefore it must be an absolute path to a configuration file. "
                 "A relative path is not accepted. "
-                "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a, "
-                "guppy-3.4.4-a, guppy-3.6.0-a, r10-guppy-3.4.8-a, bonito-0.3.1-a, guppy-5.0.7-a.";
+                "Valid built-in choices are:";
+            for(const string& name: builtIns) {
+                errorMessage += " " + name;
+            }
+            errorMessage += ".";
             throw runtime_error(errorMessage);
         }
         ifstream matrixFile(constructorString);
         if (not matrixFile.good()) {
-            const string errorMessage = constructorString + " is not a built-in Bayesian model "
+            string errorMessage = constructorString + " is not a built-in Bayesian model "
                 "and could not be open as a configuration file. "
-                "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a, "
-                "guppy-3.4.4-a, guppy-3.6.0-a, r10-guppy-3.4.8-a, bonito-0.3.1-a, guppy-5.0.7-a.";
+                "Valid built-in choices are:";
+            for(const string& name: builtIns) {
+                errorMessage += " " + name;
+            }
             throw runtime_error(errorMessage);
         }
         validate_text_file(constructorString);

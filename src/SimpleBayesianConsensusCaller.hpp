@@ -33,6 +33,7 @@ must take into account which strand each read is on.
 #include "fstream.hpp"
 #include <map>
 #include <limits>
+#include <set>
 #include "string.hpp"
 
 namespace shasta {
@@ -66,6 +67,8 @@ public:
     virtual Consensus operator()(const Coverage&) const;
 
     static bool isBuiltIn(const string&);
+
+    static const std::set<string> builtIns;
 
 private:
 

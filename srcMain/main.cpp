@@ -9,11 +9,13 @@
 #include "AssemblerOptions.hpp"
 #include "AssemblyGraph.hpp"
 #include "buildId.hpp"
+#include "ConfigurationTable.hpp"
 #include "Coverage.hpp"
 #include "filesystem.hpp"
 #include "Reads.hpp"
 #include "timestamp.hpp"
 #include "platformDependent.hpp"
+#include "SimpleBayesianConsensusCaller.hpp"
 
 // Standard library.
 #include <filesystem>
@@ -62,7 +64,7 @@ namespace shasta {
         void explore(const AssemblerOptions&);
 #endif
 
-        std::set<string> commands = {
+        const std::set<string> commands = {
             "assemble",
             "cleanupBinaryData",
             "createBashCompletionScript",
@@ -1545,14 +1547,36 @@ void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerO
         file << "--" << option->long_name() << " \\\n";
     }
 
+    // Commands.
+    for(const auto& command: commands) {
+        file << command << " \\\n";
+    }
+
+    // Built-in configurations.
+    for(const auto& p: configurationTable) {
+        file << p.first << " \\\n";
+    }
+
+    // Bayesian models.
+    for(const string& name: SimpleBayesianConsensusCaller::builtIns) {
+        file << name << " \\\n";
+    }
+
     // Other keywords. This should be modified to only accept them after the appropriate option.
-    file << "assemble saveBinaryData cleanupBinaryData explore createBashCompletionScript filterReads\\\n";
     file << "filesystem anonymous \\\n";
     file << "disk 4K 2M \\\n";
     file << "user local unrestricted \\\n";
+    file << "Bayesian Modal Median \\\n";
 
     // Finish the "complete" command.
     file << "\" shasta\n";
+
+    cout << "Created shastaCompletion.sh. "
+        "In the bash shell, use the following command to "
+        "get shell command completion when invoking Shasta:\n"
+        "source shastaCompletion.sh\n"
+        "This makes it easier to type when running Shasta." << endl;
+
 }
 
 
