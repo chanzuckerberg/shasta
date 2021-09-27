@@ -56,10 +56,21 @@ namespace shasta {
         void saveBinaryData(const AssemblerOptions&);
         void cleanupBinaryData(const AssemblerOptions&);
         void createBashCompletionScript(const AssemblerOptions&);
+        void listCommands();
 
 #ifdef SHASTA_HTTP_SERVER
         void explore(const AssemblerOptions&);
 #endif
+
+        std::set<string> commands = {
+            "assemble",
+            "cleanupBinaryData",
+            "createBashCompletionScript",
+            "explore",
+            "filterReads",
+            "listCommands",
+            "saveBinaryData"};
+
     }
 }
 using namespace shasta;
@@ -135,6 +146,14 @@ void shasta::main::main(int argumentCount, const char** arguments)
     AssemblerOptions assemblerOptions(argumentCount, arguments);
     cout << buildId() << endl;
 
+    // Check that we have a valid command.
+    auto it = commands.find(assemblerOptions.commandLineOnlyOptions.command);
+    if(it ==commands.end()) {
+        const string message = "Invalid command " + assemblerOptions.commandLineOnlyOptions.command;
+        listCommands();
+        throw runtime_error(message);
+    }
+
 
 
     // Execute the requested command.
@@ -158,11 +177,14 @@ void shasta::main::main(int argumentCount, const char** arguments)
     } else if(assemblerOptions.commandLineOnlyOptions.command == "createBashCompletionScript") {
         createBashCompletionScript(assemblerOptions);
         return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "listCommands") {
+        listCommands();
+        return;
     }
 
-    // If getting here, the requested command is invalid.
-    throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command +
-        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData, createBashCompletionScript, filterReads.");
+    // We already checked for a valid command above, so if we get here
+    // the above logic is missing code for one of the valid commands.
+    SHASTA_ASSERT(0);
 
 }
 
@@ -1532,3 +1554,15 @@ void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerO
     // Finish the "complete" command.
     file << "\" shasta\n";
 }
+
+
+
+void shasta::main::listCommands()
+{
+    cout << "Valid commands are:" << endl;
+    for(const string command: commands) {
+        cout << command << endl;
+    }
+}
+
+
