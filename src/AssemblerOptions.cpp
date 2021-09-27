@@ -1,4 +1,5 @@
 #include "AssemblerOptions.hpp"
+#include "ConfigurationTable.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "buildId.hpp"
 #include "filesystem.hpp"
@@ -79,16 +80,35 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
         ::exit(0);
     }
 
-    // Get options from the config file, if one was specified.
+
+
+    // Get options from the config file or built-in configuration, if one was specified.
     if(!commandLineOnlyOptions.configFileName.empty()) {
-        ifstream configFile(commandLineOnlyOptions.configFileName);
-        if (!configFile) {
-            throw runtime_error("Unable to open config file " +
-                commandLineOnlyOptions.configFileName);
+
+        // Look it up in our configuration table.
+        const string* builtInConfiguration = getConfiguration(commandLineOnlyOptions.configFileName);
+
+        if(builtInConfiguration) {
+
+            // --config specifies a built-in configuration. Get options from that.
+            std::istringstream s(*builtInConfiguration);
+            store(parse_config_file(s, configurableOptionsDescription), variablesMap);
+            notify(variablesMap);
+
+        } else {
+
+            // See if --config specifies a configuration file.
+            ifstream configFile(commandLineOnlyOptions.configFileName);
+            if (!configFile) {
+                throw runtime_error("The --config option does not specify a built-in configuration, and config file. " +
+                    commandLineOnlyOptions.configFileName + " could not be opened.");
+            }
+            store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
+            notify(variablesMap);
         }
-        store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
-        notify(variablesMap);
     }
+
+
 
     // Parse MarkerGraph.simplifyMaxLength.
     markerGraphOptions.parseSimplifyMaxLength();
