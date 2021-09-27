@@ -83,10 +83,10 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
 
 
     // Get options from the config file or built-in configuration, if one was specified.
-    if(!commandLineOnlyOptions.configFileName.empty()) {
+    if(!commandLineOnlyOptions.configName.empty()) {
 
         // Look it up in our configuration table.
-        const string* builtInConfiguration = getConfiguration(commandLineOnlyOptions.configFileName);
+        const string* builtInConfiguration = getConfiguration(commandLineOnlyOptions.configName);
 
         if(builtInConfiguration) {
 
@@ -98,10 +98,10 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
         } else {
 
             // See if --config specifies a configuration file.
-            ifstream configFile(commandLineOnlyOptions.configFileName);
+            ifstream configFile(commandLineOnlyOptions.configName);
             if (!configFile) {
                 throw runtime_error("The --config option does not specify a built-in configuration, and config file. " +
-                    commandLineOnlyOptions.configFileName + " could not be opened.");
+                    commandLineOnlyOptions.configName + " could not be opened.");
             }
             store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
             notify(variablesMap);
@@ -140,8 +140,9 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Identify the Shasta version.")
 
         ("config",
-        value<string>(&commandLineOnlyOptions.configFileName),
-        "Configuration file name.")
+        value<string>(&commandLineOnlyOptions.configName),
+        "Configuration name. Can be the name of a built-in configuration "
+        "or the name of a configuration file.")
 
         ("input",
         value< vector<string> >(&commandLineOnlyOptions.inputFileNames)->multitoken(),

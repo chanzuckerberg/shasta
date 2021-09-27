@@ -89,7 +89,7 @@ namespace shasta {
 // Options only allowed on the command line and not in the configuration file.
 class shasta::CommandLineOnlyOptions {
 public:
-    string configFileName;
+    string configName;
     vector <string> inputFileNames;
     string assemblyDirectory;
     string command;
