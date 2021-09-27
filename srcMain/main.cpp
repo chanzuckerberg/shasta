@@ -59,6 +59,7 @@ namespace shasta {
         void cleanupBinaryData(const AssemblerOptions&);
         void createBashCompletionScript(const AssemblerOptions&);
         void listCommands();
+        void listConfigurations();
 
 #ifdef SHASTA_HTTP_SERVER
         void explore(const AssemblerOptions&);
@@ -71,6 +72,7 @@ namespace shasta {
             "explore",
             "filterReads",
             "listCommands",
+            "listConfigurations",
             "saveBinaryData"};
 
     }
@@ -181,6 +183,9 @@ void shasta::main::main(int argumentCount, const char** arguments)
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "listCommands") {
         listCommands();
+        return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "listConfigurations") {
+        listConfigurations();
         return;
     }
 
@@ -1587,6 +1592,22 @@ void shasta::main::listCommands()
     for(const string command: commands) {
         cout << command << endl;
     }
+}
+
+
+
+void shasta::main::listConfigurations()
+{
+    cout << "Valid Shasta built-in configurations are:" << endl;
+    for(const auto& p: configurationTable) {
+        cout << p.first << endl;
+    }
+    cout << "In the command line, after --config, "
+        "you can specify any of the above configuration names, "
+        "or the name of a configuration file. "
+        "See shasta/conf for examples of configuration files. "
+        "Each of the above configurations has a corresponding "
+        "configuration file in shasta/conf." << endl;
 }
 
 
