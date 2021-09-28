@@ -165,8 +165,17 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // Execute the requested command.
     if(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
         assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
+
+        // For assemblies we also echo out the command line options.
+        cout << timestamp << "Assembly begins with the following command line:" << endl;
+        for(int i=0; i<argumentCount; i++) {
+            cout << arguments[i] << " ";
+        }
+        cout << endl;
+
         assemble(assemblerOptions);
         return;
+
     } else if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
         cleanupBinaryData(assemblerOptions);
         return;
@@ -209,27 +218,12 @@ void shasta::main::assemble(
     SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
         assemblerOptions.commandLineOnlyOptions.command == "filterReads");
 
-    const string startupMessage =
-        "\nTo run an assembly, use the \"--input\" option to specify the input files. "
-        "Use the \"--help\" option for a description of the other options and parameters.\n\n"
-        "Default values of assembly parameters are not recommended for any "
-        "specific application and mostly reflect approximate compatibility "
-        "with previous releases."
-        "See the shasta/conf or shasta-install/conf directory for "
-        "sample configuration files containing assembly parameters "
-        "for specific applications.\n\n"
-        "For more information about the Shasta assembler, see\n"
-        "https://github.com/chanzuckerberg/shasta\n\n"
-        "Complete documentation for the latest version of Shasta is available here:\n"
-        "https://chanzuckerberg.github.io/shasta\n";
-
-
 
     // Various checks for option validity.
 
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
-        cout << startupMessage << assemblerOptions.allOptionsDescription << endl;
+        cout << assemblerOptions.allOptionsDescription << endl;
         throw runtime_error("Specify at least one input file "
             "using command line option \"--input\".");
     }
@@ -272,9 +266,6 @@ void shasta::main::assemble(
         assemblerOptions.readGraphOptions.strandSeparationMethod != 2) {
         throw runtime_error("--Assembly.mode 2 requires --ReadGraph.strandSeparationMethod 2.");
     }
-
-    // Write a startup message.
-    cout << timestamp << startupMessage << endl;
 
     // Find absolute paths of the input files.
     // We will use them below after changing directory to the output directory.
@@ -329,28 +320,12 @@ void shasta::main::assemble(
 
 
 
-    // Write out the option values we are using.
-    // This code should should be moved to AssemblerOptions::write.
-    cout << "Options in use:" << endl;
-    cout << "Input files: ";
-    copy(
-        assemblerOptions.commandLineOnlyOptions.inputFileNames.begin(),
-        assemblerOptions.commandLineOnlyOptions.inputFileNames.end(),
-        ostream_iterator<string>(cout, " "));
-    cout << endl;
-    cout << "assemblyDirectory = " <<
-        assemblerOptions.commandLineOnlyOptions.assemblyDirectory << endl;
-#ifdef __linux__
-    cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
-    cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << endl;
-    cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << endl;
-#endif
-    cout << endl;
-    assemblerOptions.write(cout);
+    // Write out the option in effect to shasta.conf.
     {
         ofstream configurationFile("shasta.conf");
         assemblerOptions.write(configurationFile);
     }
+    cout << "For options in use for this assembly, see shasta.conf in the assembly directory." << endl;
 
 
 
