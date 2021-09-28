@@ -675,6 +675,7 @@ minAlignedFraction = 0.1
 
 [ReadGraph]
 creationMethod = 2
+strandSeparationMethod = 2
 
 [MarkerGraph]
 minCoverage = 6
