@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+<main>
+<div class="goto-index"><a href="index.html">Table of contents</a></div>
+<h2>Shasta commands</h2>
+
+<p>
+Shasta is most commonly used to run an assembly.
+However, it provides additional utility functions
+via command line option 
+<a href="CommandLineOptions.html#command"><code>--command</code></a>.
+Following <code>--command</code>, you specify a command name
+which can be one of the following:
+
+<ul>
+<li><code>assemble</code>
+<li><code>cleanupBinaryData</code>
+<li><code>createBashCompletionScript</code>
+<li><code>explore</code>
+<li><code>filterReads</code>
+<li><code>listCommands</code>
+<li><code>listConfiguration</code>
+<li><code>listConfigurations</code>
+<li><code>saveBinaryData</code>
+</ul>
+
+You can also use the following to get an up to date list
+of valid Shasta commands:
+<br>
+<code>
+shasta --command listCommands
+</code>
+<br>
+The default command is <code>assemble</code>, so you don't need to use the 
+<code>--command</code> option to run an assembly.
+
+<p>
+The rest of this page provides a brief description of the functionality
+provided by each of these commands.
+
+<h3 id=assemble>Command <code>assemble</code></h3>
+<p>
+This is the default command and is used to run an assembly.
+See <a href="Running.html">here</a> for more information.
+
+
+<h3 id=cleanupBinaryData>Command <code>cleanupBinaryData</code></h3>
+<p>
+This is used to unmount the filesystem in memory used to
+hold Shasta binary data, mounted at the <code>Data</code>
+directory under the assembly directory. 
+This frees the memory (in 4 Kb or 2 MB pages 
+depending on the setting of <code>--memoryBacking</code>)
+used to store data in the filesystem.
+
+<p>
+This also removes the <code>Data</code> directory.
+If a <code>DataOnDisk</code> directory exists,
+it creates a symbolic link to it, named <code>Data</code>.
+This makes it possible to use Shasta http server functionality
+and the Python API even after the binary data are 
+no longer in memory, as long as they were saved 
+on disk using <a href="#saveBinaryData"><code>--command saveBinaryData</code></a>.
+
+<p>
+This command may require root privilege via <code>sudo</code>,
+depending on the setting of 
+<code>--memoryBacking</code>.
+See <a href="Running.html">here</a> for more information.
+
+<h3>Command <code>createBashCompletionScript</code></h3>
+<p>
+Running this command creates a Bash completion script 
+that provides completion of Shasta commands to facilitate typing.
+The script is named <code>shastaCompletion.sh</code>
+and can be invoked from a Bash shell as follows:
+<code>
+source shastaCompletion.sh
+</code>
+<p>
+See <a href="CommandLineOptions.html#bashCompletion">here</a> for more information.
+
+<h3>Command <code>explore</code></h3>
+<p>
+This command starts Shasta in a mode in which it behaves as an
+http server. You can use a browser to connect to it
+and visualize detailed information about your assembly.
+This requires the binary data for the assembly to be available.
+
+See <a href="InspectingResults.html">here</a> for more information.
+
+
+
+<h3>Command <code>filterReads</code></h3>
+<p>This command is experimental and is useful mostly for Shasta development.
+It is intended to allow the user to perform read processing 
+separately from running an assembly.
+Invoking <code>filterReads</code> will run Shasta, loading the reads, 
+applying thresholds, and removing palindromes as is normally 
+done during assembly, 
+but the list of passing reads is written to a csv file and Shasta terminates once all reads are processed. 
+The Shasta command line arguments with a <code>--Reads</code> prefix 
+therefore all apply to the <code>filterReads</code> command.
+This writes the names of all reads marked palindromic to 
+<code>PalindromicReads.csv</code>
+and a list of all remaining reads longer than 
+<code>--Reads.minReadLength</code>
+to <code>PassingReads.csv</code>.
+
+
+
+<h3>Command <code>listCommands</code></h3>
+<p>
+This command prints an updated list of all
+valid commands known to the Shasta executable
+being invoked.
+
+<h3>Command <code>listConfiguration</code></h3>
+<p>
+A configuration is a built-in set of Shasta command line options
+that can be selected by name. 
+To print details of a specific configuration, use:
+<code>
+shasta --command listConfiguration --config Name
+</code>
+For example
+<code>
+shasta --command listConfiguration --config Nanopore-Sep2020
+</code>
+To see a list of available configuration names, use
+<code>
+shasta --command listConfigurations
+</code>
+<p>
+You can also create a configuration with 
+command line options that you select
+and store it in a file. 
+See <a href="CommandLineOptions.html#ConfigFile">here</a>
+for more information.
+
+
+
+<h3>Command <code>listConfigurations</code></h3>
+<p>
+A configuration is a built-in set of Shasta command line options
+that can be selected by name. 
+This command prints a list of the available configurations.
+See <a href="CommandLineOptions#ConfigFile">here</a>
+for more information.
+
+
+<h3 id=saveBinaryData>Command <code>saveBinaryData</code></h3>
+<p>
+This is used to save Shasta binary data.
+Binary data are stored in directory <code>Data</code> in the assembly directory.
+This command makes a copy on disk in <code>Data</code>. 
+You will usually want to run 
+<code>--command cleanupBinaryData</code>
+after this command completes.
+
+<p>
+This command may require root privilege via <code>sudo</code>,
+depending on the setting of 
+<code>--memoryBacking</code>.
+See <a href="Running.html">here</a> for more information.
+
+
+<p>
+<div class="goto-index"><a href="index.html">Table of contents</a></div>
+</main>
+</body>
+</html>
+
