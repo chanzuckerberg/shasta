@@ -35,10 +35,12 @@ Wait for that build to complete.
 <li>Download the 3 artifacts. Unzip them and rename them to the following:
 <ul>
 <li><code>shasta-Linux-X.Y.Z</code>
-<li><code>shasta-macOS-X.Y.Z</code>
+<li><code>shasta-macOS-10-X.Y.Z</code>
 <li><code>shasta-Ubuntu-20.04-X.Y.Z.tar</code>
 </ul>
-<li> Build Shasta for 64-bit ARM (<code>aarch64</code>). Github Actions currently don't support <code>aarch64</code> containers. So the easiest way to do this is on a Graviton2 ec2 instance in AWS. On an <code>aarch64</code> instance running Ubuntu 20.04 LTS, do the following:
+<li>Build Shasta for macOS 11. Github Actions currently don't support macOS 11 so we have to 
+build it on an AWS instance. Download the executable and rename it <code>shasta-macOS-11-X.Y.Z</code>
+<li>Build Shasta for 64-bit ARM (<code>aarch64</code>). Github Actions currently don't support ARM. So the easiest way to do this is on a Graviton2 ec2 instance in AWS as follows:
 <ul>
 <li><code>git clone git@github.com:chanzuckerberg/shasta.git
 sudo ./shasta/scripts/InstallPrerequisites-Ubuntu.sh
@@ -47,7 +49,7 @@ cd shasta-build
 cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z for 64 bit ARM"
 make install -j
 </code></li>
-<li>Download the <code>aarch64</code> Shasta binary (using <code>scp</code>) and rename it to <code>shasta-Linux-ARM-X.Y.Z</code>. This is the seventh artifact for the release.</li>
+<li>Download the <code>aarch64</code> Shasta binary (using <code>scp</code>) and rename it to <code>shasta-Linux-ARM-X.Y.Z</code>. </li>
 </ul>
 </li>
 
