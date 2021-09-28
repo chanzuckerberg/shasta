@@ -101,7 +101,9 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
             ifstream configFile(commandLineOnlyOptions.configName);
             if (!configFile) {
                 throw runtime_error("The --config option does not specify a built-in configuration, and config file " +
-                    commandLineOnlyOptions.configName + " could not be opened.");
+                    commandLineOnlyOptions.configName + " could not be opened. "
+                    "Use \"shasta --command listConfigurations\" to get a list of valid "
+                    "built-in configurations.");
             }
             store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
             notify(variablesMap);
