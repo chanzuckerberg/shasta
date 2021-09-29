@@ -105,8 +105,11 @@ private:
 
     // Read an entire file into a buffer,
     // using threadCountForReading threads.
+    int64_t fileSize;
     MemoryMapped::Vector<char> buffer;
+    void allocateBuffer();
     void readFile();
+    void allocateBufferAndReadFile();
 
     // Vectors where each thread stores the reads it found.
     // Indexed by threadId.
