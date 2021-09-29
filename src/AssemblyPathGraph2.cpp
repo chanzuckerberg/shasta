@@ -300,7 +300,7 @@ bool AssemblyPathGraph2::createTangleAtEdge(edge_descriptor e01)
 
     tangle.tangleId = nextTangleId;
     tangles.insert(make_pair(nextTangleId++, tangle));
-    cout << "Created tangle " << tangle.tangleId << " at " << graph[e01] << endl;
+    // cout << "Created tangle " << tangle.tangleId << " at " << graph[e01] << endl;
 
     return true;
 }
@@ -473,7 +473,7 @@ void AssemblyPathGraph2::detangle(
     Tangle2Id tangleId,
     vector<edge_descriptor>& newEdges)
 {
-    cout << "Detangling tangle " << tangleId << endl;
+    // cout << "Detangling tangle " << tangleId << endl;
     AssemblyPathGraph2& graph = *this;
     Tangle2& tangle = getTangle(tangleId);
     SHASTA_ASSERT(tangle.isSolvable);
@@ -523,8 +523,10 @@ void AssemblyPathGraph2::detangle(
         SHASTA_ASSERT(edge.tangle == invalidTangle2Id);
         if(edge.inTangle != invalidTangle2Id) {
             tanglesToBeRemoved.push_back(edge.inTangle);
+            /*
             cout << "Will remove preceding tangle " << edge.inTangle <<
                 " due to tangle in-edge " << edge << endl;
+            */
         }
     }
     for(const edge_descriptor e: tangle.outEdges) {
@@ -533,15 +535,17 @@ void AssemblyPathGraph2::detangle(
         SHASTA_ASSERT(edge.inTangle == tangleId);
         if(edge.outTangle != invalidTangle2Id) {
             tanglesToBeRemoved.push_back(edge.outTangle);
+            /*
             cout << "Will remove following tangle " << edge.outTangle <<
                 " due to tangle out-edge " << edge << endl;
+            */
         }
     }
     deduplicate(tanglesToBeRemoved);
-    cout << "Removing " << tanglesToBeRemoved.size() << " adjacent tangles." << endl;
+    // cout << "Removing " << tanglesToBeRemoved.size() << " adjacent tangles." << endl;
     for(const Tangle2Id tangleId: tanglesToBeRemoved) {
         removeTangle(tangleId);
-        cout << "Removed adjacent tangle " << tangleId << endl;
+        // cout << "Removed adjacent tangle " << tangleId << endl;
     }
 
 
@@ -613,8 +617,10 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     const Tangle2Id tangleIdB = getReverseComplementTangle(tangleIdA);
     Tangle2& tangleB = getTangle(tangleIdB);
 
+    /*
     cout << "Detangling colliding pair of reverse complement tangles " <<
         tangleIdA << " " << tangleIdB << endl;
+    */
     SHASTA_ASSERT(tangleA.isSolvable);
     SHASTA_ASSERT(tangleB.isSolvable);
     AssemblyPathGraph2& graph = *this;
@@ -641,9 +647,11 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
         tangleB.isSolvable = false;
         tangleA.priority = 0;
         tangleB.priority = 0;
+        /*
         cout << "Unusual arrangement of colliding pair of reverse complement tangles " <<
             tangleIdA << " " << tangleIdB <<
             "  was marked as unsolvable." << endl;
+        */
         return;
     }
     if(BFollowsA and AFollowsB) {
@@ -653,9 +661,11 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
         tangleB.isSolvable = false;
         tangleA.priority = 0;
         tangleB.priority = 0;
+        /*
         cout << "Colliding pair of reverse complement tangles " <<
             tangleIdA << " " << tangleIdB <<
             " follow each other and were marked as unsolvable." << endl;
+        */
         return;
     }
 
@@ -670,7 +680,7 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     } else {
         SHASTA_ASSERT(BFollowsA);
     }
-    cout << "Tangle2 " << tangleId1 << " follows tangle " << tangleId0 << endl;
+    // cout << "Tangle2 " << tangleId1 << " follows tangle " << tangleId0 << endl;
     const Tangle2& tangle0 = getTangle(tangleId0);
     const Tangle2& tangle1 = getTangle(tangleId1);
 
@@ -758,8 +768,10 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
         SHASTA_ASSERT(edge.tangle == invalidTangle2Id);
         if(edge.inTangle != invalidTangle2Id) {
             tanglesToBeRemoved.push_back(edge.inTangle);
+            /*
             cout << "Will remove preceding tangle " << edge.inTangle <<
                 " due to tangle in-edge " << edge << endl;
+            */
         }
     }
     for(const edge_descriptor e: tangle1.outEdges) {
@@ -768,15 +780,17 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
         SHASTA_ASSERT(edge.inTangle == tangleId1);
         if(edge.outTangle != invalidTangle2Id) {
             tanglesToBeRemoved.push_back(edge.outTangle);
+            /*
             cout << "Will remove following tangle " << edge.outTangle <<
                 " due to tangle out-edge " << edge << endl;
+            */
         }
     }
     deduplicate(tanglesToBeRemoved);
-    cout << "Removing " << tanglesToBeRemoved.size() << " adjacent tangles." << endl;
+    // cout << "Removing " << tanglesToBeRemoved.size() << " adjacent tangles." << endl;
     for(const Tangle2Id tangleId: tanglesToBeRemoved) {
         removeTangle(tangleId);
-        cout << "Removed adjacent tangle " << tangleId << endl;
+        // cout << "Removed adjacent tangle " << tangleId << endl;
     }
 
 
