@@ -219,6 +219,20 @@ void shasta::main::assemble(
 
     // Various checks for option validity.
 
+    if(assemblerOptions.commandLineOnlyOptions.configName.empty()) {
+        cout <<
+            "Option \"--config\" is missing and is now required to "
+            "run an assembly.\n"
+            "It must specify either a configuration file\n"
+            "or one of the following built-in configurations:\n";
+        for(const auto& p: configurationTable) {
+            cout << p.first << endl;
+        }
+        throw runtime_error(
+            "Option \"--config\" is missing "
+            "and is now required to run an assembly.");
+    }
+
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
         cout << assemblerOptions.allOptionsDescription << endl;

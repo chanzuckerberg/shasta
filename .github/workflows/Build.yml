@@ -27,7 +27,7 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-Ubuntu-20.04/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
+        shasta-build/shasta-Ubuntu-20.04/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
@@ -60,7 +60,7 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-Ubuntu-20.04/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta --Reads.noCache
+        shasta-build/shasta-Ubuntu-20.04/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta --Reads.noCache
         ls -l ShastaRun/Assembly.fasta
     
        
@@ -84,7 +84,7 @@ jobs:
       run: |
         brew install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-install/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
+        shasta-build/shasta-install/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
@@ -112,7 +112,7 @@ jobs:
   #   run: |
   #     brew install gzip
   #     gunzip tests/TinyTest.fasta.gz
-  #     shasta-build/shasta-install/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
+  #     shasta-build/shasta-install/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
   #     ls -l ShastaRun/Assembly.fasta
   # - uses: actions/upload-artifact@master
   #   with:
