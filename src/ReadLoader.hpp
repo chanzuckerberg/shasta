@@ -108,7 +108,7 @@ private:
     int64_t fileSize;
     MemoryMapped::Vector<char> buffer;
     void allocateBuffer();
-    void readFile();
+    bool readFile(bool useODirect);
     void allocateBufferAndReadFile();
 
     // Vectors where each thread stores the reads it found.
@@ -142,9 +142,6 @@ private:
     vector< vector<uint64_t> > threadLineEnds;
     vector<uint64_t> lineEnds;
 
-#ifdef __linux__
-    int tryDirectIO(const string& fileName);
-#endif
 };
 
 

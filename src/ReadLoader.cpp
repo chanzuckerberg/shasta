@@ -525,37 +525,33 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
     }
 }
 
-#ifdef __linux__
-int ReadLoader::tryDirectIO(const string& fileName) {
-    auto fd = ::open(fileName.c_str(), O_RDONLY | O_DIRECT);
-    if (fd == -1) {
-        // This could happen for a variety of reasons. If the file is readable and it still cannot
-        // be opened, it is likely that the volume/file-system does not support the O_DIRECT flag.
-        return O_RDONLY;
-    }
-    
-    // Verify that the O_DIRECT flag is actually supported. Sometimes the error shows up in the read call.
-    MemoryMapped::Vector<char> tempBuffer;
-    tempBuffer.createNew("tmp-odirectReadTestBuffer", pageSize, pageSize);
-    auto bytesRead = ::read(fd, &tempBuffer[0], pageSize);
-    ::close(fd);
-    tempBuffer.remove();
-    if (bytesRead == -1) {
-        return O_RDONLY;
-    }
-
-    // File can be opened and read using Direct IO.
-    return O_RDONLY | O_DIRECT;
-}
-#endif
-
 
 
 void ReadLoader::allocateBufferAndReadFile()
 {
     allocateBuffer();
-    readFile();
+
+    // Try reading using the requested setting of noCache/O_DIRECT.
+    // If successful, all done.
+    if(readFile(noCache)) {
+        return;
+    }
+
+    // If there was failure and we are using noCache, try turning it off.
+    // If successful, all done.
+#ifdef __linux__
+    if(noCache) {
+        cout << "Turning off --Reads.noCache for " << fileName << endl;
+        if(readFile(false)) {
+            return;
+        }
+    }
+#endif
+
+    // If getting here, nothing worked.
+    throw runtime_error("Error reading " + fileName);
 }
+
 
 
 void ReadLoader::allocateBuffer()
@@ -580,24 +576,22 @@ void ReadLoader::allocateBuffer()
 
 
 // Read an entire file into the buffer.
-void ReadLoader::readFile()
+bool ReadLoader::readFile(bool useODirect)
 {
     const auto t0 = std::chrono::steady_clock::now();
 
-    // Open the input file.
+    // Set up flags to open the file.
     int flags = O_RDONLY;
 #ifdef __linux__
-    if(noCache) {
-        flags = tryDirectIO(fileName);
-        if (flags != (O_RDONLY | O_DIRECT)) {
-            cout << "--Reads.noCache was turned off for " << fileName
-                << " because it is not supported by the filesystem." << endl;
-        }
+    if(useODirect) {
+        flags |= O_DIRECT;
     }
 #endif
+
+    // Open the input file.
     const int fileDescriptor = ::open(fileName.c_str(), flags);
     if(fileDescriptor == -1) {
-        throw runtime_error("Error opening " + fileName + " for read.");
+        return false;
     }
 
     // Read it in.
@@ -608,8 +602,7 @@ void ReadLoader::readFile()
         const int64_t bytesRead = ::read(fileDescriptor, bufferPointer, bufferCapacity);
         if(bytesRead == -1) {
             ::close(fileDescriptor);
-            throw runtime_error("Error reading from " + fileName + " near offset " +
-                to_string(buffer.size()-bytesToRead));
+            return false;
         }
         bufferPointer += bytesRead;
         bytesToRead -= bytesRead;
@@ -621,6 +614,7 @@ void ReadLoader::readFile()
 
     cout << "Read time: " << t01 << " s." << endl;
     cout << "Read rate: " << double(fileSize) / t01 << " bytes/s." << endl;
+    return true;
 }
 
 
