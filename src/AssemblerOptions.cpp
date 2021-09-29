@@ -100,10 +100,14 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
             // See if --config specifies a configuration file.
             ifstream configFile(commandLineOnlyOptions.configName);
             if (!configFile) {
-                throw runtime_error("The --config option does not specify a built-in configuration, and config file " +
-                    commandLineOnlyOptions.configName + " could not be opened. "
-                    "Use \"shasta --command listConfigurations\" to get a list of valid "
-                    "built-in configurations.");
+                string message =
+                    "The --config option does not specify a "
+                    "valid built-in configuration or configuration file. "
+                    "Valid built-in configurations are the following:\n";
+                for(const auto& p: configurationTable) {
+                    message += p.first + "\n";
+                }
+                throw runtime_error(message);
             }
             store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
             notify(variablesMap);

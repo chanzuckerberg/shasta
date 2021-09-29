@@ -109,8 +109,7 @@ int main(int argumentCount, const char** arguments)
         cout << "Invalid option: " << e.what() << endl;
         return 1;
     } catch (const runtime_error& e) {
-        cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
-        cout << e.what() << endl;
+        cout << timestamp << e.what() << endl;
         return 2;
     } catch (const std::bad_alloc& e) {
         cout << timestamp << e.what() << endl;
@@ -119,8 +118,7 @@ int main(int argumentCount, const char** arguments)
         cout << "Rerun on a larger machine." << endl;
         return 2;
     } catch (const exception& e) {
-        cout << timestamp << "Terminated after catching a standard exception:" << endl;
-        cout << e.what() << endl;
+        cout << timestamp << e.what() << endl;
         return 3;
     } catch (...) {
         cout << timestamp << "Terminated after catching a non-standard exception." << endl;
