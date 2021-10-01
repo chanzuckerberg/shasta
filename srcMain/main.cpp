@@ -264,6 +264,13 @@ void shasta::main::assemble(
             " is not valid. Valid options are 0, 1, 3, and 4.");
     }
 
+    if(assemblerOptions.readGraphOptions.creationMethod != 0 and
+        assemblerOptions.readGraphOptions.creationMethod != 2) {
+        throw runtime_error("--ReadGraph.creationMethod " +
+            to_string(assemblerOptions.readGraphOptions.creationMethod) +
+            " is not valid. Valid values are 0 and 2.");
+    }
+
     // Check assemblerOptions.assemblyOptions.detangleMethod.
     if( assemblerOptions.assemblyOptions.detangleMethod!=0 and
         assemblerOptions.assemblyOptions.detangleMethod!=1 and
