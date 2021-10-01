@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+<main>
+<div class="goto-index"><a href="index.html">Table of contents</a></div>
+
+<h1>Assembly configurations</h1>
+
+<p>
+Shasta provides a number of 
+<a href="CommandLineOptions.html">command line options</a> 
+that can be used to set computational parameters and thresholds
+for assemblies. 
+
+All of these options have default values,
+but the default values are not necessarily optimal for
+any particular combination of a number of factors:
+
+<ul>
+<li>The technology used to generate the reads.
+Technologies currently available to generate the long reads
+supported by Shasta are 
+<a href="https://nanoporetech.com/">Oxford Nanopore</a> (ONT) and 
+<a href="https://www.pacb.com">Pacific BioSciences</a> (HiFi and others).
+<li>The amount of coverage available (average number of reads
+overlapping each genome region).
+<li>The characteristics of the genome being sequenced, including
+heterozygosity, ploidy, and repeats content.
+</ul>
+
+To adjust to these and other factors, 
+options adjustments are generally necessary to achieve
+good quality assemblies.
+To facilitate the process of generating useful assembly options
+for a particular situation, Shasta uses <b>assembly configurations</b>.
+An assembly configuration is a predefined set of assembly options
+that can be stored in a <b>configuration file</b>
+in a format defined 
+<a href="#ConfigFile">below</a>.
+A number of sample configuration files applicable to specific situations
+are provided in <code>shasta/conf</code>.
+The applicability of each of the files is described in comments 
+embedded in each file.
+
+<p>
+Shasta command line option <code>--config</code>
+is used to specify the configuration to be used, as described
+below in details. This option is <b>mandatory</b>
+when running an assembly.
+If any option is specified both in a configuration
+and explictly on the command line, the value
+on the command line takes precedence.
+This allows you to use a configuration as a useful
+set of defaults, while still overriding some of its
+options as desired.
+
+<p>
+In addition to configuration files, Shasta also provides 
+a set of built-in configurations that are compiled 
+in the Shasta executable. These built-in configurations
+can be used without the need for a configuration file.
+Each built-in configuration has a corresponding configuration
+file with the same name in <code>shasta/conf</code>, with 
+an extension <code>.conf</code>. 
+For example, configuration <code>Nanopore-Oct2021</code>
+can be specified in one of two ways:
+
+<pre>
+shasta --config Nanopore-Oct2021
+</pre>
+or
+<pre>
+shasta --config .../shasta/conf/Nanopore-Oct2021.conf
+</pre>
+
+When using the second form, the file must be available,
+and the <code>...</code> should be replaced depending on the
+location of the <code>shasta</code> directory.
+
+<p>
+To obtain a list of available built-in configurations,
+use Shasta command <code>listConfigurations</code> as follows:
+
+<br>
+<pre>
+shasta --command listConfigurations
+</pre>
+
+At the time of writing (October 2021), this outputs the following
+list of built-in configurations:
+
+<pre>
+HiFi-Oct2021
+Nanopore-Dec2019
+Nanopore-Jun2020
+Nanopore-Oct2021
+Nanopore-OldGuppy-Sep2020
+Nanopore-Phased-Aug2021
+Nanopore-Plants-Apr2021
+Nanopore-Sep2020
+Nanopore-UL-Dec2019
+Nanopore-UL-Jun2020
+Nanopore-UL-Oct2021
+Nanopore-UL-Sep2020
+Nanopore-UL-iterative-Sep2020
+</pre>
+
+To get details of a specific built-in configurations
+use Shasta command <code>listConfiguration</code> as follows,
+specifiying the built-in configuration of interest after <code>--config</code>:
+
+<pre>
+shasta --command listConfiguration --config Nanopore-Oct2021
+</pre>
+
+This output includes comments that describe the 
+applicability of the selected configuration.
+Details of the configuration are written out in the configuration
+file format defined below. This allows you to
+create your own configuration file using a built-in configuration 
+as a starting point.
+ 
+
+
+
+<p>
+Shasta command line option <code>--config</code> must be used
+to specified the desired configuration to be used for an assembly.
+The option must specify either a build-in configuration 
+or a path to a configuration file.
+
+
+
+
+
+<h2 id=ConfigFile>Configuration file</h2>
+<p>
+Some options are only allowed on the command line,
+but most of them can also optionally be specified using a configuration file.
+Values specified on the command line take precedence over
+values specified in the configuration file.
+This makes it easy to override specific values in a 
+configuration file.
+
+<p>
+Options that can be specified both on the command line 
+and in a configuration file are of the form 
+<code>--SectionName.optionName</code>. The format of the configuration file
+is as follows:
+
+<pre id=ConfigFile>
+[SectionA]
+option1 = valueA1
+option2 = valueA2
+[SectionB]
+option1 = valueB1
+option2 = valueB2
+</pre>
+The above is equivalent to using the following command line options:
+
+<pre>
+--SectionA.option1 valueA1 
+--SectionA.option2 valueA2 
+--SectionB.option1 valueB1 
+--SectionB.option2 valueB2 
+</pre>
+
+<p>
+For example, the value for option <code>MarkerGraph.minCoverage</code>
+can be specified in the <code>[MarkerGraph]</code>
+section of the configuration file as follows:
+
+<pre>
+[MarkerGraph]
+minCoverage = 0
+</pre>
+
+<p>
+In the configuration file, blank lines and lines begining with <code>#</code>
+are ignored and can be used to add coments and to improve readability
+of the configuration file.
+
+
+
+<h2 id=BooleanSwitches>Boolean switches</h2>
+<p>
+Some command line options are boolean switches,
+that is, control options that can be turned on or off
+rather then be given a value. 
+<p>
+To turn on one of these switches on the command line,
+just add it to the command line without any value, for
+example <code>--Assembly.storeCoverageData</code>.
+To turn it off, just omit it from the command line
+(the default value is turned off).
+<p>
+To turn on one of these switches in a
+configuration file, you can either enter it without value 
+<pre>
+storeCoverageData =
+</pre>
+or assign to it one of the following values:
+<code>1, true, True, yes, Yes</code>.
+To turn off one of these switches in a
+configuration file, assign to it one of the following values:
+<code>0, false, False,no, No</code>. 
+
+<p>
+Boolean switches are indicated as such in the Description column in he tables below.
+
+
+
+<div class="goto-index"><a href="index.html">Table of contents</a></div>
+
+</main>
+</body>
+</html>

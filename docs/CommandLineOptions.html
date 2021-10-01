@@ -23,21 +23,6 @@ of this page.
 
 
 
-<h2 id=Defaults>Defaults</h2>
-<p>
-Default values of Shasta command line options are not 
-recommended for any application scenario, and mostly reflect
-approximate compatibility with previous versions. 
-The <code>shasta/conf</code> or <code>shasta-install/conf</code>
-directories provide sample configuration files (with a <code>.conf</code> extension) containing best known
-sets of assembly parameters for specific applications.
-See the beginning of each configuration file for comments
-on what scenario the file applies to.
-See <a href="#ConfigFile">below</a> for 
-information on how to use a configuration file 
-in a Shasta assembly.
-
-
 <h2 id=bashCompletion>Saving some typing</h2>
 <p>Many option names are long and descriptive, and to make it easier to type them
 Shasta provides the ability to create a <code>bash</code> completion script.
@@ -75,103 +60,6 @@ completion scripts.
 
 
 
-<h2 id=ConfigFile>Configuration file</h2>
-<p>
-Some options are only allowed on the command line,
-but most of them can also optionally be specified using a configuration file.
-A configuration file is specified using command line option <code>--config</code>
-followed by the name of the desired configuration file,
-which can be specified as a relative or absolute path.
-Earlier versions of Shasta required an absolute path, but this
-is no longer the case.
-
-<p>
-See <a href=#Defaults>above</a> for some information
-on Shasta default values and on available sample configuration files.
-
-<p> 
-Values specified on the command line take precedence over
-values specified in the configuration file.
-This makes it easy to override specific values in a 
-configuration file.
-
-<p>
-Options that can be specified in both places are of the form 
-<code>--SectionName.optionName</code>. The format of the configuration file
-is as follows:
-
-<pre id=ConfigFile>
-[SectionA]
-option1 = valueA1
-option2 = valueA2
-[SectionB]
-option1 = valueB1
-option2 = valueB2
-</pre>
-The above is equivalent to using the following command line options:
-
-<pre>
---SectionA.option1 valueA1 
---SectionA.option2 valueA2 
---SectionB.option1 valueB1 
---SectionB.option2 valueB2 
-</pre>
-
-<p>
-For example, the value for option <code>MarkerGraph.minCoverage</code>
-can be specified in the <code>[MarkerGraph]</code>
-section of the configuration file as follows:
-
-<pre>
-[MarkerGraph]
-minCoverage = 0
-</pre>
-
-<p>
-A sample configuration file containing default values
-for all options is provided in the shasta source tree
-at <code>shasta/conf/shasta.conf</code>. I
-It is also available in a Shasta build
-as <code>shasta-install/conf/shasta.conf</code>.
-
-
-<p>
-In the configuration file, blank lines and lines begining with <code>#</code>
-are ignored and can be used to add coments and to improve readability
-of the configuration file.
-
-
-
-<h2 id=BooleanSwitches>Boolean switches</h2>
-<p>
-Some command line options are boolean switches,
-that is, control options that can be turned on or off
-rather then be given a value. 
-<p>
-To turn on one of these switches on the command line,
-just add it to the command line without any value, for
-example <code>--Assembly.storeCoverageData</code>.
-To turn it off, just omit it from the command line
-(the default value is turned off).
-<p>
-To turn on one of these switches in a
-configuration file, you can either enter it without value 
-<pre>
-storeCoverageData =
-</pre>
-or assign to it one of the following values:
-<code>1, true, True, yes, Yes</code>.
-To turn off one of these switches in a
-configuration file, assign to it one of the following values:
-<code>0, false, False,no, No</code>. 
-
-<p>
-Boolean switches are indicated as such in the Description column in he tables below.
-
-
-
-
-
 <h2>Options allowed only on the command line</h2> 
 
 <table style='word-break:break-word'>
@@ -188,7 +76,8 @@ Identify the Shasta version.
 
 <tr id='config'><td><code>--config</code><td><td>
 Specifies the name of a pre-built configuration or a configuration file.
-<a class=qm href='#ConfigFile'/>
+This option has no default and is <b>mandatory</b> when running an assembly.
+<a class=qm href='Configurations.html'/>
 
 <tr id='input'><td><code>--input</code><td><td>
 Specifies the names of the input files for the assembly.
@@ -210,53 +99,7 @@ created by Shasta.
 
 
 <tr id='command'><td><code>--command</code><td class=centered><code>assemble</code><td>
-Specifies te assembly command to be run. Can be one of the following:
-<dl>
-
-<dt><code>assemble</code>
-<dd>Shasta runs an assembly.
-
-<dt><code>saveBinaryData</code>
-<dd>Shasta saves assembly binary data to disk. 
-
-<dt><code>cleanupBinaryData</code>
-<dd>Shasta cleans up binary data stored in the <code>Data</code> directory of the 
-assembly directory. 
-The <code>Data</code> directory contains
-binary data representing assembly data structures.
-Depending on the <a href='Running.html#MemoryModes'>memory mode</a> in use,
-the <code>Data</code> directory can be
-the mount point of a filesystem in memory, and in that case
-running this command requires root access via sudo.
-Not all memory modes actually create a <code>Data</code> directory.
-After <code>cleanupBinaryData</code> runs, you can no longer use
-the Python API or the Shasta http server to inspect assembly results.
-Make sure to use option <code>--assemblyDirectory</code>
-to specify the run directory that you want to cleanup.
-
-<dt><code>explore</code>
-<dd>
-The Shasta assembler starts in a mode that permits exploring assembly data structures using an Internet browser. 
-<a class=qm href="InspectingResults.html"></a>
-</dd>
-
-
-<dt><code>createBashCompletionScript</code>
-<dd>
-Shasta creates a bash completion script that can be used to save typing
-when invoking <code>shasta</code>.
-<a class=qm href="#bashCompletion"></a>
-</dd>
-
-
-<dt><code>filterReads</code>
-<dd>
-Shasta performs read loading and filtering, prints the passing read names to a CSV, and exits.
-If palindromes are detected, their read names are written separately to <code>PalindromicReads.csv</code>
-</dd>
-
-
-</dl>
+Specifies the Shasta command to be run. <a class=qm href='Commands.html'/>
 
 
 
@@ -312,10 +155,10 @@ for display of the alignment candidate graph. Experimental.
 
 
 
-<h2>Options allowed on the command line and in the config file</h2> 
+<h2>Options allowed on the command line and in a configuration file</h2> 
 
 <p>
-See <a href='#ConfigFile'>here</a> for the format required to
+See <a href='Configurations.html#ConfigFile'>here</a> for the format required to
 enter these options in a configuration file. 
 
 
