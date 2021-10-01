@@ -39,6 +39,7 @@ configurations = [
     'Nanopore-Phased-Aug2021',
     'Nanopore-Oct2021',
     'Nanopore-UL-Oct2021',
+    'HiFi-Oct2021',
     ]
 
 
