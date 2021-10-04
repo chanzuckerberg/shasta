@@ -159,10 +159,16 @@ AssemblyGraph2::AssemblyGraph2(
     // Het snp statistics.
     uint64_t transitionCount, transversionCount;
     hetSnpStatistics(transitionCount, transversionCount);
-    cout << transitionCount << " transitions, " <<
-        transversionCount << " transversions.\n" <<
+    cout << transitionCount << " heterozygous transitions, " <<
+        transversionCount << " heterozygous transversions.\n" <<
         "Transition/transversion ratio is " <<
         double(transitionCount) / double(transversionCount) << endl;
+    cout << "The number of heterozygous SNPs is underestimated "
+        "and the transition/transversion ratio is overestimated "
+        "due to SNPs that are invisible in RLE space. "
+        "Work is in progress to correct this. "
+        "Phasing is effective even without access to those "
+        "missing heterozygous loci." << endl;
 
 }
 
