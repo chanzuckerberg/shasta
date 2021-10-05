@@ -2350,6 +2350,77 @@ turns off output of the Haploid representation of the assembly.
 </ul>
 
 
+<h3>Naming schemes for assembled segments and paths</h3>
+
+<p>
+Assembled segments in the detailed representation of the assembly
+are named as follows:
+<ul>
+<li>Segments that are not part of a bubble are named using a numeric identifier. 
+For example, <code>12497</code>.
+<li>Segments that are part of a bubble are named using a numeric identifier,
+followed by <code>.0</code> and <code>.1</code>. 
+For example, <code>17495.0</code> and <code>17495.1</code>.
+The portion preceeding the period is the same for the 
+two branches of a bubble.
+</ul>
+
+<p>
+Paths in the detailed representation of the assembly
+are named like the corresponding segments in the phased representation
+of the assembly, and follow the segment naming schemes:
+<ul>
+<li>The two branches of a phased region are named 
+<code>PR.bubbleChain.position.component.haplotype</code>
+(example: <code>PR.17.41.268.1</code>)
+where <code>PR</code> stands for "Phased Region", and 
+the four fields are numeric identifiers with the following meaning:
+<ul>
+<li><code>bubbleChain</code> identifies the bubble chain
+that the segment belongs to.
+<li><code>position</code> is the position of the segment in the bubble chain.
+This begins at 0 and increments by one at each phased or unphased region 
+encountered in the bubble chain.
+<li><code>component</code> identifies the connected component of the bubble
+graph that this phased region belongs to.
+<li><code>haplotype</code> (<code>0</code> or <code>1</code>) for each
+of the two branches (haplotypes) of the phasing region. Usually a component
+corresponds to a single phased regions, but there are exceptions to that.
+If two phased regions have the same component, their haplotypes are phased
+relative to each other (that is, branch <code>0</code> of the first phased region
+occurs in the same haplotype as branch <code>0</code> of the second phased region).
+</ul>
+<li>Unphased region are named 
+<code>UR.bubbleChain.position</code>
+(example: <code>PR.17.42</code>)
+where <code>UR</code> stands for "Unphased Region", and 
+the two fields are numeric identifiers with the same meaning meaning
+as for phased regions above.
+</ul>
+
+To clarify the above description, the figure below shows names for a portion
+of bubble chain <code>0</code>. Note how the <code>position</code>
+field gets incremented along the bubble chain.
+
+<img src="PhasedRegionsNaming.png" size="100%">
+
+
+<p>
+Bubble chains in the haploid representation of the assembly
+are named <code>BC.bubbleChain</code> where 
+<code>bubbleChain</code> identifies the bubble chain.
+For example, <code>BC.18</code>.
+
+<p>
+In the phased and haploid representations of the assembly.
+segments that are not part of a bubble chain
+have the same name as the corresponding segment
+in the detailed representation of the assembly,
+that is, a numeric identifier possibly followed by 
+<code>.0</code> or <code>.1</code>.
+
+
+
 
 <h3>Using mode 2 assembly</h3>
 <p>
