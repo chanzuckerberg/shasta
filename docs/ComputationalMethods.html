@@ -2352,7 +2352,119 @@ turns off output of the Haploid representation of the assembly.
 
 
 <h3>Using mode 2 assembly</h3>
-<h3>Shortcomings of mode 2</h3>
+<p>
+Phased diploid assembly is turned on via 
+<code>--Assembly.mode 2</code> or, more conveniently, 
+via 
+<code>--config Nanopore-Phased-Aug2021</code> 
+for current (Guppy 5) nanopore reads
+and 
+<code>--config Nanopore-UL-Phased-Aug2021</code> 
+for current Ultra-Long (UL, Guppy 5) nanopore reads.
+These two configurations are reasonable starting points
+for phased diploid assemblies. 
+However, mode 2 assembly is new and there has not
+been enough time to experiment with it, so it is likely/possible
+that additional tweaks of assembly parameters may be necessary
+in some cases to obtain satisfactory assemblies.
+Please 
+<a href="https://github.com/chanzuckerberg/shasta/issues">file an issue</a> 
+in the Shasta GitHub repository for discussion of mode 2 assembly parameters.
+
+<p>
+Assembly mode 2 requires the following setting (both
+included in the configurations mentioned above):
+
+<ul>
+<li><code>--Kmers.k</code> must be even.
+<li><code>--ReadGraph.strandSeparationMethod 2</code>
+(strict strand separation in the read graph).
+</ul>
+
+
+
+<h3>Assembly mode 2: typical results for diploid assembly</h3>
+<p>
+Limited testing of phased diploid (mode 2) assembly was done
+using current (Guppy 5) nanopore reads for a human genome.
+Typical results are as follows:
+
+<ul>
+<li>80 to 90% of genome sequence is assembled diploid (that is, in
+phased regions).
+<li>Typical length of the large diploid bubbles in the phased
+representation is 1 to 5 Mb. 
+>li>Each
+of the branches in one of the large bubbles 
+maps very well to one haplotype of a reference genome
+for the assembly being sequenced, much less well to the 
+opposite haplotype.
+<li>The assembly only includes about half of the
+heterozygous SNPs. This is due to the fact
+that many SNPs are invisible in
+the RLE representation of the reads. 
+This issue will be corrected in an upcoming release
+by allowing non-RLE assembly.
+The RLE representation was introduced to handle
+reads with much lower accuracy than current reads,
+and is no longer an essential ingredient.
+<li>For the same reason,
+the transition/transversion ratio is overestimated.
+<li>
+The current implementation does not recognize some
+heterozygous bubbles. This creates unnecessary breaks in bubble chains.
+As a result, the reported N50 for bubble chains
+grossly underestimates actual contiguity of the assembly.
+This is not an fundamental issue and can be fixed.
+</ul>
+
+
+
+<h3>Shortcomings of assembly mode 2</h3>
+<p>
+Assembly mode 2 is highly promising in several respects, but
+has shortcomings, most of which can be removed in upcoming 
+functionality improvements:
+
+<ul>
+<li>The RLE representation reduces the sensitivity for 
+heterozygous SNPs, as discussed above.
+<li>The current implementation does not recognize some assembly
+graph features as bubbles. This causes unnecessary breaks in bubble chains.
+<li>Handling of superbubbles is limited.
+<li>There is a built-in assumption of two copies (ploidy 2). 
+For this reason, mode 2 assembly is not effective
+to resolve copies of segmental duplications, 
+or for genomes with ploidy greather than 2.
+</ul>
+
+
+<h3>Comparison of assembly mode 2 and iterative assembly</h3>
+<p>
+<a href="#IterativeAssembly">Iterative assembly</a> similarly addresses the separation of
+copies of similar sequence due to ploidy, segmental duplication,
+or other repeats.
+It is more general in that it does not make 
+any assumption on the number of copies, while
+assembly mode 2 has a built-in assumption of two copies.
+
+<p>
+However, iterative assembly uses a different approach:
+it uses the assembly graph to separate reads, and
+then iteratively reassembles while enforcing 
+separation of the read pairs found in previous 
+iteration to belong to different copies.
+In summary, one could say that iterative assembly 
+"phases the reads", while mode 2 assembly
+"phases the bubbles".
+
+<p>
+This approach used in iterative assembly, while effective in some cases, proved
+to be much less robust and causes abundant assembly artifacts and
+breaks. A future generalization of
+mode 2 assembly without the assumption of two copies
+may be able to provide rovust separation
+in the presence of arbitrary numbers of copies.
 
 
 
