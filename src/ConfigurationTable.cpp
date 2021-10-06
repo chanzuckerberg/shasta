@@ -794,6 +794,55 @@ detangleMethod = 2
 
 
 )zzz"},
+    {"Nanopore-UL-Phased-Oct2021", R"zzz(# EXPERIMENTAL configuration file that uses assembly mode 2
+# to create a phased diploid assembly.
+
+# Tested with Guppy 5.0.7 Ultra-Long (ULT) reads at coverage around 60x. 
+
+
+
+[Reads]
+minReadLength = 35000
+noCache = True
+
+[Kmers]
+k = 14
+
+[MinHash]
+minBucketSize = 10
+maxBucketSize = 60
+minFrequency = 5
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+minAlignedMarkerCount = 400
+minAlignedFraction = 0.6
+maxDrift = 20
+maxSkip = 50
+maxTrim = 50
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+[ReadGraph]
+creationMethod = 0
+maxAlignmentCount = 12 
+strandSeparationMethod = 2
+
+[MarkerGraph]
+minCoverage = 8
+minCoveragePerStrand = 1
+minEdgeCoverage = 8
+minEdgeCoveragePerStrand = 1
+
+[Assembly]
+mode = 2
+consensusCaller = Bayesian:guppy-5.0.7-a
+phasing.minReadCount = 2
+
+
+
+)zzz"},
     {"HiFi-Oct2021", R"zzz(# This was tested on the  "HG002 Data Freeze (v1.0) 
 # Recommended downsampled data mix", a 34x HiFi dataset
 # for HG002. See here for more information:
