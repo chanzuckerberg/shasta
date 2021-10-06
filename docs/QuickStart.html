@@ -21,13 +21,13 @@ See below for more information, including some small changes required for macOS 
 You can use the following commands to download the executable from the latest release and run an assembly:
 <pre>
 # Download the executable for the latest release.
-curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.7.0/shasta-Linux-0.7.0
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.8.0/shasta-Linux-0.8.0
 
 # Grant necessary permissions.
-chmod ugo+x shasta-Linux-0.7.0
+chmod ugo+x shasta-Linux-0.8.0
 
 # Run an assembly.
-./shasta-Linux-0.7.0 --input input.fasta
+./shasta-Linux-0.8.0 --input input.fasta --config Nanopore-Oct2021
 </pre>
 
 <p>
@@ -46,13 +46,8 @@ Output includes the assembly in FASTA and GFA 1.0 formats in files:
 <li><code>ShastaRun/Assembly.gfa</code>
 <li><code>ShastaRun/Assembly-BothStrands.gfa</code>
 </ul>
-This will work on most current 64 bit Linux distributions. 
-It was tested on at least the following Linux distributions for the 
-<code>x86_64</code> architecture.
-<ul>
-<li>Ubuntu 16.04 LTS
-<li>Ubuntu 18.04 LTS
-<li>Ubuntu 20.04 LTS
+This will work on all current 64 bit Linux distributions
+that use Linux kernel 3.2.0 or newer. 
 </ul>
 
 <p>
@@ -67,16 +62,16 @@ to achieve maximum performance.
 
 <pre>
 # Download the executable for the latest release.
-curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.7.0/shasta-macOS-0.7.0
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.8.0/shasta-macOS-11-0.8.0
 
 # Grant necessary permissions.
-chmod ugo+x shasta-macOS-0.7.0
+chmod ugo+x shasta-macOS-11-0.8.0
 
 # Run an assembly.
-./shasta-macOS-0.7.0 --input input.fasta
+./shasta-macOS-11-0.8.0 --input input.fasta --config Nanopore-Oct2021
 </pre>
-The macOS executable has been tested on macOS 10.15 (<i>Catalina</i>) and
-macOS 10.14 (<i>Mojave</i>).
+
+
 
 <h2 id="QuickStartWindows">Windows</h2>
 <ul>
@@ -95,7 +90,7 @@ of the Shasta assembler:
 <pre>
 curl -O -L https://s3-us-west-2.amazonaws.com/lc2019/shasta/ecoli_test/r94_ec_rad2.181119.60x-10kb.fasta.gz
 gunzip r94_ec_rad2.181119.60x-10kb.fasta.gz
-/path/to/shasta_executable --input r94_ec_rad2.181119.60x-10kb.fasta
+/path/to/shasta_executable --input r94_ec_rad2.181119.60x-10kb.fasta --config Nanopore-Oct2021
 </pre>
 The first two commands download and decompress an input fasta file 
 containing Oxford Nanopore reads for <i>E. coli</i>.
