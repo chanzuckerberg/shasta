@@ -108,15 +108,15 @@ jobs:
         make install/strip
         # See what libraries the executable depends on.
         otool -L shasta-install/bin/shasta
-   - name: Test-macOS-11
-     run: |
-       brew install gzip
-       gunzip tests/TinyTest.fasta.gz
-       shasta-build/shasta-install/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
-       ls -l ShastaRun/Assembly.fasta
-   - uses: actions/upload-artifact@master
-     with:
-       name: shasta-macOS-11
-       path: shasta-build/shasta-install/bin/shasta
+    - name: Test-macOS-11
+      run: |
+        brew install gzip
+        gunzip tests/TinyTest.fasta.gz
+        shasta-build/shasta-install/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
+        ls -l ShastaRun/Assembly.fasta
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-macOS-11
+        path: shasta-build/shasta-install/bin/shasta
        
         
