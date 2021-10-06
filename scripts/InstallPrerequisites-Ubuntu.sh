@@ -72,7 +72,7 @@ if [ "$minimalInstall" == false ]; then
         gnuplot \
         python3-dev \
         python3-pip
-        pip3 install pybind11
+        pip3 install pybind11=2.5.0
 fi
 
 # The spoa library is not available in the stable Ubuntu repository yet.
