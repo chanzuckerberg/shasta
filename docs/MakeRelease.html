@@ -29,7 +29,7 @@ with the release number you picked.
 <li>In 
 <code>shasta/.github/workflows/Build.yml</code>,
 change <code>BUILD_ID</code> to <code>Shasta Release X.Y.Z</code>
-in all <code>cmake</code> commands (3 instances at the time of last update of this documentation).
+in all <code>cmake</code> commands (4 instances at the time of last update of this documentation).
 <li>Commit and push this change to trigger a new build on GitHub Actions.
 Wait for that build to complete.
 <li>Download the 4 artifacts. Unzip them and rename them to the following:
@@ -67,7 +67,7 @@ The release name should be just/simply <code>X.Y.Z</code>
 (no additional characters).
 The release will not be visible to users until it gets published
 two steps below.
-<li>Upload the unzipped and renamed artifacts (seven) to the new release as assets.
+<li>Upload the unzipped and renamed artifacts (5) to the new release as assets.
 
 <li>Publish the release on GitHub.
 <li>After the release has been published it should not be modified or deleted.
@@ -76,7 +76,7 @@ two steps below.
 change <code>BUILD_ID</code> to 
 <code>Shasta unreleased test build newer than release X.Y.Z</code>
 in all <code>cmake</code> commands for future GitHub Actions builds
-(3 instances at the time of last update of this documentation).
+(4 instances at the time of last update of this documentation).
 </ul>
 
 
