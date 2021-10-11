@@ -634,6 +634,7 @@ private:
         // Indexed by OrientedReadId::getValue().
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
+        void writeVerticesCsv(const string& fileName) const;
         void writeEdgesCsv(const string& fileName) const;
         void removeWeakEdges(uint64_t minReadCount);
         double discordantRatio(vertex_descriptor) const;

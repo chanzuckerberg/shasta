@@ -101,10 +101,6 @@ AssemblyGraph2::AssemblyGraph2(
     createBubbleGraph(markers.size()/2, phasingMinReadCount, threadCount);
     cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
         " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-    if(false) {
-        bubbleGraph.writeGraphviz("BubbleGraph-0.dot");
-        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-0.csv");
-    }
 
     // Cleanup the bubble graph.
     // This marks as bad the bubbles corresponding to bubble graph vertices
@@ -186,6 +182,13 @@ void AssemblyGraph2::cleanupBubbleGraph(
     // Remove weak vertices of the bubble graph
     // and flag the corresponding bubbles as bad.
     for(uint64_t iteration=0; ; iteration++) {
+
+        if(debug) {
+            bubbleGraph.writeGraphviz("BubbleGraph-Iteration-" + to_string(iteration) + ".dot");
+            bubbleGraph.writeVerticesCsv("BubbleGraphVertices-Iteration-" + to_string(iteration) + ".csv");
+            bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Iteration-" + to_string(iteration) + ".csv");
+        }
+
         vector<AssemblyGraph2::edge_descriptor> badBubbles;
         bubbleGraph.removeWeakVertices(discordantRatioThreshold, badBubbles);
         if(badBubbles.empty()) {
@@ -197,10 +200,6 @@ void AssemblyGraph2::cleanupBubbleGraph(
         cout << "After removing " << badBubbles.size() <<
             " weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
             " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-        if(debug) {
-            bubbleGraph.writeGraphviz("BubbleGraph-Iteration-" + to_string(iteration) + ".dot");
-            bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Iteration-" + to_string(iteration) + ".csv");
-        }
     }
 
 
@@ -222,6 +221,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
     if(debug) {
         bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
+        bubbleGraph.writeVerticesCsv("BubbleGraphVertices-Final.csv");
         bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
     }
 
@@ -2498,19 +2498,38 @@ void AssemblyGraph2::BubbleGraph::removeWeakVertices(
     vector<AssemblyGraph2::edge_descriptor>& badBubbles)
 {
     BubbleGraph& bubbleGraph = *this;
+    const bool debug = false;
 
     vector<BubbleGraph::vertex_descriptor> verticesToBeRemoved;
     badBubbles.clear();
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
-        if(discordantRatio(v) > discordantRatioThreshold) {
+        const double ratio = discordantRatio(v);
+        if(ratio > discordantRatioThreshold) {
             verticesToBeRemoved.push_back(v);
             badBubbles.push_back(bubbleGraph[v].e);
+            if(debug) {
+                cout << "Removed bubble " << bubbleGraph[v].id <<
+                    " with discordant ratio " << ratio << endl;
+            }
         }
     }
 
     for(const BubbleGraph::vertex_descriptor v: verticesToBeRemoved) {
         clear_vertex(v, bubbleGraph);
         remove_vertex(v, bubbleGraph);
+    }
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::writeVerticesCsv(const string& fileName) const
+{
+    const BubbleGraph& bubbleGraph = *this;
+
+    ofstream csv(fileName);
+    csv << "BubbleId\n";
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        csv << bubbleGraph[v].id << "\n";
     }
 }
 
