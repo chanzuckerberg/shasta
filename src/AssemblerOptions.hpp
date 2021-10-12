@@ -126,6 +126,7 @@ public:
 // beginning with "Reads.".
 class shasta::ReadsOptions {
 public:
+    uint64_t representation;    // 0 = Raw, 1=RLE
     int minReadLength;
     bool noCache;
     string desiredCoverageString;

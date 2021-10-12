@@ -238,6 +238,12 @@ void AssemblerOptions::addConfigurableOptions()
 
     configurableOptionsDescription.add_options()
 
+        ("Reads.representation",
+        value<uint64_t>(&readsOptions.representation)->
+        default_value(1),
+        "Read representation: 0 = raw sequence, 1 (default) = Run-Length Encoded (RLE) sequence. "
+        "Experimental. Do not use.")
+
         ("Reads.minReadLength",
         value<int>(&readsOptions.minReadLength)->
         default_value(10000),
@@ -919,6 +925,7 @@ void PalindromicReadOptions::write(ostream& s) const
 void ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
+    s << "representation = " << representation << "\n";
     s << "minReadLength = " << minReadLength << "\n";
     s << "desiredCoverage = " << desiredCoverageString << "\n";
     s << "noCache = " <<
