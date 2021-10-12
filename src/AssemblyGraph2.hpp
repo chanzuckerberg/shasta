@@ -302,7 +302,7 @@ private:
     void create();
 
     // Remove secondary edges making sure to not introduce any dead ends.
-    void cleanupSecondaryEdges();
+    void cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshold);
 
     // Handle superbubbles.
     void handleSuperbubbles(uint64_t edgeLengthThreshold);
@@ -381,7 +381,7 @@ private:
         vertex_descriptor v1,
         const vector<edge_descriptor>&);
 
-    void removeSecondaryBubbles();
+    void removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold);
 
     // Find/remove bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.

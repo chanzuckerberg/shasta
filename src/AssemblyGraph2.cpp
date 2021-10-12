@@ -58,6 +58,13 @@ AssemblyGraph2::AssemblyGraph2(
     markerGraph(markerGraph)
 {
 
+    // Length threshold (in markers) for cleanupSecondaryEdges
+    // and removeSecondaryBubbles. Assembly graph edges
+    // longer than this are excluded from removal.
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t secondaryEdgeCleanupThreshold = 6;
+
+
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
     SHASTA_ASSERT((k % 2) == 0);
@@ -66,7 +73,7 @@ AssemblyGraph2::AssemblyGraph2(
     create();
 
     // Remove secondary edges, making sure to not introduce any dead ends.
-    cleanupSecondaryEdges();
+    cleanupSecondaryEdges(secondaryEdgeCleanupThreshold);
     merge(false, false);
 
     // Gather parallel edges into bubbles.
@@ -80,7 +87,7 @@ AssemblyGraph2::AssemblyGraph2(
     storeReadInformation();
 
     // Remove bubbles caused by secondary edges.
-    removeSecondaryBubbles();
+    removeSecondaryBubbles(secondaryEdgeCleanupThreshold);
     merge(true, false);
 
     // Assemble sequence.
@@ -393,7 +400,7 @@ void AssemblyGraph2::create()
 
 // Remove secondary edges making sure to not introduce any dead ends.
 // This must be called early, when there are no bubbles.
-void AssemblyGraph2::cleanupSecondaryEdges()
+void AssemblyGraph2::cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshold)
 {
     G& g = *this;
 
@@ -413,6 +420,11 @@ void AssemblyGraph2::cleanupSecondaryEdges()
 
         // If the branch does not contain secondary edges, skip it.
         if(not branch.containsSecondaryEdges) {
+            continue;
+        }
+
+        // If the branch is long, skip it.
+        if(branch.path.size() > secondaryEdgeCleanupThreshold) {
             continue;
         }
 
@@ -2792,7 +2804,7 @@ void AssemblyGraph2::phaseBubbleGraphComponent(uint64_t componentId)
 
 
 
-void AssemblyGraph2::removeSecondaryBubbles()
+void AssemblyGraph2::removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold)
 {
     G& g = *this;
 
@@ -2818,6 +2830,18 @@ void AssemblyGraph2::removeSecondaryBubbles()
             continue;
         }
         const uint64_t primaryCount = edge.ploidy() - secondaryCount;
+
+        // If any branches are long, skip it.
+        bool isLong = false;
+        for(const E::Branch& branch: edge.branches) {
+            if(branch.path.size() > secondaryEdgeCleanupThreshold) {
+                isLong = true;
+                break;
+            }
+        }
+        if(isLong) {
+            continue;
+        }
 
 
         // Remove secondary branches, keeping at most one.
