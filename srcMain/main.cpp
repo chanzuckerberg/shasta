@@ -368,7 +368,7 @@ void shasta::main::assemble(
 #endif
 
     // Create the Assembler.
-    Assembler assembler(dataDirectory, true, pageSize);
+    Assembler assembler(dataDirectory, true, assemblerOptions.readsOptions.representation, pageSize);
 
     // Run the assembly.
     assemble(assembler, assemblerOptions, inputFileAbsolutePaths);
@@ -600,6 +600,14 @@ void shasta::main::assemble(
     const auto t1 = steady_clock::now();
     cout << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
     cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
+
+
+    // Only continue if using RLE read representation.
+    if(assemblerOptions.readsOptions.representation != 1) {
+        throw runtime_error("--Reads.representation " +
+            to_string(assemblerOptions.readsOptions.representation) +
+            " is not implemented.");
+    }
 
 
 
@@ -1468,7 +1476,7 @@ void shasta::main::explore(
     }
     
     // Create the Assembler.
-    Assembler assembler("Data/", false, 0);
+    Assembler assembler("Data/", false, 1, 0);
     
     // Access all available binary data.
     assembler.accessAllSoft();

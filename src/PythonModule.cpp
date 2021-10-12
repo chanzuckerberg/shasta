@@ -110,10 +110,11 @@ PYBIND11_MODULE(shasta, module)
     class_<Assembler>(module, "Assembler")
 
         // Constructor.
-        .def(pybind11::init<const string&, bool, size_t>(),
+        .def(pybind11::init<const string&, bool, uint64_t, size_t>(),
             "Assembler constructor.",
             arg("largeDataFileNamePrefix") = "Data/",
             arg("createNew") = false,
+            arg("readRepresentation") = 1,
             arg("largeDataPageSize") = 2*1024*1024)
 
 

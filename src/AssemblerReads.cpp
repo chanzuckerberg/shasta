@@ -26,6 +26,7 @@ void Assembler::addReads(
 
     ReadLoader readLoader(
         fileName,
+        assemblerInfo->readRepresentation,
         minReadLength,
         noCache,
         threadCount,
@@ -246,6 +247,7 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
 
     unique_ptr<Reads> newReads = make_unique<Reads>();
     newReads->createNew(
+        assemblerInfo->readRepresentation,
         largeDataName("Reads"),
         largeDataName("ReadNames"),
         largeDataName("ReadMetaData"),

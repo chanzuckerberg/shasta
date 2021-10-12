@@ -10,6 +10,7 @@ using namespace shasta;
 
 
 void Reads::createNew(
+    uint64_t representationArgument, // 0 = raw sequence, 1 = RLE sequence
     const string& readsDataName,
     const string& readNamesDataName,
     const string& readMetaDataDataName,
@@ -18,15 +19,19 @@ void Reads::createNew(
     const string& readIdsSortedByNameDataName,
     uint64_t largeDataPageSize)
 {
+    representation = representationArgument;
     reads.createNew(readsDataName, largeDataPageSize);
     readNames.createNew(readNamesDataName, largeDataPageSize);
     readMetaData.createNew(readMetaDataDataName, largeDataPageSize);
-    readRepeatCounts.createNew(readRepeatCountsDataName, largeDataPageSize);
+    if(representation == 1) {
+        readRepeatCounts.createNew(readRepeatCountsDataName, largeDataPageSize);
+    }
     readFlags.createNew(readFlagsDataName, largeDataPageSize);
     readIdsSortedByName.createNew(readIdsSortedByNameDataName, largeDataPageSize);
 }
 
 void Reads::access(
+    uint64_t representationArgument, // 0 = raw sequence, 1 = RLE sequence
     const string& readsDataName,
     const string& readNamesDataName,
     const string& readMetaDataDataName,
@@ -34,10 +39,13 @@ void Reads::access(
     const string& readFlagsDataName,
     const string& readIdsSortedByNameDataName)
 {
+    representation = representationArgument;
     reads.accessExistingReadWrite(readsDataName);
     readNames.accessExistingReadWrite(readNamesDataName);
     readMetaData.accessExistingReadWrite(readMetaDataDataName);
-    readRepeatCounts.accessExistingReadWrite(readRepeatCountsDataName);
+    if(representation == 1) {
+        readRepeatCounts.accessExistingReadWrite(readRepeatCountsDataName);
+    }
     readFlags.accessExistingReadWrite(readFlagsDataName);
     readIdsSortedByName.accessExistingReadWrite(readIdsSortedByNameDataName);
 }

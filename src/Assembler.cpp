@@ -13,6 +13,7 @@ using namespace shasta;
 Assembler::Assembler(
     const string& largeDataFileNamePrefix,
     bool createNew,
+    uint64_t readRepresentation, // 0 = raw sequence, 1 = RLE sequence. Only used if createNew.
     size_t largeDataPageSizeArgument) :
 
     MultithreadedObject(*this),
@@ -23,11 +24,13 @@ Assembler::Assembler(
 
         // Create a new assembly.
         assemblerInfo.createNew(largeDataName("Info"), largeDataPageSizeArgument);
+        assemblerInfo->readRepresentation = readRepresentation;
         assemblerInfo->largeDataPageSize = largeDataPageSizeArgument;
         largeDataPageSize = largeDataPageSizeArgument;
 
         reads = make_unique<Reads>();
         reads->createNew(
+            assemblerInfo->readRepresentation,
             largeDataName("Reads"),
             largeDataName("ReadNames"),
             largeDataName("ReadMetaData"),
@@ -46,6 +49,7 @@ Assembler::Assembler(
 
         reads = make_unique<Reads>();
         reads->access(
+            assemblerInfo->readRepresentation,
             largeDataName("Reads"),
             largeDataName("ReadNames"),
             largeDataName("ReadMetaData"),

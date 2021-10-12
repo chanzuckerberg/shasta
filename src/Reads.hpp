@@ -84,6 +84,7 @@ public:
     Reads(): totalBaseCount(0), n50(0) {};
 
     void createNew(
+        uint64_t representation, // 0 = raw sequence, 1 = RLE sequence
         const string& readsDataName,
         const string& readNamesDataName,
         const string& readMetaDataDataName,
@@ -94,6 +95,7 @@ public:
     );
 
     void access(
+        uint64_t representation, // 0 = raw sequence, 1 = RLE sequence
         const string& readsDataName,
         const string& readNamesDataName,
         const string& readMetaDataDataName,
@@ -255,6 +257,7 @@ public:
     void remove();
 
 private:
+    uint64_t representation; // 0 = raw sequence, 1 = RLE sequence
     LongBaseSequences reads;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
 

@@ -90,6 +90,9 @@ class DisjointSets;
 class shasta::AssemblerInfo {
 public:
 
+    // The read representation used: 0 = raw sequence, 1 = RLE sequence
+    uint64_t readRepresentation;
+
     // The length of k-mers used to define markers.
     size_t k;
 
@@ -193,6 +196,7 @@ public:
     Assembler(
         const string& largeDataFileNamePrefix,
         bool createNew,
+        uint64_t readRepresentation, // 0 = raw sequence, 1 = RLE sequence. Only used if createNew.
         size_t largeDataPageSize);
 
     // Add reads.
