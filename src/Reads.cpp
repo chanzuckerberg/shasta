@@ -195,17 +195,21 @@ vector<Base> Reads::getOrientedReadRawSequence(OrientedReadId orientedReadId) co
 // base a number of times equal to its repeat count.
 uint64_t Reads::getReadRawSequenceLength(ReadId readId) const
 {
-    // We are using the run-length representation.
-    // The number of raw bases equals the sum of all
-    // the repeat counts.
-    // Don't use std::accumulate to compute the sum,
-    // otherwise the sum is computed using uint8_t!
-    const auto& counts = readRepeatCounts[readId];
-    uint64_t sum = 0;;
-    for(uint8_t count: counts) {
-        sum += count;
+    if(representation == 1) {
+        // We are using the run-length representation.
+        // The number of raw bases equals the sum of all
+        // the repeat counts.
+        // Don't use std::accumulate to compute the sum,
+        // otherwise the sum is computed using uint8_t!
+        const auto& counts = readRepeatCounts[readId];
+        uint64_t sum = 0;;
+        for(uint8_t count: counts) {
+            sum += count;
+        }
+        return sum;
+    } else {
+        return reads[readId].baseCount;
     }
-    return sum;
 }
 
 

@@ -29,6 +29,7 @@ ReadLoader::ReadLoader(
     
     MultithreadedObject(*this),
     fileName(fileName),
+    representation(representation),
     minReadLength(minReadLength),
     noCache(noCache),
     threadCount(threadCount),
@@ -255,14 +256,20 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
         }
 
         // Store the read bases.
-        if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
+        if(representation == 1) {
+            if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
+                thisThreadReadNames.appendVector(readName.begin(), readName.end());
+                thisThreadReadMetaData.appendVector(readMetaData.begin(), readMetaData.end());
+                thisThreadReads.append(runLengthRead);
+                thisThreadReadRepeatCounts.appendVector(readRepeatCount);
+            } else {
+                __sync_fetch_and_add(&discardedBadRepeatCountReadCount, 1);
+                __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
+            }
+        } else {
             thisThreadReadNames.appendVector(readName.begin(), readName.end());
             thisThreadReadMetaData.appendVector(readMetaData.begin(), readMetaData.end());
-            thisThreadReads.append(runLengthRead);
-            thisThreadReadRepeatCounts.appendVector(readRepeatCount);
-        } else {
-            __sync_fetch_and_add(&discardedBadRepeatCountReadCount, 1);
-            __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
+            thisThreadReads.append(read);
         }
     }
 
@@ -514,14 +521,20 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         }
 
         // Store the read.
-        if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
+        if(representation == 1) {
+            if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
+                thisThreadReadNames.appendVector(readName.begin(), readName.end());
+                thisThreadReadMetaData.appendVector(readMetaData.begin(), readMetaData.end());
+                thisThreadReads.append(runLengthRead);
+                thisThreadReadRepeatCounts.appendVector(readRepeatCount);
+            } else {
+                __sync_fetch_and_add(&discardedBadRepeatCountReadCount, 1);
+                __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
+            }
+        } else {
             thisThreadReadNames.appendVector(readName.begin(), readName.end());
             thisThreadReadMetaData.appendVector(readMetaData.begin(), readMetaData.end());
-            thisThreadReads.append(runLengthRead);
-            thisThreadReadRepeatCounts.appendVector(readRepeatCount);
-        } else {
-            __sync_fetch_and_add(&discardedBadRepeatCountReadCount, 1);
-            __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
+            thisThreadReads.append(read);
         }
     }
 }
@@ -690,7 +703,7 @@ void ReadLoader::allocatePerThreadDataStructures()
     threadReadNames.resize(threadCount);
     threadReadMetaData.resize(threadCount);
     threadReads.resize(threadCount);
-    threadReadRepeatCounts.resize(threadCount);
+    threadReadRepeatCounts.resize(threadCount); // Not actually used is representation==1
     threadPalindromicReadNames.resize(threadCount);
 }
 
@@ -707,8 +720,10 @@ void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
     threadReads[threadId]->createNew(
         threadDataName(threadId, "Reads"), pageSize);
     threadReadRepeatCounts[threadId] = make_unique< MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
-    threadReadRepeatCounts[threadId]->createNew(
-        threadDataName(threadId, "ReadRepeatCounts"), pageSize);
+    if(representation == 1) {
+        threadReadRepeatCounts[threadId]->createNew(
+            threadDataName(threadId, "ReadRepeatCounts"), pageSize);
+    }
 }
 
 
@@ -737,26 +752,34 @@ void ReadLoader::storeReads()
         // Access the repeat counts.
         MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
             *threadReadRepeatCounts[threadId];
-        SHASTA_ASSERT(thisThreadReadRepeatCounts.size() == n);
+        if(representation == 1) {
+            SHASTA_ASSERT(thisThreadReadRepeatCounts.size() == n);
+        } else {
+            SHASTA_ASSERT(not thisThreadReadRepeatCounts.isOpen());
+        }
 
         // Store the reads.
         for(size_t i=0; i<n; i++) {
             reads.readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
             reads.readMetaData.appendVector(thisThreadReadMetaData.begin(i), thisThreadReadMetaData.end(i));
             reads.reads.append(thisThreadReads[i]);
-            const size_t j = reads.readRepeatCounts.size();
-            reads.readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
-            copy(
-                thisThreadReadRepeatCounts.begin(i),
-                thisThreadReadRepeatCounts.end(i),
-                reads.readRepeatCounts.begin(j));
+            if(representation == 1) {
+                const size_t j = reads.readRepeatCounts.size();
+                reads.readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
+                copy(
+                    thisThreadReadRepeatCounts.begin(i),
+                    thisThreadReadRepeatCounts.end(i),
+                    reads.readRepeatCounts.begin(j));
+            }
         }
 
         // Remove the data structures used by this thread.
         thisThreadReadNames.remove();
         thisThreadReadMetaData.remove();
         thisThreadReads.remove();
-        thisThreadReadRepeatCounts.remove();
+        if(representation == 1) {
+            thisThreadReadRepeatCounts.remove();
+        }
     }
 
     // Clear the per-thread data structures.
@@ -768,7 +791,9 @@ void ReadLoader::storeReads()
     // Free up unused allocated memory.
     reads.readNames.unreserve();
     reads.readMetaData.unreserve();
-    reads.readRepeatCounts.unreserve();
+    if(representation == 1) {
+        reads.readRepeatCounts.unreserve();
+    }
     reads.reads.unreserve();
 
     // Allocate enough space for readFlags which are populated later.

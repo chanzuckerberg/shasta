@@ -196,7 +196,9 @@ public:
 
     inline void checkReadsAreOpen() const {
         SHASTA_ASSERT(reads.isOpen());
-        SHASTA_ASSERT(readRepeatCounts.isOpen());
+        if(representation == 1) {
+            SHASTA_ASSERT(readRepeatCounts.isOpen());
+        }
     }
 
     inline void checkReadNamesAreOpen() const {
