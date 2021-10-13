@@ -71,17 +71,21 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Create the assembly graph.
     create();
+    writeDetailedEarly("0");
 
     // Remove secondary edges, making sure to not introduce any dead ends.
     cleanupSecondaryEdges(secondaryEdgeCleanupThreshold);
     merge(false, false);
+    writeDetailedEarly("1");
 
     // Gather parallel edges into bubbles.
     gatherBubbles();
+    writeDetailedEarly("2");
 
     // Handle superbubbles.
     handleSuperbubbles(superbubbleRemovalEdgeLengthThreshold);
     merge(false, false);
+    writeDetailedEarly("3");
 
     // Store the reads supporting each branch of each edges.
     storeReadInformation();
@@ -89,6 +93,7 @@ AssemblyGraph2::AssemblyGraph2(
     // Remove bubbles caused by secondary edges.
     removeSecondaryBubbles(secondaryEdgeCleanupThreshold);
     merge(true, false);
+    writeDetailedEarly("4");
 
     // Assemble sequence.
     assemble();
@@ -96,6 +101,7 @@ AssemblyGraph2::AssemblyGraph2(
     // Remove degenerate edges (both branches have the same sequence).
     removeDegenerateBranches();
     merge(true, true);
+    writeDetailedEarly("5");
 
 
     // Find bubbles caused by copy number changes in repeats
@@ -103,6 +109,7 @@ AssemblyGraph2::AssemblyGraph2(
     findCopyNumberBubbles(bubbleRemovalMaxPeriod);
     removeCopyNumberBubbles();
     merge(true, true);
+    writeDetailedEarly("6");
 
     // Create the bubble graph.
     createBubbleGraph(markers.size()/2, phasingMinReadCount, threadCount);
