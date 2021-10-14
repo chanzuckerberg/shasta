@@ -36,6 +36,9 @@ void Assembler::randomlySelectKmers(
         throw runtime_error("K-mer capacity exceeded.");
     }
     assemblerInfo->k = k;
+
+    // The total number of k-mers of this length.
+    // This includes both RLE and non-RLE k-mers.
     const size_t kmerCount = 1ULL << (2ULL*k);
 
     // Sanity check on the requested fraction.
@@ -65,7 +68,7 @@ void Assembler::randomlySelectKmers(
     // So, probability = 1 - (1-p)^2, and therefore p=1-sqrt(1-probability).
     // For simplicity, we use the same p for k-mers that are
     // self-complementary. They are a small minority, and because
-    //of this they are chose with lower probability.
+    // of this they are chose with lower probability.
     // Probably a good thing anyway.
     const double p = 1. - sqrt(1. - probability);
     if(probability == 1.) {
@@ -88,22 +91,48 @@ void Assembler::randomlySelectKmers(
             kmerTable[reverseComplementedKmerId].isMarker = true;
         }
     }
-    size_t usedKmerCount = 0;
+
+
+    // Do some counting.
+    uint64_t rleKmerCount = 0;
+    uint64_t markerKmerCount = 0;
+    uint64_t markerRleKmerCount = 0;
     for(uint64_t kmerId=0; kmerId<kmerCount; kmerId++) {
-        if(kmerTable[kmerId].isMarker) {
-            ++usedKmerCount;
+        const KmerInfo& kmerInfo = kmerTable[kmerId];
+        if(kmerInfo.isRleKmer) {
+            ++rleKmerCount;
+        }
+        if(kmerInfo.isMarker) {
+            ++markerKmerCount;
+        }
+        if(kmerInfo.isRleKmer and kmerInfo.isMarker) {
+            ++markerRleKmerCount;
         }
     }
-    cout << "Selected " << usedKmerCount << " " << k << "-mers as markers out of ";
-    cout << kmerCount << " total." << endl;
-    cout << "Requested inclusion probability: " << probability << "." << endl;
-    cout << "Actual fraction of marker k-mers: ";
-    cout << double(usedKmerCount)/double(kmerCount) << "." << endl;
-    cout << "The above statistics include all k-mers, not just those present in "
-        "run-length encoded sequence." << endl;
 
-    if(probability == 1.) {
-        SHASTA_ASSERT(usedKmerCount == kmerCount);
+
+
+    // Summary messages.
+    if(assemblerInfo->readRepresentation == 0) {
+
+        // We are using the raw representation of the reads.
+        cout << "Total number of k-mers of length " << k << " is " << kmerCount << endl;
+        cout << "Of those, " << markerKmerCount << " will be used as markers." << endl;
+        cout << "Fraction of k-mers used as markers: requested " <<
+            probability << ", actual " <<
+            double(markerKmerCount)/double(kmerCount) << "." << endl;
+
+
+    } else {
+
+        // We are using the RLE representation of the reads.
+        cout << "Total number of k-mers of length " << k << " is " << kmerCount << endl;
+        cout << "Number of RLE k-mers of length " << k << " is " << rleKmerCount << endl;
+        cout << "Of those, " << markerRleKmerCount << " will be used as markers." << endl;
+        cout << "Fraction of k-mers used as markers: requested " <<
+            probability << ", actual " <<
+            double(markerRleKmerCount)/double(rleKmerCount) << "." << endl;
+
     }
 
 }

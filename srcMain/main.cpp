@@ -602,14 +602,6 @@ void shasta::main::assemble(
     cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
 
 
-    // Only continue if using RLE read representation.
-    if(assemblerOptions.readsOptions.representation != 1) {
-        throw runtime_error("--Reads.representation " +
-            to_string(assemblerOptions.readsOptions.representation) +
-            " is not implemented.");
-    }
-
-
 
     // Select the k-mers that will be used as markers.
     switch(assemblerOptions.kmersOptions.generationMethod) {
@@ -663,6 +655,16 @@ void shasta::main::assemble(
     default:
         throw runtime_error("Invalid --Kmers generationMethod. "
             "Specify a value between 0 and 4, inclusive.");
+    }
+
+
+
+    // Only continue if using RLE read representation.
+    // Non-RLE code is missing.
+    if(assemblerOptions.readsOptions.representation != 1) {
+        throw runtime_error("--Reads.representation " +
+            to_string(assemblerOptions.readsOptions.representation) +
+            " is not implemented.");
     }
 
 
