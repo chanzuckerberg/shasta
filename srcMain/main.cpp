@@ -665,40 +665,6 @@ void shasta::main::assemble(
             "Specify a value between 0 and 4, inclusive.");
     }
 
-#if 0
-    if(not assemblerOptions.kmersOptions.file.empty() or
-        assemblerOptions.kmersOptions.file[0] != '/') {
-
-        // A file name was specified. Read the k-mers to be used as markers from there.
-
-        // This must be an absolute path.
-        if(assemblerOptions.kmersOptions.file[0] != '/') {
-            throw runtime_error("Option --Kmers.file must specify an absolute path. "
-                "A relative path is not accepted.");
-        }
-
-        // Read the k-mers.
-        assembler.readKmersFromFile(
-            assemblerOptions.kmersOptions.k,
-            assemblerOptions.kmersOptions.file);
-
-
-    } else if(assemblerOptions.kmersOptions.suppressHighFrequencyMarkers) {
-
-        // Randomly select the k-mers to be used as markers, but
-        // excluding those that are highly frequent in the input reads.
-        assembler.selectKmersBasedOnFrequency(
-            assemblerOptions.kmersOptions.k,
-            assemblerOptions.kmersOptions.probability, 231,
-            assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
-    } else {
-
-        // Randomly select the k-mers to be used as markers.
-        assembler.randomlySelectKmers(
-            assemblerOptions.kmersOptions.k,
-            assemblerOptions.kmersOptions.probability, 231);
-    }
-#endif
 
 
     // Find the markers in the reads.
