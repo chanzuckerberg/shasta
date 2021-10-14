@@ -256,26 +256,52 @@ void Assembler::selectKmersBasedOnFrequency(
     setupLoadBalancing(reads->readCount(), 1000);
     runThreads(&Assembler::computeKmerFrequency, threadCount);
 
-    // Compute the total number of k-mer occurrences
-    // and the number of RLE kmers.
+    // Compute the total number of k-mer occurrences in reads
+    // and the number of k-mers that can possibly occur.
+    // This is done by counting all k-mers
+    // when using the raw read representation and
+    // only RLE k-mers when using the RLE read representation.
     uint64_t totalKmerOccurrences = 0;
-    uint64_t rleKmerCount = 0;
+    uint64_t possibleKmerCount = 0;
     for(uint64_t kmerId=0; kmerId!=kmerTable.size(); kmerId++) {
         const KmerInfo& info = kmerTable[kmerId];
         totalKmerOccurrences += info.frequency;
-        if(info.isRleKmer) {
-            ++rleKmerCount;
+        if(assemblerInfo->readRepresentation == 0) {
+            ++possibleKmerCount;
+        } else {
+            if(info.isRleKmer) {
+                ++possibleKmerCount;
+            }
         }
     }
     const double averageOccurrenceCount =
-        double(totalKmerOccurrences) / double(rleKmerCount);
-    cout <<
-        "K-mer length k " << k << "\n"
-        "Total number of k-mers " << kmerTable.size() << "\n"
-        "Total number of RLE k-mers " << rleKmerCount << "\n"
-        "Total number of k-mer occurrences " << totalKmerOccurrences << "\n"
-        "Average number of occurrences per RLE k-mer " <<
-        averageOccurrenceCount << endl;
+        double(totalKmerOccurrences) / double(possibleKmerCount);
+
+
+
+    if(assemblerInfo->readRepresentation == 0) {
+
+        // We are using raw read representation.
+        cout <<
+            "K-mer length k " << k << "\n"
+            "Total number of k-mers " << kmerTable.size() << "\n"
+            "Total number of k-mer occurrences in all oriented reads " << totalKmerOccurrences << "\n"
+            "Average number of occurrences per k-mer " <<
+            averageOccurrenceCount << endl;
+
+    } else {
+
+        // We are using RLE read representation.
+        cout <<
+            "K-mer length k " << k << "\n"
+            "Total number of k-mers " << kmerTable.size() << "\n"
+            "Total number of RLE k-mers " << possibleKmerCount << "\n"
+            "Total number of k-mer occurrences in all oriented reads " << totalKmerOccurrences << "\n"
+            "Average number of occurrences per RLE k-mer " <<
+            averageOccurrenceCount << endl;
+    }
+
+
 
     // Convert the enrichment threshold to a frequency.
     const uint64_t frequencyThreshold =
@@ -289,10 +315,6 @@ void Assembler::selectKmersBasedOnFrequency(
     for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
         const KmerInfo& info = kmerTable[kmerId];
         const uint64_t frequency = info.frequency;
-        if(!info.isRleKmer) {
-            SHASTA_ASSERT(frequency == 0);
-            continue;
-        }
 
         const Kmer kmer(kmerId, k);
         const Kmer reverseComplementedKmer(info.reverseComplementedKmerId, k);
@@ -318,7 +340,7 @@ void Assembler::selectKmersBasedOnFrequency(
     vector<KmerId> candidateKmers;
     for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
         const KmerInfo& info = kmerTable[kmerId];
-        if(!info.isRleKmer) {
+        if((assemblerInfo->readRepresentation==1) and  (not info.isRleKmer)) {
             continue;
         }
         const uint64_t frequency = info.frequency;
@@ -327,7 +349,7 @@ void Assembler::selectKmersBasedOnFrequency(
         }
         candidateKmers.push_back(KmerId(kmerId));
     }
-    cout << rleKmerCount - candidateKmers.size() << " k-mers were found to be "
+    cout << possibleKmerCount - candidateKmers.size() << " k-mers were found to be "
         "enriched by more than a factor of " << enrichmentThreshold <<
         " and will not be used as markers." << endl;
     cout << "Markers will be chosen randomly among the remaining pool of " <<
@@ -345,7 +367,7 @@ void Assembler::selectKmersBasedOnFrequency(
     }
 
 
-    // Now randomly generate markers fromthis pool of k-mers
+    // Now randomly generate markers from this pool of k-mers
     // until we have enough.
     uint64_t kmerOccurrencesCount = 0;
     uint64_t kmerCount = 0;
