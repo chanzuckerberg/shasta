@@ -58,12 +58,13 @@ AssemblyGraph2::AssemblyGraph2(
     markerGraph(markerGraph)
 {
 
+#if 0
     // Length threshold (in markers) for cleanupSecondaryEdges
     // and removeSecondaryBubbles. Assembly graph edges
     // longer than this are excluded from removal.
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t secondaryEdgeCleanupThreshold = 6;
-
+#endif
 
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
@@ -73,10 +74,12 @@ AssemblyGraph2::AssemblyGraph2(
     create();
     writeDetailedEarly("0");
 
+#if 0
     // Remove secondary edges, making sure to not introduce any dead ends.
     cleanupSecondaryEdges(secondaryEdgeCleanupThreshold);
     merge(false, false);
     writeDetailedEarly("1");
+#endif
 
     // Gather parallel edges into bubbles.
     gatherBubbles();
@@ -90,10 +93,12 @@ AssemblyGraph2::AssemblyGraph2(
     // Store the reads supporting each branch of each edges.
     storeReadInformation();
 
+#if 0
     // Remove bubbles caused by secondary edges.
     removeSecondaryBubbles(secondaryEdgeCleanupThreshold);
     merge(true, false);
     writeDetailedEarly("4");
+#endif
 
     // Assemble sequence.
     assemble();
@@ -103,13 +108,14 @@ AssemblyGraph2::AssemblyGraph2(
     merge(true, true);
     writeDetailedEarly("5");
 
-
+#if 0
     // Find bubbles caused by copy number changes in repeats
     // with period up to maxPeriod, then remove them.
     findCopyNumberBubbles(bubbleRemovalMaxPeriod);
     removeCopyNumberBubbles();
     merge(true, true);
     writeDetailedEarly("6");
+#endif
 
     // Create the bubble graph.
     createBubbleGraph(markers.size()/2, phasingMinReadCount, threadCount);
@@ -193,6 +199,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
     G& g = *this;
     const bool debug = false;
 
+
     // Remove weak vertices of the bubble graph
     // and flag the corresponding bubbles as bad.
     for(uint64_t iteration=0; ; iteration++) {
@@ -217,7 +224,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
     }
 
 
-#if 0
+
     // Finally, remove edges with high ambiguity.
     vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
@@ -231,7 +238,8 @@ void AssemblyGraph2::cleanupBubbleGraph(
     cout << "Removed " << edgesToBeRemoved.size() <<
         " bubble graph edges with ambiguity greater than " <<
         ambiguityThreshold << endl;
-#endif
+
+
 
     if(debug) {
         bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
@@ -2352,13 +2360,15 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
     // Vertices, colored by discordant ratio.
     // Green if discordant ratio is 0.
     // Red if redDiscordantRatio or more.
-    const double redDiscordantRatio = 0.3;
+    // const double redDiscordantRatio = 0.3;
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
         const BubbleGraphVertex& vertex = bubbleGraph[v];
-        const double d = bubbleGraph.discordantRatio(v);
-        const double hue = max(0., (1. - d / redDiscordantRatio) / 3.);
+        // const double d = bubbleGraph.discordantRatio(v);
+        // const double hue = max(0., (1. - d / redDiscordantRatio) / 3.);
 
-        out << vertex.id << " [color=\"" << hue << " 1 1\"];\n";
+        out << vertex.id <<
+            // " [color=\"" << hue << " 1 1\"]"
+            ";\n";
     }
 
 
@@ -2374,7 +2384,10 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
         const double hue = max(0., (1. - ambiguity / redAmbiguity) / 3.);
 
         out << bubbleGraph[v0].id << "--" << bubbleGraph[v1].id <<
-            " [color=\"" << hue << " 1 1 0.5\"];\n";
+            " [color=\"" << hue << " 1 1 0.5\""
+            " tooltip=\"" << bubbleGraph[v0].id << " " << bubbleGraph[v1].id << " " <<
+            ambiguity <<
+            "\"];\n";
     }
 
     out << "}\n";
@@ -2789,8 +2802,9 @@ void AssemblyGraph2::phaseBubbleGraphComponent(uint64_t componentId)
     }
 
     if(debug) {
+        std::lock_guard<std::mutex> lock(mutex);
         cout << "Found " << unhappyCount << " edges inconsistent with computed bubble phasing "
-            " out of " << totalCount << " edges in this connected component." << endl;
+            " out of " << totalCount << " edges in connected component " << componentId << endl;
         componentGraph.writeHtml("Component-" + to_string(componentId) + ".html", treeEdges, false);
         componentGraph.writeHtml("Component-" + to_string(componentId) + "-Unhappy.html", treeEdges, true);
     }
