@@ -634,17 +634,21 @@ void Assembler::selectKmers2(
 
 
     // Compute the total number of k-mer occurrences
-    // and the number of RLE kmers.
+    // and the number of possible kmers.
     uint64_t totalKmerOccurrences = 0;
-    uint64_t rleKmerCount = 0;
+    uint64_t possibleKmerCount = 0;
     for(uint64_t kmerId=0; kmerId!=kmerTable.size(); kmerId++) {
         totalKmerOccurrences += selectKmers2Data.globalFrequency[kmerId];
-        if(kmerTable[kmerId].isRleKmer) {
-            ++rleKmerCount;
+        if(assemblerInfo->readRepresentation == 0) {
+            ++ possibleKmerCount;
+        } else {
+            if(kmerTable[kmerId].isRleKmer) {
+                ++possibleKmerCount;
+            }
         }
     }
     const double averageOccurrenceCount =
-        double(totalKmerOccurrences) / double(rleKmerCount);
+        double(totalKmerOccurrences) / double(possibleKmerCount);
 
 
 
@@ -655,10 +659,6 @@ void Assembler::selectKmers2(
     for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
         const KmerInfo& info = kmerTable[kmerId];
         const uint64_t frequency = selectKmers2Data.globalFrequency[kmerId];
-        if(!info.isRleKmer) {
-            SHASTA_ASSERT(frequency == 0);
-            continue;
-        }
 
         const Kmer kmer(kmerId, k);
         const Kmer reverseComplementedKmer(info.reverseComplementedKmerId, k);
@@ -678,15 +678,15 @@ void Assembler::selectKmers2(
 
 
     // Gather k-mers that are not overenriched in any read and therefore
-    // can be used as markers..
+    // can be used as markers.
     vector<KmerId> candidateKmers;
     for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
         if(kmerTable[kmerId].isRleKmer and selectKmers2Data.overenrichedReadCount[kmerId] == 0) {
             candidateKmers.push_back(KmerId(kmerId));
         }
     }
-    cout << "Out of a total " << rleKmerCount << " RLE k-mers, " <<
-        rleKmerCount - candidateKmers.size() <<
+    cout << "Out of a total " << possibleKmerCount << " possible k-mers, " <<
+        possibleKmerCount - candidateKmers.size() <<
         " were found to be over-enriched by more than a factor of " <<
         enrichmentThreshold <<
         " in at least one read and will not be used as markers." << endl;
@@ -694,8 +694,12 @@ void Assembler::selectKmers2(
         candidateKmers.size() << " k-mers." << endl;
     cout << "The enrichment threshold of " << enrichmentThreshold <<
         " corresponds to one occurrence every " <<
-        double(rleKmerCount) / enrichmentThreshold <<
-        " RLE bases." << endl;
+        double(possibleKmerCount) / enrichmentThreshold <<
+        " bases";
+    if(assemblerInfo->readRepresentation == 1) {
+        cout << " (in RLE representation)";
+    }
+    cout << "." << endl;
 
 
     // Prepare to generate a random index into this vector of candidate k-mers.
@@ -780,12 +784,16 @@ void Assembler::selectKmers2ThreadFunction(size_t threadId)
     // Access the enrichmentThreshold.
     const double enrichmentThreshold = selectKmers2Data.enrichmentThreshold;
 
-    // Compute the total number of RLE k-mers.
+    // Compute the total number of possible k-mers.
     // It is needed below for overenrichment computations.
-    uint64_t rleKmerCount = 0;
+    uint64_t possibleKmerCount = 0;
     for(const KmerInfo& kmerInfo: kmerTable) {
-        if(kmerInfo.isRleKmer) {
-            ++rleKmerCount;
+        if(assemblerInfo->readRepresentation == 0) {
+            ++possibleKmerCount;
+        } else {
+            if(kmerInfo.isRleKmer) {
+                ++possibleKmerCount;
+            }
         }
     }
 
@@ -841,7 +849,7 @@ void Assembler::selectKmers2ThreadFunction(size_t threadId)
             // in this read.
             const uint32_t readKmerCount = uint32_t(read.baseCount + 1 - k);
             const uint32_t frequencyThreshold =
-                uint32_t(enrichmentThreshold * double(readKmerCount) / double(rleKmerCount));
+                uint32_t(enrichmentThreshold * double(readKmerCount) / double(possibleKmerCount));
 
             // See if any k-mers are over-enriched in this read.
             SHASTA_ASSERT(readKmerIds.size() == readKmerIdFrequencies.size());
