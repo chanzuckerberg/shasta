@@ -659,16 +659,6 @@ void shasta::main::assemble(
 
 
 
-    // Only continue if using RLE read representation.
-    // Non-RLE code is missing.
-    if(assemblerOptions.readsOptions.representation != 1) {
-        throw runtime_error("--Reads.representation " +
-            to_string(assemblerOptions.readsOptions.representation) +
-            " is not implemented.");
-    }
-
-
-
     // Find the markers in the reads.
     assembler.findMarkers(0);
 
@@ -1068,7 +1058,9 @@ void shasta::main::mode0Assembly(
     }
 
     // Compute optimal repeat counts for each vertex of the marker graph.
-    assembler.assembleMarkerGraphVertices(threadCount);
+    if(assemblerOptions.readsOptions.representation == 1) {
+        assembler.assembleMarkerGraphVertices(threadCount);
+    }
 
     // If coverage data was requested, compute and store coverage data for the vertices.
     if(assemblerOptions.assemblyOptions.storeCoverageData or
@@ -1204,7 +1196,9 @@ void shasta::main::mode1Assembly(
     assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
 
     // Compute optimal repeat counts for each vertex of the marker graph.
-    assembler.assembleMarkerGraphVertices(threadCount);
+    if(assemblerOptions.readsOptions.representation == 1) {
+        assembler.assembleMarkerGraphVertices(threadCount);
+    }
 
     // Compute consensus sequence for marker graph edges to be used for assembly.
     assembler.assembleMarkerGraphEdges(
@@ -1263,7 +1257,9 @@ void shasta::main::mode2Assembly(
     assembler.computeMarkerGraphCoverageHistogram();
 
     // Compute optimal repeat counts for each vertex of the marker graph.
-    assembler.assembleMarkerGraphVertices(threadCount);
+    if(assemblerOptions.readsOptions.representation == 1) {
+        assembler.assembleMarkerGraphVertices(threadCount);
+    }
 
     // Compute consensus sequence for all marker graph edges.
     assembler.assembleMarkerGraphEdges(
