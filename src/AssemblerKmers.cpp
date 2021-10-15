@@ -536,7 +536,7 @@ void Assembler::readKmersFromFile(uint64_t k, const string& fileName)
         const KmerId kmerId = KmerId(kmer.id(k));
         SHASTA_ASSERT(kmerId < kmerTable.size());
         KmerInfo& kmerInfo = kmerTable[kmerId];
-        if(not kmerInfo.isRleKmer) {
+        if((assemblerInfo->readRepresentation==1) and (not kmerInfo.isRleKmer)) {
             throw runtime_error("Non-RLE k-mer (duplicate consecutive bases) in " +
                 fileName + ":\n" + line);
         }
@@ -551,17 +551,21 @@ void Assembler::readKmersFromFile(uint64_t k, const string& fileName)
 
     // Count the number of k-mers flagged as markers.
     uint64_t usedKmerCount = 0;
-    uint64_t rleKmerCount = 0;
+    uint64_t possibleKmerCount = 0;
     for(const KmerInfo& kmerInfo: kmerTable) {
         if(kmerInfo.isMarker) {
             ++usedKmerCount;
         }
-        if(kmerInfo.isRleKmer) {
-            ++rleKmerCount;
+        if(assemblerInfo->readRepresentation == 0) {
+            ++possibleKmerCount;
+        } else {
+            if(kmerInfo.isRleKmer) {
+                ++possibleKmerCount;
+            }
         }
     }
-    cout << "Flagged as markers " << usedKmerCount << " out of " << rleKmerCount <<
-        " RLE k-mers of length " << k << endl;
+    cout << "Flagged as markers " << usedKmerCount << " out of " << possibleKmerCount <<
+        " possible k-mers of length " << k << endl;
 }
 
 
