@@ -3254,18 +3254,26 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         }
         if(position1 > position0 + k) {
             for(uint32_t position=position0+k; position!=position1; position++) {
-                Base base;
-                uint32_t repeatCount;
-                tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-                sequence.push_back(base);
-                repeatCounts.push_back(repeatCount);
-                if(coverageData) {
-                    CompressedCoverageData c;
-                    c.base = base.value & 7;
-                    c.strand = orientedReadId.getStrand() & 1;
-                    c.repeatCount = uint8_t(min(uint32_t(255), repeatCount));
-                    c.frequency = 1;
-                    coverageData->push_back(make_pair(position - (position0+k), c));
+
+                if(assemblerInfo->readRepresentation == 1) {
+                    // RLE
+                    Base base;
+                    uint32_t repeatCount;
+                    tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+                    sequence.push_back(base);
+                    repeatCounts.push_back(repeatCount);
+                    if(coverageData) {
+                        CompressedCoverageData c;
+                        c.base = base.value & 7;
+                        c.strand = orientedReadId.getStrand() & 1;
+                        c.repeatCount = uint8_t(min(uint32_t(255), repeatCount));
+                        c.frequency = 1;
+                        coverageData->push_back(make_pair(position - (position0+k), c));
+                    }
+                } else {
+                    // Non-RLE.
+                    const Base base = reads->getOrientedReadBase(orientedReadId, position);
+                    sequence.push_back(base);
                 }
             }
             overlappingBaseCount = 0;
@@ -3430,11 +3438,18 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         const uint32_t end = position1;
         interveningSequence.clear();
         for(uint32_t position=begin; position!=end; position++) {
-            Base base;
-            uint8_t repeatCount;
-            tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-            interveningSequence.push_back(reads->getOrientedReadBase(orientedReadId, position));
-            interveningRepeatCounts[i].push_back(repeatCount);
+
+            if(assemblerInfo->readRepresentation == 1) {
+                // RLE.
+                Base base;
+                uint8_t repeatCount;
+                tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+                interveningSequence.push_back(base);
+                interveningRepeatCounts[i].push_back(repeatCount);
+            } else {
+                // Non-RLE.
+                interveningSequence.push_back(reads->getOrientedReadBase(orientedReadId, position));
+            }
         }
 
         if(debug) {
@@ -3553,7 +3568,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
-    // Construct the edge sequence and repeat counts.
+    // Construct the edge sequence (and repeat counts if working in RLE).
     // We loop over all positions in the alignment.
     // At each position we compute a consensus base and repeat count.
     // If the consensus base is not '-', we store the base and repeat count.
@@ -3600,10 +3615,17 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                         cout << base << " " << 0 << " " << orientedReadId.getStrand() << endl;
                     }
                 } else {
-                    coverage.addRead(
-                        base,
-                        orientedReadId.getStrand(),
-                        interveningRepeatCounts[i][positions[i]]);
+                    if(assemblerInfo->readRepresentation == 1) {
+                        coverage.addRead(
+                            base,
+                            orientedReadId.getStrand(),
+                            interveningRepeatCounts[i][positions[i]]);
+                    } else {
+                        coverage.addRead(
+                            base,
+                            orientedReadId.getStrand(),
+                            1);
+                    }
                     if(debug) {
                         cout << base << " " << int(interveningRepeatCounts[i][positions[i]]) << " " << orientedReadId.getStrand() << endl;
                     }

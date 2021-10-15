@@ -140,6 +140,7 @@ pair<Base, uint8_t> Reads::getOrientedReadBaseAndRepeatCount(
     OrientedReadId orientedReadId,
     uint32_t position) const
 {
+    SHASTA_ASSERT(representation == 1);
 
     // Extract the read id and strand.
     const ReadId readId = orientedReadId.getReadId();
