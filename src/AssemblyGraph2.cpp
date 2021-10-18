@@ -138,10 +138,12 @@ AssemblyGraph2::AssemblyGraph2(
     // Use each connected component of the bubble graph to phase the bubbles.
     phase(threadCount);
 
+#if 0
     // Remove from the AssemblyGraph2 the bubbles marked isBad
     // (only keep the strongest branch).
     removeBadBubbles();
     merge(true, true);
+#endif
 
     // Find chains of bubbles.
     // These are linear chains of edges of length at least 2.
@@ -258,6 +260,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
         // Mark this bubble as bad and remove the bubble graph vertex.
         // cout << "Removing a bubble with discordant ratio " << discordantRatio << endl;
+        const AssemblyGraph2::edge_descriptor e = bubbleGraph[v].e;
         g[bubbleGraph[v].e].isBad = true;
         clear_vertex(v, bubbleGraph);
         remove_vertex(v, bubbleGraph);
@@ -271,6 +274,16 @@ void AssemblyGraph2::cleanupBubbleGraph(
             SHASTA_ASSERT(it != discordantRatioTable.get<0>().end());
             discordantRatioTable.get<0>().replace(it, make_pair(neighbor, discordantRatio));
         }
+
+
+
+        // In the bubble we marked as bad, only keep the strongest branch.
+        g[e].removeAllBranchesExceptStrongest();
+
+        // See if can do any merging.
+        edge_descriptor eMerged = mergeWithPreviousIfPossible(e);
+        eMerged = mergeWithFollowingIfPossible(eMerged);
+
 
     }
     cout << "Marked " << removedCount << " bubbles as bad." << endl;
@@ -3236,6 +3249,144 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
         boost::remove_vertex(v, g);
     }
 
+    return eNew;
+}
+
+
+
+// Merge an edge with the previous edge, if possible.
+AssemblyGraph2::edge_descriptor AssemblyGraph2::mergeWithPreviousIfPossible(edge_descriptor e)
+{
+    AssemblyGraph2& g = *this;
+
+    // This edge cannot be a bubble.
+    if(g[e].isBubble()) {
+        return e;
+    }
+
+    // The source vertex of e must have in-degree and out-degree 1.
+    const vertex_descriptor v0 = source(e, g);
+    if(in_degree(v0, g) != 1) {
+        return e;
+    }
+    if(out_degree(v0, g) != 1) {
+        return e;
+    }
+
+    // Locate the one and only previous edge.
+    in_edge_iterator it;
+    tie(it, ignore) = in_edges(v0, g);
+    const edge_descriptor ePrevious = *it;
+
+    // The previous edge cannot be a bubble.
+    if(g[ePrevious].isBubble()) {
+        return e;
+    }
+
+
+    // If getting here, we can merge.
+
+    // Create the new edge.
+    edge_descriptor eNew;
+    tie(eNew, ignore) = add_edge(source(ePrevious, g), target(e, g), E(nextId++), g);
+    g[eNew].branches.resize(1);
+    g[eNew].strongestBranchId = 0;
+
+    // Access the branches we are working with.
+    const AssemblyGraph2Edge::Branch& branch = g[e].branches.front();
+    const AssemblyGraph2Edge::Branch& previousBranch = g[ePrevious].branches.front();
+    AssemblyGraph2Edge::Branch& newBranch = g[eNew].branches.front();
+
+    // Create the combined marker graph path.
+    newBranch.path = previousBranch.path;
+    copy(branch.path.begin(), branch.path.end(), back_inserter(newBranch.path));
+    newBranch.containsSecondaryEdges = branch.containsSecondaryEdges or previousBranch.containsSecondaryEdges;
+
+    // Recompute read support for the merged branch.
+    newBranch.storeReadInformation(markerGraph);
+
+    // Compute sequence for the updated edge.
+    assemble(eNew);
+
+    // Remove the edges we are merging.
+    boost::remove_edge(e, g);
+    boost::remove_edge(ePrevious, g);
+
+    // Remove the vertex in between.
+    SHASTA_ASSERT(in_degree(v0, g) == 0);
+    SHASTA_ASSERT(out_degree(v0, g) == 0);
+    remove_vertex(v0, g);
+
+    // Done.
+    return eNew;
+}
+
+
+
+// Merge an edge with the following edge, if possible.
+AssemblyGraph2::edge_descriptor AssemblyGraph2::mergeWithFollowingIfPossible(edge_descriptor e)
+{
+    AssemblyGraph2& g = *this;
+
+    // This edge cannot be a bubble.
+    if(g[e].isBubble()) {
+        return e;
+    }
+
+    // The target vertex of e must have in-degree and out-degree 1.
+    const vertex_descriptor v1 = target(e, g);
+    if(in_degree(v1, g) != 1) {
+        return e;
+    }
+    if(out_degree(v1, g) != 1) {
+        return e;
+    }
+
+    // Locate the one and only following edge.
+    out_edge_iterator it;
+    tie(it, ignore) = out_edges(v1, g);
+    const edge_descriptor eFollowing = *it;
+
+    // The following edge cannot be a bubble.
+    if(g[eFollowing].isBubble()) {
+        return e;
+    }
+
+
+    // If getting here, we can merge.
+
+    // Create the new edge.
+    edge_descriptor eNew;
+    tie(eNew, ignore) = add_edge(source(e, g), target(eFollowing, g), E(nextId++), g);
+    g[eNew].branches.resize(1);
+    g[eNew].strongestBranchId = 0;
+
+    // Access the branches we are working with.
+    const AssemblyGraph2Edge::Branch& branch = g[e].branches.front();
+    const AssemblyGraph2Edge::Branch& followingBranch = g[eFollowing].branches.front();
+    AssemblyGraph2Edge::Branch& newBranch = g[eNew].branches.front();
+
+    // Create the combined marker graph path.
+    newBranch.path = branch.path;
+    copy(followingBranch.path.begin(), followingBranch.path.end(), back_inserter(newBranch.path));
+    newBranch.containsSecondaryEdges = branch.containsSecondaryEdges or followingBranch.containsSecondaryEdges;
+
+    // Recompute read support for the merged branch.
+    newBranch.storeReadInformation(markerGraph);
+
+    // Compute sequence for the updated edge.
+    assemble(eNew);
+
+    // Remove the edges we are merging.
+    boost::remove_edge(e, g);
+    boost::remove_edge(eFollowing, g);
+
+    // Remove the vertex in between.
+    SHASTA_ASSERT(in_degree(v1, g) == 0);
+    SHASTA_ASSERT(out_degree(v1, g) == 0);
+    remove_vertex(v1, g);
+
+    // Done.
     return eNew;
 }
 

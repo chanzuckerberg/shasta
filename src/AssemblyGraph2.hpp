@@ -94,6 +94,7 @@ public:
         Branch(const MarkerGraphPath& path, bool containsSecondaryEdges) :
             path(path),
             containsSecondaryEdges(containsSecondaryEdges) {}
+        Branch() {}
 
         // Assembled sequence.
         // This excludes the first and last k/2 RLE bases.
@@ -336,6 +337,10 @@ private:
         bool storeReadInformation,  // If true, store read information for merged edges.
         bool assemble               // If true, assemble merged edges.
         );
+
+    // Merge an edge with the previous or following edge, if possible.
+    edge_descriptor mergeWithPreviousIfPossible(edge_descriptor);
+    edge_descriptor mergeWithFollowingIfPossible(edge_descriptor);
 
     // Find linear chains of adjacent non-bubbles.
     // Used by merge.
