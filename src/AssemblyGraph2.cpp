@@ -310,11 +310,31 @@ void AssemblyGraph2::cleanupBubbleGraph(
         }
         ++addedCount;
 
+        /*
         cout << "New candidate bubble at ";
         for(const edge_descriptor e: edges01) {
             cout << " " << g[e].id;
         }
         cout << endl;
+        */
+
+        // Combine these edges into a new bubble.
+        edge_descriptor eNew;
+        tie(eNew, ignore )= add_edge(v0, v1, E(nextId++), g);
+        for(const edge_descriptor e: edges01) {
+            for(const E::Branch& branch: g[e].branches) {
+                g[eNew].branches.push_back(branch);
+            }
+            boost::remove_edge(e, g);
+        }
+        g[eNew].findStrongestBranch();
+
+        // Add a new bubble graph vertex for this bubble. Leave it isolated for now.
+        if(g[eNew].ploidy() == 2) {
+            add_vertex(BubbleGraphVertex(eNew, g[eNew]), bubbleGraph);
+        }
+
+        // cout << "Created a new bubble " << g[eNew].id << " with ploidy " << g[eNew].ploidy() << endl;
 
     }
     cout << "Marked " << removedCount << " bubbles as bad." << endl;
@@ -2646,7 +2666,12 @@ double AssemblyGraph2::BubbleGraph::discordantRatio(vertex_descriptor v) const
         discordantSum += edge.discordantCount();
     }
 
-    return double(discordantSum) / double(concordantSum + discordantSum);
+    const double denominator = double(concordantSum + discordantSum);
+    if(denominator == 0.) {
+        return 0.;
+    } else {
+        return double(discordantSum) / denominator;
+    }
 }
 
 
@@ -2819,6 +2844,7 @@ void AssemblyGraph2::phaseBubbleGraphComponent(uint64_t componentId)
     bubbleGraph.extractComponent(componentId, componentGraph);
 
     if(debug) {
+        std::lock_guard<std::mutex> lock(mutex);
         cout << "Processing connected component " << componentId <<
             " with " << num_vertices(componentGraph) <<
             " vertices and " << num_edges(componentGraph) <<
