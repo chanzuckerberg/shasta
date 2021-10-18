@@ -22,6 +22,9 @@ using namespace shasta;
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/reverse_graph.hpp>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/ranked_index.hpp>
 #include <boost/pending/disjoint_sets.hpp>
 
 // Standard library.
@@ -200,6 +203,83 @@ void AssemblyGraph2::cleanupBubbleGraph(
     const bool debug = false;
 
 
+
+    // Create a table the contains the discordant ratio of each
+    // vertex and that can be updated dynamically when we add or remove vertices.
+    // Vertices are removed when bad bubbles are found.
+    // In turn, the removal of these bubbles can cause new bubbles to be found.
+    using namespace boost::multi_index;
+    using DiscordantRatioTableEntry = pair<BubbleGraph::vertex_descriptor, double>;
+    using DiscordantRatioTable = multi_index_container<
+        DiscordantRatioTableEntry,
+        indexed_by<
+            ordered_unique< member<DiscordantRatioTableEntry, BubbleGraph::vertex_descriptor, &DiscordantRatioTableEntry::first> >,
+        ranked_non_unique< member<DiscordantRatioTableEntry, double, &DiscordantRatioTableEntry::second>, std::greater<double> >
+        > >;
+    DiscordantRatioTable discordantRatioTable;
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        discordantRatioTable.insert(make_pair(v, bubbleGraph.discordantRatio(v)));
+    }
+
+
+
+    // Main loop.
+    // We find in the discordantRatioTable the vertex with the worst discordance.
+    // If this is less than discordantRatioThreshold, we are done.
+    // Otherwise we remove that vertex and mark the corresponding bubble as bad,
+    // then update the discordantRatioTable.
+    // LATER, WE WILL ALSO CHECK IF ANY NEW BUBBLES WERE CREATED.
+    uint64_t removedCount = 0;
+    while(true) {
+
+        // Find the vertex with highest discordance ratio.
+        if(discordantRatioTable.empty()) {
+            break;
+        }
+        const auto it = discordantRatioTable.get<1>().nth(0);
+
+        // If the discordantio is less than our threshold, we are done.
+        const double discordantRatio = it->second;
+        if(discordantRatio < discordantRatioThreshold) {
+            break;
+        }
+
+        // Locate the vertex to be removed.
+        const vertex_descriptor v = it->first;
+
+        // Before removing it, find all of its neighbors,
+        // so we can update their discordant ratio after removing the vertex.
+        vector<BubbleGraph::vertex_descriptor> neighbors;
+        BGL_FORALL_OUTEDGES(v, e, bubbleGraph, BubbleGraph) {
+            neighbors.push_back(target(e, bubbleGraph));
+        }
+        deduplicate(neighbors);
+
+
+        // Mark this bubble as bad and remove the bubble graph vertex.
+        // cout << "Removing a bubble with discordant ratio " << discordantRatio << endl;
+        g[bubbleGraph[v].e].isBad = true;
+        clear_vertex(v, bubbleGraph);
+        remove_vertex(v, bubbleGraph);
+        discordantRatioTable.get<1>().erase(it);
+        ++removedCount;
+
+        // Update the discordant ratio table for the neighbors.
+        for(const BubbleGraph::vertex_descriptor neighbor: neighbors) {
+            const double discordantRatio = bubbleGraph.discordantRatio(neighbor);
+            const auto it = discordantRatioTable.get<0>().find(neighbor);
+            SHASTA_ASSERT(it != discordantRatioTable.get<0>().end());
+            discordantRatioTable.get<0>().replace(it, make_pair(neighbor, discordantRatio));
+        }
+
+    }
+    cout << "Marked " << removedCount << " bubbles as bad." << endl;
+
+
+
+
+
+#if 0
     // Remove weak vertices of the bubble graph
     // and flag the corresponding bubbles as bad.
     for(uint64_t iteration=0; ; iteration++) {
@@ -222,6 +302,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
             " weak vertices, the bubble graph has " << num_vertices(bubbleGraph) <<
             " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
     }
+#endif
 
 
 
