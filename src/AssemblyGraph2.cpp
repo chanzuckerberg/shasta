@@ -232,6 +232,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
     // then update the discordantRatioTable.
     // LATER, WE WILL ALSO CHECK IF ANY NEW BUBBLES WERE CREATED.
     uint64_t removedCount = 0;
+    uint64_t addedCount = 0;
     while(true) {
 
         // Find the vertex with highest discordance ratio.
@@ -259,8 +260,8 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
 
         // Mark this bubble as bad and remove the bubble graph vertex.
-        // cout << "Removing a bubble with discordant ratio " << discordantRatio << endl;
         const AssemblyGraph2::edge_descriptor e = bubbleGraph[v].e;
+        // cout << "Removing " << g[e].id << " with discordant ratio " << discordantRatio << endl;
         g[bubbleGraph[v].e].isBad = true;
         clear_vertex(v, bubbleGraph);
         remove_vertex(v, bubbleGraph);
@@ -279,14 +280,45 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
         // In the bubble we marked as bad, only keep the strongest branch.
         g[e].removeAllBranchesExceptStrongest();
+        const uint64_t eId = g[e].id;
 
         // See if can do any merging.
         edge_descriptor eMerged = mergeWithPreviousIfPossible(e);
         eMerged = mergeWithFollowingIfPossible(eMerged);
 
 
+
+        // If some merging happened, check if a new bubble was created.
+        if(g[eMerged].id == eId) {
+            continue;
+        }
+        const vertex_descriptor v0 = source(eMerged, g);
+        const vertex_descriptor v1 = target(eMerged, g);
+
+        // Find all edges between v0 and v1.
+        vector<edge_descriptor> edges01;
+        BGL_FORALL_OUTEDGES(v0, e, g, G) {
+            if(target(e, g) == v1) {
+                edges01.push_back(e);
+            }
+        }
+        SHASTA_ASSERT(not edges01.empty());
+
+        // If only one, there is not a new bubble.
+        if(edges01.size() == 1) {
+            continue;
+        }
+        ++addedCount;
+
+        cout << "New candidate bubble at ";
+        for(const edge_descriptor e: edges01) {
+            cout << " " << g[e].id;
+        }
+        cout << endl;
+
     }
     cout << "Marked " << removedCount << " bubbles as bad." << endl;
+    cout << "Found " << addedCount << " new candidate bubbles." << endl;
 
 
 
