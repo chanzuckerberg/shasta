@@ -5,6 +5,7 @@ using namespace shasta;
 
 
 void shasta::assembleMarkerGraphPath(
+    uint64_t readRepresentation,
     uint64_t k,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph,

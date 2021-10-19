@@ -38,6 +38,7 @@ using namespace shasta;
 // in the marker graph. Therefore, immediately after construction,
 // each edge has a single MarkerGraphPath (no bubbles).
 AssemblyGraph2::AssemblyGraph2(
+    uint64_t readRepresentation,
     uint64_t k, // Marker length
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
@@ -55,6 +56,7 @@ AssemblyGraph2::AssemblyGraph2(
     size_t threadCount
     ) :
     MultithreadedObject<AssemblyGraph2>(*this),
+    readRepresentation(readRepresentation),
     k(k),
     readFlags(readFlags),
     markers(markers),
@@ -811,7 +813,8 @@ void AssemblyGraph2::assemble(edge_descriptor e)
         MarkerGraph::EdgeId const * const begin = &path[0];
         MarkerGraph::EdgeId const * const end = begin + path.size();
         const span<const MarkerGraph::EdgeId> pathSpan(begin, end);
-        assembleMarkerGraphPath(k, markers, markerGraph, pathSpan, false, assembledSegment);
+        assembleMarkerGraphPath(readRepresentation, k,
+            markers, markerGraph, pathSpan, false, assembledSegment);
 
 
 

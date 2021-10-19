@@ -36,6 +36,7 @@ void Assembler::createAssemblyGraph2(
     cout << timestamp << "Assembler::createAssemblyGraph2 begins." << endl;
 
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(
+        assemblerInfo->readRepresentation,
         assemblerInfo->k,
         getReads().getFlags(),
         markers,

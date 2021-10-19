@@ -233,6 +233,7 @@ public:
     // in the marker graph. Therefore, immediately after construction,
     // each edge has a single MarkerGraphPath (no bubbles).
     AssemblyGraph2(
+        uint64_t readRepresentation,
         uint64_t k, // Marker length
         const MemoryMapped::Vector<ReadFlags>& readFlags,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
@@ -291,6 +292,7 @@ private:
     using E = AssemblyGraph2Edge;
 
     // Some Assembler data that we need.
+    uint64_t readRepresentation;
     uint64_t k;
     const MemoryMapped::Vector<ReadFlags>& readFlags;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
