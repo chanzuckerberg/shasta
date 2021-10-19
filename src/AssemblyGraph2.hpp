@@ -649,6 +649,10 @@ private:
         void updateDynamicOrientedReadsTableForRemoval(BubbleGraph::vertex_descriptor);
         void updateDynamicOrientedReadsTableForAddition(BubbleGraph::vertex_descriptor);
 
+        // Use the dynamic oriented reads table to create edges
+        // for a newly added vertex.
+        void createNewEdges(BubbleGraph::vertex_descriptor, uint64_t phasingMinReadCount);
+
         void writeVerticesCsv(const string& fileName) const;
         void writeEdgesCsv(const string& fileName) const;
         void removeWeakEdges(uint64_t minReadCount);
@@ -718,6 +722,7 @@ private:
         );
     void cleanupBubbleGraph(
         uint64_t readCount,
+        uint64_t phasingMinReadCount,
         double discordantRatioThreshold,
         double ambiguityThreshold);
 

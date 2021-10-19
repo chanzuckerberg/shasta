@@ -130,6 +130,7 @@ AssemblyGraph2::AssemblyGraph2(
     // that are removed.
     cleanupBubbleGraph(
         markers.size()/2,
+        phasingMinReadCount,
         bubbleRemovalDiscordantRatioThreshold,
         bubbleRemovalAmbiguityThreshold);
 
@@ -198,6 +199,7 @@ AssemblyGraph2::AssemblyGraph2(
 
 void AssemblyGraph2::cleanupBubbleGraph(
     uint64_t readCount,
+    uint64_t phasingMinReadCount,
     double discordantRatioThreshold,
     double ambiguityThreshold)
 {
@@ -348,6 +350,17 @@ void AssemblyGraph2::cleanupBubbleGraph(
             add_vertex(BubbleGraphVertex(eNew, g[eNew]), bubbleGraph);
 
         bubbleGraph.updateDynamicOrientedReadsTableForAddition(vNew);
+        bubbleGraph.createNewEdges(vNew, phasingMinReadCount);
+
+        // Update the discordant ratio table.
+        discordantRatioTable.insert(make_pair(vNew, bubbleGraph.discordantRatio(vNew)));
+        BGL_FORALL_OUTEDGES(vNew, e, bubbleGraph, BubbleGraph) {
+            const BubbleGraph::vertex_descriptor neighbor = target(e, bubbleGraph);
+            const double discordantRatio = bubbleGraph.discordantRatio(neighbor);
+            const auto it = discordantRatioTable.get<0>().find(neighbor);
+            SHASTA_ASSERT(it != discordantRatioTable.get<0>().end());
+            discordantRatioTable.get<0>().replace(it, make_pair(neighbor, discordantRatio));
+        }
     }
     cout << "Marked " << removedCount << " bubbles as bad." << endl;
     cout << "Found " << addedCount << " new candidate bubbles." << endl;
@@ -2244,6 +2257,68 @@ void AssemblyGraph2::BubbleGraph::updateDynamicOrientedReadsTableForAddition(
         const OrientedReadId orientedReadId = p.first;
         const uint64_t side = p.second;
         dynamicOrientedReadsTable[orientedReadId.getValue()].insert(make_pair(v, side));
+    }
+}
+
+
+
+// Use the dynamic oriented reads table to create edges
+// for a newly added vertex.
+void AssemblyGraph2::BubbleGraph::createNewEdges(
+    BubbleGraph::vertex_descriptor v0,
+    uint64_t phasingMinReadCount)
+{
+    BubbleGraph& bubbleGraph = *this;
+    SHASTA_ASSERT(out_degree(v0, bubbleGraph) == 0);
+    const BubbleGraphVertex& vertex0 = bubbleGraph[v0];
+
+
+    // Edge candidates and their phasing matrix.
+    using Matrix = array<array<uint64_t, 2>, 2>;
+    Matrix zeroMatrix;
+    zeroMatrix[0] = {0, 0};
+    zeroMatrix[1] = {0, 0};
+    std::map<vertex_descriptor, Matrix> edgeCandidates;
+
+    // To find edge candidates, loop over oriented reads of this vertex.
+    for(const auto& p0: vertex0.orientedReadIds) {
+        const OrientedReadId orientedReadId = p0.first;
+        const uint64_t side0 = p0.second;
+
+        for(const auto& p1: dynamicOrientedReadsTable[orientedReadId.getValue()]) {
+            const vertex_descriptor v1 = p1.first;
+            if(v1 == v0) {
+                continue;
+            }
+            const uint64_t side1 = p1.second;
+
+            auto it = edgeCandidates.find(v1);
+            if(it == edgeCandidates.end()) {
+                tie(it, ignore) = edgeCandidates.insert(make_pair(v1, zeroMatrix));
+            }
+
+            Matrix& matrix = it->second;
+            ++matrix[side0][side1];
+        }
+    }
+
+
+    // Loop over edge candidates.
+    cout << "Edge candidates:" << endl;
+    for(const auto& p: edgeCandidates) {
+        const vertex_descriptor v1 = p.first;
+        const Matrix& matrix = p.second;
+
+        // Check that we have enough supporting reads.
+        const uint64_t sum = matrix[0][0] + matrix[0][1] + matrix[1][0] + matrix[1][1];
+        if(sum < phasingMinReadCount) {
+            continue;
+        }
+
+        // Create the new edge.
+        BubbleGraphEdge edge;
+        edge.matrix = matrix;
+        add_edge(v0, v1, edge, bubbleGraph);
     }
 }
 
