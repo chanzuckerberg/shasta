@@ -304,8 +304,8 @@ void AssemblyGraph2::cleanupBubbleGraph(
         }
         SHASTA_ASSERT(not edges01.empty());
 
-        // If only one, there is not a new bubble.
-        if(edges01.size() == 1) {
+        // If not exactly two, it is not a bubble.
+        if(edges01.size() != 2) {
             continue;
         }
         ++addedCount;
@@ -328,14 +328,14 @@ void AssemblyGraph2::cleanupBubbleGraph(
             boost::remove_edge(e, g);
         }
         g[eNew].findStrongestBranch();
+        assemble(eNew);
+        g[eNew].storeReadInformation(markerGraph);
 
-        // Add a new bubble graph vertex for this bubble. Leave it isolated for now.
-        if(g[eNew].ploidy() == 2) {
-            add_vertex(BubbleGraphVertex(eNew, g[eNew]), bubbleGraph);
+        // If diploid, add a new bubble graph vertex for this bubble.
+        if(g[eNew].ploidy() != 2) {
+            continue;
         }
-
-        // cout << "Created a new bubble " << g[eNew].id << " with ploidy " << g[eNew].ploidy() << endl;
-
+        add_vertex(BubbleGraphVertex(eNew, g[eNew]), bubbleGraph);
     }
     cout << "Marked " << removedCount << " bubbles as bad." << endl;
     cout << "Found " << addedCount << " new candidate bubbles." << endl;
