@@ -1121,7 +1121,7 @@ void MarkerGraphOptions::parseSimplifyMaxLength()
 
     boost::tokenizer< boost::char_separator<char> > tokenizer(
         simplifyMaxLength, boost::char_separator<char>(","));
-    for(const string token: tokenizer) {
+    for(const string& token: tokenizer) {
         try {
             size_t numberEndsHere;
             const size_t value = std::stoi(token, &numberEndsHere);
