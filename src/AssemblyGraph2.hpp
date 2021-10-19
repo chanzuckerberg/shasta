@@ -16,6 +16,7 @@
 // Standard library.
 #include "array.hpp"
 #include <map>
+#include <set>
 #include "string.hpp"
 #include "vector.hpp"
 
@@ -639,6 +640,15 @@ private:
         // Indexed by OrientedReadId::getValue().
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
+
+        // A more dynamic version of the orientedReadsTable.
+        // For each OrientedReadId, it contains the bubble graph vertices
+        // that contain it. It does not keep track of sides.
+        vector< std::set< pair<BubbleGraph::vertex_descriptor, uint64_t> > > dynamicOrientedReadsTable;
+        void createDynamicOrientedReadsTable(uint64_t readCount);
+        void updateDynamicOrientedReadsTableForRemoval(BubbleGraph::vertex_descriptor);
+        void updateDynamicOrientedReadsTableForAddition(BubbleGraph::vertex_descriptor);
+
         void writeVerticesCsv(const string& fileName) const;
         void writeEdgesCsv(const string& fileName) const;
         void removeWeakEdges(uint64_t minReadCount);
@@ -707,6 +717,7 @@ private:
         size_t threadCount
         );
     void cleanupBubbleGraph(
+        uint64_t readCount,
         double discordantRatioThreshold,
         double ambiguityThreshold);
 

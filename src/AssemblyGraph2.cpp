@@ -129,6 +129,7 @@ AssemblyGraph2::AssemblyGraph2(
     // This marks as bad the bubbles corresponding to bubble graph vertices
     // that are removed.
     cleanupBubbleGraph(
+        markers.size()/2,
         bubbleRemovalDiscordantRatioThreshold,
         bubbleRemovalAmbiguityThreshold);
 
@@ -196,6 +197,7 @@ AssemblyGraph2::AssemblyGraph2(
 
 
 void AssemblyGraph2::cleanupBubbleGraph(
+    uint64_t readCount,
     double discordantRatioThreshold,
     double ambiguityThreshold)
 {
@@ -223,6 +225,9 @@ void AssemblyGraph2::cleanupBubbleGraph(
         discordantRatioTable.insert(make_pair(v, bubbleGraph.discordantRatio(v)));
     }
 
+    // Create the dynamic oriented read table.
+    // It will be updated below as we add and remove bubble graph vertices.
+    bubbleGraph.createDynamicOrientedReadsTable(readCount);
 
 
     // Main loop.
@@ -259,10 +264,14 @@ void AssemblyGraph2::cleanupBubbleGraph(
         deduplicate(neighbors);
 
 
-        // Mark this bubble as bad and remove the bubble graph vertex.
+
+        // Mark this bubble as bad, update the dynamic oriented reads table,
+        // and remove the bubble graph vertex.
         const AssemblyGraph2::edge_descriptor e = bubbleGraph[v].e;
-        // cout << "Removing " << g[e].id << " with discordant ratio " << discordantRatio << endl;
-        g[bubbleGraph[v].e].isBad = true;
+        E& assemblyGraphEdge = g[e];
+        // cout << "Removing " << assemblyGraphEdge.id << " with discordant ratio " << discordantRatio << endl;
+        assemblyGraphEdge.isBad = true;
+        bubbleGraph.updateDynamicOrientedReadsTableForRemoval(v);
         clear_vertex(v, bubbleGraph);
         remove_vertex(v, bubbleGraph);
         discordantRatioTable.get<1>().erase(it);
@@ -335,12 +344,16 @@ void AssemblyGraph2::cleanupBubbleGraph(
         if(g[eNew].ploidy() != 2) {
             continue;
         }
-        add_vertex(BubbleGraphVertex(eNew, g[eNew]), bubbleGraph);
+        const BubbleGraph::vertex_descriptor vNew =
+            add_vertex(BubbleGraphVertex(eNew, g[eNew]), bubbleGraph);
+
+        bubbleGraph.updateDynamicOrientedReadsTableForAddition(vNew);
     }
     cout << "Marked " << removedCount << " bubbles as bad." << endl;
     cout << "Found " << addedCount << " new candidate bubbles." << endl;
 
 
+    bubbleGraph.dynamicOrientedReadsTable.clear();
 
 
 
@@ -2107,6 +2120,7 @@ void AssemblyGraph2::createBubbleGraph(
     cout << timestamp << "Creating bubble graph edges." << endl;
     // bubbleGraph.createEdges(phasingMinReadCount);
     bubbleGraph.createEdgesParallel(phasingMinReadCount, threadCount);
+    bubbleGraph.orientedReadsTable.clear();
 
     cout << timestamp << "createBubbleGraph ends." << endl;
 }
@@ -2185,6 +2199,51 @@ void AssemblyGraph2::BubbleGraph::createOrientedReadsTable(uint64_t readCount)
             const uint64_t side = p.second;
             orientedReadsTable[orientedReadId.getValue()].push_back(make_pair(v, side));
         }
+    }
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::createDynamicOrientedReadsTable(uint64_t readCount)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    dynamicOrientedReadsTable.clear();
+    dynamicOrientedReadsTable.resize(readCount * 2);
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        for(const auto& p: bubbleGraph[v].orientedReadIds) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t side = p.second;
+            dynamicOrientedReadsTable[orientedReadId.getValue()].insert(make_pair(v, side));
+        }
+    }
+}
+
+
+
+void AssemblyGraph2::BubbleGraph::updateDynamicOrientedReadsTableForRemoval(
+    BubbleGraph::vertex_descriptor v)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    for(const auto& p: bubbleGraph[v].orientedReadIds) {
+        const OrientedReadId orientedReadId = p.first;
+        const uint64_t side = p.second;
+        dynamicOrientedReadsTable[orientedReadId.getValue()].erase(make_pair(v, side));
+    }
+
+}
+
+
+void AssemblyGraph2::BubbleGraph::updateDynamicOrientedReadsTableForAddition(
+    BubbleGraph::vertex_descriptor v)
+{
+    BubbleGraph& bubbleGraph = *this;
+
+    for(const auto& p: bubbleGraph[v].orientedReadIds) {
+        const OrientedReadId orientedReadId = p.first;
+        const uint64_t side = p.second;
+        dynamicOrientedReadsTable[orientedReadId.getValue()].insert(make_pair(v, side));
     }
 }
 
@@ -2791,8 +2850,9 @@ void AssemblyGraph2::BubbleGraph::extractComponent(
 void AssemblyGraph2::phase(size_t threadCount)
 {
     cout << timestamp << "phase begins." << endl;
+    cout << "The bubble graph has " << num_vertices(bubbleGraph) << " vertices." << endl;
 
-    // In parallel, [hase each connected component of the BubbleGraph.
+    // In parallel, phase each connected component of the BubbleGraph.
     // each thread writes the results in its portion of the global BubbleGraph.
     const uint64_t batchSize = 1;
     setupLoadBalancing(bubbleGraph.connectedComponents.size(), batchSize);
