@@ -121,12 +121,19 @@ void Assembler::writeReadsSummary()
     }
 
 
+    // Open the csv file and write the header.
     ofstream csv("ReadSummary.csv");
-    csv << "Id,Name,RawLength,RleLength,RawOverRleLengthRatio,"
-        "MarkerCount,MarkerDensity,MaximumMarkerOffset,"
+    csv << "Id,Name,";
+    if(assemblerInfo->readRepresentation == 1) {
+        csv << "RawLength,RleLength,RawOverRleLengthRatio,";
+    } else {
+        csv << "Length,";
+    }
+    csv << "MarkerCount,MarkerDensity,MaximumMarkerOffset,"
         "Palindromic,Chimeric,"
         "AlignmentCandidates,ReadGraphNeighbors,"
         "VertexCount,VertexDensity,runid,sampleid,read,ch,start_time,\n";
+
     for(ReadId readId=0; readId!=reads->readCount(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
 
@@ -138,27 +145,46 @@ void Assembler::writeReadsSummary()
         copy(readName.begin(), readName.end(), ostream_iterator<char>(csv));
         csv << ",";
 
-        // Number of raw bases.
-        const auto repeatCounts = reads->getReadRepeatCounts(readId);
-        uint64_t rawBaseCount = 0;
-        for(const auto repeatCount: repeatCounts) {
-            rawBaseCount += repeatCount;
+        const uint64_t markerCount = markers.size(orientedReadId.getValue());
+        double markerDensity = 0.;
+        if(assemblerInfo->readRepresentation == 1) {
+
+            // RLE.
+
+            // Number of raw bases.
+            const auto repeatCounts = reads->getReadRepeatCounts(readId);
+            uint64_t rawBaseCount = 0;
+            for(const auto repeatCount: repeatCounts) {
+                rawBaseCount += repeatCount;
+            }
+            csv << rawBaseCount << ",";
+
+            // Number of RLE bases.
+            const uint64_t rleBaseCount = reads->getRead(readId).baseCount;
+            csv << rleBaseCount << ",";
+
+            // Ratio of raw over RLE base count.
+            csv << double(rawBaseCount)/double(rleBaseCount) << ",";
+
+            markerDensity =  double(markerCount) / double(rleBaseCount);
+
+        } else {
+
+            // Non-RLE.
+
+            // Number of bases (not using the RLE representation).
+            const uint64_t baseCount = reads->getRead(readId).baseCount;
+            csv << baseCount << ",";
+
+            markerDensity =  double(markerCount) / double(baseCount);
         }
-        csv << rawBaseCount << ",";
 
-        // Number of RLE bases.
-        const uint64_t rleBaseCount = reads->getRead(readId).baseCount;
-        csv << rleBaseCount << ",";
 
-        // Ratio of raw over RLE base count.
-        csv << double(rawBaseCount)/double(rleBaseCount) << ",";
 
         // Number of markers.
-        const uint64_t markerCount = markers.size(orientedReadId.getValue());
         csv << markerCount << ",";
 
         // Marker density.
-        const double markerDensity = double(markerCount) / double(rleBaseCount);
         csv << markerDensity << ",";
 
         // Maximum marker offset (offset between consecutive markers).
@@ -170,7 +196,7 @@ void Assembler::writeReadsSummary()
             maximumMarkerOffset = max(maximumMarkerOffset, offset);
             position = marker.position;
         }
-        maximumMarkerOffset = max(maximumMarkerOffset, rleBaseCount-position);
+        maximumMarkerOffset = max(maximumMarkerOffset, reads->getRead(readId).baseCount-position);
         csv << maximumMarkerOffset << ",";
 
         // Palindromic flag.
