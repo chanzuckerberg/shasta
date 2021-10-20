@@ -2307,7 +2307,6 @@ void AssemblyGraph2::BubbleGraph::createNewEdges(
 
 
     // Loop over edge candidates.
-    cout << "Edge candidates:" << endl;
     for(const auto& p: edgeCandidates) {
         const vertex_descriptor v1 = p.first;
         const Matrix& matrix = p.second;
