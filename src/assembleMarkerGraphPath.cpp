@@ -58,15 +58,30 @@ void shasta::assembleMarkerGraphPath(
         const KmerId kmerId = firstMarker.kmerId;
         const Kmer kmer(kmerId, k);
 
-        // Get the repeat counts.
-        const auto& storedConsensus = markerGraph.vertexRepeatCounts.begin() + k * assembledSegment.vertexIds[i];
+        if(readRepresentation == 1) {
 
-        // Store in the AssembledSegment.
-        assembledSegment.vertexSequences[i].resize(k);
-        assembledSegment.vertexRepeatCounts[i].resize(k);
-        for(size_t j=0; j<k; j++) {
-            assembledSegment.vertexSequences[i][j] = kmer[j];
-            assembledSegment.vertexRepeatCounts[i][j] = storedConsensus[j];
+            // RLE.
+
+            // Get the repeat counts.
+            const auto& storedConsensus = markerGraph.vertexRepeatCounts.begin() + k * assembledSegment.vertexIds[i];
+
+            // Store in the AssembledSegment.
+            assembledSegment.vertexSequences[i].resize(k);
+            assembledSegment.vertexRepeatCounts[i].resize(k);
+            for(size_t j=0; j<k; j++) {
+                assembledSegment.vertexSequences[i][j] = kmer[j];
+                assembledSegment.vertexRepeatCounts[i][j] = storedConsensus[j];
+            }
+
+        } else {
+
+            // Non-RLE.
+            // Store in the AssembledSegment.
+            assembledSegment.vertexSequences[i].resize(k);
+            assembledSegment.vertexRepeatCounts[i].resize(k, 1);
+            for(size_t j=0; j<k; j++) {
+                assembledSegment.vertexSequences[i][j] = kmer[j];
+            }
         }
     }
 
@@ -83,7 +98,11 @@ void shasta::assembleMarkerGraphPath(
         assembledSegment.edgeRepeatCounts[i].resize(storedConsensus.size());
         for(size_t j=0; j<storedConsensus.size(); j++) {
             assembledSegment.edgeSequences[i][j] = storedConsensus[j].first;
-            assembledSegment.edgeRepeatCounts[i][j] = storedConsensus[j].second;
+            if(readRepresentation == 1) {
+                assembledSegment.edgeRepeatCounts[i][j] = storedConsensus[j].second;
+            } else {
+                assembledSegment.edgeRepeatCounts[i][j] = 1;
+            }
         }
         assembledSegment.edgeOverlappingBaseCounts[i] =
             markerGraph.edgeConsensusOverlappingBaseCount[assembledSegment.edgeIds[i]];
@@ -93,6 +112,7 @@ void shasta::assembleMarkerGraphPath(
 
     // Extract coverage data for vertices and edges.
     if(storeCoverageData) {
+        SHASTA_ASSERT(readRepresentation == 1);
 
         // Check that coverage data is available.
         if( !markerGraph.vertexCoverageData.isOpen() ||
