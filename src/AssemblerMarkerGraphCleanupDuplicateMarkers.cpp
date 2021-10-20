@@ -460,7 +460,7 @@ void Assembler::cleanupDuplicateMarkersPattern2(
 
         if(debug) {
             out << "Found a connected component with " << componentDescriptors.size() << " markers:" << endl;
-            for(const MarkerDescriptor markerDescriptor: componentDescriptors) {
+            for(const MarkerDescriptor& markerDescriptor: componentDescriptors) {
                 out << markerDescriptor.first << " " << markerDescriptor.second << endl;
             }
         }
