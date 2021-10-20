@@ -4500,6 +4500,9 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
 {
     cout << timestamp << "assembleMarkerGraphVertices begins." << endl;
 
+    // Thus should only be called when using reads in RLE representation.
+    SHASTA_ASSERT(assemblerInfo->readRepresentation == 1);
+
     // Check that we have what we need.
     checkKmersAreOpen();
     reads->checkReadsAreOpen();
