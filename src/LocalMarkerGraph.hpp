@@ -223,6 +223,7 @@ class shasta::LocalMarkerGraph :
 public:
 
     LocalMarkerGraph(
+        uint64_t readRepresentation,
         uint32_t k,
         const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
@@ -284,6 +285,9 @@ private:
 
     // Map a global vertex id to a vertex descriptor for the local graph.
     std::map<MarkerGraph::VertexId, vertex_descriptor> vertexMap;
+
+    // Reads representation: 0 = raw, 1 = RLE.
+    uint64_t readRepresentation;
 
     // The length of k-mers used as markers.
     uint32_t k;

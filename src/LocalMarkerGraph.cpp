@@ -13,12 +13,14 @@ using namespace shasta;
 
 
 LocalMarkerGraph::LocalMarkerGraph(
+    uint64_t readRepresentation,
     uint32_t k,
     const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
     const ConsensusCaller& consensusCaller
     ) :
+    readRepresentation(readRepresentation),
     k(k),
     reads(reads),
     markers(markers),
@@ -102,23 +104,29 @@ KmerId LocalMarkerGraph::getKmerId(vertex_descriptor v) const
 vector<uint8_t> LocalMarkerGraph::getRepeatCounts(
     const LocalMarkerGraphVertex::MarkerInfo& markerInfo) const
 {
-    const OrientedReadId orientedReadId = markerInfo.orientedReadId;
-    const ReadId readId = orientedReadId.getReadId();
-    const Strand strand = orientedReadId.getStrand();
-    const CompressedMarker& marker = markers.begin()[markerInfo.markerId];
 
-    const auto& counts = reads.getReadRepeatCounts(readId);
+    if(readRepresentation == 1) {
+        const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+        const ReadId readId = orientedReadId.getReadId();
+        const Strand strand = orientedReadId.getStrand();
+        const CompressedMarker& marker = markers.begin()[markerInfo.markerId];
 
-    vector<uint8_t> v(k);
-    for(size_t i=0; i<k; i++) {
-        if(strand == 0) {
-            v[i] = counts[marker.position + i];
-        } else {
-            v[i] = counts[counts.size() - 1 - marker.position - i];
+        const auto& counts = reads.getReadRepeatCounts(readId);
+
+        vector<uint8_t> v(k);
+        for(size_t i=0; i<k; i++) {
+            if(strand == 0) {
+                v[i] = counts[marker.position + i];
+            } else {
+                v[i] = counts[counts.size() - 1 - marker.position - i];
+            }
         }
+        return v;
+    } else {
+
+        return vector<uint8_t>(k, 1);
     }
 
-    return v;
 }
 
 
@@ -184,19 +192,33 @@ void LocalMarkerGraph::storeEdgeInfo(
         LocalMarkerGraphEdge::Sequence sequence;
         MarkerIntervalWithRepeatCounts intervalWithRepeatCounts(interval);
         if(marker1.position <= marker0.position + k) {
+
+
+
             sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
-            const auto& repeatCounts = reads.getReadRepeatCounts(interval.orientedReadId.getReadId());
-            for(uint32_t i=0; i<sequence.overlappingBaseCount; i++) {
-                uint32_t position = marker1.position + i;
-                uint8_t repeatCount = 0;
-                if(interval.orientedReadId.getStrand() == 0) {
-                    repeatCount = repeatCounts[position];
-                } else {
-                    repeatCount = repeatCounts[repeatCounts.size() - 1 - position];
+
+            if(readRepresentation == 1) {
+                const auto& repeatCounts = reads.getReadRepeatCounts(interval.orientedReadId.getReadId());
+                for(uint32_t i=0; i<sequence.overlappingBaseCount; i++) {
+                    uint32_t position = marker1.position + i;
+                    uint8_t repeatCount = 0;
+                    if(interval.orientedReadId.getStrand() == 0) {
+                        repeatCount = repeatCounts[position];
+                    } else {
+                        repeatCount = repeatCounts[repeatCounts.size() - 1 - position];
+                    }
+                    intervalWithRepeatCounts.repeatCounts.push_back(repeatCount);
                 }
-                intervalWithRepeatCounts.repeatCounts.push_back(repeatCount);
+            } else {
+                for(uint32_t i=0; i<sequence.overlappingBaseCount; i++) {
+                    intervalWithRepeatCounts.repeatCounts.push_back(1);
+                }
             }
+
+
+
         } else {
+
             sequence.overlappingBaseCount = 0;
             const auto read = reads.getRead(interval.orientedReadId.getReadId());
             const uint32_t readLength = uint32_t(read.baseCount);
@@ -210,15 +232,23 @@ void LocalMarkerGraph::storeEdgeInfo(
                 }
                 sequence.sequence.push_back(base);
             }
-            const auto repeatCounts = reads.getReadRepeatCounts(interval.orientedReadId.getReadId());
-            for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
-                uint8_t repeatCount;
-                if(interval.orientedReadId.getStrand() == 0) {
-                    repeatCount = repeatCounts[position];
-                } else {
-                    repeatCount = repeatCounts[readLength - 1 - position];
+
+
+            if(readRepresentation == 1) {
+                const auto repeatCounts = reads.getReadRepeatCounts(interval.orientedReadId.getReadId());
+                for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
+                    uint8_t repeatCount;
+                    if(interval.orientedReadId.getStrand() == 0) {
+                        repeatCount = repeatCounts[position];
+                    } else {
+                        repeatCount = repeatCounts[readLength - 1 - position];
+                    }
+                    intervalWithRepeatCounts.repeatCounts.push_back(repeatCount);
                 }
-                intervalWithRepeatCounts.repeatCounts.push_back(repeatCount);
+            } else {
+                for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
+                    intervalWithRepeatCounts.repeatCounts.push_back(1);
+                }
             }
 
         }

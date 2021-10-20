@@ -76,6 +76,7 @@ void Assembler::exploreMarkerGraph(
 
     // Create the local marker graph.
     LocalMarkerGraph graph(
+        assemblerInfo->readRepresentation,
         uint32_t(assemblerInfo->k),
         getReads(),
         markers,
