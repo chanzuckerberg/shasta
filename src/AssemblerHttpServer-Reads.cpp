@@ -13,6 +13,21 @@ void Assembler::exploreRead(
     const vector<string>& request,
     ostream& html)
 {
+    if(assemblerInfo->readRepresentation == 0) {
+        exploreReadRaw(request, html);
+    } else {
+        exploreReadRle(request, html);
+    }
+}
+
+
+
+void Assembler::exploreReadRle(
+    const vector<string>& request,
+    ostream& html)
+{
+    SHASTA_ASSERT(assemblerInfo->readRepresentation == 1);
+
     // Get the ReadId, read name, and Strand from the request.
     ReadId readId = 0;
     const bool readIdIsPresent = getParameterValue(request, "readId", readId);
@@ -824,5 +839,201 @@ void Assembler::exploreRead(
 
 
 }
+
+
+
+void Assembler::exploreReadRaw(
+    const vector<string>& request,
+    ostream& html)
+{
+    SHASTA_ASSERT(assemblerInfo->readRepresentation == 0);
+
+    // Get the request parameters.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    string requestReadName;
+    getParameterValue(request, "readName", requestReadName);
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+    uint32_t beginPosition = 0;
+    const bool beginPositionIsPresent = getParameterValue(request, "beginPosition", beginPosition);
+    uint32_t endPosition = 0;
+    const bool endPositionIsPresent = getParameterValue(request, "endPosition", endPosition);
+
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<table>"
+
+        "<tr>"
+        "<th class=left>Numeric read id"
+        "<td><input type=text name=readId" <<
+        (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
+        " title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
+
+        "<tr>"
+        "<th class=left>Read name"
+        "<td><input type=text name=readName" <<
+        (requestReadName.empty() ? "" : " value='" + requestReadName + "'") << ">"
+
+        "<tr>"
+        "<th class=left>Strand"
+        "<td>";
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+
+    html <<
+        "<tr>"
+        "<th class=left>Begin position"
+        "<td><input type=text name=beginPosition"
+        " title='Leave blank to begin display at beginning of read.'";
+    if(beginPositionIsPresent) {
+        html << " value=" << beginPosition;
+    }
+    html << ">";
+
+    html <<
+        "<tr>"
+        "<th class=left>End position"
+        "<td><input type=text name=endPosition"
+        " title='Leave blank to end display at end of read.'";
+    if(endPositionIsPresent) {
+        html << " value=" << endPosition;
+    }
+    html << ">";
+
+
+    html <<
+        "</table>"
+        "<input type=submit value='Display'>"
+        "</form>";
+
+
+
+    // Check that one and only one of readId and readName was entered.
+    if(readIdIsPresent and not requestReadName.empty()) {
+        html << "Specify either a numeric read id or a read name, but not both.";
+        return;
+    }
+    if(not readIdIsPresent and requestReadName.empty()) {
+        html << "Specify a numeric read id or a read name.";
+        return;
+    }
+
+    // If a read name was specified, get the read id.
+    if(not requestReadName.empty()) {
+        readId = getReads().getReadId(requestReadName);
+        if(readId == invalidReadId) {
+            html << "A read with that name was not found. See ReadSummary.csv.";
+            return;
+        }
+    }
+
+    // If the strand is missing, stop here.
+    if(not strandIsPresent) {
+        return;
+    }
+
+    // Sanity checks.
+    if(readId >= reads->readCount()) {
+        html << "<p>Invalid read id.";
+        return;
+    }
+    if(strand!=0 && strand!=1) {
+        html << "<p>Invalid strand.";
+        return;
+    }
+
+
+    // Access the read information we need.
+    const OrientedReadId orientedReadId(readId, strand);
+    const auto sequence = reads->getRead(readId);
+    const auto readName = reads->getReadName(readId);
+    const auto metaData = reads->getReadMetaData(readId);
+
+    // Adjust the position range, if necessary.
+    if(!beginPositionIsPresent) {
+        beginPosition = 0;
+    }
+    if(!endPositionIsPresent) {
+        endPosition = uint32_t(sequence.baseCount);
+    } else {
+        endPosition++; // To include the base at `endPosition`.
+    }
+    if(endPosition <= beginPosition) {
+        html << "<p>Invalid choice of begin and end position.";
+        return;
+    }
+
+
+
+    // Page title.
+    html << "<h2 title='Read " << readId << " on strand " << strand;
+    if(strand == 0) {
+        html << " (input read without reverse complementing)";
+    } else {
+        html << " (reverse complement of input read)";
+    }
+    html << "'>Oriented read " << orientedReadId << "</h2>";
+
+
+
+    // Read information.
+    html << "<table>";
+
+    html << "<tr><th class=left>Read id<td>" << readId;
+
+    html << "<tr><th class=left>Read name<td>";
+    copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
+
+    html << "<tr><th class=left>Read meta data<td>";
+    copy(metaData.begin(), metaData.end(), ostream_iterator<char>(html));
+
+    html << "<tr><th class=left>Length<td>" << sequence.baseCount;
+
+    html << "<tr><th class=left>Length displayed<td>" << endPosition - beginPosition;
+
+    html << "</table>";
+
+
+
+    // Sequence.
+    html << "<p><pre style='font-family:monospace;margin:0'>";
+    for(uint64_t position=beginPosition; position!=endPosition; position++) {
+        html << sequence[position];
+    }
+    html<< "\n";
+
+    // Position scale
+    for(size_t position=beginPosition; position<endPosition; position++) {
+        if((position%10)==0) {
+            html << "|";
+        } else if((position%5)==0) {
+            html << "+";
+        } else {
+            html << ".";
+        }
+    }
+    html<< "\n";
+
+    // Position scale labels.
+    for(size_t position=beginPosition; position<endPosition; ) {
+        if((position%10)==0) {
+            const string label = to_string(position);
+            html << label;
+            for(size_t i=0; i<10-label.size(); i++) {
+                html << " ";
+            }
+            position += 10;
+        } else {
+            html << " ";
+            ++position;
+        }
+    }
+    html<< "\n";
+    html << "</pre>";
+
+}
+
 
 #endif

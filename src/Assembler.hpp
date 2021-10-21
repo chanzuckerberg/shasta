@@ -2165,6 +2165,8 @@ public:
         const BrowserInformation&) override;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
+    void exploreReadRaw(const vector<string>&, ostream&);
+    void exploreReadRle(const vector<string>&, ostream&);
     void blastRead(const vector<string>&, ostream&);
     void exploreAlignmentCandidateGraph(const vector<string>& request, ostream& html);
     void exploreAlignments(const vector<string>&, ostream&);
