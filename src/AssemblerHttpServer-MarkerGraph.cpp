@@ -1225,13 +1225,23 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         const uint32_t positionBegin = marker0.position;
         const uint32_t positionEnd = marker1.position + uint32_t(k);
 
+
+
         // Store the bases and repeat counts in this interval.
         for(uint32_t position=positionBegin; position!=positionEnd; ++position) {
-            Base base;
-            uint8_t repeatCount;
-            tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-            sequences[j].push_back(base);
-            repeatCounts[j].push_back(repeatCount);
+
+            if(assemblerInfo->readRepresentation == 1) {
+                Base base;
+                uint8_t repeatCount;
+                tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+                sequences[j].push_back(base);
+                repeatCounts[j].push_back(repeatCount);
+            } else {
+                const Base base = reads->getOrientedReadBase(orientedReadId, position);
+                sequences[j].push_back(base);
+                repeatCounts[j].push_back(1);
+
+            }
         }
     }
 
