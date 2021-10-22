@@ -85,6 +85,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Create the assembly graph.
     create();
+    writePloidyHistogram(cout);
     writeDetailedEarly("0");
 
 #if 0
@@ -95,7 +96,7 @@ AssemblyGraph2::AssemblyGraph2(
 #endif
 
     // Gather parallel edges into bubbles.
-    gatherBubbles();
+    gatherBubbles(false);
     writeDetailedEarly("2");
 
     // Handle superbubbles.
@@ -110,6 +111,7 @@ AssemblyGraph2::AssemblyGraph2(
     // removeSecondaryBubbles(secondaryEdgeCleanupThreshold); OLD
     removeWeakBranches(strongBranchThreshold);
     merge(true, false);
+    gatherBubbles(true);    // So we get the bubbles that appear since we last did this.
     writeDetailedEarly("4");
 
     // Assemble sequence.
@@ -861,7 +863,7 @@ void AssemblyGraph2::assemble(edge_descriptor e)
 
 // Finds edges that form bubbles, then combine
 // each of them into a single edge with multiple paths.
-void AssemblyGraph2::gatherBubbles()
+void AssemblyGraph2::gatherBubbles(bool findStrongestBranch)
 {
     G& g = *this;
 
@@ -895,13 +897,21 @@ void AssemblyGraph2::gatherBubbles()
             const vertex_descriptor v1 = p.first;
 
             // Create the bubble remove these edges.
-            createBubble(v0, v1, edges01);
+            createBubble(v0, v1, edges01, findStrongestBranch);
         }
     }
 
 
 
-    // Write out a ploidy histogram.
+
+}
+
+
+
+void AssemblyGraph2::writePloidyHistogram(ostream& s) const
+{
+    const G& g = *this;
+
     vector<uint64_t> ploidyHistogram;
     BGL_FORALL_EDGES(e, g, G) {
         const uint64_t ploidy = g[e].ploidy();
@@ -910,18 +920,20 @@ void AssemblyGraph2::gatherBubbles()
         }
         ++ploidyHistogram[ploidy];
     }
-    cout << "Ploidy histogram (counting both strands):" << endl;
+    s << "Ploidy histogram:" << endl;
     for(uint64_t ploidy=1; ploidy<ploidyHistogram.size(); ploidy++) {
-        cout << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " edges." << endl;
+        s << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " edges." << endl;
     }
 
 }
 
 
+
 AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     vertex_descriptor v0,
     vertex_descriptor v1,
-    const vector<edge_descriptor>& edges01)
+    const vector<edge_descriptor>& edges01,
+    bool findStrongestBranch)
 {
     G& g = *this;
 
@@ -945,6 +957,10 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
         copy(edge01.branches.begin(), edge01.branches.end(),
            back_inserter(edgeNew.branches));
         boost::remove_edge(e01, g);
+    }
+
+    if(findStrongestBranch) {
+        edgeNew.findStrongestBranch();
     }
 
     return eNew;

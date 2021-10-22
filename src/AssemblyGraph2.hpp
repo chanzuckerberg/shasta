@@ -349,6 +349,11 @@ private:
     // Used by merge.
     void findNonBubbleLinearChains(vector< vector<edge_descriptor> >&) const;
 
+    // Find and create new bubbles.
+    void createNewBubbles();
+
+    void writePloidyHistogram(ostream&) const;
+
 
 
     // Predicate used to select non-bubble edges.
@@ -383,11 +388,12 @@ private:
 
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.
-    void gatherBubbles();
+    void gatherBubbles(bool findStrongestBranch);
     edge_descriptor createBubble(
         vertex_descriptor v0,
         vertex_descriptor v1,
-        const vector<edge_descriptor>&);
+        const vector<edge_descriptor>&,
+        bool findStrongestBranch);
 
     void removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold);
     void removeWeakBranches(uint64_t strongBranchThreshold);
