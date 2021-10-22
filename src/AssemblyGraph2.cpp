@@ -71,6 +71,14 @@ AssemblyGraph2::AssemblyGraph2(
     const uint64_t secondaryEdgeCleanupThreshold = 6;
 #endif
 
+    // Threshold that defines a strong branch.
+    // A branch if strong if it is supported by at least this number of
+    // distinct oriented reads.
+    // Weak branches are subject to removal by removeWeakBranches
+    // (but at least one branch in each bubble will always be kept).
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t strongBranchThreshold = 2;
+
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
     SHASTA_ASSERT((k % 2) == 0);
@@ -98,12 +106,11 @@ AssemblyGraph2::AssemblyGraph2(
     // Store the reads supporting each branch of each edges.
     storeReadInformation();
 
-#if 0
-    // Remove bubbles caused by secondary edges.
-    removeSecondaryBubbles(secondaryEdgeCleanupThreshold);
+    // Remove weak branches.
+    // removeSecondaryBubbles(secondaryEdgeCleanupThreshold); OLD
+    removeWeakBranches(strongBranchThreshold);
     merge(true, false);
     writeDetailedEarly("4");
-#endif
 
     // Assemble sequence.
     assemble();
@@ -3180,6 +3187,50 @@ void AssemblyGraph2::removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThresho
         }
     }
 
+}
+
+
+
+void AssemblyGraph2::removeWeakBranches(uint64_t strongBranchThreshold)
+{
+    G& g = *this;
+
+    // Loop over edges.
+    BGL_FORALL_EDGES(e, g, G) {
+
+        // If not a bubble, do nothing.
+        E& edge = g[e];
+        if(not edge.isBubble()) {
+            continue;
+        }
+
+        edge.findStrongestBranch();
+
+        // Find the weak branches.
+        std::set<uint64_t> weakBranches;
+        for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+            const E::Branch& branch = edge.branches[branchId];
+
+            if( (branchId != edge.strongestBranchId) and
+                (uint64_t(branch.orientedReadIds.size()) < strongBranchThreshold)) {
+                weakBranches.insert(branchId);
+            }
+        }
+
+        // Remove them.
+        if(not weakBranches.empty()) {
+            vector<E::Branch> branches;
+            for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
+                if(weakBranches.find(branchId) == weakBranches.end()) {
+                    const E::Branch& branch = edge.branches[branchId];
+                    branches.push_back(branch);
+                }
+            }
+            edge.branches.swap(branches);
+            edge.findStrongestBranch();
+        }
+
+    }
 }
 
 

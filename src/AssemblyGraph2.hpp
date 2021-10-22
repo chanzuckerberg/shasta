@@ -390,6 +390,7 @@ private:
         const vector<edge_descriptor>&);
 
     void removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold);
+    void removeWeakBranches(uint64_t strongBranchThreshold);
 
     // Find/remove bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.
