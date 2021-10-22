@@ -401,11 +401,21 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
     // Finally, remove edges with high ambiguity.
     vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
+#if 1
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         if(bubbleGraph[e].ambiguity() > ambiguityThreshold) {
             edgesToBeRemoved.push_back(e);
         }
     }
+#else
+    // Try a different criterion here.
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const BubbleGraphEdge& edge = bubbleGraph[e];
+        if(edge.concordantCount() - edge.discordantCount() < phasingMinReadCount) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+#endif
     for(const BubbleGraph::edge_descriptor e: edgesToBeRemoved) {
         boost::remove_edge(e, bubbleGraph);
     }
