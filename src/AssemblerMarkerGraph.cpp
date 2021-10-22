@@ -3274,6 +3274,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                     // Non-RLE.
                     const Base base = reads->getOrientedReadBase(orientedReadId, position);
                     sequence.push_back(base);
+                    repeatCounts.push_back(1);
                 }
             }
             overlappingBaseCount = 0;
