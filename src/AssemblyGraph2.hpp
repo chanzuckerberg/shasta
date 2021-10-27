@@ -242,6 +242,7 @@ public:
         double bubbleRemovalAmbiguityThreshold,
         uint64_t bubbleRemovalMaxPeriod,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
+        uint64_t pruneLength,
         uint64_t phasingMinReadCount,
         bool suppressGfaOutput,
         bool suppressFastaOutput,

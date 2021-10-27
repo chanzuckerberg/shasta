@@ -1276,6 +1276,7 @@ void shasta::main::mode2Assembly(
         assemblerOptions.assemblyOptions.bubbleRemovalAmbiguityThreshold,
         assemblerOptions.assemblyOptions.bubbleRemovalMaxPeriod,
         assemblerOptions.assemblyOptions.superbubbleRemovalEdgeLengthThreshold,
+        assemblerOptions.assemblyOptions.pruneLength,
         assemblerOptions.assemblyOptions.phasingMinReadCount,
         assemblerOptions.assemblyOptions.suppressGfaOutput,
         assemblerOptions.assemblyOptions.suppressFastaOutput,

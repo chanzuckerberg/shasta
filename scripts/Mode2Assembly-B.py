@@ -25,6 +25,7 @@ a.createAssemblyGraph2(
     bubbleRemovalAmbiguityThreshold = float(config['Assembly']['bubbleRemoval.ambiguityThreshold']),
     bubbleRemovalMaxPeriod = int(config['Assembly']['bubbleRemoval.maxPeriod']),
     superbubbleRemovalEdgeLengthThreshold = int(config['Assembly']['superbubbleRemoval.edgeLengthThreshold']),
+    pruneLength = int(config['Assembly']['pruneLength']),
     phasingMinReadCount = int(config['Assembly']['phasing.minReadCount']),
     suppressGfaOutput = ast.literal_eval(config['Assembly']['suppressGfaOutput']),
     suppressFastaOutput = ast.literal_eval(config['Assembly']['suppressFastaOutput']), 
