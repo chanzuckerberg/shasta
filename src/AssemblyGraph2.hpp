@@ -306,6 +306,9 @@ private:
     // Initial creation of vertices and edges.
     void create();
 
+    // Prune leafs in which all branches are shorter than the specified length.
+    void prune(uint64_t pruneLength);
+
     // Remove secondary edges making sure to not introduce any dead ends.
     void cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshold);
 

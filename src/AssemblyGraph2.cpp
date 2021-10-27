@@ -86,6 +86,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Create the assembly graph.
     create();
+    prune(pruneLength);
     writePloidyHistogram(cout);
     writeDetailedEarly("0");
 
@@ -121,6 +122,7 @@ AssemblyGraph2::AssemblyGraph2(
     // Remove degenerate edges (both branches have the same sequence).
     removeDegenerateBranches();
     merge(true, true);
+    prune(pruneLength);
     writeDetailedEarly("5");
 
 #if 0
@@ -151,6 +153,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Use each connected component of the bubble graph to phase the bubbles.
     phase(threadCount);
+    prune(pruneLength);
 
 #if 0
     // Remove from the AssemblyGraph2 the bubbles marked isBad
@@ -672,6 +675,74 @@ void AssemblyGraph2::cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshol
         ++removedCount;
     }
     cout << "Removed " << removedCount << " secondary edges." << endl;
+}
+
+
+
+// Prune leaves in which all branches are shorter than the specified length.
+void AssemblyGraph2::prune(uint64_t pruneLength)
+{
+    G& g = *this;
+
+    const bool debug = false;
+    if(debug) {
+        cout << "Prune called." << endl;
+    }
+
+    while(true) {
+        if(debug) {
+            cout << "Prune iteration begins." << endl;
+        }
+        vector<edge_descriptor> edgesToBeRemoved;
+        BGL_FORALL_EDGES(e, g, G) {
+            const vertex_descriptor v0 = source(e, g);
+            const vertex_descriptor v1 = target(e, g);
+            const E& edge = g[e];
+
+            // If not a leaf, skip it.
+            const bool isLeaf = (in_degree(v0, g) == 0) or (out_degree(v1, g) == 0);
+            if(not isLeaf) {
+                if(debug) {
+                    cout << g[e].id << " skipped because it is not a leaf." << endl;
+                }
+                continue;
+            }
+
+            // Find the length of the shortest branch, in markers.
+            uint64_t minLength = std::numeric_limits<uint64_t>::max();
+            for(const E::Branch& branch: edge.branches) {
+                minLength = min(minLength, uint64_t (branch.path.size()));
+            }
+            if(debug) {
+                cout << g[e].id << " minLength " << minLength << endl;
+            }
+
+            if(minLength < pruneLength) {
+                edgesToBeRemoved.push_back(e);
+                if(debug) {
+                    cout << g[e].id << " flagged to be removed." << endl;
+                }
+            }
+        }
+
+
+        // Remove the edges we found.
+        if(edgesToBeRemoved.empty()) {
+            break;
+        }
+        for(const edge_descriptor e: edgesToBeRemoved) {
+            boost::remove_edge(e, g);
+        }
+
+        if(debug) {
+            cout << "Prune iteration removed " << edgesToBeRemoved.size() << " edges." << endl;
+        }
+    }
+
+    if(debug) {
+        cout << "Prune ends." << endl;
+    }
+
 }
 
 

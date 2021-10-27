@@ -1064,6 +1064,7 @@ void AssemblyOptions::write(ostream& s) const
         storeCoverageDataCsvLengthThreshold << "\n";
     s << "writeReadsByAssembledSegment = " <<
         convertBoolToPythonString(writeReadsByAssembledSegment) << "\n";
+    s << "pruneLength = " << pruneLength << "\n";
     s << "detangleMethod = " << detangleMethod << "\n";
     s << "detangle.diagonalReadCountMin = " << detangleDiagonalReadCountMin << "\n";
     s << "detangle.offDiagonalReadCountMax = " << detangleOffDiagonalReadCountMax << "\n";
