@@ -5,7 +5,7 @@ ___
 
 **For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
 
-See [Shafin et al, Nature Biotechnology 2020](https://www.nature.com/articles/s41587-020-0503-6)
+See [Shafin et al., Nature Biotechnology 2020](https://www.nature.com/articles/s41587-020-0503-6)
 for an error analysis of the Shasta assembler and more.
 Reads from this paper are available 
 [here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html).
