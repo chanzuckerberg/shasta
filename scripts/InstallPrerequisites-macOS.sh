@@ -7,7 +7,8 @@
 # The executable has no runtime dependencies other than
 # standard system libraries that are always available.
 
-
+# Cmake is not preinstalled on all systems.
+brew install cmake
 
 # Install the Boost libraries.
 brew install boost
