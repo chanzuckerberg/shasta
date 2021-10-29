@@ -1013,7 +1013,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     for(const edge_descriptor e01: edges01) {
         SHASTA_ASSERT(source(e01, g) == v0);
         SHASTA_ASSERT(target(e01, g) == v1);
-        SHASTA_ASSERT(g[e01].ploidy() == 1);
     }
 
     // Create the new edge to replace the old ones.
