@@ -4306,7 +4306,18 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 
     // Ignore superbubbles that don't have exactly one entrance and one exit.
     if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
-        cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
+        if(debug) {
+            cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
+        }
+        return;
+    }
+
+
+    // If the superbubble is too big, ignore it.
+    if(num_vertices(superbubble) > 50) {    // ********** EXPOSE?
+        if(debug) {
+            cout << "Superbubble ignored because it is too big." << endl;
+        }
         return;
     }
 
@@ -4469,6 +4480,11 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 
         // If getting here, we have a non-trivial chunk.
 
+        // If the chunk is too big, ignore it.
+        if(superbubble.chunkEdges[chunkId].size() > 20) {   // ********** EXPOSE?
+            continue;
+        }
+
         // At this stage, read support has not yet been computed.
         // So let's compute it for the edges in this chunk.
         for(const Superbubble::edge_descriptor se: superbubble.chunkEdges[chunkId]) {
@@ -4481,6 +4497,14 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 
         // Enumerate paths between chunkEntrance and chunkExit.
         superbubble.enumeratePaths(chunkEntrance, chunkExit);
+
+        // If we found too many paths, ignore this chunk.
+        if(superbubble.paths.size() > 100) {    // *************** EXPOSE?
+            if(debug) {
+                cout << "Chunk ignored because it has too many paths." << endl;
+            }
+            continue;
+        }
 
         if(debug) {
             cout << "Found " << superbubble.paths.size() << " paths for this chunk:" << endl;
