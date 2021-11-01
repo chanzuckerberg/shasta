@@ -336,6 +336,19 @@ void AssemblyGraph2::cleanupBubbleGraph(
         if(edges01.size() != 2) {
             continue;
         }
+
+        // If any of those edges are themselves bubbles, give up.
+        bool giveUp = false;
+        for(const edge_descriptor e: edges01) {
+            if(g[e].isBubble()) {
+                giveUp = true;
+                break;
+            }
+        }
+        if(giveUp) {
+            continue;
+        }
+
         ++addedCount;
 
         /*
