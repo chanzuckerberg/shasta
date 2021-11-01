@@ -161,6 +161,9 @@ AssemblyGraph2::AssemblyGraph2(
     merge(true, true);
 #endif
 
+    cout << "Final ploidy histogram:" << endl;
+    writePloidyHistogram(cout);
+
     // Find chains of bubbles.
     // These are linear chains of edges of length at least 2.
     findBubbleChains();
@@ -991,7 +994,6 @@ void AssemblyGraph2::writePloidyHistogram(ostream& s) const
         }
         ++ploidyHistogram[ploidy];
     }
-    s << "Ploidy histogram:" << endl;
     for(uint64_t ploidy=1; ploidy<ploidyHistogram.size(); ploidy++) {
         s << "Ploidy " << ploidy << ": " << ploidyHistogram[ploidy] << " edges." << endl;
     }
