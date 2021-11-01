@@ -87,7 +87,6 @@ AssemblyGraph2::AssemblyGraph2(
     // Create the assembly graph.
     create();
     prune(pruneLength);
-    writePloidyHistogram(cout);
     writeDetailedEarly("0");
 
 #if 0
