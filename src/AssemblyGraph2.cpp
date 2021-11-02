@@ -265,7 +265,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
         }
         const auto it = discordantRatioTable.get<1>().nth(0);
 
-        // If the discordantio is less than our threshold, we are done.
+        // If the discordant ratio is less than our threshold, we are done.
         const double discordantRatio = it->second;
         if(discordantRatio < discordantRatioThreshold) {
             break;
@@ -273,6 +273,7 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
         // Locate the vertex to be removed.
         const vertex_descriptor v = it->first;
+
 
         // Before removing it, find all of its neighbors,
         // so we can update their discordant ratio after removing the vertex.
@@ -288,7 +289,10 @@ void AssemblyGraph2::cleanupBubbleGraph(
         // and remove the bubble graph vertex.
         const AssemblyGraph2::edge_descriptor e = bubbleGraph[v].e;
         E& assemblyGraphEdge = g[e];
-        // cout << "Removing " << assemblyGraphEdge.id << " with discordant ratio " << discordantRatio << endl;
+        if(debug) {
+            cout << "Removing " << assemblyGraphEdge.id << " " <<
+                discordantRatio << " " << discordantRatioTable.size() << endl;
+        }
         assemblyGraphEdge.isBad = true;
         bubbleGraph.updateDynamicOrientedReadsTableForRemoval(v);
         clear_vertex(v, bubbleGraph);
@@ -319,6 +323,9 @@ void AssemblyGraph2::cleanupBubbleGraph(
         // If some merging happened, check if a new bubble was created.
         if(g[eMerged].id == eId) {
             continue;
+        }
+        if(debug) {
+            cout << "Merging created " << g[eMerged].id << endl;
         }
         const vertex_descriptor v0 = source(eMerged, g);
         const vertex_descriptor v1 = target(eMerged, g);
@@ -351,13 +358,6 @@ void AssemblyGraph2::cleanupBubbleGraph(
 
         ++addedCount;
 
-        /*
-        cout << "New candidate bubble at ";
-        for(const edge_descriptor e: edges01) {
-            cout << " " << g[e].id;
-        }
-        cout << endl;
-        */
 
         // Combine these edges into a new bubble.
         edge_descriptor eNew;
@@ -371,6 +371,14 @@ void AssemblyGraph2::cleanupBubbleGraph(
         g[eNew].findStrongestBranch();
         assemble(eNew);
         g[eNew].storeReadInformation(markerGraph);
+
+        if(debug) {
+            cout << "Created new bubble " << g[eMerged].id << " from";
+            for(const edge_descriptor e: edges01) {
+                cout << " " << g[e].id;
+            }
+            cout << endl;
+        }
 
         // If diploid, add a new bubble graph vertex for this bubble.
         if(g[eNew].ploidy() != 2) {
