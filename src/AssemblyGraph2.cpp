@@ -134,16 +134,8 @@ AssemblyGraph2::AssemblyGraph2(
 #endif
 
     // Create the bubble graph.
-    createBubbleGraph(markers.size()/2, phasingMinReadCount, threadCount);
-    cout << "The initial bubble graph has " << num_vertices(bubbleGraph) <<
-        " vertices and " << num_edges(bubbleGraph) << " edges." << endl;
-
-    // Cleanup the bubble graph.
-    // This marks as bad the bubbles corresponding to bubble graph vertices
-    // that are removed.
-    cleanupBubbleGraph(
-        markers.size()/2,
-        phasingMinReadCount,
+    createAndCleanupBubbleGraph(
+        markers.size()/2, phasingMinReadCount, threadCount,
         bubbleRemovalDiscordantRatioThreshold,
         bubbleRemovalAmbiguityThreshold);
 
@@ -197,23 +189,24 @@ AssemblyGraph2::AssemblyGraph2(
 
 
     // Het snp statistics.
-    uint64_t transitionCount, transversionCount;
-    hetSnpStatistics(transitionCount, transversionCount);
-    cout << transitionCount << " heterozygous transitions, " <<
-        transversionCount << " heterozygous transversions.\n" <<
+    uint64_t transitionCount, transversionCount, nonSnpCount;
+    hetSnpStatistics(transitionCount, transversionCount, nonSnpCount);
+    const uint64_t snpCount = transitionCount + transversionCount;
+    cout <<
+        "There are " << snpCount <<
+        " heterozygous SNPs (" <<
+        transitionCount << " transitions, " <<
+        transversionCount << " transversions).\n" <<
         "Transition/transversion ratio is " <<
-        double(transitionCount) / double(transversionCount) << endl;
-    cout << "The number of heterozygous SNPs is underestimated "
-        "and the transition/transversion ratio is overestimated "
-        "due to SNPs that are invisible in RLE space. "
-        "Work is in progress to correct this. "
-        "Phasing is effective even without access to those "
-        "missing heterozygous loci." << endl;
+        double(transitionCount) / double(transversionCount) << "\n"
+        "There are " << nonSnpCount << " small bubbles which are not snps.\n" << endl;
 
 }
 
 
 
+
+#if 0
 void AssemblyGraph2::cleanupBubbleGraph(
     uint64_t readCount,
     uint64_t phasingMinReadCount,
@@ -460,6 +453,100 @@ void AssemblyGraph2::cleanupBubbleGraph(
         ambiguityThreshold << endl;
 
 
+
+    if(debug) {
+        bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
+        bubbleGraph.writeVerticesCsv("BubbleGraphVertices-Final.csv");
+        bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Final.csv");
+    }
+
+    cout << timestamp << "cleanupBubbleGraph ends." << endl;
+}
+#endif
+
+
+
+// Create and cleanup the bubble graph.
+// At each iteration, bubbles arer removed and new bubbles can be created.
+void AssemblyGraph2::createAndCleanupBubbleGraph(
+    uint64_t readCount,             // Total.
+    uint64_t phasingMinReadCount,   // For an edge to be kept.
+    size_t threadCount,
+    double discordantRatioThreshold,
+    double ambiguityThreshold)
+{
+    cout << timestamp << "createAndCleanupBubbleGraph begins." << endl;
+
+    G& g = *this;
+    const bool debug = true;
+
+    // Decrease the discordant ratio threshold gradually as we iterate,
+    // without going below the value passed in as discordantRatioThreshold.
+    double currentDiscordantRatioThreshold = 0.35;      // ******* EXPOSE
+    const double discordantRatioThresholdStep = 0.05;   // ******* EXPOSE
+
+    for(uint64_t iteration=0; ; iteration++) {
+        currentDiscordantRatioThreshold = max(currentDiscordantRatioThreshold, discordantRatioThreshold);
+        cout << "Bubble graph cleanup iteration " << iteration <<
+            " at discordant ratio threshold "<<
+            currentDiscordantRatioThreshold << endl;
+
+        // Create the bubble graph using all diploid bubbles currently
+        /// present in the AssemblyGraph2.
+        createBubbleGraph(readCount, phasingMinReadCount, threadCount);
+        cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
+            " vertices (diploid bubbles) and " << num_edges(bubbleGraph) << " edges." << endl;
+        if(debug) {
+            bubbleGraph.writeGraphviz("BubbleGraph-Iteration-" + to_string(iteration) + ".dot");
+            bubbleGraph.writeVerticesCsv("BubbleGraphVertices-Iteration-" + to_string(iteration) + ".csv");
+            bubbleGraph.writeEdgesCsv("BubbleGraphEdges-Iteration-" + to_string(iteration) + ".csv");
+        }
+
+        // Find all bubble graph vertices with high discordant ratio.
+        // In the corresponding bubbles in the AssemblyGraph2,
+        // remove all branches except the strongest.
+        uint64_t badCount = 0;
+        BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+            const double ratio = bubbleGraph.discordantRatio(v);
+            if(ratio > currentDiscordantRatioThreshold) {
+                ++badCount;
+                AssemblyGraph2Edge& edge = g[bubbleGraph[v].e];
+                edge.removeAllBranchesExceptStrongest();
+
+            }
+        }
+
+        // If we did not make any changes, we are done.
+        if(badCount == 0) {
+            break;
+        }
+        cout << "Removed " << badCount << " bubbles." << endl;
+        cout << "There are currently " << num_vertices(bubbleGraph) - badCount <<
+            " diploid bubbles." << endl;
+
+        // Some new bubbles may form after we merge.
+        merge(true, true);
+        gatherBubbles(true);
+
+        currentDiscordantRatioThreshold -= discordantRatioThresholdStep;
+    }
+
+
+#if 0
+    // Finally, remove edges with high ambiguity.
+    vector<BubbleGraph::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        if(bubbleGraph[e].ambiguity() > ambiguityThreshold) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const BubbleGraph::edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, bubbleGraph);
+    }
+    cout << "Removed " << edgesToBeRemoved.size() <<
+        " bubble graph edges with ambiguity greater than " <<
+        ambiguityThreshold << endl;
+#endif
 
     if(debug) {
         bubbleGraph.writeGraphviz("BubbleGraph-Final.dot");
@@ -2229,9 +2316,10 @@ void AssemblyGraph2::createBubbleGraph(
     uint64_t phasingMinReadCount,
     size_t threadCount)
 {
-    cout << timestamp << "createBubbleGraph begins." << endl;
+    // cout << timestamp << "createBubbleGraph begins." << endl;
 
     G& g = *this;
+    bubbleGraph.clear();
 
     // Each diploid bubble in the AssemblyGraph2 generates a vertex,
     // except for the repeat count bubbles.
@@ -2256,15 +2344,15 @@ void AssemblyGraph2::createBubbleGraph(
         add_vertex(BubbleGraphVertex(e, edge), bubbleGraph);
     }
 
-    cout << timestamp << "Creating the oriented reads table." << endl;
+    // cout << timestamp << "Creating the oriented reads table." << endl;
     bubbleGraph.createOrientedReadsTable(readCount);
 
-    cout << timestamp << "Creating bubble graph edges." << endl;
+    // cout << timestamp << "Creating bubble graph edges." << endl;
     // bubbleGraph.createEdges(phasingMinReadCount);
     bubbleGraph.createEdgesParallel(phasingMinReadCount, threadCount);
     bubbleGraph.orientedReadsTable.clear();
 
-    cout << timestamp << "createBubbleGraph ends." << endl;
+    // cout << timestamp << "createBubbleGraph ends." << endl;
 }
 
 
@@ -2972,9 +3060,10 @@ void AssemblyGraph2::BubbleGraph::writeVerticesCsv(const string& fileName) const
     const BubbleGraph& bubbleGraph = *this;
 
     ofstream csv(fileName);
-    csv << "BubbleId\n";
+    csv << "BubbleId,DiscordantRatio\n";
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
-        csv << bubbleGraph[v].id << "\n";
+        csv << bubbleGraph[v].id << ",";
+        csv << discordantRatio(v) << "\n";
     }
 }
 
@@ -3440,7 +3529,8 @@ void AssemblyGraph2::removeDegenerateBranches()
 
 void AssemblyGraph2::hetSnpStatistics(
     uint64_t& transitionCount,
-    uint64_t& transversionCount
+    uint64_t& transversionCount,
+    uint64_t& nonSnpCount
 ) const
 {
     using shasta::Base;
@@ -3448,6 +3538,7 @@ void AssemblyGraph2::hetSnpStatistics(
 
     transitionCount = 0;
     transversionCount= 0;
+    nonSnpCount = 0;
     BGL_FORALL_EDGES(e, g, G) {
         const E& edge = g[e];
 
@@ -3455,13 +3546,19 @@ void AssemblyGraph2::hetSnpStatistics(
             continue;
         }
 
+        if(edge.isBad) {
+            continue;
+        }
+
         const auto& s0 = edge.branches[0].gfaSequence;
         const auto& s1 = edge.branches[1].gfaSequence;
 
         if(s0.size() != 1) {
+            ++nonSnpCount;
             continue;
         }
         if(s1.size() != 1) {
+            ++nonSnpCount;
             continue;
         }
 

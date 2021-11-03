@@ -387,7 +387,8 @@ private:
 
     void hetSnpStatistics(
         uint64_t& transitionCount,
-        uint64_t& transversionCount
+        uint64_t& transversionCount,
+        uint64_t& nonSnpCount
     ) const;
 
     // Finds edges that form bubbles, then combine
@@ -728,6 +729,12 @@ private:
 
 
     BubbleGraph bubbleGraph;
+    void createAndCleanupBubbleGraph(
+        uint64_t readCount,             // Total.
+        uint64_t phasingMinReadCount,   // For an edge to be kept.
+        size_t threadCount,
+        double discordantRatioThreshold,
+        double ambiguityThreshold);
     void createBubbleGraph(
         uint64_t readCount,             // Total.
         uint64_t phasingMinReadCount,   // For an edge to be kept.
@@ -736,6 +743,10 @@ private:
     void cleanupBubbleGraph(
         uint64_t readCount,
         uint64_t phasingMinReadCount,
+        double discordantRatioThreshold,
+        double ambiguityThreshold);
+    // 0.8.0 version.
+    void cleanupBubbleGraph(
         double discordantRatioThreshold,
         double ambiguityThreshold);
 
