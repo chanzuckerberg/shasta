@@ -199,7 +199,7 @@ AssemblyGraph2::AssemblyGraph2(
         transversionCount << " transversions).\n" <<
         "Transition/transversion ratio is " <<
         double(transitionCount) / double(transversionCount) << "\n"
-        "There are " << nonSnpCount << " small bubbles which are not snps.\n" << endl;
+        "There are " << nonSnpCount << " small bubbles which are not snps." << endl;
 
 }
 
@@ -1239,9 +1239,6 @@ void AssemblyGraph2::writeDetailed(
     // (see above comments).
     SHASTA_ASSERT(not(writeSequence and writeSequenceLengthInMarkers));
 
-
-    cout << timestamp << "writeDetailed begins." << endl;
-
     const G& g = *this;
 
 
@@ -1441,9 +1438,6 @@ void AssemblyGraph2::writeDetailed(
         gfa.write(baseName + ".gfa");
     }
 
-
-
-    cout << timestamp << "writeDetailed ends." << endl;
 }
 
 
@@ -1469,8 +1463,6 @@ void AssemblyGraph2::writeHaploid(
     bool writeGfa,
     bool writeFasta) const
 {
-
-    cout << timestamp << "writeHaploid begins." << endl;
     const G& g = *this;
 
     vector<uint64_t> bubbleChainLengths;
@@ -1621,7 +1613,6 @@ void AssemblyGraph2::writeHaploid(
         cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
     }
 
-    cout << timestamp << "writeHaploid ends." << endl;
 }
 
 
@@ -1633,8 +1624,6 @@ void AssemblyGraph2::writePhased(
     bool writeGfa,
     bool writeFasta) const
 {
-    cout << timestamp << "writePhased begins." << endl;
-
     const G& g = *this;
 
     // Length statistics.
@@ -1876,8 +1865,6 @@ void AssemblyGraph2::writePhased(
             totalNonBubbleChainBases << endl;
     }
 
-
-    cout << timestamp << "writePhased ends." << endl;
 }
 
 
