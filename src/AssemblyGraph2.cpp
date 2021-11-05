@@ -482,7 +482,7 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
 
     // Decrease the discordant ratio threshold gradually as we iterate,
     // without going below the value passed in as discordantRatioThreshold.
-    double currentDiscordantRatioThreshold = 0.35;      // ******* EXPOSE
+    double currentDiscordantRatioThreshold = 0.45;      // ******* EXPOSE
     const double discordantRatioThresholdStep = 0.05;   // ******* EXPOSE
 
     for(uint64_t iteration=0; ; iteration++) {
@@ -516,8 +516,9 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
             }
         }
 
-        // If we did not make any changes, we are done.
-        if(badCount == 0) {
+        // If we did not make any changes and we already reached the final
+        // discordant ratio threshold, we are done.
+        if(badCount == 0 and currentDiscordantRatioThreshold == discordantRatioThreshold) {
             break;
         }
         cout << "Removed " << badCount << " bubbles." << endl;
