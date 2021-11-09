@@ -3062,7 +3062,7 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
     const BubbleGraph& bubbleGraph = *this;
 
     ofstream csv(fileName);
-    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10\n";
+    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10,Diagonal,OffDiagonal,Total,Concordant,Discordant,Delta,Ambiguity\n";
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
         uint64_t idA = bubbleGraph[source(e, bubbleGraph)].id;
@@ -3075,7 +3075,14 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
         csv << edge.matrix[0][0] << ",";
         csv << edge.matrix[1][1] << ",";
         csv << edge.matrix[0][1] << ",";
-        csv << edge.matrix[1][0] << "\n";
+        csv << edge.matrix[1][0] << ",";
+        csv << edge.diagonalCount() << ",";
+        csv << edge.offDiagonalCount() << ",";
+        csv << edge.totalCount() << ",";
+        csv << edge.concordantCount() << ",";
+        csv << edge.discordantCount() << ",";
+        csv << edge.delta() << ",";
+        csv << edge.ambiguity() << "\n";
     }
 
 }

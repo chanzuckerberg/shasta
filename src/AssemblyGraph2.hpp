@@ -625,6 +625,13 @@ private:
             return double(2 * discordantCount()) / double(totalCount());
         }
 
+        int64_t delta() const
+        {
+            const int64_t d = int64_t(concordantCount()) - int64_t(discordantCount());
+            SHASTA_ASSERT(d >= 0);
+            return d;
+        }
+
         // Return the relative phase implied by this edge, which is
         // +1 if offdiagonalCount() is 0 and
         // -1 if diagonalCount() is 0.
