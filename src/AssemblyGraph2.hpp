@@ -561,6 +561,9 @@ private:
         // Stored as pairs (OrientedReadId, side).
         vector< pair<OrientedReadId, uint64_t> > orientedReadIds;
 
+        // Return the number of oriented reads on each side.
+        array<uint64_t, 2> countOrientedReads() const;
+
         // The connected component this vertex belongs to.
         uint64_t componentId;
 

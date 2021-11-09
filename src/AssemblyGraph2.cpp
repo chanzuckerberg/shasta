@@ -2405,6 +2405,19 @@ AssemblyGraph2::BubbleGraphVertex::BubbleGraphVertex(
 
 
 
+// Return the number of oriented reads on each side.
+array<uint64_t, 2> AssemblyGraph2::BubbleGraphVertex::countOrientedReads() const
+{
+    array<uint64_t, 2> c = {0, 0};
+    for(const auto& p: orientedReadIds) {
+        const uint64_t side = p.second;
+        ++c[side];
+    }
+    return c;
+}
+
+
+
 void AssemblyGraph2::BubbleGraph::createOrientedReadsTable(uint64_t readCount)
 {
     BubbleGraph& bubbleGraph = *this;
@@ -3048,9 +3061,13 @@ void AssemblyGraph2::BubbleGraph::writeVerticesCsv(const string& fileName) const
     const BubbleGraph& bubbleGraph = *this;
 
     ofstream csv(fileName);
-    csv << "BubbleId,DiscordantRatio\n";
+    csv << "BubbleId,OrientedReads0,OrientedReads1,DiscordantRatio\n";
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
-        csv << bubbleGraph[v].id << ",";
+        const BubbleGraphVertex& vertex = bubbleGraph[v];
+        const array<uint64_t, 2> orientedReadCount = vertex.countOrientedReads();
+        csv << vertex.id << ",";
+        csv << orientedReadCount[0] << ",";
+        csv << orientedReadCount[1] << ",";
         csv << discordantRatio(v) << "\n";
     }
 }
