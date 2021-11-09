@@ -64,6 +64,8 @@ AssemblyGraph2::AssemblyGraph2(
     markerGraph(markerGraph)
 {
 
+    const bool debug = false;
+
 #if 0
     // Length threshold (in markers) for cleanupSecondaryEdges
     // and removeSecondaryBubbles. Assembly graph edges
@@ -87,23 +89,31 @@ AssemblyGraph2::AssemblyGraph2(
     // Create the assembly graph.
     create();
     prune(pruneLength);
-    writeDetailedEarly("0");
+    if(debug) {
+        writeDetailedEarly("0");
+    }
 
 #if 0
     // Remove secondary edges, making sure to not introduce any dead ends.
     cleanupSecondaryEdges(secondaryEdgeCleanupThreshold);
     merge(false, false);
-    writeDetailedEarly("1");
+    if(debug) {
+        writeDetailedEarly("1");
+    }
 #endif
 
     // Gather parallel edges into bubbles.
     gatherBubbles(false);
-    writeDetailedEarly("2");
+    if(debug) {
+        writeDetailedEarly("2");
+    }
 
     // Handle superbubbles.
     handleSuperbubbles(superbubbleRemovalEdgeLengthThreshold);
     merge(false, false);
-    writeDetailedEarly("3");
+    if(debug) {
+        writeDetailedEarly("3");
+    }
 
     // Store the reads supporting each branch of each edges.
     storeReadInformation();
@@ -113,7 +123,9 @@ AssemblyGraph2::AssemblyGraph2(
     removeWeakBranches(strongBranchThreshold);
     merge(true, false);
     gatherBubbles(true);    // So we get the bubbles that appear since we last did this.
-    writeDetailedEarly("4");
+    if(debug) {
+        writeDetailedEarly("4");
+    }
 
     // Assemble sequence.
     assemble();
@@ -122,7 +134,9 @@ AssemblyGraph2::AssemblyGraph2(
     removeDegenerateBranches();
     merge(true, true);
     prune(pruneLength);
-    writeDetailedEarly("5");
+    if(debug) {
+        writeDetailedEarly("5");
+    }
 
 #if 0
     // Find bubbles caused by copy number changes in repeats
@@ -130,7 +144,9 @@ AssemblyGraph2::AssemblyGraph2(
     findCopyNumberBubbles(bubbleRemovalMaxPeriod);
     removeCopyNumberBubbles();
     merge(true, true);
-    writeDetailedEarly("6");
+    if(debug) {
+        writeDetailedEarly("6");
+    }
 #endif
 
     // Create the bubble graph.
