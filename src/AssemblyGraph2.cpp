@@ -130,7 +130,7 @@ AssemblyGraph2::AssemblyGraph2(
     }
 
     // Assemble sequence.
-    assemble();
+    assembleParallel(threadCount);
 
     // Remove degenerate edges (both branches have the same sequence).
     removeDegenerateBranches();
@@ -1022,6 +1022,44 @@ void AssemblyGraph2::assemble()
     performanceLog << timestamp << "AssemblyGraph2::assemble ends." << endl;
 }
 
+
+// Assemble sequence for every marker graph path of every edge. Multithreaded version.
+void AssemblyGraph2::assembleParallel(uint64_t threadCount)
+{
+    performanceLog << timestamp << "AssemblyGraph2::assembleParallel begins." << endl;
+    G& g = *this;
+
+    // Store a vector of edge descriptors for all edges, to be processed in parallel.
+    assembleParallelData.allEdges.clear();
+    BGL_FORALL_EDGES(e, g, G) {
+        assembleParallelData.allEdges.push_back(e);
+    }
+
+    // Process all edges in parallel.
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(assembleParallelData.allEdges.size(), batchSize);
+    runThreads(&AssemblyGraph2::assembleThreadFunction, threadCount);
+    assembleParallelData.allEdges.clear();
+
+    performanceLog << timestamp << "AssemblyGraph2::assembleParallel ends." << endl;
+}
+
+
+
+void AssemblyGraph2::assembleThreadFunction(size_t threadId)
+{
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all edges in this batch.
+        for(uint64_t i=begin; i!=end; i++) {
+            const edge_descriptor e = assembleParallelData.allEdges[i];
+            assemble(e);
+        }
+    }
+}
 
 
 // Assemble sequence for every marker graph path of a given edge.
@@ -2319,6 +2357,7 @@ void AssemblyGraph2::storeReadInformationParallel(uint64_t threadCount)
     const uint64_t batchSize = 100;
     setupLoadBalancing(storeReadInformationParallelData.allEdges.size(), batchSize);
     runThreads(&AssemblyGraph2::storeReadInformationThreadFunction, threadCount);
+    storeReadInformationParallelData.allEdges.clear();
 
     performanceLog << timestamp << "AssemblyGraph2::storeReadInformationParallel ends." << endl;
 }

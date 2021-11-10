@@ -378,6 +378,13 @@ private:
 
     // Assemble sequence for every marker graph path of every edge.
     void assemble();
+    void assembleParallel(uint64_t threadCount);
+    void assembleThreadFunction(size_t threadId);
+    class AssembleParallelData {
+    public:
+        vector<edge_descriptor> allEdges;
+    };
+    AssembleParallelData assembleParallelData;
 
     // Assemble sequence for every marker graph path of a given edge.
     void assemble(edge_descriptor);
