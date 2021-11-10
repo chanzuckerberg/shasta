@@ -118,7 +118,7 @@ AssemblyGraph2::AssemblyGraph2(
     }
 
     // Store the reads supporting each branch of each edges.
-    storeReadInformation();
+    storeReadInformationParallel(threadCount);
 
     // Remove weak branches.
     // removeSecondaryBubbles(secondaryEdgeCleanupThreshold); OLD
@@ -583,6 +583,7 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
 // Initial creation of vertices and edges.
 void AssemblyGraph2::create()
 {
+    performanceLog << timestamp << "AssemblyGraph2::create begins." << endl;
 
     const bool debug = false;
     ofstream debugOut;
@@ -737,6 +738,7 @@ void AssemblyGraph2::create()
     // Check that all edges of the marker graph were found.
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
 
+    performanceLog << timestamp << "AssemblyGraph2::create ends." << endl;
 }
 
 
@@ -1006,6 +1008,7 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 // Assemble sequence for every marker graph path of every edge.
 void AssemblyGraph2::assemble()
 {
+    performanceLog << timestamp << "AssemblyGraph2::assemble begins." << endl;
     G& g = *this;
 
     cout << timestamp << "assemble begins." << endl;
@@ -1016,7 +1019,7 @@ void AssemblyGraph2::assemble()
         assemble(e);
     }
 
-    cout << timestamp << "assemble ends." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::assemble ends." << endl;
 }
 
 
@@ -1256,6 +1259,8 @@ void AssemblyGraph2::writeDetailed(
     bool writeGfa,
     bool writeFasta) const
 {
+    performanceLog << timestamp << "AssemblyGraph2::writeDetailed begins." << endl;
+
     // Check that we are not called with the forbidden combination
     // (see above comments).
     SHASTA_ASSERT(not(writeSequence and writeSequenceLengthInMarkers));
@@ -1459,6 +1464,7 @@ void AssemblyGraph2::writeDetailed(
         gfa.write(baseName + ".gfa");
     }
 
+    performanceLog << timestamp << "AssemblyGraph2::writeDetailed ends." << endl;
 }
 
 
@@ -1484,6 +1490,7 @@ void AssemblyGraph2::writeHaploid(
     bool writeGfa,
     bool writeFasta) const
 {
+    performanceLog << timestamp << "AssemblyGraph2::writeHaploid begins." << endl;
     const G& g = *this;
 
     vector<uint64_t> bubbleChainLengths;
@@ -1634,6 +1641,7 @@ void AssemblyGraph2::writeHaploid(
         cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
     }
 
+    performanceLog << timestamp << "AssemblyGraph2::writeHaploid ends." << endl;
 }
 
 
@@ -1645,6 +1653,7 @@ void AssemblyGraph2::writePhased(
     bool writeGfa,
     bool writeFasta) const
 {
+    performanceLog << timestamp << "AssemblyGraph2::writePhased begins." << endl;
     const G& g = *this;
 
     // Length statistics.
@@ -1886,6 +1895,7 @@ void AssemblyGraph2::writePhased(
             totalNonBubbleChainBases << endl;
     }
 
+    performanceLog << timestamp << "AssemblyGraph2::writePhased ends." << endl;
 }
 
 
@@ -2281,14 +2291,56 @@ void AssemblyGraph2Edge::Branch::storeReadInformation(const MarkerGraph& markerG
 // Store read information on all edges.
 void AssemblyGraph2::storeReadInformation()
 {
-    cout << timestamp << "storeReadInformation begins." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::storeReadInformation begins." << endl;
+
     G& g = *this;
 
     BGL_FORALL_EDGES(e, g, G) {
         g[e].storeReadInformation(markerGraph);
     }
-    cout << timestamp << "storeReadInformation ends." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::storeReadInformation ends." << endl;
 }
+
+
+
+// Store read information on all edges. Multithreaded version.
+void AssemblyGraph2::storeReadInformationParallel(uint64_t threadCount)
+{
+    performanceLog << timestamp << "AssemblyGraph2::storeReadInformationParallel begins." << endl;
+    G& g = *this;
+
+    // Store a vector of edge descriptors for all edges, to be processed in parallel.
+    storeReadInformationParallelData.allEdges.clear();
+    BGL_FORALL_EDGES(e, g, G) {
+        storeReadInformationParallelData.allEdges.push_back(e);
+    }
+
+    // Process all edges in parallel.
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(storeReadInformationParallelData.allEdges.size(), batchSize);
+    runThreads(&AssemblyGraph2::storeReadInformationThreadFunction, threadCount);
+
+    performanceLog << timestamp << "AssemblyGraph2::storeReadInformationParallel ends." << endl;
+}
+
+
+
+void AssemblyGraph2::storeReadInformationThreadFunction(size_t threadId)
+{
+    G& g = *this;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all edges in this batch.
+        for(uint64_t i=begin; i!=end; i++) {
+            const edge_descriptor e = storeReadInformationParallelData.allEdges[i];
+            g[e].storeReadInformation(markerGraph);
+        }
+    }
+}
+
 
 
 // Store read information on all branches.
@@ -2617,6 +2669,7 @@ void AssemblyGraph2::BubbleGraph::createEdgesParallel(
     uint64_t phasingMinReadCount,
     size_t threadCount)
 {
+    performanceLog << timestamp << "AssemblyGraph2::createEdgesParallel begins." << endl;
     BubbleGraph& bubbleGraph = *this;
 
     // Create a vector of all vertices, to be processed
@@ -2632,6 +2685,8 @@ void AssemblyGraph2::BubbleGraph::createEdgesParallel(
     const uint64_t batchSize = 1000;
     setupLoadBalancing(createEdgesParallelData.allVertices.size(), batchSize);
     runThreads(&BubbleGraph::createEdgesParallelThreadFunction, threadCount);
+
+    performanceLog << timestamp << "AssemblyGraph2::createEdgesParallel ends." << endl;
 }
 
 
@@ -4158,6 +4213,7 @@ void AssemblyGraph2::findPhasingRegions(BubbleChain& bubbleChain)
 
 void AssemblyGraph2::writePhasingRegions()
 {
+    performanceLog << timestamp << "AssemblyGraph2::writePhasingRegions begins." << endl;
 
     ofstream csv("PhasingRegions.csv");
     csv << "Bubble chain id,Phasing region id,First position,Last position,Phased,Component,\n";
@@ -4180,12 +4236,14 @@ void AssemblyGraph2::writePhasingRegions()
         }
     }
 
+    performanceLog << timestamp << "AssemblyGraph2::writePhasingRegions ends." << endl;
 }
 
 
 
 void AssemblyGraph2::writeBubbleChains()
 {
+    performanceLog << timestamp << "AssemblyGraph2::writeBubbleChains begins." << endl;
     G& g = *this;
 
     ofstream csv("BubbleChains.csv");
@@ -4213,6 +4271,7 @@ void AssemblyGraph2::writeBubbleChains()
         }
     }
 
+    performanceLog << timestamp << "AssemblyGraph2::writeBubbleChains ends." << endl;
 }
 
 
@@ -4220,6 +4279,7 @@ void AssemblyGraph2::writeBubbleChains()
 void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
 {
     G& g = *this;
+    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles begins." << endl;
 
     // We cannot use boost::connected_components because it
     // only works for undirected graphs.
@@ -4270,6 +4330,8 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         // Process it.
         handleSuperbubble1(superbubble);
     }
+
+    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles ends." << endl;
 }
 
 

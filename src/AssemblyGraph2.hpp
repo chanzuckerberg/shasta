@@ -420,6 +420,13 @@ private:
 
     // Store read information on all edges.
     void storeReadInformation();
+    void storeReadInformationParallel(uint64_t threadCount);
+    void storeReadInformationThreadFunction(size_t threadId);
+    class StoreReadInformationParallelData {
+    public:
+        vector<edge_descriptor> allEdges;
+    };
+    StoreReadInformationParallelData storeReadInformationParallelData;
 
 
     // Linear chains of bubbles in the AssemblyGraph2.
