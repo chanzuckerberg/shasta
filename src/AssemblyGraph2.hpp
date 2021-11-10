@@ -747,7 +747,8 @@ private:
         void createEdges(
             BubbleGraph::vertex_descriptor,
             uint64_t phasingMinReadCount,
-            vector<CreateEdgesParallelData::EdgeData>&);
+            vector<CreateEdgesParallelData::EdgeData>&,
+            vector< tuple<vertex_descriptor, vertex_descriptor, BubbleGraphEdge> >& threadEdges);
     };
 
 

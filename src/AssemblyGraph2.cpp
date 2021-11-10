@@ -498,7 +498,7 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
     performanceLog << timestamp << "createAndCleanupBubbleGraph begins." << endl;
 
     G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     // Decrease the discordant ratio threshold gradually as we iterate,
     // without going below the value passed in as discordantRatioThreshold.
@@ -2732,8 +2732,13 @@ void AssemblyGraph2::BubbleGraph::createEdgesParallel(
 
 void AssemblyGraph2::BubbleGraph::createEdgesParallelThreadFunction(size_t threadId)
 {
+    BubbleGraph& bubbleGraph = *this;
+
     const uint64_t phasingMinReadCount = createEdgesParallelData.phasingMinReadCount;
     vector<CreateEdgesParallelData::EdgeData> edgeData;
+
+    // Temporary storage of the edges found by this thread.
+    vector< tuple<vertex_descriptor, vertex_descriptor, BubbleGraphEdge> > threadEdges;
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -2741,8 +2746,16 @@ void AssemblyGraph2::BubbleGraph::createEdgesParallelThreadFunction(size_t threa
 
         // Loop over all vertices assigned to this batch.
         for(uint64_t i=begin; i!=end; ++i) {
-            createEdges(createEdgesParallelData.allVertices[i], phasingMinReadCount, edgeData);
+            createEdges(createEdgesParallelData.allVertices[i], phasingMinReadCount, edgeData, threadEdges);
         }
+    }
+
+    std::lock_guard<std::mutex> lock(mutex);
+    for(const auto& t: threadEdges) {
+        const vertex_descriptor v0 = get<0>(t);
+        const vertex_descriptor v1 = get<1>(t);
+        const BubbleGraphEdge&  edge = get<2>(t);
+        add_edge(v0, v1, edge, bubbleGraph);
     }
 }
 
@@ -2752,7 +2765,8 @@ void AssemblyGraph2::BubbleGraph::createEdgesParallelThreadFunction(size_t threa
 void AssemblyGraph2::BubbleGraph::createEdges(
     BubbleGraph::vertex_descriptor vA,
     uint64_t phasingMinReadCount,
-    vector<CreateEdgesParallelData::EdgeData>& edgeData)
+    vector<CreateEdgesParallelData::EdgeData>& edgeData,
+    vector< tuple<vertex_descriptor, vertex_descriptor, BubbleGraphEdge> >& threadEdges)
 {
     BubbleGraph& bubbleGraph = *this;
 
@@ -2808,8 +2822,7 @@ void AssemblyGraph2::BubbleGraph::createEdges(
                 ++edge.matrix[jt->sideA][jt->sideB];
             }
 
-            std::lock_guard<std::mutex> lock(mutex);
-            add_edge(vA, vB, edge, bubbleGraph);
+            threadEdges.push_back(make_tuple(vA, vB, edge));
         }
 
         // Prepare to process the next streak.
