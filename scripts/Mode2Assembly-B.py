@@ -12,6 +12,8 @@ import GetConfig
 
 config = GetConfig.getConfig()
 
+shasta.openPerformanceLog('Mode2Assembly-B.log')
+
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()

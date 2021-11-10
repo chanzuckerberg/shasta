@@ -17,6 +17,7 @@
 #include "MedianConsensusCaller.hpp"
 #include "MemoryMappedAllocator.hpp"
 #include "MultithreadedObject.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
@@ -690,6 +691,9 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Non-member functions exposed to Python.
+    module.def("openPerformanceLog",
+        openPerformanceLog
+        );
     module.def("testMultithreadedObject",
         testMultithreadedObject
         );

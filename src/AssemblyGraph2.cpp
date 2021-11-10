@@ -11,6 +11,7 @@
 #include "findMarkerId.hpp"
 #include "GfaAssemblyGraph.hpp"
 #include "orderPairs.hpp"
+#include "performanceLog.hpp"
 #include "ReadFlags.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
@@ -65,6 +66,7 @@ AssemblyGraph2::AssemblyGraph2(
 {
 
     const bool debug = false;
+    performanceLog << timestamp << "AssemblyGraph2 constructor begins." << endl;
 
 #if 0
     // Length threshold (in markers) for cleanupSecondaryEdges
@@ -217,6 +219,8 @@ AssemblyGraph2::AssemblyGraph2(
         double(transitionCount) / double(transversionCount) << "\n"
         "There are " << nonSnpCount << " small bubbles which are not snps." << endl;
 
+
+    performanceLog << timestamp << "AssemblyGraph2 constructor ends." << endl;
 }
 
 
@@ -491,7 +495,7 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
     double discordantRatioThreshold,
     double ambiguityThreshold)
 {
-    cout << timestamp << "createAndCleanupBubbleGraph begins." << endl;
+    performanceLog << timestamp << "createAndCleanupBubbleGraph begins." << endl;
 
     G& g = *this;
     const bool debug = true;

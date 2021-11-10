@@ -12,6 +12,7 @@
 #include "ConfigurationTable.hpp"
 #include "Coverage.hpp"
 #include "filesystem.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "timestamp.hpp"
 #include "platformDependent.hpp"
@@ -301,7 +302,7 @@ void shasta::main::assemble(
 
 
 
-    // Create the run output directory. If it exists and is not empty then stop.
+    // Create the assembly directory. If it exists and is not empty then stop.
     bool exists = std::filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     bool isDir = std::filesystem::is_directory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     if (exists) {
@@ -323,8 +324,13 @@ void shasta::main::assemble(
     } else {
         filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     }
-    // Make the output directory current.
+
+    // Make the assembly directory current.
     filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+
+    // Open the performance log.
+    openPerformanceLog("performance.log");
+    performanceLog << timestamp << "Assembly begins." << endl;
 
 
 
@@ -395,6 +401,7 @@ void shasta::main::assemble(
     // Write out the build id again.
     cout << buildId() << endl;
 
+    performanceLog << timestamp << "Assembly ends." << endl;
 }
 
 
