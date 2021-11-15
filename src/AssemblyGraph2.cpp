@@ -603,7 +603,7 @@ void AssemblyGraph2::iterativePhase(
     performanceLog << timestamp << "AssemblyGraph2::iterativePhase begins." << endl;
 
     // G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     // Main iteration loop.
     for(uint64_t iteration=0; ; iteration++) {
@@ -618,12 +618,6 @@ void AssemblyGraph2::iterativePhase(
         createBubbleGraph(readCount, phasingMinReadCount, threadCount);
         cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
             " vertices (diploid bubbles) and " << num_edges(bubbleGraph) << " edges." << endl;
-        if(debug) {
-            const string name = "BubbleGraph-Iteration-" + to_string(iteration);
-            writeDetailedEarly(name);
-            bubbleGraph.writeVerticesCsv(name + "-Vertices.csv");
-            bubbleGraph.writeEdgesCsv(name + "-Edges.csv");
-        }
 
 
 
@@ -666,23 +660,6 @@ void AssemblyGraph2::iterativePhase(
             }
         }
         cout << "Found " << treeEdges.size() << " edges of the optimal spanning tree." << endl;
-
-
-
-        // Write out coverage histogram for all edges and for tree edges.
-        if(debug) {
-            vector<uint64_t> treeEdgesCoverageHistogram(edgeTable.size(), 0);
-            for(const BubbleGraph::edge_descriptor e: treeEdges) {
-                const uint64_t coverage = bubbleGraph[e].totalCount();
-                ++treeEdgesCoverageHistogram[coverage];
-            }
-            cout << "Coverage,All edges,Tree edges" << endl;
-            for(uint64_t coverage=0; coverage<edgeTable.size(); coverage++) {
-                cout << coverage << "," <<
-                    edgeTable[coverage].size() << "," <<
-                    treeEdgesCoverageHistogram[coverage] << endl;
-            }
-        }
 
 
 
@@ -748,12 +725,80 @@ void AssemblyGraph2::iterativePhase(
             // Prepare to handle the next connected component.
             ++componentId;
         }
+        const uint64_t componentCount = componentId;
 
         if(debug) {
             const string name = "BubbleGraph-Iteration-" + to_string(iteration);
+            writeDetailedEarly(name);
             bubbleGraph.writeGraphviz(name + ".dot");
+            bubbleGraph.writeVerticesCsv(name + "-Vertices.csv");
+            bubbleGraph.writeEdgesCsv(name + "-Edges.csv");
         }
 
+
+        // Count the number of edges that disagree with the computed phasing.
+        uint64_t edgeDisagreeCount = 0;
+        BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+            if(not bubbleGraph.edgeIsConsistent(e)) {
+                ++edgeDisagreeCount;
+            }
+        }
+        cout << "Found " << edgeDisagreeCount << " edges in disagreement "
+            "with computed phasing out of " << num_edges(bubbleGraph) << " total." << endl;
+
+
+
+        // Write out coverage histograms for various types of edges.
+        if(true) {
+            vector<uint64_t> allCoverageHistogram(edgeTable.size(), 0);
+            vector<uint64_t> treeCoverageHistogram(edgeTable.size(), 0);
+            vector<uint64_t> inconsistentCoverageHistogram(edgeTable.size(), 0);
+            BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+                const uint64_t coverage = bubbleGraph[e].totalCount();
+                ++allCoverageHistogram[coverage];
+                if(bubbleGraph[e].isTreeEdge) {
+                    ++treeCoverageHistogram[coverage];
+                }
+                if(not bubbleGraph.edgeIsConsistent(e)) {
+                    ++inconsistentCoverageHistogram[coverage];
+                }
+            }
+            cout << "Coverage,All edges,Tree edges,Inconsistent edges" << endl;
+            for(uint64_t coverage=0; coverage<edgeTable.size(); coverage++) {
+                cout << coverage << "," <<
+                    allCoverageHistogram[coverage] << "," <<
+                    treeCoverageHistogram[coverage] << "," <<
+                    inconsistentCoverageHistogram[coverage] << endl;
+            }
+        }
+
+
+
+        // Write out a histogram of component sizes.
+        if(true) {
+            vector<uint64_t> componentSizes(componentCount, 0);
+            BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+                ++componentSizes[bubbleGraph[v].componentId];
+            }
+
+            vector<uint64_t> histogram;
+            for(uint64_t componentId=0; componentId<componentCount; componentId++) {
+                const uint64_t n = componentSizes[componentId];
+                if(n >= histogram.size()) {
+                    histogram.resize(n+1, 0);
+                }
+                ++histogram[n];
+            }
+
+            cout << "Histogram of component sizes:" << endl;
+            cout << "Size,Frequency,Bubbles\n";
+            for(uint64_t size=0; size<histogram.size(); size++) {
+                const uint64_t frequency = histogram[size];
+                if(frequency > 0) {
+                    cout << size << "," << frequency << "," << size*frequency << "\n";
+                }
+            }
+        }
 
         performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends because of missing code." << endl;
         SHASTA_ASSERT(0);
@@ -3181,7 +3226,6 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
 
 
     // Edges.
-    uint64_t edgeDisagreeCount = 0;
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
         const vertex_descriptor v0 = source(e, bubbleGraph);
@@ -3190,20 +3234,8 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
         const BubbleGraphVertex& vertex1 = bubbleGraph[v1];
         SHASTA_ASSERT(vertex0.componentId == vertex1.componentId);
 
-        // Figure out if the edge agrees with the computed phasing.
-        const bool edgeAgreesWithPhasing =
-            ((edge.offDiagonalCount() == 0) and (vertex0.phase == vertex1.phase))
-            or
-            ((edge.diagonalCount() == 0) and (vertex0.phase == 1 - vertex1.phase));
-        if(not edgeAgreesWithPhasing) {
-            ++edgeDisagreeCount;
-        }
-
-
-
-
         out << bubbleGraph[v0].id << "--" << bubbleGraph[v1].id <<
-            " [color=\"" << (edgeAgreesWithPhasing ? "green" : "red") <<
+            " [color=\"" << (bubbleGraph.edgeIsConsistent(e) ? "green" : "red") <<
             "\" tooltip=\"" << vertex0.id << " " << vertex1.id << " " <<
             edge.diagonalCount() << " " << edge.offDiagonalCount() <<
             "\"];\n";
@@ -3211,8 +3243,6 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
 
     out << "}\n";
 
-    cout << "Found " << edgeDisagreeCount << "edges in disagreement "
-        "with computed phasing out of " << num_edges(bubbleGraph) << " total." << endl;
 
 }
 
@@ -3325,6 +3355,26 @@ bool AssemblyGraph2::BubbleGraph::edgeIsHappy(BubbleGraph::edge_descriptor e) co
         return relativePhase > 0.;
     } else {
         return relativePhase < 0.;
+    }
+}
+
+// Similar to above, but works under the assumption the discordantCount() = 0.
+bool AssemblyGraph2::BubbleGraph::edgeIsConsistent(BubbleGraph::edge_descriptor e) const
+{
+    const BubbleGraph& g = *this;
+    const BubbleGraphEdge& edge = g[e];
+
+    const vertex_descriptor v0 = source(e, g);
+    const vertex_descriptor v1 = target(e, g);
+    const uint64_t phase0 = g[v0].phase;
+    const uint64_t phase1 = g[v1].phase;
+
+    if(edge.offDiagonalCount() == 0) {
+        return phase0 == phase1;
+    } else if(edge.diagonalCount() == 0) {
+        return phase0 == 1 - phase1;
+    } else {
+        SHASTA_ASSERT(0);
     }
 }
 

@@ -724,6 +724,9 @@ private:
         // with the phases assigned to its two vertices.
         bool edgeIsHappy(edge_descriptor e) const;
 
+        // Similar to above, but works under the assumption the discordantCount() = 0.
+        bool edgeIsConsistent(edge_descriptor e) const;
+
 
         // Edge creation is expensive.
         // There is a simple sequential version and a more complex
