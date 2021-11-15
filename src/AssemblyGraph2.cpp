@@ -151,6 +151,9 @@ AssemblyGraph2::AssemblyGraph2(
     }
 #endif
 
+
+
+#if 1
     // Create the bubble graph.
     createAndCleanupBubbleGraph(
         markers.size()/2, phasingMinReadCount, threadCount,
@@ -162,6 +165,16 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Use each connected component of the bubble graph to phase the bubbles.
     phase(threadCount);
+#else
+
+    // Iteratively create the bubble graph, phase, remove bad bubbles,
+    // add newly created bubbles.
+    iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
+#endif
+
+
+
+    // Final pruning.
     prune(pruneLength);
 
 #if 0
@@ -576,6 +589,177 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
     }
 
     cout << timestamp << "cleanupBubbleGraph ends." << endl;
+}
+
+
+
+// Iteratively create the bubble graph, phase, remove unphased bubbles,
+// add newly created bubbles.
+void AssemblyGraph2::iterativePhase(
+    uint64_t readCount,             // Total.
+    uint64_t phasingMinReadCount,   // For an edge to be kept.
+    size_t threadCount)
+{
+    performanceLog << timestamp << "AssemblyGraph2::iterativePhase begins." << endl;
+
+    // G& g = *this;
+    const bool debug = true;
+
+    // Main iteration loop.
+    for(uint64_t iteration=0; ; iteration++) {
+        cout << timestamp << "Phasing iteration " << iteration << " begins." << endl;
+        performanceLog << timestamp << "Phasing iteration " << iteration << " begins." << endl;
+
+
+
+        // Create the bubble graph using all diploid bubbles currently
+        // present in the AssemblyGraph2.
+        // We only create edges with discordantCount() = 0.
+        createBubbleGraph(readCount, phasingMinReadCount, threadCount);
+        cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
+            " vertices (diploid bubbles) and " << num_edges(bubbleGraph) << " edges." << endl;
+        if(debug) {
+            const string name = "BubbleGraph-Iteration-" + to_string(iteration);
+            writeDetailedEarly(name);
+            bubbleGraph.writeVerticesCsv(name + "-Vertices.csv");
+            bubbleGraph.writeEdgesCsv(name + "-Edges.csv");
+        }
+
+
+
+        // Gather bubble graph edges by totalCount(), so we don't have to
+        // sort the edges by totalCount().
+        // Because we only created edges with discordantCount() = 0,
+        // totalCount() always equals concordantCount().
+        vector< vector<BubbleGraph::edge_descriptor> > edgeTable;
+        BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+            const uint64_t totalCount = bubbleGraph[e].totalCount();
+            if(totalCount >= uint64_t(edgeTable.size())) {
+                edgeTable.resize(totalCount + 1);
+            }
+            edgeTable[totalCount].push_back(e);
+        }
+
+
+        // Computation of connected components and optimal spanning tree.
+
+        // Initialize the disjoint sets data structure.
+        const uint64_t n = num_vertices(bubbleGraph);
+        vector<uint64_t> rank(n);
+        vector<uint64_t> parent(n);
+        boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+        for(uint32_t i=0; i<n; i++) {
+            disjointSets.make_set(i);
+        }
+
+        // Process edges in order of decreasing totalCount().
+        vector<BubbleGraph::edge_descriptor> treeEdges;
+        for(auto it=edgeTable.rbegin(); it!=edgeTable.rend(); ++it) {
+            for(const BubbleGraph::edge_descriptor e: *it) {
+                const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
+                const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+                if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
+                    disjointSets.union_set(v0, v1);
+                    treeEdges.push_back(e);
+                    bubbleGraph[e].isTreeEdge = true;
+                }
+            }
+        }
+        cout << "Found " << treeEdges.size() << " edges of the optimal spanning tree." << endl;
+
+
+
+        // Write out coverage histogram for all edges and for tree edges.
+        if(debug) {
+            vector<uint64_t> treeEdgesCoverageHistogram(edgeTable.size(), 0);
+            for(const BubbleGraph::edge_descriptor e: treeEdges) {
+                const uint64_t coverage = bubbleGraph[e].totalCount();
+                ++treeEdgesCoverageHistogram[coverage];
+            }
+            cout << "Coverage,All edges,Tree edges" << endl;
+            for(uint64_t coverage=0; coverage<edgeTable.size(); coverage++) {
+                cout << coverage << "," <<
+                    edgeTable[coverage].size() << "," <<
+                    treeEdgesCoverageHistogram[coverage] << endl;
+            }
+        }
+
+
+
+        // Use the tree edges to phase bubbles and gather connected components.
+
+        // Loop over start vertices. One iteration for each connected component.
+        uint64_t componentId = 0;
+        BGL_FORALL_VERTICES(vStart, bubbleGraph, BubbleGraph) {
+            BubbleGraphVertex& vertexStart = bubbleGraph[vStart];
+
+            // If this vertex has already been assigned to a component,
+            // don't use it as a start vertex.
+            if(vertexStart.componentId != BubbleGraphVertex::invalidComponentId) {
+                continue;
+            }
+
+            // cout << "Starting a new component " << componentId << " at " << vertexStart.id << endl;
+
+            // BFS on the optimal spanning tree, starting at this vertex.
+            std::queue<BubbleGraph::vertex_descriptor> q;
+            q.push(vStart);
+            vertexStart.componentId = componentId;
+            vertexStart.phase = 0;
+            while(not q.empty()) {
+
+                // Dequeue a vertex.
+                const BubbleGraph::vertex_descriptor v0 = q.front();
+                q.pop();
+                BubbleGraphVertex& vertex0 = bubbleGraph[v0];
+                SHASTA_ASSERT(vertex0.componentId == componentId);
+                const uint64_t phase0 = vertex0.phase;
+                // cout << "Dequeued " << vertex0.id << endl;
+
+                // Loop over tree edges incident to this vertex.
+                BGL_FORALL_OUTEDGES(v0, e, bubbleGraph, BubbleGraph) {
+                    const BubbleGraphEdge& edge = bubbleGraph[e];
+                    if(not edge.isTreeEdge) {
+                        continue;
+                    }
+
+                    // Add the other vertex to this component and phase it.
+                    const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+                    BubbleGraphVertex& vertex1 = bubbleGraph[v1];
+                    // cout << "Found " << vertex1.id << endl;
+                    if(vertex1.componentId != BubbleGraphVertex::invalidComponentId) {
+                        SHASTA_ASSERT(vertex1.componentId == componentId);
+                        continue;
+                    }
+                    q.push(v1);
+                    vertex1.componentId = componentId;
+                    if(edge.offDiagonalCount() == 0) {
+                        vertex1.phase = phase0;
+                    } else if(edge.diagonalCount() == 0) {
+                        vertex1.phase = 1 - phase0;
+                    } else {
+                        // This should never happen because we only created edges
+                        // with discordantCount() = 0.
+                        SHASTA_ASSERT(0);
+                    }
+                }
+            }
+
+            // Prepare to handle the next connected component.
+            ++componentId;
+        }
+
+        if(debug) {
+            const string name = "BubbleGraph-Iteration-" + to_string(iteration);
+            bubbleGraph.writeGraphviz(name + ".dot");
+        }
+
+
+        performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends because of missing code." << endl;
+        SHASTA_ASSERT(0);
+    }
+
+    performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends." << endl;
 }
 
 
@@ -2822,7 +3006,10 @@ void AssemblyGraph2::BubbleGraph::createEdges(
                 ++edge.matrix[jt->sideA][jt->sideB];
             }
 
-            threadEdges.push_back(make_tuple(vA, vB, edge));
+            // ***** ONLY ADD IT IF there are no discordant reads.
+            if(edge.discordantCount() == 0) {
+                threadEdges.push_back(make_tuple(vA, vB, edge));
+            }
         }
 
         // Prepare to process the next streak.
@@ -2981,10 +3168,7 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
         "node [shape=point];\n";
 
 
-    // Vertices, colored by discordant ratio.
-    // Green if discordant ratio is 0.
-    // Red if redDiscordantRatio or more.
-    // const double redDiscordantRatio = 0.3;
+    // Vertices.
     BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
         const BubbleGraphVertex& vertex = bubbleGraph[v];
         // const double d = bubbleGraph.discordantRatio(v);
@@ -2996,25 +3180,39 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
     }
 
 
-    // Edges, colored by ambiguity and semi-transparent.
-    // Green if ambiguity is 0.
-    // Red if ambiguity is redAmbiguity or more.
-    const double redAmbiguity = 0.5;
+    // Edges.
+    uint64_t edgeDisagreeCount = 0;
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
         const vertex_descriptor v0 = source(e, bubbleGraph);
         const vertex_descriptor v1 = target(e, bubbleGraph);
-        const double ambiguity = edge.ambiguity();
-        const double hue = max(0., (1. - ambiguity / redAmbiguity) / 3.);
+        const BubbleGraphVertex& vertex0 = bubbleGraph[v0];
+        const BubbleGraphVertex& vertex1 = bubbleGraph[v1];
+        SHASTA_ASSERT(vertex0.componentId == vertex1.componentId);
+
+        // Figure out if the edge agrees with the computed phasing.
+        const bool edgeAgreesWithPhasing =
+            ((edge.offDiagonalCount() == 0) and (vertex0.phase == vertex1.phase))
+            or
+            ((edge.diagonalCount() == 0) and (vertex0.phase == 1 - vertex1.phase));
+        if(not edgeAgreesWithPhasing) {
+            ++edgeDisagreeCount;
+        }
+
+
+
 
         out << bubbleGraph[v0].id << "--" << bubbleGraph[v1].id <<
-            " [color=\"" << hue << " 1 1 0.5\""
-            " tooltip=\"" << bubbleGraph[v0].id << " " << bubbleGraph[v1].id << " " <<
-            ambiguity <<
+            " [color=\"" << (edgeAgreesWithPhasing ? "green" : "red") <<
+            "\" tooltip=\"" << vertex0.id << " " << vertex1.id << " " <<
+            edge.diagonalCount() << " " << edge.offDiagonalCount() <<
             "\"];\n";
     }
 
     out << "}\n";
+
+    cout << "Found " << edgeDisagreeCount << "edges in disagreement "
+        "with computed phasing out of " << num_edges(bubbleGraph) << " total." << endl;
 
 }
 
@@ -3026,13 +3224,13 @@ void AssemblyGraph2::BubbleGraph::writeHtml(
     const std::set<edge_descriptor>& treeEdges,
     bool onlyShowUnhappyEdges)
 {
-    BubbleGraph& g = *this;
+    BubbleGraph& bubbleGraph = *this;
 
     // Create a filtered BubbleGraph, containing only the tree edges
     // and the edges with relativePhase() >= minRelativePhase.
     const double minRelativePhase = 0.;
     using FilteredGraph = boost::filtered_graph<BubbleGraph, BubbleGraphEdgePredicate2>;
-    FilteredGraph filteredGraph(g, BubbleGraphEdgePredicate2(g, minRelativePhase, treeEdges));
+    FilteredGraph filteredGraph(bubbleGraph, BubbleGraphEdgePredicate2(bubbleGraph, minRelativePhase, treeEdges));
 
     // Compute the layout of the filtered graph.
     // This should mostly separate the two phases.
@@ -3049,8 +3247,8 @@ void AssemblyGraph2::BubbleGraph::writeHtml(
     double xMax = std::numeric_limits<double>::min();
     double yMin = std::numeric_limits<double>::max();
     double yMax = std::numeric_limits<double>::min();
-    BGL_FORALL_VERTICES_T(v, g, G) {
-        const auto& position = g[v].position;
+    BGL_FORALL_VERTICES_T(v, bubbleGraph, BubbleGraph) {
+        const auto& position = bubbleGraph[v].position;
         xMin = min(xMin, position[0]);
         xMax = max(xMax, position[0]);
         yMin = min(yMin, position[1]);
@@ -3064,28 +3262,28 @@ void AssemblyGraph2::BubbleGraph::writeHtml(
     const double edgeThickness = edgeThicknessPixels * xyRange / double(svgSize);
 
     // Vertex attributes. Color by phase.
-    std::map<G::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
-    BGL_FORALL_VERTICES(v, g, BubbleGraph) {
+    std::map<BubbleGraph::vertex_descriptor, WriteGraph::VertexAttributes> vertexAttributes;
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
         auto& attributes = vertexAttributes[v];
-        if(g[v].phase == 0) {
+        if(bubbleGraph[v].phase == 0) {
             attributes.color = "hsl(240,50%,50%)";
         } else {
             attributes.color = "hsl(300,50%,50%)";
         }
         attributes.radius = vertexRadius;
-        attributes.tooltip = to_string(g[v].id);
+        attributes.tooltip = to_string(bubbleGraph[v].id);
     }
 
     // Edge attributes.
     std::map<BubbleGraph::edge_descriptor, WriteGraph::EdgeAttributes> edgeAttributes;
-    BGL_FORALL_EDGES(e, g, BubbleGraph) {
-        const double relativePhase = g[e].relativePhase();
+    BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+        const double relativePhase = bubbleGraph[e].relativePhase();
         const double hue = (1. + relativePhase) * 60.; /// Goes from 0 (red) to 120 (green).
         auto& attributes = edgeAttributes[e];
         attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,50%)";
         attributes.thickness = edgeThickness;
         if(onlyShowUnhappyEdges) {
-            if(g.edgeIsHappy(e)) {
+            if(bubbleGraph.edgeIsHappy(e)) {
                 attributes.color = "hsla(" + to_string(int(hue)) + ",50%,50%,0%)";
             } else {
                 attributes.thickness *= 20.;
@@ -3099,7 +3297,7 @@ void AssemblyGraph2::BubbleGraph::writeHtml(
     ofstream out(fileName);
     out << "<html><body>";
     WriteGraph::writeSvg(
-        g,
+        bubbleGraph,
         "BubbleGraph",
         svgSize, svgSize,
         vertexAttributes,
@@ -3205,21 +3403,40 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
 {
     const BubbleGraph& bubbleGraph = *this;
 
+    // Open the csv file and write the header.
     ofstream csv(fileName);
-    csv << "BubbleIdA,BubbleIdB,m00,m11,m01,m10,Diagonal,OffDiagonal,Total,Concordant,Discordant,Delta,Ambiguity\n";
+    csv << "BubbleId0,BubbleId1,n00,n01,n10,n11,m00,m01,m10,m11,Diagonal,OffDiagonal,Total,Concordant,Discordant,Delta,Ambiguity\n";
+
+    // Loop over all edges.
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
         const BubbleGraphEdge& edge = bubbleGraph[e];
-        uint64_t idA = bubbleGraph[source(e, bubbleGraph)].id;
-        uint64_t idB = bubbleGraph[target(e, bubbleGraph)].id;
-        if(idB < idA) {
-            std::swap(idA, idB);
-        }
-        csv << idA << ",";
-        csv << idB << ",";
+
+        // Get the vertices.
+        const vertex_descriptor v0 = source(e, bubbleGraph);
+        const vertex_descriptor v1 = target(e, bubbleGraph);
+        const BubbleGraphVertex& vertex0 = bubbleGraph[v0];
+        const BubbleGraphVertex& vertex1 = bubbleGraph[v1];
+        uint64_t id0 = vertex0.id;
+        uint64_t id1 = vertex1.id;
+        SHASTA_ASSERT(id0 < id1);
+
+        // Count the number of reads on each side of each of the two bubbles.
+        const array<uint64_t, 2> n0 = vertex0.countOrientedReads();
+        const array<uint64_t, 2> n1 = vertex1.countOrientedReads();
+
+        csv << id0 << ",";
+        csv << id1 << ",";
+
+        csv << n0[0] << ",";
+        csv << n0[1] << ",";
+        csv << n1[0] << ",";
+        csv << n1[1] << ",";
+
         csv << edge.matrix[0][0] << ",";
-        csv << edge.matrix[1][1] << ",";
         csv << edge.matrix[0][1] << ",";
         csv << edge.matrix[1][0] << ",";
+        csv << edge.matrix[1][1] << ",";
+
         csv << edge.diagonalCount() << ",";
         csv << edge.offDiagonalCount() << ",";
         csv << edge.totalCount() << ",";

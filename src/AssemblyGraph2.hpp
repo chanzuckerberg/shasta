@@ -569,6 +569,7 @@ private:
         BubbleGraphVertex(
             AssemblyGraph2::edge_descriptor,
             const AssemblyGraph2Edge&);
+        BubbleGraphVertex() {}
 
         // The vertex stores OrientedReadIds that appear on one side but not
         // on the opposite side of the bubble.
@@ -579,7 +580,8 @@ private:
         array<uint64_t, 2> countOrientedReads() const;
 
         // The connected component this vertex belongs to.
-        uint64_t componentId;
+        static const uint64_t invalidComponentId = std::numeric_limits<uint64_t>::max();
+        uint64_t componentId = invalidComponentId;
 
         // The phase assigned to this vertex (bubble)
         // It is only meaningful within each connected component.
@@ -657,6 +659,9 @@ private:
             const double diagonalRatio = double(diagonalCount()) / double(totalCount());
             return 2. * diagonalRatio - 1.;
         }
+
+        bool isTreeEdge = false;
+
     };
 
 
@@ -664,7 +669,7 @@ private:
     // Bubble graph.
     // It is an undirected graph where each vertex represents a bubble.
     using BubbleGraphBaseClass =
-        boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS,
+        boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
         BubbleGraphVertex, BubbleGraphEdge>;
 
     class BubbleGraph:
@@ -825,6 +830,12 @@ private:
         }
     };
 
+    // Iteratively create the bubble graph, phase, remove unphased bubbles,
+    // add newly created bubbles.
+    void iterativePhase(
+        uint64_t readCount,             // Total.
+        uint64_t phasingMinReadCount,   // For an edge to be kept.
+        size_t threadCount);
 
 
     // Use each connected component of the bubble graph to phase the bubbles.
