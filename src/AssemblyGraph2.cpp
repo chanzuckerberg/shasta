@@ -621,16 +621,13 @@ void AssemblyGraph2::iterativePhase(
 
 
 
-        // Gather bubble graph edges by delta(), so we don't have to
-        // sort the edges by delta().
-        vector< vector<BubbleGraph::edge_descriptor> > edgeTable;
+        // Create a vector fo edges sorted by decreasing logFisher.
+        vector<pair<BubbleGraph::edge_descriptor, double> > edgeTable;
         BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-            const uint64_t delta = bubbleGraph[e].delta();
-            if(delta >= uint64_t(edgeTable.size())) {
-                edgeTable.resize(delta + 1);
-            }
-            edgeTable[delta].push_back(e);
+            edgeTable.push_back(make_pair(e, bubbleGraph[e].logFisher));
         }
+        sort(edgeTable.begin(), edgeTable.end(),
+            OrderPairsBySecondOnlyGreater<BubbleGraph::edge_descriptor, double>());
 
 
         // Computation of connected components and optimal spanning tree.
@@ -644,17 +641,16 @@ void AssemblyGraph2::iterativePhase(
             disjointSets.make_set(i);
         }
 
-        // Process edges in order of decreasing delta().
+        // Process edges in order of decreasing logFisher.
         vector<BubbleGraph::edge_descriptor> treeEdges;
-        for(auto it=edgeTable.rbegin(); it!=edgeTable.rend(); ++it) {
-            for(const BubbleGraph::edge_descriptor e: *it) {
-                const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
-                const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
-                if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
-                    disjointSets.union_set(v0, v1);
-                    treeEdges.push_back(e);
-                    bubbleGraph[e].isTreeEdge = true;
-                }
+        for(const auto& p: edgeTable) {
+            const BubbleGraph::edge_descriptor e = p.first;
+            const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
+            const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+            if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
+                disjointSets.union_set(v0, v1);
+                treeEdges.push_back(e);
+                bubbleGraph[e].isTreeEdge = true;
             }
         }
         cout << "Found " << treeEdges.size() << " edges of the optimal spanning tree." << endl;
@@ -730,47 +726,33 @@ void AssemblyGraph2::iterativePhase(
             bubbleGraph.writeEdgesCsv(name + "-Edges.csv");
         }
 
-        // Write out histograms of delta=concordant-discordant for various types of edges.
+        // Count the unhappy edges.
         if(debug) {
-            vector<uint64_t> allHistogram;
-            vector<uint64_t> treeHistogram;
-            vector<uint64_t> unhappyHistogram;
+            uint64_t unhappyCount = 0;
             BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-                const uint64_t delta = bubbleGraph[e].delta();
-                if(delta >= allHistogram.size()) {
-                    allHistogram.resize(delta + 1, 0);
-                    treeHistogram.resize(delta + 1, 0);
-                    unhappyHistogram.resize(delta + 1, 0);
-                }
-                ++allHistogram[delta];
-                if(bubbleGraph[e].isTreeEdge) {
-                    ++treeHistogram[delta];
-                }
                 if(not bubbleGraph.edgeIsHappy(e)) {
-                    ++unhappyHistogram[delta];
+                    ++unhappyCount;
                 }
             }
-            cout << "Delta,All edges,Tree edges,Unhappy edges" << endl;
-            for(uint64_t delta=0; delta<allHistogram.size(); delta++) {
-                cout << delta << "," <<
-                    allHistogram[delta] << "," <<
-                    treeHistogram[delta] << "," <<
-                    unhappyHistogram[delta] << endl;
-            }
+            cout << "Found " << unhappyCount <<
+                " bubble graph edges inconsistent with computed phasing out of " <<
+                num_edges(bubbleGraph) << " total." << endl;
         }
 
+
+        // Gather the vertices in each connected component.
+        vector< vector<BubbleGraph::vertex_descriptor> > components(componentCount);
+        BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+            const uint64_t componentId = bubbleGraph[v].componentId;
+            components[componentId].push_back(v);
+        }
 
 
         // Write out a histogram of component sizes.
         if(debug) {
-            vector<uint64_t> componentSizes(componentCount, 0);
-            BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
-                ++componentSizes[bubbleGraph[v].componentId];
-            }
-
             vector<uint64_t> histogram;
             for(uint64_t componentId=0; componentId<componentCount; componentId++) {
-                const uint64_t n = componentSizes[componentId];
+                const uint64_t n = components[componentId].size();
                 if(n >= histogram.size()) {
                     histogram.resize(n+1, 0);
                 }
@@ -788,14 +770,13 @@ void AssemblyGraph2::iterativePhase(
         }
 
 
-#if 0
-        // Mark as bad the bubbles incident to inconsistent vertices.
-        BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-            if(not bubbleGraph.edgeIsHappy(e)) {
-                const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
-                const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
-                bubbleGraph[v0].isBad = true;
-                bubbleGraph[v1].isBad = true;
+
+        // Mark as bad the bubbles in small connected components.
+        const uint64_t componentSizeThreshold = 5;    // *************** EXPOSE WHEN CODE STABILIZES
+        BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+            const uint64_t componentId = bubbleGraph[v].componentId;
+            if(uint64_t(components[componentId].size()) < componentSizeThreshold) {
+                bubbleGraph[v].isBad = true;
             }
         }
         uint64_t badCount = 0;
@@ -806,10 +787,11 @@ void AssemblyGraph2::iterativePhase(
         }
         cout << "Marked " << badCount << " bubbles as bad." << endl;
 
+
         // If no bubbles were marked as bad, we are done.
         if(badCount == 0) {
             performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends because of missing code." << endl;
-            SHASTA_ASSERT(0);
+            break;
         }
 
         // Remove the bubbles we marked as bad.
@@ -825,10 +807,22 @@ void AssemblyGraph2::iterativePhase(
         // Some new bubbles may form after we merge.
         merge(true, true);
         gatherBubbles(true);
-#endif
 
-        performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends because of missing code." << endl;
-        SHASTA_ASSERT(0);
+    }
+
+
+    // Check that all vertices of the BubbleGraph are phased
+    // and copy the phasing information to the AssemblyGraph2Edges.
+    BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+        const BubbleGraphVertex& bubbleGraphVertex = bubbleGraph[v];
+        const uint64_t componentId = bubbleGraphVertex.componentId;
+        SHASTA_ASSERT(componentId != std::numeric_limits<uint64_t>::max());
+        const uint64_t phase = bubbleGraphVertex.phase;
+        SHASTA_ASSERT(phase != BubbleGraphVertex::invalidPhase);
+
+        AssemblyGraph2Edge& assemblyGraph2Edge = (*this)[bubbleGraphVertex.e];
+        assemblyGraph2Edge.componentId = componentId;
+        assemblyGraph2Edge.phase = phase;
     }
 
     performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends." << endl;
@@ -3077,7 +3071,7 @@ void AssemblyGraph2::BubbleGraph::createEdges(
             }
             edge.computeLogFisher();
 
-            if(edge.logFisher > 15.) {  // ************ EXPOSE THIS CONSTANT WHEN CODE STABILIZES.
+            if(edge.logFisher > 10.) {  // ************ EXPOSE THIS CONSTANT WHEN CODE STABILIZES.
                 threadEdges.push_back(make_tuple(vA, vB, edge));
             }
         }
