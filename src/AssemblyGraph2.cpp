@@ -9,6 +9,7 @@
 #include "enumeratePaths.hpp"
 #include "findLinearChains.hpp"
 #include "findMarkerId.hpp"
+#include "fisher.hpp"
 #include "GfaAssemblyGraph.hpp"
 #include "orderPairs.hpp"
 #include "performanceLog.hpp"
@@ -153,7 +154,7 @@ AssemblyGraph2::AssemblyGraph2(
 
 
 
-#if 1
+#if 0
     // Create the bubble graph.
     createAndCleanupBubbleGraph(
         markers.size()/2, phasingMinReadCount, threadCount,
@@ -603,7 +604,7 @@ void AssemblyGraph2::iterativePhase(
     performanceLog << timestamp << "AssemblyGraph2::iterativePhase begins." << endl;
 
     // G& g = *this;
-    const bool debug = false;
+    const bool debug = true;
 
     // Main iteration loop.
     for(uint64_t iteration=0; ; iteration++) {
@@ -614,24 +615,21 @@ void AssemblyGraph2::iterativePhase(
 
         // Create the bubble graph using all diploid bubbles currently
         // present in the AssemblyGraph2.
-        // We only create edges with discordantCount() = 0.
         createBubbleGraph(readCount, phasingMinReadCount, threadCount);
         cout << "The bubble graph has " << num_vertices(bubbleGraph) <<
             " vertices (diploid bubbles) and " << num_edges(bubbleGraph) << " edges." << endl;
 
 
 
-        // Gather bubble graph edges by totalCount(), so we don't have to
-        // sort the edges by totalCount().
-        // Because we only created edges with discordantCount() = 0,
-        // totalCount() always equals concordantCount().
+        // Gather bubble graph edges by delta(), so we don't have to
+        // sort the edges by delta().
         vector< vector<BubbleGraph::edge_descriptor> > edgeTable;
         BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-            const uint64_t totalCount = bubbleGraph[e].totalCount();
-            if(totalCount >= uint64_t(edgeTable.size())) {
-                edgeTable.resize(totalCount + 1);
+            const uint64_t delta = bubbleGraph[e].delta();
+            if(delta >= uint64_t(edgeTable.size())) {
+                edgeTable.resize(delta + 1);
             }
-            edgeTable[totalCount].push_back(e);
+            edgeTable[delta].push_back(e);
         }
 
 
@@ -646,7 +644,7 @@ void AssemblyGraph2::iterativePhase(
             disjointSets.make_set(i);
         }
 
-        // Process edges in order of decreasing totalCount().
+        // Process edges in order of decreasing delta().
         vector<BubbleGraph::edge_descriptor> treeEdges;
         for(auto it=edgeTable.rbegin(); it!=edgeTable.rend(); ++it) {
             for(const BubbleGraph::edge_descriptor e: *it) {
@@ -710,14 +708,10 @@ void AssemblyGraph2::iterativePhase(
                     }
                     q.push(v1);
                     vertex1.componentId = componentId;
-                    if(edge.offDiagonalCount() == 0) {
+                    if(edge.relativePhase() >= 0.) {
                         vertex1.phase = phase0;
-                    } else if(edge.diagonalCount() == 0) {
-                        vertex1.phase = 1 - phase0;
                     } else {
-                        // This should never happen because we only created edges
-                        // with discordantCount() = 0.
-                        SHASTA_ASSERT(0);
+                        vertex1.phase = 1 - phase0;
                     }
                 }
             }
@@ -727,6 +721,7 @@ void AssemblyGraph2::iterativePhase(
         }
         const uint64_t componentCount = componentId;
 
+
         if(debug) {
             const string name = "BubbleGraph-Iteration-" + to_string(iteration);
             writeDetailedEarly(name);
@@ -735,47 +730,39 @@ void AssemblyGraph2::iterativePhase(
             bubbleGraph.writeEdgesCsv(name + "-Edges.csv");
         }
 
-
-        // Count the number of edges that disagree with the computed phasing.
-        uint64_t edgeDisagreeCount = 0;
-        BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-            if(not bubbleGraph.edgeIsConsistent(e)) {
-                ++edgeDisagreeCount;
-            }
-        }
-        cout << "Found " << edgeDisagreeCount << " edges in disagreement "
-            "with computed phasing out of " << num_edges(bubbleGraph) << " total." << endl;
-
-
-
-        // Write out coverage histograms for various types of edges.
-        if(true) {
-            vector<uint64_t> allCoverageHistogram(edgeTable.size(), 0);
-            vector<uint64_t> treeCoverageHistogram(edgeTable.size(), 0);
-            vector<uint64_t> inconsistentCoverageHistogram(edgeTable.size(), 0);
+        // Write out histograms of delta=concordant-discordant for various types of edges.
+        if(debug) {
+            vector<uint64_t> allHistogram;
+            vector<uint64_t> treeHistogram;
+            vector<uint64_t> unhappyHistogram;
             BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
-                const uint64_t coverage = bubbleGraph[e].totalCount();
-                ++allCoverageHistogram[coverage];
-                if(bubbleGraph[e].isTreeEdge) {
-                    ++treeCoverageHistogram[coverage];
+                const uint64_t delta = bubbleGraph[e].delta();
+                if(delta >= allHistogram.size()) {
+                    allHistogram.resize(delta + 1, 0);
+                    treeHistogram.resize(delta + 1, 0);
+                    unhappyHistogram.resize(delta + 1, 0);
                 }
-                if(not bubbleGraph.edgeIsConsistent(e)) {
-                    ++inconsistentCoverageHistogram[coverage];
+                ++allHistogram[delta];
+                if(bubbleGraph[e].isTreeEdge) {
+                    ++treeHistogram[delta];
+                }
+                if(not bubbleGraph.edgeIsHappy(e)) {
+                    ++unhappyHistogram[delta];
                 }
             }
-            cout << "Coverage,All edges,Tree edges,Inconsistent edges" << endl;
-            for(uint64_t coverage=0; coverage<edgeTable.size(); coverage++) {
-                cout << coverage << "," <<
-                    allCoverageHistogram[coverage] << "," <<
-                    treeCoverageHistogram[coverage] << "," <<
-                    inconsistentCoverageHistogram[coverage] << endl;
+            cout << "Delta,All edges,Tree edges,Unhappy edges" << endl;
+            for(uint64_t delta=0; delta<allHistogram.size(); delta++) {
+                cout << delta << "," <<
+                    allHistogram[delta] << "," <<
+                    treeHistogram[delta] << "," <<
+                    unhappyHistogram[delta] << endl;
             }
         }
 
 
 
         // Write out a histogram of component sizes.
-        if(true) {
+        if(debug) {
             vector<uint64_t> componentSizes(componentCount, 0);
             BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
                 ++componentSizes[bubbleGraph[v].componentId];
@@ -799,6 +786,46 @@ void AssemblyGraph2::iterativePhase(
                 }
             }
         }
+
+
+#if 0
+        // Mark as bad the bubbles incident to inconsistent vertices.
+        BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
+            if(not bubbleGraph.edgeIsHappy(e)) {
+                const BubbleGraph::vertex_descriptor v0 = source(e, bubbleGraph);
+                const BubbleGraph::vertex_descriptor v1 = target(e, bubbleGraph);
+                bubbleGraph[v0].isBad = true;
+                bubbleGraph[v1].isBad = true;
+            }
+        }
+        uint64_t badCount = 0;
+        BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+            if(bubbleGraph[v].isBad) {
+                ++badCount;
+            }
+        }
+        cout << "Marked " << badCount << " bubbles as bad." << endl;
+
+        // If no bubbles were marked as bad, we are done.
+        if(badCount == 0) {
+            performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends because of missing code." << endl;
+            SHASTA_ASSERT(0);
+        }
+
+        // Remove the bubbles we marked as bad.
+        AssemblyGraph2& g = *this;
+        BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
+            const BubbleGraphVertex& vertex = bubbleGraph[v];
+            if(vertex.isBad) {
+                AssemblyGraph2Edge& edge = g[bubbleGraph[v].e];
+                edge.removeAllBranchesExceptStrongest();
+            }
+        }
+
+        // Some new bubbles may form after we merge.
+        merge(true, true);
+        gatherBubbles(true);
+#endif
 
         performanceLog << timestamp << "AssemblyGraph2::iterativePhase ends because of missing code." << endl;
         SHASTA_ASSERT(0);
@@ -3030,8 +3057,6 @@ void AssemblyGraph2::BubbleGraph::createEdges(
     // Sort the EdgeData by vB.
     sort(edgeData.begin(), edgeData.end());
 
-
-
     // Each streak with the same vB generates an edge, if there
     // is a sufficient number of reads.
     for(auto it=edgeData.begin(); it!=edgeData.end();  /* Increment later */) {
@@ -3050,9 +3075,9 @@ void AssemblyGraph2::BubbleGraph::createEdges(
             for(auto jt=streakBegin; jt!=streakEnd; ++jt) {
                 ++edge.matrix[jt->sideA][jt->sideB];
             }
+            edge.computeLogFisher();
 
-            // ***** ONLY ADD IT IF there are no discordant reads.
-            if(edge.discordantCount() == 0) {
+            if(edge.logFisher > 15.) {  // ************ EXPOSE THIS CONSTANT WHEN CODE STABILIZES.
                 threadEdges.push_back(make_tuple(vA, vB, edge));
             }
         }
@@ -3235,7 +3260,7 @@ void AssemblyGraph2::BubbleGraph::writeGraphviz(const string& fileName) const
         SHASTA_ASSERT(vertex0.componentId == vertex1.componentId);
 
         out << bubbleGraph[v0].id << "--" << bubbleGraph[v1].id <<
-            " [color=\"" << (bubbleGraph.edgeIsConsistent(e) ? "green" : "red") <<
+            " [color=\"" << (bubbleGraph.edgeIsHappy(e) ? "green" : "red") <<
             "\" tooltip=\"" << vertex0.id << " " << vertex1.id << " " <<
             edge.diagonalCount() << " " << edge.offDiagonalCount() <<
             "\"];\n";
@@ -3378,6 +3403,74 @@ bool AssemblyGraph2::BubbleGraph::edgeIsConsistent(BubbleGraph::edge_descriptor 
     }
 }
 
+// Fisher test for randomness of the frequency matrix of this edge.
+// Returns log(P) in decibels (dB). High is good.
+void AssemblyGraph2::BubbleGraphEdge::computeLogFisher()
+{
+    logFisher = shasta::logFisher(
+        uint32_t(matrix[0][0]),
+        uint32_t(matrix[0][1]),
+        uint32_t(matrix[1][0]),
+        uint32_t(matrix[1][1]));
+}
+
+
+
+// Compute chi2 for a random hypothesis for this edge.
+// We have small samples and it is probably possible to do better.
+double AssemblyGraph2::BubbleGraph::chi2(BubbleGraph::edge_descriptor e) const
+{
+    const BubbleGraph& g = *this;
+    const BubbleGraphEdge& edge = g[e];
+    return chi2(source(e, g), target(e, g), edge);
+
+}
+double AssemblyGraph2::BubbleGraph::chi2(
+    vertex_descriptor v0,
+    vertex_descriptor v1,
+    const BubbleGraphEdge& edge) const
+{
+    const BubbleGraph& g = *this;
+    const array<vertex_descriptor, 2> v = {v0, v1};
+
+    array<array<uint64_t, 2>, 2> n;
+    array<uint64_t, 2> N;
+    for(uint64_t i=0; i<2; i++) {
+        n[i] = g[v[i]].countOrientedReads();
+        N[i] = n[i][0] + n[i][1];
+    }
+
+
+    double c2 = 0.;
+    for(uint64_t i0=0; i0<2; i0++) {
+        for(uint64_t i1=0; i1<2; i1++) {
+
+            // The probability, under the random hypothesis,
+            // that an oriented read ends up in branch i0 of the first bubble
+            // and branch i1 of the second bubble.
+            const double P =
+                (double(n[0][i0]) / double(N[0])) *
+                (double(n[1][i1]) / double(N[1]));
+
+            // The expected number of oriented reads, under the random hypothesis,
+            // that end up in branch i0 of the first bubble
+            // and branch i1 of the second bubble.
+            const double E = P * double(edge.totalCount());
+
+            // Deviation from expected value.
+            const double delta = double(edge.matrix[i0][i1]) - E;
+
+            // Increment chi2.
+            c2 += delta * delta / E;
+
+        }
+    }
+
+
+    return c2;
+
+}
+
 
 
 double AssemblyGraph2::BubbleGraph::discordantRatio(vertex_descriptor v) const
@@ -3455,7 +3548,9 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
 
     // Open the csv file and write the header.
     ofstream csv(fileName);
-    csv << "BubbleId0,BubbleId1,n00,n01,n10,n11,m00,m01,m10,m11,Diagonal,OffDiagonal,Total,Concordant,Discordant,Delta,Ambiguity\n";
+    csv << "BubbleId0,BubbleId1,n00,n01,n10,n11,m00,m01,m10,m11,"
+        "Diagonal,OffDiagonal,Total,Concordant,Discordant,Delta,Ambiguity,Chi2,LogFisher(dB),"
+        "Phase0,Phase1,IsHappy,RelativePhase\n";
 
     // Loop over all edges.
     BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
@@ -3493,7 +3588,13 @@ void AssemblyGraph2::BubbleGraph::writeEdgesCsv(const string& fileName) const
         csv << edge.concordantCount() << ",";
         csv << edge.discordantCount() << ",";
         csv << edge.delta() << ",";
-        csv << edge.ambiguity() << "\n";
+        csv << edge.ambiguity() << ",";
+        csv << bubbleGraph.chi2(e) << ",";
+        csv << edge.logFisher << ",";
+        csv << vertex0.phase << ",";
+        csv << vertex1.phase << ",";
+        csv << int(bubbleGraph.edgeIsHappy(e)) << ",";
+        csv << edge.relativePhase() << "\n";
     }
 
 }

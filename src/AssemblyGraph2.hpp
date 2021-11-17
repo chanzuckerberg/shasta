@@ -591,6 +591,7 @@ private:
         // Layout position for display.
         array<double, 2> position;
 
+        bool isBad = false;
 
 
     };
@@ -660,6 +661,11 @@ private:
             return 2. * diagonalRatio - 1.;
         }
 
+        // Fisher test for randomness of the frequency matrix of this edge.
+        // Returns log(P) in decibels (dB). High is good.
+        void computeLogFisher();
+        double logFisher = 0.;;
+
         bool isTreeEdge = false;
 
     };
@@ -726,6 +732,11 @@ private:
 
         // Similar to above, but works under the assumption the discordantCount() = 0.
         bool edgeIsConsistent(edge_descriptor e) const;
+
+        // Compute chi2 for a random hypothesis for this edge.
+        // We have small samples and it is probably possible to do better.
+        double chi2(edge_descriptor e) const;
+        double chi2(vertex_descriptor, vertex_descriptor, const BubbleGraphEdge&) const;
 
 
         // Edge creation is expensive.
