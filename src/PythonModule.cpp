@@ -468,8 +468,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::getMarkerGraphMinCoverageUsed)
         .def("vertexCoverageStatisticsByKmerId",
             &Assembler::vertexCoverageStatisticsByKmerId)
-        .def("analyzeMarkerGraphForks",
-            &Assembler::analyzeMarkerGraphForks)
 
         // Edges of the global marker graph.
         .def("createMarkerGraphEdges",
