@@ -772,7 +772,7 @@ void AssemblyGraph2::iterativePhase(
 
 
         // Mark as bad the bubbles in small connected components.
-        const uint64_t componentSizeThreshold = 5;    // *************** EXPOSE WHEN CODE STABILIZES
+        const uint64_t componentSizeThreshold = 20;    // *************** EXPOSE WHEN CODE STABILIZES
         BGL_FORALL_VERTICES(v, bubbleGraph, BubbleGraph) {
             const uint64_t componentId = bubbleGraph[v].componentId;
             if(uint64_t(components[componentId].size()) < componentSizeThreshold) {
@@ -3071,7 +3071,7 @@ void AssemblyGraph2::BubbleGraph::createEdges(
             }
             edge.computeLogFisher();
 
-            if(edge.logFisher > 10.) {  // ************ EXPOSE THIS CONSTANT WHEN CODE STABILIZES.
+            if(edge.logFisher > 25.) {  // ************ EXPOSE THIS CONSTANT WHEN CODE STABILIZES.
                 threadEdges.push_back(make_tuple(vA, vB, edge));
             }
         }
