@@ -172,6 +172,9 @@ AssemblyGraph2::AssemblyGraph2(
     // Iteratively create the bubble graph, phase, remove bad bubbles,
     // add newly created bubbles.
     iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
+
+    // Hierarchical phasing using the PhasingGraph.
+    // hierarchicalPhase(markers.size()/2, phasingMinReadCount, threadCount);
 #endif
 
 
@@ -623,7 +626,7 @@ void AssemblyGraph2::iterativePhase(
 
 
 
-        // Create a vector fo edges sorted by decreasing logFisher.
+        // Create a vector of edges sorted by decreasing logFisher.
         vector<pair<BubbleGraph::edge_descriptor, double> > edgeTable;
         BGL_FORALL_EDGES(e, bubbleGraph, BubbleGraph) {
             edgeTable.push_back(make_pair(e, bubbleGraph[e].logFisher));
@@ -5804,4 +5807,184 @@ void AssemblyGraph2::Superbubble::enumeratePaths(
     vertex_descriptor exit)
 {
     enumerateSelfAvoidingPaths(*this, entrance, exit, paths);
+}
+
+
+
+AssemblyGraph2::PhasingGraph::PhasingGraph(const AssemblyGraph2& assemblyGraph2) :
+    MultithreadedObject<PhasingGraph>(*this)
+{
+    createVertices(assemblyGraph2);
+    createEdges();
+}
+
+
+
+void AssemblyGraph2::PhasingGraph::createVertices(const AssemblyGraph2& assemblyGraph2)
+{
+    PhasingGraph& phasingGraph = *this;
+
+    // Loop over assembly graph edges that describe diploid bubbles.
+    BGL_FORALL_EDGES(e, assemblyGraph2, AssemblyGraph2) {
+        const AssemblyGraph2Edge& edge = assemblyGraph2[e];
+
+        // If not diploid, skip.
+        if(edge.ploidy() != 2) {
+            continue;
+        }
+
+        // If not phased, skip.
+        if(not edge.isPhased()) {
+            continue;
+        }
+
+        // Get the component this bubble belongs to.
+        const uint64_t componentId = edge.componentId;
+
+        // Get the vertex corresponding to this component, creating it if necessary.
+        const vertex_descriptor v = getVertex(componentId);
+
+        // Add this bubble to this vertex.
+        phasingGraph[v].bubbles.push_back(make_pair(e, edge.phase));
+    }
+
+
+    // For each vertex of the phasing graph, find the oriented reads on each side.
+    array< vector<OrientedReadId>, 2> orientedReadIds;
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+        PhasingGraphVertex& vertex = phasingGraph[v];
+
+        // Loop over the bubbles of this vertex.
+        orientedReadIds[0].clear();
+        orientedReadIds[1].clear();
+        for(const auto& p: vertex.bubbles) {
+            const AssemblyGraph2::edge_descriptor e = p.first;
+            const uint64_t phase = p.second;
+            const AssemblyGraph2Edge& edge = assemblyGraph2[e];
+            SHASTA_ASSERT(edge.ploidy() == 2);
+
+            // Loop over the two sides of the bubble.
+            for(uint64_t bubbleSide=0; bubbleSide<2; bubbleSide++) {
+                const AssemblyGraph2Edge::Branch& branch = edge.branches[bubbleSide];
+
+                // Find the corresponding side on this vertex.
+                uint64_t vertexSide = ((phase==0) ? bubbleSide : 1-bubbleSide);
+
+                // Copy the oriented read ids of the bubble to the appropriate
+                // side of the phasing graph vertex.
+                copy(branch.orientedReadIds.begin(), branch.orientedReadIds.end(),
+                    back_inserter(orientedReadIds[vertexSide]));
+            }
+        }
+
+        // Sort and remove duplicates.
+        for(uint64_t vertexSide=0; vertexSide<2; vertexSide++) {
+            deduplicate(orientedReadIds[vertexSide]);
+        }
+
+        // Store the oriented read ids in the phasing graph vertex.
+        // But don't store oriented read ids that appear on both sides.
+        auto begin0 = orientedReadIds[0].begin();
+        auto begin1 = orientedReadIds[1].begin();
+        auto end0 = orientedReadIds[0].end();
+        auto end1 = orientedReadIds[1].end();
+        auto it0 = begin0;
+        auto it1 = begin1;
+        while(true) {
+
+            if(it0 == end0) {
+                for(; it1!=end1; ++it1) {
+                    vertex.orientedReadIds[1].push_back(*it1);
+                }
+                break;
+            }
+
+            if(it1 == end1) {
+                for(; it0!=end0; ++it0) {
+                    vertex.orientedReadIds[0].push_back(*it0);
+                }
+                break;
+            }
+
+            if(*it0 < *it1) {
+                vertex.orientedReadIds[0].push_back(*it0);
+                ++it0;
+            } else if(*it1 < *it0) {
+                vertex.orientedReadIds[1].push_back(*it1);
+                ++it1;
+            } else {
+                // This oriented read appears on both sides.
+                // Don't store it.
+                ++it0;
+                ++it1;
+            }
+
+        }
+    }
+}
+
+
+
+// Get the vertex corresponding to a componentId, creating it if necessary.
+AssemblyGraph2::PhasingGraph::vertex_descriptor AssemblyGraph2::PhasingGraph::getVertex(uint64_t componentId)
+{
+    PhasingGraph& phasingGraph = *this;
+
+    // Make sure the vertex exists.
+    while(componentId >= num_vertices(phasingGraph)) {
+        add_vertex(phasingGraph);
+    }
+
+    // The vertex descriptor is the same as the componentId.
+    return componentId;
+}
+
+
+
+void AssemblyGraph2::PhasingGraph::createEdges()
+{
+}
+
+
+
+void AssemblyGraph2::hierarchicalPhase(
+    uint64_t readCount,             // Total.
+    uint64_t phasingMinReadCount,   // For an edge to be kept.
+    size_t threadCount)
+{
+    performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
+
+    G& g = *this;
+    // const bool debug = true;
+
+    // Start by assigning each diploid bubble to its own component.
+    uint64_t componentId = 0;
+    BGL_FORALL_EDGES(e, g, G) {
+        AssemblyGraph2Edge& edge = g[e];
+        if(edge.ploidy() == 2) {
+            edge.componentId = componentId++;
+            edge.phase = 0;
+        }
+    }
+
+    // Main iteration loop.
+    for(uint64_t iteration=0; ; iteration++) {
+        cout << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
+        performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
+
+        // Create the PhasingGraph.
+        PhasingGraph phasingGraph(g);
+        cout << "The phasing graph has " << num_vertices(phasingGraph) <<
+            " vertices and " << num_edges(phasingGraph) << " edges." << endl;
+
+        // Missing code.
+        SHASTA_ASSERT(0);
+
+        performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " ends." << endl;
+    }
+
+    // Missing code.
+    SHASTA_ASSERT(0);
+
+    performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase ends." << endl;
 }

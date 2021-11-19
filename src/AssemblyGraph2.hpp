@@ -215,6 +215,10 @@ public:
     // as bad by the above flag.
     uint64_t componentId = std::numeric_limits<uint64_t>::max();
     uint64_t phase = std::numeric_limits<uint64_t>::max();
+    bool isPhased() const
+    {
+        return componentId != std::numeric_limits<uint64_t>::max();
+    }
 
     // Bubble chain information.
     // If this edge is part of a bubble chain, this stores
@@ -854,11 +858,65 @@ private:
         uint64_t phasingMinReadCount,   // For an edge to be kept.
         size_t threadCount);
 
+    // Hierarchical phasing phasing using the PhasingGraph.
+    void hierarchicalPhase(
+        uint64_t readCount,             // Total.
+        uint64_t phasingMinReadCount,   // For an edge to be kept.
+        size_t threadCount);
+
 
     // Use each connected component of the bubble graph to phase the bubbles.
     void phase(size_t threadCount);
     void phaseThreadFunction(size_t threadId);
     void phaseBubbleGraphComponent(uint64_t componentId);
+
+
+
+    // The PhasingGraph is used for hierarchical phasing.
+    // Each vertex represents a set of bubbles already phased.
+    // This is in contrast with the BubbleGraph, where each vertex
+    // represents a single bubble.
+
+    class PhasingGraphVertex {
+    public:
+
+        // The bubbles of this vertex.
+        // Each vertex is stored with a phase, which can be 0 or 1.
+        // The phase is 0 if the bubble is in phase with the vertex
+        // and 1 otherwise (the two branches need to be swapped for it to be in phase).
+        vector<pair<AssemblyGraph2::edge_descriptor, uint64_t> > bubbles;
+
+        // The oriented reads on each side of the bubbles of this vertex
+        // (after swapping sides for out of phase bubbles).
+        array< vector<OrientedReadId>, 2> orientedReadIds;
+    };
+
+    class PhasingGraphEdge {
+    public:
+        // Store the number of common oriented reads.
+        // matrix[sideA][sideB] stores the number of OrientedReadIds
+        // that appear on sideA of the "first" vertex and on
+        // sideB of the "second" vertex of this edge.
+        // The "first" vertex of the edge is the lowered numbered.
+        array<array<uint64_t, 2>, 2> matrix;
+    };
+
+    using PhasingGraphBaseClass =
+        boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
+        PhasingGraphVertex, PhasingGraphEdge>;
+
+    class PhasingGraph:
+        public PhasingGraphBaseClass,
+        public MultithreadedObject<PhasingGraph> {
+    public:
+        PhasingGraph(const AssemblyGraph2&);
+    private:
+        void createVertices(const AssemblyGraph2&);
+        void createEdges();
+
+        // Get the vertex corresponding to a component, creating it if necessary.
+        PhasingGraph::vertex_descriptor getVertex(uint64_t componentId);
+    };
 
 };
 
