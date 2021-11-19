@@ -671,7 +671,7 @@ private:
         // Fisher test for randomness of the frequency matrix of this edge.
         // Returns log(P) in decibels (dB). High is good.
         void computeLogFisher();
-        double logFisher = 0.;;
+        double logFisher = 0.;
 
         bool isTreeEdge = false;
 
@@ -860,8 +860,8 @@ private:
 
     // Hierarchical phasing phasing using the PhasingGraph.
     void hierarchicalPhase(
-        uint64_t readCount,             // Total.
-        uint64_t phasingMinReadCount,   // For an edge to be kept.
+        uint64_t phasingMinReadCount,
+        double minLogFisher,
         size_t threadCount);
 
 
@@ -899,6 +899,20 @@ private:
         // sideB of the "second" vertex of this edge.
         // The "first" vertex of the edge is the lowered numbered.
         array<array<uint64_t, 2>, 2> matrix;
+
+        PhasingGraphEdge()
+        {
+            for(uint64_t i=0; i<2; i++) {
+                for(uint64_t j=0; j<2; j++) {
+                    matrix[i][j] = 0;
+                }
+            }
+        }
+
+        // Fisher test for randomness of the frequency matrix of this edge.
+        // Returns log(P) in decibels (dB). High is good.
+        void computeLogFisher();
+        double logFisher = 0.;
     };
 
     using PhasingGraphBaseClass =
@@ -909,13 +923,52 @@ private:
         public PhasingGraphBaseClass,
         public MultithreadedObject<PhasingGraph> {
     public:
-        PhasingGraph(const AssemblyGraph2&);
+        PhasingGraph(
+            const AssemblyGraph2&,
+            uint64_t phasingMinReadCount,
+            double minLogFisher,
+            size_t threadCount);
     private:
         void createVertices(const AssemblyGraph2&);
-        void createEdges();
+
+        // Edge creation is expensive and runs in parallel.
+        void createEdges(
+            uint64_t phasingMinReadCount,
+            double minLogFisher,
+            size_t threadCount);
+        void createEdgesThreadFunction(size_t threadId);
+        class CreateEdgesData {
+        public:
+            uint64_t phasingMinReadCount;
+            double minLogFisher;
+            vector<BubbleGraph::vertex_descriptor> allVertices;
+            class EdgeData {
+            public:
+                BubbleGraph::vertex_descriptor vB;
+                uint64_t sideA;
+                uint64_t sideB;
+                bool operator<(const EdgeData& that) const
+                {
+                    return vB < that.vB;
+                }
+            };
+        };
+        CreateEdgesData createEdgesData;
+        void createEdges(
+            PhasingGraph::vertex_descriptor,
+            uint64_t phasingMinReadCount,
+            double minLogFisher,
+            vector<CreateEdgesData::EdgeData>&,
+            vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges);
 
         // Get the vertex corresponding to a component, creating it if necessary.
         PhasingGraph::vertex_descriptor getVertex(uint64_t componentId);
+
+        // A table that, for each OrientedReadId, contains a list of
+        // pairs(vertex, side) that the OrientedReadId appears on.
+        // Indexed by OrientedReadId::getValue().
+        vector< vector< pair<PhasingGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
+        void createOrientedReadsTable(uint64_t readCount);
     };
 
 };

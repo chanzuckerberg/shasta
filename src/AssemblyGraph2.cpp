@@ -171,10 +171,11 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Iteratively create the bubble graph, phase, remove bad bubbles,
     // add newly created bubbles.
-    iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
+    // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
-    // hierarchicalPhase(markers.size()/2, phasingMinReadCount, threadCount);
+    const double minLogFisher = 25.;    // **************** EXPOSE WHEN CODE STABILIZES.
+    hierarchicalPhase(phasingMinReadCount, minLogFisher, threadCount);
 #endif
 
 
@@ -5811,11 +5812,16 @@ void AssemblyGraph2::Superbubble::enumeratePaths(
 
 
 
-AssemblyGraph2::PhasingGraph::PhasingGraph(const AssemblyGraph2& assemblyGraph2) :
+AssemblyGraph2::PhasingGraph::PhasingGraph(
+    const AssemblyGraph2& assemblyGraph2,
+    uint64_t phasingMinReadCount,
+    double minLogFisher,
+    size_t threadCount) :
     MultithreadedObject<PhasingGraph>(*this)
 {
     createVertices(assemblyGraph2);
-    createEdges();
+    createOrientedReadsTable(assemblyGraph2.markers.size()/2);
+    createEdges(phasingMinReadCount, minLogFisher, threadCount);
 }
 
 
@@ -5941,15 +5947,141 @@ AssemblyGraph2::PhasingGraph::vertex_descriptor AssemblyGraph2::PhasingGraph::ge
 
 
 
-void AssemblyGraph2::PhasingGraph::createEdges()
+void AssemblyGraph2::PhasingGraph::createEdges(
+    uint64_t phasingMinReadCount,
+    double minLogFisher,
+    size_t threadCount)
 {
+    performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges begins." << endl;
+    PhasingGraph& phasingGraph = *this;
+
+    // Create a vector of all vertices, to be processed
+    // one by one in parallel.
+    createEdgesData.allVertices.clear();
+    BGL_FORALL_VERTICES(v, phasingGraph, BubbleGraph) {
+        createEdgesData.allVertices.push_back(v);
+    }
+
+    // Store the parameters so all threads can see them.
+    createEdgesData.phasingMinReadCount = phasingMinReadCount;
+    createEdgesData.minLogFisher = minLogFisher;
+
+    // Process all vertices in parallel.
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(createEdgesData.allVertices.size(), batchSize);
+    runThreads(&PhasingGraph::createEdgesThreadFunction, threadCount);
+
+    performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges ends." << endl;
+}
+
+
+
+void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
+{
+    PhasingGraph& phasingGraph = *this;
+
+    const uint64_t phasingMinReadCount = createEdgesData.phasingMinReadCount;
+    const double minLogFisher = createEdgesData.minLogFisher;
+    vector<CreateEdgesData::EdgeData> edgeData;
+
+    // Temporary storage of the edges found by this thread.
+    vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> > threadEdges;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all vertices assigned to this batch.
+        for(uint64_t i=begin; i!=end; ++i) {
+            createEdges(createEdgesData.allVertices[i], phasingMinReadCount, minLogFisher, edgeData, threadEdges);
+        }
+    }
+
+    std::lock_guard<std::mutex> lock(mutex);
+    for(const auto& t: threadEdges) {
+        const vertex_descriptor v0 = get<0>(t);
+        const vertex_descriptor v1 = get<1>(t);
+        const PhasingGraphEdge&  edge = get<2>(t);
+        add_edge(v0, v1, edge, phasingGraph);
+    }
+}
+
+
+// Create edges between vertex vA and vertices vB with id greater
+// that the id of vA.
+void AssemblyGraph2::PhasingGraph::createEdges(
+    PhasingGraph::vertex_descriptor vA,
+    uint64_t phasingMinReadCount,
+    double minLogFisher,
+    vector<CreateEdgesData::EdgeData>& edgeData,
+    vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges)
+{
+    PhasingGraph& phasingGraph = *this;
+
+    const PhasingGraphVertex& vertexA = phasingGraph[vA];
+
+    // Gather EdgeData for this vA.
+    edgeData.clear();
+    for(uint64_t sideA=0; sideA<2; sideA++) {
+        for(const OrientedReadId orientedReadId: vertexA.orientedReadIds[sideA]) {
+
+            // Find all places where this read occurs.
+            const auto& v = orientedReadsTable[orientedReadId.getValue()];
+
+            for(const auto& p: v) {
+                const vertex_descriptor vB = p.first;
+
+                // Don't add it twice.
+                if(vB <= vA) {
+                    continue;
+                }
+
+                const uint64_t sideB = p.second;
+
+                edgeData.push_back({vB, sideA, sideB});
+            }
+        }
+
+    }
+
+    // Sort the EdgeData by vB.
+    sort(edgeData.begin(), edgeData.end());
+
+    // Each streak with the same vB generates an edge, if there
+    // is a sufficient number of reads.
+    for(auto it=edgeData.begin(); it!=edgeData.end();  /* Increment later */) {
+
+        auto streakBegin = it;
+        auto streakEnd = streakBegin;
+        const PhasingGraph::vertex_descriptor vB = streakBegin->vB;
+        while((streakEnd != edgeData.end()) and (streakEnd->vB == vB)) {
+            ++streakEnd;
+        }
+
+        // If this streak is sufficiently long, it generates an edge.
+        const uint64_t streakLength = uint64_t(streakEnd - streakBegin);
+        if(streakLength >= phasingMinReadCount) {
+            PhasingGraphEdge edge;
+            for(auto jt=streakBegin; jt!=streakEnd; ++jt) {
+                ++edge.matrix[jt->sideA][jt->sideB];
+            }
+            edge.computeLogFisher();
+
+            if(edge.logFisher > minLogFisher) {
+                threadEdges.push_back(make_tuple(vA, vB, edge));
+            }
+        }
+
+        // Prepare to process the next streak.
+        it = streakEnd;
+    }
 }
 
 
 
 void AssemblyGraph2::hierarchicalPhase(
-    uint64_t readCount,             // Total.
-    uint64_t phasingMinReadCount,   // For an edge to be kept.
+    uint64_t phasingMinReadCount,
+    double minLogFisher,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
@@ -5973,7 +6105,7 @@ void AssemblyGraph2::hierarchicalPhase(
         performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
 
         // Create the PhasingGraph.
-        PhasingGraph phasingGraph(g);
+        PhasingGraph phasingGraph(g, phasingMinReadCount, minLogFisher, threadCount);
         cout << "The phasing graph has " << num_vertices(phasingGraph) <<
             " vertices and " << num_edges(phasingGraph) << " edges." << endl;
 
@@ -5988,3 +6120,38 @@ void AssemblyGraph2::hierarchicalPhase(
 
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase ends." << endl;
 }
+
+
+
+void AssemblyGraph2::PhasingGraph::createOrientedReadsTable(uint64_t readCount)
+{
+    PhasingGraph& phasingGraph = *this;
+
+    orientedReadsTable.clear();
+    orientedReadsTable.resize(readCount * 2);
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+        const PhasingGraphVertex& vertex = phasingGraph[v];
+        for(uint64_t side=0; side<2; side++) {
+            for(const OrientedReadId orientedReadId: vertex.orientedReadIds[side]) {
+                orientedReadsTable[orientedReadId.getValue()].push_back(make_pair(v, side));
+            }
+        }
+    }
+
+}
+
+
+
+// Fisher test for randomness of the frequency matrix of this edge.
+// Returns log(P) in decibels (dB). High is good.
+void AssemblyGraph2::PhasingGraphEdge::computeLogFisher()
+{
+    logFisher = shasta::logFisher(
+        uint32_t(matrix[0][0]),
+        uint32_t(matrix[0][1]),
+        uint32_t(matrix[1][0]),
+        uint32_t(matrix[1][1]));
+}
+
+
+
