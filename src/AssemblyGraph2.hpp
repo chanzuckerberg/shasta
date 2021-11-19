@@ -129,6 +129,7 @@ public:
     // Functions that remove some of the branches.
     void removeAllSecondaryBranches();
     void removeAllBranchesExceptStrongest();
+    void forceMaximumPloidy(uint64_t);
 
     // Store read information on all branches.
     void storeReadInformation(const MarkerGraph&);
@@ -409,6 +410,8 @@ private:
 
     void removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold);
     void removeWeakBranches(uint64_t strongBranchThreshold);
+
+    void forceMaximumPloidy(uint64_t maxPloidy);
 
     // Find/remove bubbles caused by copy number changes in repeats
     // with period up to maxPeriod.

@@ -126,6 +126,7 @@ AssemblyGraph2::AssemblyGraph2(
     removeWeakBranches(strongBranchThreshold);
     merge(true, false);
     gatherBubbles(true);    // So we get the bubbles that appear since we last did this.
+    forceMaximumPloidy(2);
     if(debug) {
         writeDetailedEarly("4");
     }
@@ -562,6 +563,7 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
         // Some new bubbles may form after we merge.
         merge(true, true);
         gatherBubbles(true);
+        forceMaximumPloidy(2);
 
         currentDiscordantRatioThreshold -= discordantRatioThresholdStep;
     }
@@ -807,6 +809,7 @@ void AssemblyGraph2::iterativePhase(
         // Some new bubbles may form after we merge.
         merge(true, true);
         gatherBubbles(true);
+        forceMaximumPloidy(2);
 
     }
 
@@ -3952,6 +3955,43 @@ void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
     vector<Branch> newBranches(1, branches[strongestBranchId]);
     branches.swap(newBranches);
     strongestBranchId = 0;
+}
+
+
+
+void AssemblyGraph2Edge::forceMaximumPloidy(uint64_t maxPloidy)
+{
+    // If the ploidy is already not greater than maxPloidy, do nothing.
+    if(ploidy() <= maxPloidy) {
+        return;
+    }
+
+    // Sort the branches by decreasing average coverage.
+    vector< pair<uint64_t, uint64_t> > v;  // Pairs(branchId, average coverage).
+    for(uint64_t branchId=0; branchId<branches.size(); branchId++) {
+        v.push_back(make_pair(branchId, branches[branchId].averageCoverage()));
+    }
+    sort(v.begin(), v.end(),
+        OrderPairsBySecondOnlyGreater<uint64_t, uint64_t>());
+
+
+    // Only keep the maxPloidy strongest branches.
+    vector<Branch> newBranches;
+    for(uint64_t i=0; i<maxPloidy; i++) {
+        newBranches.push_back(branches[v[i].first]);
+    }
+    branches.swap(newBranches);
+    strongestBranchId = 0;
+}
+
+
+
+void AssemblyGraph2::forceMaximumPloidy(uint64_t maxPloidy)
+{
+    G& g = *this;
+    BGL_FORALL_EDGES(e, g, G) {
+        g[e].forceMaximumPloidy(maxPloidy);
+    }
 }
 
 
