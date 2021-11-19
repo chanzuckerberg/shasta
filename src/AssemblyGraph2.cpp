@@ -6099,20 +6099,41 @@ void AssemblyGraph2::hierarchicalPhase(
         }
     }
 
-    // Main iteration loop.
-    for(uint64_t iteration=0; ; iteration++) {
-        cout << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
-        performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
+    // Outer iteration loop.
+    for(uint64_t outerIteration=0; ; outerIteration++) {
+        cout << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " begins." << endl;
+        performanceLog << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " begins." << endl;
 
-        // Create the PhasingGraph.
-        PhasingGraph phasingGraph(g, phasingMinReadCount, minLogFisher, threadCount);
-        cout << "The phasing graph has " << num_vertices(phasingGraph) <<
-            " vertices and " << num_edges(phasingGraph) << " edges." << endl;
+        // Inner iteration loop.
+        // At each iteration some phasing components can be combined into larger
+        // phasing components.
+        while(true) {
+            cout << timestamp << "Hierarchical phasing inner iteration begins." << endl;
+
+            // Create the PhasingGraph.
+            PhasingGraph phasingGraph(g, phasingMinReadCount, minLogFisher, threadCount);
+            cout << "The phasing graph has " << num_vertices(phasingGraph) <<
+                " vertices and " << num_edges(phasingGraph) << " edges." << endl;
+
+            // Compute the optimal spanning tree.
+            phasingGraph.computeSpanningTree();
+
+            // If the PhasingGraph has no edges, exit the inner iteration loop.
+            if(num_edges(phasingGraph)== 0) {
+                break;
+            }
+
+            // Use the optimal spanning tree to phase the PhasingGraph,
+            // then store the result in the AssemblyGraph2.
+            phasingGraph.phase();
+            phasingGraph.storePhasing(g);
+
+        }
 
         // Missing code.
         SHASTA_ASSERT(0);
 
-        performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " ends." << endl;
+        performanceLog << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " ends." << endl;
     }
 
     // Missing code.
@@ -6154,4 +6175,140 @@ void AssemblyGraph2::PhasingGraphEdge::computeLogFisher()
 }
 
 
+
+// Find the optimal spanning tree using logFisher as the edge weight.
+// Edges that are part of the optimal spanning tree get their
+// isTreeEdge set.
+void AssemblyGraph2::PhasingGraph::computeSpanningTree()
+{
+    PhasingGraph& phasingGraph = *this;
+
+    // Create a vector of edges sorted by decreasing logFisher.
+    vector<pair<PhasingGraph::edge_descriptor, double> > edgeTable;
+    BGL_FORALL_EDGES(e, phasingGraph, PhasingGraph) {
+        edgeTable.push_back(make_pair(e, phasingGraph[e].logFisher));
+    }
+    sort(edgeTable.begin(), edgeTable.end(),
+        OrderPairsBySecondOnlyGreater<PhasingGraph::edge_descriptor, double>());
+
+
+    // Computation of connected components and optimal spanning tree.
+
+    // Initialize the disjoint sets data structure.
+    const uint64_t n = num_vertices(phasingGraph);
+    vector<uint64_t> rank(n);
+    vector<uint64_t> parent(n);
+    boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint32_t i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+
+    // Process edges in order of decreasing logFisher.
+    uint64_t treeEdgeCount = 0;
+    for(const auto& p: edgeTable) {
+        const BubbleGraph::edge_descriptor e = p.first;
+        const BubbleGraph::vertex_descriptor v0 = source(e, phasingGraph);
+        const BubbleGraph::vertex_descriptor v1 = target(e, phasingGraph);
+        if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
+            disjointSets.union_set(v0, v1);
+            phasingGraph[e].isTreeEdge = true;
+            ++treeEdgeCount;
+        }
+    }
+    cout << "Found " << treeEdgeCount << " edges of the optimal spanning tree." << endl;
+
+}
+
+
+
+// Phase vertices using the spanning tree.
+void AssemblyGraph2::PhasingGraph::phase()
+{
+    PhasingGraph& phasingGraph = *this;
+
+    // Loop over start vertices. One iteration for each connected component.
+    uint64_t componentId = 0;
+    BGL_FORALL_VERTICES(vStart, phasingGraph, PhasingGraph) {
+        PhasingGraphVertex& vertexStart = phasingGraph[vStart];
+
+        // If this vertex has already been assigned to a component,
+        // don't use it as a start vertex.
+        if(vertexStart.componentId != BubbleGraphVertex::invalidComponentId) {
+            continue;
+        }
+
+
+        // BFS on the optimal spanning tree, starting at this vertex.
+        std::queue<PhasingGraph::vertex_descriptor> q;
+        q.push(vStart);
+        vertexStart.componentId = componentId;
+        vertexStart.phase = 0;
+        while(not q.empty()) {
+
+            // Dequeue a vertex.
+            const PhasingGraph::vertex_descriptor v0 = q.front();
+            q.pop();
+            PhasingGraphVertex& vertex0 = phasingGraph[v0];
+            SHASTA_ASSERT(vertex0.componentId == componentId);
+            const uint64_t phase0 = vertex0.phase;
+
+            // Loop over tree edges incident to this vertex.
+            BGL_FORALL_OUTEDGES(v0, e, phasingGraph, PhasingGraph) {
+                const PhasingGraphEdge& edge = phasingGraph[e];
+                if(not edge.isTreeEdge) {
+                    continue;
+                }
+
+                // If we already encountered the other vertex, skip.
+                const PhasingGraph::vertex_descriptor v1 = target(e, phasingGraph);
+                PhasingGraphVertex& vertex1 = phasingGraph[v1];
+                if(vertex1.componentId != PhasingGraphVertex::invalidComponentId) {
+                    SHASTA_ASSERT(vertex1.componentId == componentId);
+                    continue;
+                }
+
+                // Add the other vertex to this component and phase it.
+                q.push(v1);
+                vertex1.componentId = componentId;
+
+                if(edge.isInPhase()) {
+                    vertex1.phase = phase0;
+                } else {
+                    vertex1.phase = 1 - phase0;
+                }
+            }
+        }
+
+        // Prepare to handle the next connected component.
+        ++componentId;
+    }
+
+}
+
+
+
+// Store the phasing in the AssemblyGraph2.
+void AssemblyGraph2::PhasingGraph::storePhasing(AssemblyGraph2& assemblyGraph2) const
+{
+    const PhasingGraph& phasingGraph = *this;
+
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+        const PhasingGraphVertex& vertex = phasingGraph[v];
+        SHASTA_ASSERT(vertex.isPhased());
+
+        for(const auto& p: vertex.bubbles) {
+            const AssemblyGraph2::edge_descriptor e = p.first;
+            const uint64_t bubblePhase = p.second;
+
+            AssemblyGraph2Edge& edge = assemblyGraph2[e];
+            edge.componentId = vertex.componentId;
+
+            edge.phase = vertex.phase;
+            if(bubblePhase == 1) {
+                edge.phase = 1 - edge.phase;
+            }
+        }
+    }
+
+}
 

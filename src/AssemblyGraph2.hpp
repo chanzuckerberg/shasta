@@ -889,6 +889,19 @@ private:
         // The oriented reads on each side of the bubbles of this vertex
         // (after swapping sides for out of phase bubbles).
         array< vector<OrientedReadId>, 2> orientedReadIds;
+
+        // The connected component this vertex belongs to.
+        static const uint64_t invalidComponentId = std::numeric_limits<uint64_t>::max();
+        uint64_t componentId = invalidComponentId;
+        bool isPhased() const
+        {
+            return componentId != invalidComponentId;
+        }
+
+        // The phase assigned to this vertex.
+        // It is only meaningful within each connected component.
+        static const uint64_t invalidPhase = std::numeric_limits<uint64_t>::max();
+        uint64_t phase = invalidPhase;
     };
 
     class PhasingGraphEdge {
@@ -913,6 +926,13 @@ private:
         // Returns log(P) in decibels (dB). High is good.
         void computeLogFisher();
         double logFisher = 0.;
+
+        bool isTreeEdge = false;
+
+        bool isInPhase() const
+        {
+            return matrix[0][0] + matrix[1][1] >= matrix[1][0] + matrix[0][1];
+        }
     };
 
     using PhasingGraphBaseClass =
@@ -928,6 +948,18 @@ private:
             uint64_t phasingMinReadCount,
             double minLogFisher,
             size_t threadCount);
+
+        // Find the optimal spanning tree using logFisher as the edge weight.
+        // Edges that are part of the optimal spanning tree get their
+        // isTreeEdge set.
+        void computeSpanningTree();
+
+        // Phase vertices using the spanning tree.
+        void phase();
+
+        // Store the phasing in the AssemblyGraph2.
+        void storePhasing(AssemblyGraph2&) const;
+
     private:
         void createVertices(const AssemblyGraph2&);
 
@@ -969,6 +1001,7 @@ private:
         // Indexed by OrientedReadId::getValue().
         vector< vector< pair<PhasingGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
         void createOrientedReadsTable(uint64_t readCount);
+
     };
 
 };
