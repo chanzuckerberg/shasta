@@ -213,8 +213,10 @@ public:
 
     // Phasing information - only set for bubbles not marker
     // as bad by the above flag.
-    uint64_t componentId = std::numeric_limits<uint64_t>::max();
-    uint64_t phase = std::numeric_limits<uint64_t>::max();
+    static const uint64_t invalidComponentId = std::numeric_limits<uint64_t>::max();
+    uint64_t componentId = invalidComponentId;
+    static const uint64_t invalidPhase = std::numeric_limits<uint64_t>::max();
+    uint64_t phase = invalidPhase;
     bool isPhased() const
     {
         return componentId != std::numeric_limits<uint64_t>::max();

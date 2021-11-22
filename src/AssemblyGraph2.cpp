@@ -174,7 +174,7 @@ AssemblyGraph2::AssemblyGraph2(
     // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
-    const double minLogFisher = 25.;    // **************** EXPOSE WHEN CODE STABILIZES.
+    const double minLogFisher = 20.;    // **************** EXPOSE WHEN CODE STABILIZES.
     hierarchicalPhase(phasingMinReadCount, minLogFisher, threadCount);
 #endif
 
@@ -6087,7 +6087,7 @@ void AssemblyGraph2::hierarchicalPhase(
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
 
     G& g = *this;
-    // const bool debug = true;
+    const bool debug = true;
 
     // Start by assigning each diploid bubble to its own component.
     uint64_t componentId = 0;
@@ -6107,8 +6107,8 @@ void AssemblyGraph2::hierarchicalPhase(
         // Inner iteration loop.
         // At each iteration some phasing components can be combined into larger
         // phasing components.
-        while(true) {
-            cout << timestamp << "Hierarchical phasing inner iteration begins." << endl;
+        for(uint64_t innerIteration=0; ; innerIteration++) {
+            cout << timestamp << "Hierarchical phasing inner iteration " << innerIteration << " begins." << endl;
 
             // Create the PhasingGraph.
             PhasingGraph phasingGraph(g, phasingMinReadCount, minLogFisher, threadCount);
@@ -6119,6 +6119,7 @@ void AssemblyGraph2::hierarchicalPhase(
             phasingGraph.computeSpanningTree();
 
             // If the PhasingGraph has no edges, exit the inner iteration loop.
+            // Phasing information in the AssemblyGraph2 is as stored in the previous inner iteration.
             if(num_edges(phasingGraph)== 0) {
                 break;
             }
@@ -6128,16 +6129,85 @@ void AssemblyGraph2::hierarchicalPhase(
             phasingGraph.phase();
             phasingGraph.storePhasing(g);
 
+            writeDetailedEarly(to_string(outerIteration) + "-" + to_string(innerIteration));
+
         }
 
-        // Missing code.
-        SHASTA_ASSERT(0);
+        // Gather the bubbles in each connected component.
+        vector< vector<edge_descriptor> > components;
+        BGL_FORALL_EDGES(e, g, G) {
+            const uint64_t componentId = g[e].componentId;
+
+            // If not phased (or not diploid), skip.
+            if(componentId == AssemblyGraph2Edge::invalidComponentId) {
+                continue;
+            }
+
+            // Make sure the components vector is long enough.
+            if(componentId >= components.size()) {
+                components.resize(componentId + 1);
+            }
+
+            // Store it.
+            components[componentId].push_back(e);
+        }
+
+        // Write out a histogram of component sizes.
+        if(debug) {
+            std::map<uint64_t, uint64_t> histogram;
+            for(const vector<edge_descriptor>& component: components) {
+                const uint64_t size = component.size();
+                auto it = histogram.find(size);
+                if(it == histogram.end()) {
+                    tie(it, ignore) = histogram.insert(make_pair(size, 0));
+                }
+                ++(it->second);
+            }
+
+            cout << "Histogram of component sizes:\n";
+            cout << "ComponentSize,Frequency,Total\n";
+            for(const auto& p: histogram) {
+                if(p.first > 0) {
+                    cout << p.first << ",";
+                    cout << p.second << ",";
+                    cout << p.first * p.second<< "\n";
+                }
+            }
+        }
+
+        // Mark as bad the bubbles in small connected components.
+        vector<edge_descriptor> badBubbles;
+        const uint64_t componentSizeThreshold = 10;    // *************** EXPOSE WHEN CODE STABILIZES
+        BGL_FORALL_EDGES(e, g, G) {
+            const AssemblyGraph2Edge& edge = g[e];
+            if(edge.ploidy() != 2) {
+                continue;
+            }
+            if(uint64_t(components[edge.componentId].size()) < componentSizeThreshold) {
+                badBubbles.push_back(e);
+            }
+        }
+        cout << "Marked " << badBubbles.size() << " bubbles as bad." << endl;
+
+        // If no bubbles were marked as bad, we are done.
+        if(badBubbles.empty()) {
+            break;
+        }
+
+        // Remove the bubbles we marked as bad.
+        for(const edge_descriptor e: badBubbles) {
+            g[e].removeAllBranchesExceptStrongest();
+            g[e].componentId = AssemblyGraph2Edge::invalidComponentId;
+            g[e].phase = AssemblyGraph2Edge::invalidPhase;
+        }
+
+        // Some new bubbles may form after we merge.
+        merge(true, true);
+        gatherBubbles(true);
+        forceMaximumPloidy(2);
 
         performanceLog << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " ends." << endl;
     }
-
-    // Missing code.
-    SHASTA_ASSERT(0);
 
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase ends." << endl;
 }
@@ -6292,6 +6362,14 @@ void AssemblyGraph2::PhasingGraph::storePhasing(AssemblyGraph2& assemblyGraph2) 
 {
     const PhasingGraph& phasingGraph = *this;
 
+    // Remove all existing phasing information from the AssemblyGraph2.
+    BGL_FORALL_EDGES(e, assemblyGraph2, AssemblyGraph2) {
+        AssemblyGraph2Edge& edge = assemblyGraph2[e];
+        edge.componentId = AssemblyGraph2Edge::invalidComponentId;
+        edge.phase = AssemblyGraph2Edge::invalidPhase;
+    }
+
+    // Copy phasing information from the PhasingGraph to the AssemblyGraph2.
     BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
         const PhasingGraphVertex& vertex = phasingGraph[v];
         SHASTA_ASSERT(vertex.isPhased());
@@ -6301,6 +6379,7 @@ void AssemblyGraph2::PhasingGraph::storePhasing(AssemblyGraph2& assemblyGraph2) 
             const uint64_t bubblePhase = p.second;
 
             AssemblyGraph2Edge& edge = assemblyGraph2[e];
+            SHASTA_ASSERT(edge.ploidy() == 2);
             edge.componentId = vertex.componentId;
 
             edge.phase = vertex.phase;
