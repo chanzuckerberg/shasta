@@ -1075,14 +1075,10 @@ void AssemblyGraph2::prune(uint64_t pruneLength)
     G& g = *this;
 
     const bool debug = false;
-    if(debug) {
-        cout << "Prune called." << endl;
-    }
+    performanceLog << timestamp << "AssemblyGraph2::prune begins" << endl;
 
     while(true) {
-        if(debug) {
-            cout << "Prune iteration begins." << endl;
-        }
+        performanceLog << timestamp << "Prune iteration begins." << endl;
         vector<edge_descriptor> edgesToBeRemoved;
         BGL_FORALL_EDGES(e, g, G) {
             const vertex_descriptor v0 = source(e, g);
@@ -1124,15 +1120,10 @@ void AssemblyGraph2::prune(uint64_t pruneLength)
             boost::remove_edge(e, g);
         }
 
-        if(debug) {
-            cout << "Prune iteration removed " << edgesToBeRemoved.size() << " edges." << endl;
-        }
+        cout << "Prune iteration removed " << edgesToBeRemoved.size() << " edges." << endl;
     }
 
-    if(debug) {
-        cout << "Prune ends." << endl;
-    }
-
+    performanceLog << timestamp << "AssemblyGraph2::prune ends" << endl;
 }
 
 
