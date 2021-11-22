@@ -6120,8 +6120,7 @@ void AssemblyGraph2::hierarchicalPhase(
             phasingGraph.phase();
             phasingGraph.storePhasing(g);
 
-            writeDetailedEarly(to_string(outerIteration) + "-" + to_string(innerIteration));
-
+            // writeDetailedEarly(to_string(outerIteration) + "-" + to_string(innerIteration));
         }
 
         // Gather the bubbles in each connected component.
