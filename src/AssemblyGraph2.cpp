@@ -6078,7 +6078,7 @@ void AssemblyGraph2::hierarchicalPhase(
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
 
     G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     // Start by assigning each diploid bubble to its own component.
     uint64_t componentId = 0;
@@ -6147,7 +6147,7 @@ void AssemblyGraph2::hierarchicalPhase(
         }
 
         // Write out a histogram of component sizes.
-        if(debug) {
+        if(true) {
             std::map<uint64_t, uint64_t> histogram;
             for(const vector<edge_descriptor>& component: components) {
                 const uint64_t size = component.size();
@@ -6194,6 +6194,10 @@ void AssemblyGraph2::hierarchicalPhase(
             g[e].componentId = AssemblyGraph2Edge::invalidComponentId;
             g[e].phase = AssemblyGraph2Edge::invalidPhase;
         }
+
+
+        // Renumber the surviving connected components.
+        renumberComponents();
 
         // Some new bubbles may form after we merge.
         merge(true, true);
@@ -6444,4 +6448,49 @@ void AssemblyGraph2::PhasingGraph::writeEdgesCsv(
 }
 
 
+
+// Renumber component to make them contiguous starting at 0.
+void AssemblyGraph2::renumberComponents()
+{
+    G& g = *this;
+
+    vector<uint64_t> componentIds;
+
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+
+        if(edge.ploidy() != 2) {
+            continue;
+        }
+
+        const uint64_t componentId = edge.componentId;
+        if(componentId == AssemblyGraph2Edge::invalidComponentId) {
+            continue;
+        }
+
+        componentIds.push_back(componentId);
+    }
+    deduplicate(componentIds);
+
+
+
+    // Replace component ids with the corresponding index in the componentIds vector.
+    BGL_FORALL_EDGES(e, g, G) {
+        AssemblyGraph2Edge& edge = g[e];
+
+        if(edge.ploidy() != 2) {
+            continue;
+        }
+
+        const uint64_t componentId = edge.componentId;
+        if(componentId == AssemblyGraph2Edge::invalidComponentId) {
+            continue;
+        }
+
+        auto it = std::lower_bound(componentIds.begin(), componentIds.end(), componentId);
+        SHASTA_ASSERT(it != componentIds.end());
+        SHASTA_ASSERT(*it == componentId);
+        edge.componentId = it - componentIds.begin();
+    }
+}
 

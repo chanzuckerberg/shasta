@@ -866,6 +866,9 @@ private:
         double minLogFisher,
         size_t threadCount);
 
+    // Renumber component to make them contiguous starting at 0.
+    void renumberComponents();
+
 
     // Use each connected component of the bubble graph to phase the bubbles.
     void phase(size_t threadCount);
