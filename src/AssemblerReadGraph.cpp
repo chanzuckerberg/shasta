@@ -739,16 +739,16 @@ void Assembler::writeLocalReadGraphReads(
 
         // Write the header line with the read name.
         const auto readName = reads->getReadName(readId);
-        const auto& sequence = reads->getRead(readId);
-        const auto& counts = reads->getReadRepeatCounts(readId);
+        const vector<Base> sequence = reads->getOrientedReadRawSequence(OrientedReadId(readId, 0));
 
         // Write the name first and the ID second if useReadName is specified
         fasta << ">";
         copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
         fasta << " oldReadId=" << readId;
 
-        // Write the length
-        fasta << " length=" << reads->getReadRawSequenceLength(readId);
+        // Write the length.
+        const uint64_t n = sequence.size();
+        fasta << " length=" << n;
 
         // Write the metadata from the original fasta (if there is any)
         const auto metaData = reads->getReadMetaData(readId);
@@ -759,14 +759,8 @@ void Assembler::writeLocalReadGraphReads(
         fasta << "\n";
 
         // Write the sequence.
-        const size_t n = sequence.baseCount;
-        SHASTA_ASSERT(counts.size() == n);
-        for(size_t i=0; i<n; i++) {
-            const Base base = sequence[i];
-            const uint8_t count = counts[i];
-            for(size_t k=0; k<count; k++) {
-                fasta << base;
-            }
+        for(uint64_t i=0; i<n; i++) {
+                fasta << sequence[i];
         }
         fasta << "\n";
     }

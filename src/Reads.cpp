@@ -173,20 +173,34 @@ vector<Base> Reads::getOrientedReadRawSequence(OrientedReadId orientedReadId) co
     // The sequence we will return;
     vector<Base> sequence;
 
-    // The number of bases stored, in run-length representation.
+    // The number of bases stored.
     const uint32_t storedBaseCount = uint32_t(reads[orientedReadId.getReadId()].baseCount);
 
+    if(representation == 1) {
 
-    // We are storing a run-length representation of the read.
-    // Expand it base by base to create the raw representation.
-    for(uint32_t position=0; position<storedBaseCount; position++) {
-        Base base;
-        uint8_t count;
-        tie(base, count) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-        for(uint32_t i=0; i<uint32_t(count); i++) {
+        // We are storing a run-length representation of the read.
+        // Expand it base by base to create the raw representation.
+        for(uint32_t position=0; position<storedBaseCount; position++) {
+            Base base;
+            uint8_t count;
+            tie(base, count) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            for(uint32_t i=0; i<uint32_t(count); i++) {
+                sequence.push_back(base);
+            }
+        }
+
+    } else if(representation == 0) {
+
+        // We are storing the raw sequence of the read.
+        for(uint32_t position=0; position<storedBaseCount; position++) {
+            const Base base  = getOrientedReadBase(orientedReadId, position);
             sequence.push_back(base);
         }
+
+    } else {
+        SHASTA_ASSERT(0);
     }
+
 
     return sequence;
 }
