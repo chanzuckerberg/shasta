@@ -962,6 +962,10 @@ private:
         // Store the phasing in the AssemblyGraph2.
         void storePhasing(AssemblyGraph2&) const;
 
+        void writeCsv(const string& baseName, const AssemblyGraph2&) const;
+        void writeVerticesCsv(const string& fileName, const AssemblyGraph2&) const;
+        void writeEdgesCsv(const string& fileName, const AssemblyGraph2&) const;
+
     private:
         void createVertices(const AssemblyGraph2&);
 

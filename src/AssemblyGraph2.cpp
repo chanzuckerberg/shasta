@@ -6106,6 +6106,10 @@ void AssemblyGraph2::hierarchicalPhase(
             cout << "The phasing graph has " << num_vertices(phasingGraph) <<
                 " vertices and " << num_edges(phasingGraph) << " edges." << endl;
 
+            if(debug) {
+                phasingGraph.writeCsv("PhasingGraph-" + to_string(outerIteration) + "-" + to_string(innerIteration), g);
+            }
+
             // Compute the optimal spanning tree.
             phasingGraph.computeSpanningTree();
 
@@ -6380,4 +6384,64 @@ void AssemblyGraph2::PhasingGraph::storePhasing(AssemblyGraph2& assemblyGraph2) 
     }
 
 }
+
+
+
+void AssemblyGraph2::PhasingGraph::writeCsv(
+    const string& baseName,
+    const AssemblyGraph2& assemblyGraph2) const
+{
+    writeVerticesCsv(baseName + "-Vertices.csv", assemblyGraph2);
+    writeEdgesCsv(baseName + "-Edges.csv", assemblyGraph2);
+}
+
+
+
+void AssemblyGraph2::PhasingGraph::writeVerticesCsv(
+    const string& fileName,
+    const AssemblyGraph2& assemblyGraph2) const
+{
+    const PhasingGraph& phasingGraph = *this;
+
+    ofstream csv(fileName);
+    csv << "v,Bubble,Phase\n";
+
+    BGL_FORALL_VERTICES(v, phasingGraph,PhasingGraph) {
+        const PhasingGraphVertex& vertex = phasingGraph[v];
+        for(const auto& p: vertex.bubbles) {
+            const AssemblyGraph2::edge_descriptor e = p.first;
+            const uint64_t phase = p.second;
+            csv << v << ",";
+            csv << assemblyGraph2[e].id << ",";
+            csv << phase << "\n";
+        }
+    }
+
+}
+
+
+
+void AssemblyGraph2::PhasingGraph::writeEdgesCsv(
+    const string& fileName,
+    const AssemblyGraph2& assemblyGraph2) const
+{
+    const PhasingGraph& phasingGraph = *this;
+
+    ofstream csv(fileName);
+    csv << "v0,v1,m00,m01,m10,m11,logFisher\n";
+
+    BGL_FORALL_EDGES(e, phasingGraph,PhasingGraph) {
+        const PhasingGraphEdge& edge = phasingGraph[e];
+        csv << source(e, phasingGraph) << ",";
+        csv << target(e, phasingGraph) << ",";
+        csv << edge.matrix[0][0] << ",";
+        csv << edge.matrix[0][1] << ",";
+        csv << edge.matrix[1][0] << ",";
+        csv << edge.matrix[1][1] << ",";
+        csv << edge.logFisher << "\n";
+    }
+
+}
+
+
 
