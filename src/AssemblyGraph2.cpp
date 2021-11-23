@@ -174,7 +174,7 @@ AssemblyGraph2::AssemblyGraph2(
     // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
-    const double minLogFisher = 20.;    // **************** EXPOSE WHEN CODE STABILIZES.
+    const double minLogFisher = 30.;    // **************** EXPOSE WHEN CODE STABILIZES.
     hierarchicalPhase(phasingMinReadCount, minLogFisher, threadCount);
 #endif
 
