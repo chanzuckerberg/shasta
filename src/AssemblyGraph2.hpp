@@ -325,6 +325,9 @@ private:
     void handleSuperbubble0(Superbubble&);
     void handleSuperbubble1(Superbubble&);
 
+    // Remove short loop-back edges.
+    void removeShortLoopbackEdges(uint64_t edgeLengthThreshold);
+
     // Remove degenerate branches
     void removeDegenerateBranches();
 

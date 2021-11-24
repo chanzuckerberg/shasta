@@ -106,6 +106,7 @@ AssemblyGraph2::AssemblyGraph2(
 #endif
 
     // Gather parallel edges into bubbles.
+    removeShortLoopbackEdges(superbubbleRemovalEdgeLengthThreshold);
     gatherBubbles(false);
     if(debug) {
         writeDetailedEarly("2");
@@ -6558,4 +6559,35 @@ void AssemblyGraph2::PhasingGraph::writeGraphviz(const string& fileName) const
     }
 
     out << "}\n";
+}
+
+
+
+// Remove short loop-back edges.
+void AssemblyGraph2::removeShortLoopbackEdges(uint64_t edgeLengthThreshold)
+{
+    G& g = *this;
+
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+
+        if(edge.ploidy() > 1) {
+            continue;
+        }
+
+        if(edge.branches.front().path.size() >= edgeLengthThreshold) {
+            continue;
+        }
+
+        if(source(e, g) != target(e, g)) {
+            continue;
+        }
+
+        edgesToBeRemoved.push_back(e);
+    }
+
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, g);
+    }
 }
