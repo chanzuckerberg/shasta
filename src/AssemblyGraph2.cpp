@@ -6209,6 +6209,13 @@ void AssemblyGraph2::hierarchicalPhase(
         performanceLog << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " ends." << endl;
     }
 
+    // Create a final PhasinGraph with permissivce criteria for edge creation.
+    PhasingGraph phasingGraph(g, 0, 0., threadCount);
+    if(true) {
+        phasingGraph.writeCsv("PhasingGraph-Final", g);
+        phasingGraph.writeGraphviz("PhasingGraph-Final.dot");
+    }
+
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase ends." << endl;
 }
 
