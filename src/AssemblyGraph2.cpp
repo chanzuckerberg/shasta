@@ -6106,10 +6106,6 @@ void AssemblyGraph2::hierarchicalPhase(
             cout << "The phasing graph has " << num_vertices(phasingGraph) <<
                 " vertices and " << num_edges(phasingGraph) << " edges." << endl;
 
-            if(debug) {
-                phasingGraph.writeCsv("PhasingGraph-" + to_string(outerIteration) + "-" + to_string(innerIteration), g);
-            }
-
             // Compute the optimal spanning tree.
             phasingGraph.computeSpanningTree();
 
@@ -6122,6 +6118,12 @@ void AssemblyGraph2::hierarchicalPhase(
             // Use the optimal spanning tree to phase the PhasingGraph,
             // then store the result in the AssemblyGraph2.
             phasingGraph.phase();
+            if(debug) {
+                const string s = to_string(outerIteration) + "-" + to_string(innerIteration);
+                phasingGraph.writeCsv("PhasingGraph-" + s, g);
+                phasingGraph.writeGraphviz("PhasingGraph-" + s + ".dot");
+            }
+
             phasingGraph.storePhasing(g);
 
             // writeDetailedEarly(to_string(outerIteration) + "-" + to_string(innerIteration));
@@ -6494,3 +6496,59 @@ void AssemblyGraph2::renumberComponents()
     }
 }
 
+
+
+void AssemblyGraph2::PhasingGraph::writeGraphviz(const string& fileName) const
+{
+    const PhasingGraph& phasingGraph = *this;
+
+    ofstream out(fileName);
+    out << "graph PhasingGraph {\n";
+
+
+
+    BGL_FORALL_VERTICES(v, phasingGraph,PhasingGraph) {
+        const PhasingGraphVertex& vertex = phasingGraph[v];
+        out << v << " [tooltip=\"" << v << ", " << vertex.bubbles.size() << " bubbles\"];\n";
+    }
+
+
+
+    BGL_FORALL_EDGES(e, phasingGraph,PhasingGraph) {
+        const PhasingGraphEdge& edge = phasingGraph[e];
+
+        const PhasingGraph::vertex_descriptor v0 = source(e, phasingGraph);
+        const PhasingGraph::vertex_descriptor v1 = target(e, phasingGraph);
+        const uint64_t phase0 = phasingGraph[v0].phase;
+        const uint64_t phase1 = phasingGraph[v1].phase;
+
+        string color;
+        if(edge.isTreeEdge) {
+            color = "black";
+        } else {
+            const uint64_t diagonalCount = edge.diagonalCount();
+            const uint64_t offDiagonalCount = edge.offDiagonalCount();
+            if(diagonalCount == offDiagonalCount) {
+                color = "yellow";
+            } else if(diagonalCount > offDiagonalCount) {
+                if(phase0 == phase1) {
+                    color = "green";
+                } else {
+                    color = "red";
+                }
+            } else {
+                if(phase0 == phase1) {
+                    color = "red";
+                } else {
+                    color = "green";
+                }
+            }
+        }
+
+        out << v0 << "--" << v1 <<
+            " [tooltip=\"" << v0 << " " << v1 << " " << edge.logFisher <<
+            "\" color=\"" << color << "\"];\n";
+    }
+
+    out << "}\n";
+}

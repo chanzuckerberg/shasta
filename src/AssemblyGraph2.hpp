@@ -934,6 +934,33 @@ private:
 
         bool isTreeEdge = false;
 
+        uint64_t diagonalCount() const
+        {
+            return matrix[0][0] + matrix[1][1];
+        }
+        uint64_t offDiagonalCount() const
+        {
+            return matrix[0][1] + matrix[1][0];
+        }
+        uint64_t totalCount() const
+        {
+            return diagonalCount() + offDiagonalCount();
+        }
+        uint64_t concordantCount() const
+        {
+            return max(diagonalCount(), offDiagonalCount());
+        }
+        uint64_t discordantCount() const
+        {
+            return min(diagonalCount(), offDiagonalCount());
+        }
+        int64_t delta() const
+        {
+            const int64_t d = int64_t(concordantCount()) - int64_t(discordantCount());
+            SHASTA_ASSERT(d >= 0);
+            return d;
+        }
+
         bool isInPhase() const
         {
             return matrix[0][0] + matrix[1][1] >= matrix[1][0] + matrix[0][1];
@@ -968,6 +995,7 @@ private:
         void writeCsv(const string& baseName, const AssemblyGraph2&) const;
         void writeVerticesCsv(const string& fileName, const AssemblyGraph2&) const;
         void writeEdgesCsv(const string& fileName, const AssemblyGraph2&) const;
+        void writeGraphviz(const string& fileName) const;
 
     private:
         void createVertices(const AssemblyGraph2&);
