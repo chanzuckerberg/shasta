@@ -6405,13 +6405,34 @@ void AssemblyGraph2::PhasingGraph::writeCsv(
     const string& baseName,
     const AssemblyGraph2& assemblyGraph2) const
 {
-    writeVerticesCsv(baseName + "-Vertices.csv", assemblyGraph2);
+    writeVerticesCsv(baseName + "-Vertices.csv");
+    writeVerticesDetailsCsv(baseName + "-Vertices-Details.csv", assemblyGraph2);
     writeEdgesCsv(baseName + "-Edges.csv", assemblyGraph2);
 }
 
 
 
 void AssemblyGraph2::PhasingGraph::writeVerticesCsv(
+    const string& fileName) const
+{
+    const PhasingGraph& phasingGraph = *this;
+
+    ofstream csv(fileName);
+    csv << "v,Bubbles,ComponentId,Phase\n";
+
+    BGL_FORALL_VERTICES(v, phasingGraph,PhasingGraph) {
+        const PhasingGraphVertex& vertex = phasingGraph[v];
+        csv << v << ",";
+        csv << vertex.bubbles.size() << ",";
+        csv << vertex.componentId << ",";
+        csv << vertex.phase << "\n";
+    }
+
+}
+
+
+
+void AssemblyGraph2::PhasingGraph::writeVerticesDetailsCsv(
     const string& fileName,
     const AssemblyGraph2& assemblyGraph2) const
 {

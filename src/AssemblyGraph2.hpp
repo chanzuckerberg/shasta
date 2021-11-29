@@ -996,7 +996,8 @@ private:
         void storePhasing(AssemblyGraph2&) const;
 
         void writeCsv(const string& baseName, const AssemblyGraph2&) const;
-        void writeVerticesCsv(const string& fileName, const AssemblyGraph2&) const;
+        void writeVerticesCsv(const string& fileName) const;
+        void writeVerticesDetailsCsv(const string& fileName, const AssemblyGraph2&) const;
         void writeEdgesCsv(const string& fileName, const AssemblyGraph2&) const;
         void writeGraphviz(const string& fileName) const;
 
