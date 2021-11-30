@@ -175,7 +175,7 @@ AssemblyGraph2::AssemblyGraph2(
     // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
-    const double minLogFisher = 40.;    // **************** EXPOSE WHEN CODE STABILIZES.
+    const double minLogFisher = 30.;    // **************** EXPOSE WHEN CODE STABILIZES.
     hierarchicalPhase(phasingMinReadCount, minLogFisher, threadCount);
 #endif
 
@@ -6057,10 +6057,15 @@ void AssemblyGraph2::PhasingGraph::createEdges(
             for(auto jt=streakBegin; jt!=streakEnd; ++jt) {
                 ++edge.matrix[jt->sideA][jt->sideB];
             }
-            edge.computeLogFisher();
 
-            if(edge.logFisher > minLogFisher) {
-                threadEdges.push_back(make_tuple(vA, vB, edge));
+            if( (edge.concordantCount() >= phasingMinReadCount) and
+                (edge.discordantCount() <= 3)) {    // ********** EXPOSE WHEN CODE STABILIZES
+
+                edge.computeLogFisher();
+
+                if(edge.logFisher > minLogFisher) {
+                    threadEdges.push_back(make_tuple(vA, vB, edge));
+                }
             }
         }
 
