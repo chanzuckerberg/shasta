@@ -189,6 +189,15 @@ public:
         return length;
     }
 
+    uint64_t minimumPathLength() const
+    {
+        uint64_t length = std::numeric_limits<uint64_t>::max();
+        for(const Branch& branch: branches) {
+            length = min(length, uint64_t(branch.path.size()));
+        }
+        return length;
+    }
+
     // Return the number of raw bases of sequence identical between
     // all branches at the beginning/end.
     uint64_t countCommonPrefixBases() const;

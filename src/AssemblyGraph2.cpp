@@ -1071,6 +1071,7 @@ void AssemblyGraph2::cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshol
 
 
 // Prune leaves in which all branches are shorter than the specified length.
+#if 0
 void AssemblyGraph2::prune(uint64_t pruneLength)
 {
     G& g = *this;
@@ -1126,6 +1127,142 @@ void AssemblyGraph2::prune(uint64_t pruneLength)
 
     performanceLog << timestamp << "AssemblyGraph2::prune ends" << endl;
 }
+#else
+
+
+
+// Prune leaves in which all branches are shorter than the specified length.
+// More efficient version that uses a stack.
+void AssemblyGraph2::prune(uint64_t pruneLength)
+{
+    G& g = *this;
+
+    performanceLog << timestamp << "AssemblyGraph2::prune begins" << endl;
+
+    // A stack to contain all of the short leaves currently in the graph.
+    std::stack<edge_descriptor> s;
+
+    // Add to the stack all the short leaves initially present.
+    BGL_FORALL_EDGES(e, g, G) {
+        const vertex_descriptor v0 = source(e, g);
+        const vertex_descriptor v1 = target(e, g);
+        const E& edge = g[e];
+
+        // If not a leaf, skip it.
+        const bool isLeaf = (in_degree(v0, g) == 0) or (out_degree(v1, g) == 0);
+        if(not isLeaf) {
+            continue;
+        }
+
+        // If it is short, add it to the stack.
+        if(edge.minimumPathLength() < pruneLength) {
+            s.push(e);
+        }
+    }
+
+
+
+    // Remove the short leaves.
+    // Every time a short leaf is removed, check if any nearby short leaves
+    // appear and add them to the stack if they do.
+    uint64_t pruneCount = 0;
+    while(not s.empty()) {
+
+        // Get the next short leaf edge from the stack.
+        // This will be removed.
+        const edge_descriptor eA = s.top();
+        s.pop();
+
+        // Get the two vertices.
+        const vertex_descriptor vA0 = source(eA, g);
+        const vertex_descriptor vA1 = target(eA, g);
+
+        // Compute the degrees.
+        const uint64_t inDegree0 = in_degree(vA0, g);
+        const uint64_t outDegree1 = out_degree(vA1, g);
+
+        // Sanity checks that this is indeed a short leaf.
+        SHASTA_ASSERT((inDegree0==0) or (outDegree1==0));
+        SHASTA_ASSERT(g[eA].minimumPathLength() < pruneLength);
+
+
+
+        // Add to the stack any short leaves that will be created when we remove eA.
+        if(inDegree0 ==0) {
+            if(outDegree1 == 0) {
+
+                // This edge is isolated, so removing it will not
+                // create any new leafs.
+
+            } else {
+
+                // There are no parents.
+                // If the inDegree of vA1 is 1, removing eA would turn
+                // all of its children into leaves.
+                if(in_degree(vA1, g) == 1) {
+
+                    // Loop over the children edges to see if any should
+                    // be added to the stack.
+                    BGL_FORALL_OUTEDGES(vA1, eB, g, G) {
+                        if(eB == eA) {
+                            continue;
+                        }
+                        if(g[eB].minimumPathLength() >= pruneLength) {
+                            continue;
+                        }
+                        const vertex_descriptor vB1 = target(eB, g);
+                        if(out_degree(vB1, g) != 0) {
+                            s.push(eB);
+                        }
+                    }
+                }
+
+            }
+        } else {
+            if(outDegree1 == 0) {
+
+                // There are no children.
+                // If the outDegree of vA0 is 1, removing eA would turn
+                // all of its parents into leaves.
+                if(out_degree(vA0, g) == 1) {
+
+                    // Loop over the parent edges to see if any should
+                    // be added to the stack.
+                    BGL_FORALL_INEDGES(vA0, eB, g, G) {
+                        if(eB == eA) {
+                            continue;
+                        }
+                        if(g[eB].minimumPathLength() >= pruneLength) {
+                            continue;
+                        }
+                        const vertex_descriptor vB1 = source(eB, g);
+                        if(in_degree(vB1, g) != 0) {
+                            s.push(eB);
+                        }
+                    }
+                }
+
+            } else {
+
+                // This edge is not a leaf!
+                SHASTA_ASSERT(0);
+            }
+
+        }
+
+
+
+        // Now we can remove eA.
+        boost::remove_edge(eA, g);
+        ++pruneCount;
+    }
+
+
+
+    cout << "Pruned " << pruneCount << " edges." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::prune ends" << endl;
+}
+#endif
 
 
 
@@ -6059,7 +6196,7 @@ void AssemblyGraph2::PhasingGraph::createEdges(
             }
 
             if( (edge.concordantCount() >= phasingMinReadCount) and
-                (edge.discordantCount() == 0)) {    // ********** EXPOSE WHEN CODE STABILIZES
+                (edge.discordantCount() ==0)) {    // ********** EXPOSE WHEN CODE STABILIZES
 
                 edge.computeLogFisher();
 
