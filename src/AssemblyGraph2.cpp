@@ -175,7 +175,7 @@ AssemblyGraph2::AssemblyGraph2(
     // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
-    const double minLogFisher = 30.;    // **************** EXPOSE WHEN CODE STABILIZES.
+    const double minLogFisher = 25.;    // **************** EXPOSE WHEN CODE STABILIZES.
     hierarchicalPhase(phasingMinReadCount, minLogFisher, threadCount);
 #endif
 
@@ -6059,7 +6059,7 @@ void AssemblyGraph2::PhasingGraph::createEdges(
             }
 
             if( (edge.concordantCount() >= phasingMinReadCount) and
-                (edge.discordantCount() <= 3)) {    // ********** EXPOSE WHEN CODE STABILIZES
+                (edge.discordantCount() == 0)) {    // ********** EXPOSE WHEN CODE STABILIZES
 
                 edge.computeLogFisher();
 
@@ -6084,7 +6084,7 @@ void AssemblyGraph2::hierarchicalPhase(
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
 
     G& g = *this;
-    const bool debug = false;
+    const bool debug = true;
 
     // Start by assigning each diploid bubble to its own component.
     uint64_t componentId = 0;
