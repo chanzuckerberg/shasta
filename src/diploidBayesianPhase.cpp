@@ -26,7 +26,7 @@ pair<double, double> shasta::diploidBayesianPhase(
     const array<array<uint64_t, 2>, 2>& matrix,
     double epsilon)
 {
-    const bool debug = true;
+    const bool debug = false;
 
     // Construct a version of the matrix containing doubles,
     // so we don't need to keep converting.

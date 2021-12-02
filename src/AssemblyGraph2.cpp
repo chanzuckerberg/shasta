@@ -6,6 +6,7 @@
 #include "copyNumber.hpp"
 #include "deduplicate.hpp"
 #include "dominatorTree.hpp"
+#include "diploidBayesianPhase.hpp"
 #include "enumeratePaths.hpp"
 #include "findLinearChains.hpp"
 #include "findMarkerId.hpp"
@@ -175,8 +176,8 @@ AssemblyGraph2::AssemblyGraph2(
     // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
-    const double minLogFisher = 25.;    // **************** EXPOSE WHEN CODE STABILIZES.
-    hierarchicalPhase(phasingMinReadCount, minLogFisher, threadCount);
+    const double minLogP = 30.;    // **************** EXPOSE WHEN CODE STABILIZES.
+    hierarchicalPhase(phasingMinReadCount, minLogP, threadCount);
 #endif
 
 
@@ -5944,13 +5945,13 @@ void AssemblyGraph2::Superbubble::enumeratePaths(
 AssemblyGraph2::PhasingGraph::PhasingGraph(
     const AssemblyGraph2& assemblyGraph2,
     uint64_t phasingMinReadCount,
-    double minLogFisher,
+    double minLogP,
     size_t threadCount) :
     MultithreadedObject<PhasingGraph>(*this)
 {
     createVertices(assemblyGraph2);
     createOrientedReadsTable(assemblyGraph2.markers.size()/2);
-    createEdges(phasingMinReadCount, minLogFisher, threadCount);
+    createEdges(phasingMinReadCount, minLogP, threadCount);
 }
 
 
@@ -6078,7 +6079,7 @@ AssemblyGraph2::PhasingGraph::vertex_descriptor AssemblyGraph2::PhasingGraph::ge
 
 void AssemblyGraph2::PhasingGraph::createEdges(
     uint64_t phasingMinReadCount,
-    double minLogFisher,
+    double minLogP,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges begins." << endl;
@@ -6093,7 +6094,7 @@ void AssemblyGraph2::PhasingGraph::createEdges(
 
     // Store the parameters so all threads can see them.
     createEdgesData.phasingMinReadCount = phasingMinReadCount;
-    createEdgesData.minLogFisher = minLogFisher;
+    createEdgesData.minLogP = minLogP;
 
     // Process all vertices in parallel.
     const uint64_t batchSize = 100;
@@ -6110,7 +6111,7 @@ void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
     PhasingGraph& phasingGraph = *this;
 
     const uint64_t phasingMinReadCount = createEdgesData.phasingMinReadCount;
-    const double minLogFisher = createEdgesData.minLogFisher;
+    const double minLogP = createEdgesData.minLogP;
     vector<CreateEdgesData::EdgeData> edgeData;
 
     // Temporary storage of the edges found by this thread.
@@ -6122,7 +6123,7 @@ void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
 
         // Loop over all vertices assigned to this batch.
         for(uint64_t i=begin; i!=end; ++i) {
-            createEdges(createEdgesData.allVertices[i], phasingMinReadCount, minLogFisher, edgeData, threadEdges);
+            createEdges(createEdgesData.allVertices[i], phasingMinReadCount, minLogP, edgeData, threadEdges);
         }
     }
 
@@ -6141,7 +6142,7 @@ void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
 void AssemblyGraph2::PhasingGraph::createEdges(
     PhasingGraph::vertex_descriptor vA,
     uint64_t phasingMinReadCount,
-    double minLogFisher,
+    double minLogP,
     vector<CreateEdgesData::EdgeData>& edgeData,
     vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges)
 {
@@ -6196,11 +6197,12 @@ void AssemblyGraph2::PhasingGraph::createEdges(
             }
 
             if( (edge.concordantCount() >= phasingMinReadCount) and
-                (edge.discordantCount() ==0)) {    // ********** EXPOSE WHEN CODE STABILIZES
+                (edge.discordantCount() <= 6)) {    // ********** EXPOSE WHEN CODE STABILIZES
 
-                edge.computeLogFisher();
+                const double epsilon = 0.1;     // ********** EXPOSE WHEN CODE STABILIZES
+                edge.runBayesianModel(epsilon);
 
-                if(edge.logFisher > minLogFisher) {
+                if(edge.logP > minLogP) {
                     threadEdges.push_back(make_tuple(vA, vB, edge));
                 }
             }
@@ -6215,7 +6217,7 @@ void AssemblyGraph2::PhasingGraph::createEdges(
 
 void AssemblyGraph2::hierarchicalPhase(
     uint64_t phasingMinReadCount,
-    double minLogFisher,
+    double minLogP,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
@@ -6245,7 +6247,7 @@ void AssemblyGraph2::hierarchicalPhase(
             cout << timestamp << "Hierarchical phasing inner iteration " << innerIteration << " begins." << endl;
 
             // Create the PhasingGraph.
-            PhasingGraph phasingGraph(g, phasingMinReadCount, minLogFisher, threadCount);
+            PhasingGraph phasingGraph(g, phasingMinReadCount, minLogP, threadCount);
             cout << "The phasing graph has " << num_vertices(phasingGraph) <<
                 " vertices and " << num_edges(phasingGraph) << " edges." << endl;
 
@@ -6353,7 +6355,7 @@ void AssemblyGraph2::hierarchicalPhase(
     }
 
     // Create a final PhasinGraph with permissivce criteria for edge creation.
-    PhasingGraph phasingGraph(g, 0, 0., threadCount);
+    PhasingGraph phasingGraph(g, 0, -100., threadCount);
     if(true) {
         phasingGraph.writeCsv("PhasingGraph-Final", g);
         phasingGraph.writeGraphviz("PhasingGraph-Final.dot");
@@ -6383,15 +6385,17 @@ void AssemblyGraph2::PhasingGraph::createOrientedReadsTable(uint64_t readCount)
 
 
 
-// Fisher test for randomness of the frequency matrix of this edge.
-// Returns log(P) in decibels (dB). High is good.
-void AssemblyGraph2::PhasingGraphEdge::computeLogFisher()
+void AssemblyGraph2::PhasingGraphEdge::runBayesianModel(double epsilon)
 {
-    logFisher = shasta::logFisher(
-        uint32_t(matrix[0][0]),
-        uint32_t(matrix[0][1]),
-        uint32_t(matrix[1][0]),
-        uint32_t(matrix[1][1]));
+    tie(logPin, logPout) = diploidBayesianPhase(matrix, epsilon);
+
+    if(logPin >= logPout) {
+        relativePhase = 0;
+        logP = min(logPin-logPout, logPin);
+    } else {
+        relativePhase = 1;
+        logP = min(logPout-logPin, logPout);
+    }
 }
 
 
@@ -6406,7 +6410,7 @@ void AssemblyGraph2::PhasingGraph::computeSpanningTree()
     // Create a vector of edges sorted by decreasing logFisher.
     vector<pair<PhasingGraph::edge_descriptor, double> > edgeTable;
     BGL_FORALL_EDGES(e, phasingGraph, PhasingGraph) {
-        edgeTable.push_back(make_pair(e, phasingGraph[e].logFisher));
+        edgeTable.push_back(make_pair(e, phasingGraph[e].logP));
     }
     sort(edgeTable.begin(), edgeTable.end(),
         OrderPairsBySecondOnlyGreater<PhasingGraph::edge_descriptor, double>());
@@ -6423,7 +6427,7 @@ void AssemblyGraph2::PhasingGraph::computeSpanningTree()
         disjointSets.make_set(i);
     }
 
-    // Process edges in order of decreasing logFisher.
+    // Process edges in order of decreasing logP.
     uint64_t treeEdgeCount = 0;
     for(const auto& p: edgeTable) {
         const BubbleGraph::edge_descriptor e = p.first;
@@ -6491,7 +6495,7 @@ void AssemblyGraph2::PhasingGraph::phase()
                 q.push(v1);
                 vertex1.componentId = componentId;
 
-                if(edge.isInPhase()) {
+                if(edge.relativePhase == 0) {
                     vertex1.phase = phase0;
                 } else {
                     vertex1.phase = 1 - phase0;
@@ -6605,7 +6609,7 @@ void AssemblyGraph2::PhasingGraph::writeEdgesCsv(
     const PhasingGraph& phasingGraph = *this;
 
     ofstream csv(fileName);
-    csv << "v0,v1,m00,m01,m10,m11,logFisher\n";
+    csv << "v0,v1,m00,m01,m10,m11,logPin,logPout,logP,RelativePhase\n";
 
     BGL_FORALL_EDGES(e, phasingGraph,PhasingGraph) {
         const PhasingGraphEdge& edge = phasingGraph[e];
@@ -6615,7 +6619,10 @@ void AssemblyGraph2::PhasingGraph::writeEdgesCsv(
         csv << edge.matrix[0][1] << ",";
         csv << edge.matrix[1][0] << ",";
         csv << edge.matrix[1][1] << ",";
-        csv << edge.logFisher << "\n";
+        csv << edge.logPin << ",";
+        csv << edge.logPout << ",";
+        csv << edge.logP << ",";
+        csv << edge.relativePhase << "\n";
     }
 
 }
@@ -6717,7 +6724,7 @@ void AssemblyGraph2::PhasingGraph::writeGraphviz(const string& fileName) const
         }
 
         out << v0 << "--" << v1 <<
-            " [tooltip=\"" << v0 << " " << v1 << " " << edge.logFisher <<
+            " [tooltip=\"" << v0 << " " << v1 << " " << edge.logP <<
             "\" color=\"" << color << "\"];\n";
     }
 

@@ -939,10 +939,18 @@ private:
             }
         }
 
-        // Fisher test for randomness of the frequency matrix of this edge.
-        // Returns log(P) in decibels (dB). High is good.
-        void computeLogFisher();
-        double logFisher = 0.;
+
+        // Results of the Bayesian model computed using a call to diploidBayesianPhase.
+        // Prandom = probability of the random hypothesis
+        // Pin = probability of the in phase hypothesis
+        // Pout = probability of the out of phase hypothesis
+        double logPin;  // log(Pin  / Prandom) in dB
+        double logPout; // log(Pout / Prandom) in dB
+        double logP;    // Hypothesis separation (in dB) of the hypothesis corresponding to relativePhase below.
+        uint64_t relativePhase; // 0 = in phase, 1 = out of phase
+        void runBayesianModel(double epsilon);
+
+
 
         bool isTreeEdge = false;
 
@@ -990,7 +998,7 @@ private:
         PhasingGraph(
             const AssemblyGraph2&,
             uint64_t phasingMinReadCount,
-            double minLogFisher,
+            double minLogP,
             size_t threadCount);
 
         // Find the optimal spanning tree using logFisher as the edge weight.
@@ -1016,13 +1024,13 @@ private:
         // Edge creation is expensive and runs in parallel.
         void createEdges(
             uint64_t phasingMinReadCount,
-            double minLogFisher,
+            double minLogP,
             size_t threadCount);
         void createEdgesThreadFunction(size_t threadId);
         class CreateEdgesData {
         public:
             uint64_t phasingMinReadCount;
-            double minLogFisher;
+            double minLogP;
             vector<BubbleGraph::vertex_descriptor> allVertices;
             class EdgeData {
             public:
@@ -1039,7 +1047,7 @@ private:
         void createEdges(
             PhasingGraph::vertex_descriptor,
             uint64_t phasingMinReadCount,
-            double minLogFisher,
+            double minLogP,
             vector<CreateEdgesData::EdgeData>&,
             vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges);
 
