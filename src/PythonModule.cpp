@@ -10,6 +10,7 @@
 #include "compressAlignment.hpp"
 #include "deduplicate.hpp"
 #include "dset64Test.hpp"
+#include "diploidBayesianPhase.hpp"
 #include "shastaLapack.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
@@ -753,6 +754,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testShortestPathBoundedDistance",
         testShortestPathBoundedDistance
+        );
+    module.def("testDiploidBayesianPhase",
+        testDiploidBayesianPhase
         );
 }
 
