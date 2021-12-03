@@ -1517,6 +1517,7 @@ void AssemblyGraph2::gatherBubbles(bool findStrongestBranch)
 {
     G& g = *this;
 
+    performanceLog << timestamp << "AssemblyGraph2::gatherBubbles begins." << endl;
 
 
     // Look for sets of parallel edges v0->v1.
@@ -1552,6 +1553,7 @@ void AssemblyGraph2::gatherBubbles(bool findStrongestBranch)
     }
 
 
+    performanceLog << timestamp << "AssemblyGraph2::gatherBubbles ends." << endl;
 
 
 }
@@ -4141,10 +4143,14 @@ void AssemblyGraph2Edge::forceMaximumPloidy(uint64_t maxPloidy)
 
 void AssemblyGraph2::forceMaximumPloidy(uint64_t maxPloidy)
 {
+    performanceLog << timestamp << "AssemblyGraph2::forceMaximumPloidy begins." << endl;
+
     G& g = *this;
     BGL_FORALL_EDGES(e, g, G) {
         g[e].forceMaximumPloidy(maxPloidy);
     }
+
+    performanceLog << timestamp << "AssemblyGraph2::forceMaximumPloidy ends." << endl;
 }
 
 
@@ -4305,6 +4311,8 @@ void AssemblyGraph2::merge(
     bool assemble               // If true, assemble merged edges.
     )
 {
+    performanceLog << timestamp << "AssemblyGraph2::merge begins." << endl;
+
     // Find linear chains of non-bubbles.
     vector< vector<edge_descriptor> > chains;
     findNonBubbleLinearChains(chains);
@@ -4324,6 +4332,9 @@ void AssemblyGraph2::merge(
     for(const vector<edge_descriptor>& chain: chains) {
         merge(chain, storeReadInformation, assemble);
     }
+
+
+    performanceLog << timestamp << "AssemblyGraph2::merge ends." << endl;
 }
 
 
