@@ -872,9 +872,17 @@ private:
         uint64_t phasingMinReadCount,   // For an edge to be kept.
         size_t threadCount);
 
+    // Iteratively remove bad bubbles using the PhasingGraph.
+    void removeBadBubblesIterative(
+        uint64_t minConcordantReadCount,
+        uint64_t maxDiscordantReadCount,
+        double minLogFisher,
+        size_t threadCount);
+
     // Hierarchical phasing phasing using the PhasingGraph.
     void hierarchicalPhase(
-        uint64_t phasingMinReadCount,
+        uint64_t minConcordantReadCount,
+        uint64_t maxDiscordantReadCount,
         double minLogFisher,
         size_t threadCount);
 
@@ -944,11 +952,14 @@ private:
         // Prandom = probability of the random hypothesis
         // Pin = probability of the in phase hypothesis
         // Pout = probability of the out of phase hypothesis
+        // The meaning of logP is different for removal of bad bubbles
+        // (allowRandomHypothesis=true) and for phasing (allowRandomHypothesis=false).
+        // See PhasingGraphEdge::runBayesianModel for details.
         double logPin;  // log(Pin  / Prandom) in dB
         double logPout; // log(Pout / Prandom) in dB
-        double logP;    // Hypothesis separation (in dB) of the hypothesis corresponding to relativePhase below.
+        double logP;
         uint64_t relativePhase; // 0 = in phase, 1 = out of phase
-        void runBayesianModel(double epsilon);
+        void runBayesianModel(double epsilon, bool allowRandomHypothesis);
 
 
 
@@ -997,9 +1008,11 @@ private:
     public:
         PhasingGraph(
             const AssemblyGraph2&,
-            uint64_t phasingMinReadCount,
+            uint64_t minConcordantReadCount,
+            uint64_t maxDiscordantReadCount,
             double minLogP,
-            size_t threadCount);
+            size_t threadCount,
+            bool allowRandomHypothesis);
 
         // Find the optimal spanning tree using logFisher as the edge weight.
         // Edges that are part of the optimal spanning tree get their
@@ -1023,14 +1036,18 @@ private:
 
         // Edge creation is expensive and runs in parallel.
         void createEdges(
-            uint64_t phasingMinReadCount,
+            uint64_t minConcordantReadCount,
+            uint64_t maxDiscordantReadCount,
             double minLogP,
-            size_t threadCount);
+            size_t threadCount,
+            bool allowRandomHypothesis);
         void createEdgesThreadFunction(size_t threadId);
         class CreateEdgesData {
         public:
-            uint64_t phasingMinReadCount;
+            uint64_t minConcordantReadCount;
+            uint64_t maxDiscordantReadCount;
             double minLogP;
+            bool allowRandomHypothesis;
             vector<BubbleGraph::vertex_descriptor> allVertices;
             class EdgeData {
             public:
@@ -1046,10 +1063,12 @@ private:
         CreateEdgesData createEdgesData;
         void createEdges(
             PhasingGraph::vertex_descriptor,
-            uint64_t phasingMinReadCount,
+            uint64_t minConcordantReadCount,
+            uint64_t maxDiscordantReadCount,
             double minLogP,
             vector<CreateEdgesData::EdgeData>&,
-            vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges);
+            vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges,
+            bool allowRandomHypothesis);
 
         // Get the vertex corresponding to a component, creating it if necessary.
         PhasingGraph::vertex_descriptor getVertex(uint64_t componentId);

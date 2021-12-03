@@ -175,9 +175,27 @@ AssemblyGraph2::AssemblyGraph2(
     // add newly created bubbles.
     // iterativePhase(markers.size()/2, phasingMinReadCount, threadCount);
 
-    // Hierarchical phasing using the PhasingGraph.
-    const double minLogP = 30.;    // **************** EXPOSE WHEN CODE STABILIZES.
-    hierarchicalPhase(phasingMinReadCount, minLogP, threadCount);
+
+
+    // Use the PhasingGraph to iteratively remove bad bubbles, then to phase.
+    // EXPOSE THE CONSTANTS BELOW WHEN CODE STABILIZES.
+    const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;
+    const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
+    const double minLogPForBubbleRemoval = 30.;
+    removeBadBubblesIterative(
+        minConcordantReadCountForBubbleRemoval,
+        maxDiscordantReadCountForBubbleRemoval,
+        minLogPForBubbleRemoval,
+        threadCount);
+    // EXPOSE THE CONSTANTS BELOW WHEN CODE STABILIZES.
+    const uint64_t minConcordantReadCountForPhasing = 2;
+    const uint64_t maxDiscordantReadCountForPhasing = 1;
+    const double minLogPForPhasing = 10.;
+    hierarchicalPhase(
+        minConcordantReadCountForPhasing,
+        maxDiscordantReadCountForPhasing,
+        minLogPForPhasing,
+        threadCount);
 #endif
 
 
@@ -1259,8 +1277,9 @@ void AssemblyGraph2::prune(uint64_t pruneLength)
     }
 
 
-
-    cout << "Pruned " << pruneCount << " edges." << endl;
+    if(pruneCount > 0) {
+        cout << "Pruned " << pruneCount << " edges." << endl;
+    }
     performanceLog << timestamp << "AssemblyGraph2::prune ends" << endl;
 }
 #endif
@@ -5944,14 +5963,16 @@ void AssemblyGraph2::Superbubble::enumeratePaths(
 
 AssemblyGraph2::PhasingGraph::PhasingGraph(
     const AssemblyGraph2& assemblyGraph2,
-    uint64_t phasingMinReadCount,
+    uint64_t minConcordantReadCount,
+    uint64_t maxDiscordantReadCount,
     double minLogP,
-    size_t threadCount) :
+    size_t threadCount,
+    bool allowRandomHypothesis) :
     MultithreadedObject<PhasingGraph>(*this)
 {
     createVertices(assemblyGraph2);
     createOrientedReadsTable(assemblyGraph2.markers.size()/2);
-    createEdges(phasingMinReadCount, minLogP, threadCount);
+    createEdges(minConcordantReadCount, maxDiscordantReadCount, minLogP, threadCount, allowRandomHypothesis);
 }
 
 
@@ -6078,9 +6099,11 @@ AssemblyGraph2::PhasingGraph::vertex_descriptor AssemblyGraph2::PhasingGraph::ge
 
 
 void AssemblyGraph2::PhasingGraph::createEdges(
-    uint64_t phasingMinReadCount,
+    uint64_t minConcordantReadCount,
+    uint64_t maxDiscordantReadCount,
     double minLogP,
-    size_t threadCount)
+    size_t threadCount,
+    bool allowRandomHypothesis)
 {
     performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges begins." << endl;
     PhasingGraph& phasingGraph = *this;
@@ -6093,8 +6116,10 @@ void AssemblyGraph2::PhasingGraph::createEdges(
     }
 
     // Store the parameters so all threads can see them.
-    createEdgesData.phasingMinReadCount = phasingMinReadCount;
+    createEdgesData.minConcordantReadCount = minConcordantReadCount;
+    createEdgesData.maxDiscordantReadCount = maxDiscordantReadCount;
     createEdgesData.minLogP = minLogP;
+    createEdgesData.allowRandomHypothesis = allowRandomHypothesis;
 
     // Process all vertices in parallel.
     const uint64_t batchSize = 100;
@@ -6110,8 +6135,10 @@ void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
 {
     PhasingGraph& phasingGraph = *this;
 
-    const uint64_t phasingMinReadCount = createEdgesData.phasingMinReadCount;
+    const uint64_t minConcordantReadCount = createEdgesData.minConcordantReadCount;
+    const uint64_t maxDiscordantReadCount = createEdgesData.maxDiscordantReadCount;
     const double minLogP = createEdgesData.minLogP;
+    const bool allowRandomHypothesis = createEdgesData.allowRandomHypothesis;
     vector<CreateEdgesData::EdgeData> edgeData;
 
     // Temporary storage of the edges found by this thread.
@@ -6123,7 +6150,11 @@ void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
 
         // Loop over all vertices assigned to this batch.
         for(uint64_t i=begin; i!=end; ++i) {
-            createEdges(createEdgesData.allVertices[i], phasingMinReadCount, minLogP, edgeData, threadEdges);
+            createEdges(createEdgesData.allVertices[i],
+                minConcordantReadCount,
+                maxDiscordantReadCount,
+                minLogP, edgeData, threadEdges,
+                allowRandomHypothesis);
         }
     }
 
@@ -6141,10 +6172,12 @@ void AssemblyGraph2::PhasingGraph::createEdgesThreadFunction(size_t threadId)
 // that the id of vA.
 void AssemblyGraph2::PhasingGraph::createEdges(
     PhasingGraph::vertex_descriptor vA,
-    uint64_t phasingMinReadCount,
+    uint64_t minConcordantReadCount,
+    uint64_t maxDiscordantReadCount,
     double minLogP,
     vector<CreateEdgesData::EdgeData>& edgeData,
-    vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges)
+    vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges,
+    bool allowRandomHypothesis)
 {
     PhasingGraph& phasingGraph = *this;
 
@@ -6190,17 +6223,17 @@ void AssemblyGraph2::PhasingGraph::createEdges(
 
         // If this streak is sufficiently long, it generates an edge.
         const uint64_t streakLength = uint64_t(streakEnd - streakBegin);
-        if(streakLength >= phasingMinReadCount) {
+        if(streakLength >= minConcordantReadCount) {
             PhasingGraphEdge edge;
             for(auto jt=streakBegin; jt!=streakEnd; ++jt) {
                 ++edge.matrix[jt->sideA][jt->sideB];
             }
 
-            if( (edge.concordantCount() >= phasingMinReadCount) and
-                (edge.discordantCount() <= 6)) {    // ********** EXPOSE WHEN CODE STABILIZES
+            if( (edge.concordantCount() >= minConcordantReadCount) and
+                (edge.discordantCount() <= maxDiscordantReadCount)) {
 
                 const double epsilon = 0.1;     // ********** EXPOSE WHEN CODE STABILIZES
-                edge.runBayesianModel(epsilon);
+                edge.runBayesianModel(epsilon, allowRandomHypothesis);
 
                 if(edge.logP > minLogP) {
                     threadEdges.push_back(make_tuple(vA, vB, edge));
@@ -6215,74 +6248,58 @@ void AssemblyGraph2::PhasingGraph::createEdges(
 
 
 
-void AssemblyGraph2::hierarchicalPhase(
-    uint64_t phasingMinReadCount,
+// Iteratively remove bad bubbles using the PhasingGraph.
+void AssemblyGraph2::removeBadBubblesIterative(
+    uint64_t minConcordantReadCount,
+    uint64_t maxDiscordantReadCount,
     double minLogP,
     size_t threadCount)
 {
-    performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
 
     G& g = *this;
     const bool debug = true;
 
-    // Start by assigning each diploid bubble to its own component.
-    uint64_t componentId = 0;
-    BGL_FORALL_EDGES(e, g, G) {
-        AssemblyGraph2Edge& edge = g[e];
-        if(edge.ploidy() == 2) {
-            edge.componentId = componentId++;
-            edge.phase = 0;
-        }
-    }
+    for(uint64_t iteration=0; ; iteration++) {
+        cout << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
+        performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
 
-    // Outer iteration loop.
-    for(uint64_t outerIteration=0; ; outerIteration++) {
-        cout << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " begins." << endl;
-        performanceLog << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " begins." << endl;
-
-        // Inner iteration loop.
-        // At each iteration some phasing components can be combined into larger
-        // phasing components.
-        for(uint64_t innerIteration=0; ; innerIteration++) {
-            cout << timestamp << "Hierarchical phasing inner iteration " << innerIteration << " begins." << endl;
-
-            // Create the PhasingGraph.
-            PhasingGraph phasingGraph(g, phasingMinReadCount, minLogP, threadCount);
-            cout << "The phasing graph has " << num_vertices(phasingGraph) <<
-                " vertices and " << num_edges(phasingGraph) << " edges." << endl;
-
-            // Compute the optimal spanning tree.
-            phasingGraph.computeSpanningTree();
-
-            // If the PhasingGraph has no edges, exit the inner iteration loop.
-            // Phasing information in the AssemblyGraph2 is as stored in the previous inner iteration.
-            if(num_edges(phasingGraph)== 0) {
-                break;
+        // Assign each diploid bubble to its own component.
+        // This way the PhasingGraph will have one bubble per vertex.
+        uint64_t componentId = 0;
+        BGL_FORALL_EDGES(e, g, G) {
+            AssemblyGraph2Edge& edge = g[e];
+            if(edge.ploidy() == 2) {
+                edge.componentId = componentId++;
+                edge.phase = 0;
             }
-
-            // Use the optimal spanning tree to phase the PhasingGraph,
-            // then store the result in the AssemblyGraph2.
-            phasingGraph.phase();
-            if(debug) {
-                const string s = to_string(outerIteration) + "-" + to_string(innerIteration);
-                phasingGraph.writeCsv("PhasingGraph-" + s, g);
-                phasingGraph.writeGraphviz("PhasingGraph-" + s + ".dot");
-            }
-
-            phasingGraph.storePhasing(g);
-
-            // writeDetailedEarly(to_string(outerIteration) + "-" + to_string(innerIteration));
         }
+
+
+        // Create the PhasingGraph.
+        const bool allowRandomHypothesis = true;
+        PhasingGraph phasingGraph(
+            g,
+            minConcordantReadCount, maxDiscordantReadCount, minLogP,
+            threadCount, allowRandomHypothesis);
+        cout << "The number of diploid bubbles before this iteration is " << num_vertices(phasingGraph) << endl;
+
+        // Compute the optimal spanning tree.
+        phasingGraph.computeSpanningTree();
+
+        // Use the optimal spanning tree to phase the PhasingGraph,
+        // but don't store the result in the AssemblyGraph2.
+        phasingGraph.phase();
+        if(debug) {
+            const string s = "A-" + to_string(iteration);
+            phasingGraph.writeCsv("PhasingGraph-" + s, g);
+            phasingGraph.writeGraphviz("PhasingGraph-" + s + ".dot");
+         }
 
         // Gather the bubbles in each connected component.
-        vector< vector<edge_descriptor> > components;
-        BGL_FORALL_EDGES(e, g, G) {
-            const uint64_t componentId = g[e].componentId;
-
-            // If not phased (or not diploid), skip.
-            if(componentId == AssemblyGraph2Edge::invalidComponentId) {
-                continue;
-            }
+        vector< vector<PhasingGraph::vertex_descriptor> > components;
+        BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+            const uint64_t componentId = phasingGraph[v].componentId;
 
             // Make sure the components vector is long enough.
             if(componentId >= components.size()) {
@@ -6290,13 +6307,13 @@ void AssemblyGraph2::hierarchicalPhase(
             }
 
             // Store it.
-            components[componentId].push_back(e);
+            components[componentId].push_back(v);
         }
 
         // Write out a histogram of component sizes.
-        if(true) {
+        if(debug) {
             std::map<uint64_t, uint64_t> histogram;
-            for(const vector<edge_descriptor>& component: components) {
+            for(const vector<PhasingGraph::vertex_descriptor>& component: components) {
                 const uint64_t size = component.size();
                 auto it = histogram.find(size);
                 if(it == histogram.end()) {
@@ -6316,46 +6333,112 @@ void AssemblyGraph2::hierarchicalPhase(
             }
         }
 
-        // Mark as bad the bubbles in small connected components.
-        vector<edge_descriptor> badBubbles;
+
+        // Gather the bubbles that are going to be removed.
+        // Right now, these are the bubbles in small connected components.
+        // Later, we will add bubbles with inconsistent edges.
+        vector<PhasingGraph::vertex_descriptor> badBubbles;
         const uint64_t componentSizeThreshold = 10;    // *************** EXPOSE WHEN CODE STABILIZES
-        BGL_FORALL_EDGES(e, g, G) {
-            const AssemblyGraph2Edge& edge = g[e];
-            if(edge.ploidy() != 2) {
+        for(const vector<PhasingGraph::vertex_descriptor>& component: components) {
+            if(component.size() >= componentSizeThreshold) {
                 continue;
             }
-            if(uint64_t(components[edge.componentId].size()) < componentSizeThreshold) {
-                badBubbles.push_back(e);
+            for(const PhasingGraph::vertex_descriptor v: component) {
+                badBubbles.push_back(v);
             }
         }
-        cout << "Marked " << badBubbles.size() << " bubbles as bad." << endl;
 
-        // If no bubbles were marked as bad, we are done.
+        // If no bubbles were marked as bad, end the iteration.
         if(badBubbles.empty()) {
             break;
         }
 
         // Remove the bubbles we marked as bad.
-        for(const edge_descriptor e: badBubbles) {
+        for(const PhasingGraph::vertex_descriptor v: badBubbles) {
+            const PhasingGraphVertex& vertex = phasingGraph[v];
+            SHASTA_ASSERT(vertex.bubbles.size() == 1);
+            const AssemblyGraph2::edge_descriptor e = vertex.bubbles.front().first;
             g[e].removeAllBranchesExceptStrongest();
-            g[e].componentId = AssemblyGraph2Edge::invalidComponentId;
-            g[e].phase = AssemblyGraph2Edge::invalidPhase;
         }
+        cout << "Removed " << badBubbles.size() << " bubbles." << endl;
+        cout << num_vertices(phasingGraph) - badBubbles.size() <<
+            " diploid bubbles are left." << endl;
 
-
-        // Renumber the surviving connected components.
-        renumberComponents();
 
         // Some new bubbles may form after we merge.
         merge(true, true);
         gatherBubbles(true);
         forceMaximumPloidy(2);
 
-        performanceLog << timestamp << "Hierarchical phasing outer iteration " << outerIteration << " ends." << endl;
+        performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " ends." << endl;
     }
 
-    // Create a final PhasinGraph with permissivce criteria for edge creation.
-    PhasingGraph phasingGraph(g, 0, -100., threadCount);
+    performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative ends." << endl;
+}
+
+
+
+void AssemblyGraph2::hierarchicalPhase(
+    uint64_t minConcordantReadCount,
+    uint64_t maxDiscordantReadCount,
+    double minLogP,
+    size_t threadCount)
+{
+    performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
+
+    G& g = *this;
+    const bool debug = true;
+
+    // Start by assigning each diploid bubble to its own component.
+    uint64_t componentId = 0;
+    BGL_FORALL_EDGES(e, g, G) {
+        AssemblyGraph2Edge& edge = g[e];
+        if(edge.ploidy() == 2) {
+            edge.componentId = componentId++;
+            edge.phase = 0;
+        }
+    }
+
+    // Main iteration loop.
+    // At each iteration some phasing components can be combined into larger
+    // phasing components.
+    for(uint64_t iteration=0; ; iteration++) {
+        cout << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
+        performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
+
+
+        // Create the PhasingGraph.
+        const bool allowRandomHypothesis = false;
+        PhasingGraph phasingGraph(
+            g, minConcordantReadCount, maxDiscordantReadCount, minLogP,
+            threadCount, allowRandomHypothesis);
+        cout << "The phasing graph has " << num_vertices(phasingGraph) <<
+            " vertices and " << num_edges(phasingGraph) << " edges." << endl;
+
+        // Compute the optimal spanning tree.
+        phasingGraph.computeSpanningTree();
+
+        // If the PhasingGraph has no edges, exit the inner iteration loop.
+        // Phasing information in the AssemblyGraph2 is as stored in the previous inner iteration.
+        if(num_edges(phasingGraph)== 0) {
+            break;
+        }
+
+        // Use the optimal spanning tree to phase the PhasingGraph,
+        // then store the result in the AssemblyGraph2.
+        phasingGraph.phase();
+        if(debug) {
+            const string s = "B-" + to_string(iteration);
+            phasingGraph.writeCsv("PhasingGraph-" + s, g);
+            phasingGraph.writeGraphviz("PhasingGraph-" + s + ".dot");
+        }
+
+        phasingGraph.storePhasing(g);
+        performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " ends." << endl;
+    }
+
+    // Create a final PhasinGraph with permissive criteria for edge creation.
+    PhasingGraph phasingGraph(g, 0, 100, 0., threadCount, false);
     if(true) {
         phasingGraph.writeCsv("PhasingGraph-Final", g);
         phasingGraph.writeGraphviz("PhasingGraph-Final.dot");
@@ -6385,16 +6468,25 @@ void AssemblyGraph2::PhasingGraph::createOrientedReadsTable(uint64_t readCount)
 
 
 
-void AssemblyGraph2::PhasingGraphEdge::runBayesianModel(double epsilon)
+void AssemblyGraph2::PhasingGraphEdge::runBayesianModel(double epsilon, bool allowRandomHypothesis)
 {
     tie(logPin, logPout) = diploidBayesianPhase(matrix, epsilon);
 
-    if(logPin >= logPout) {
-        relativePhase = 0;
-        logP = min(logPin-logPout, logPin);
+    if(allowRandomHypothesis) {
+        if(logPin >= logPout) {
+            relativePhase = 0;
+            logP = min(logPin-logPout, logPin);
+        } else {
+            relativePhase = 1;
+            logP = min(logPout-logPin, logPout);
+        }
     } else {
-        relativePhase = 1;
-        logP = min(logPout-logPin, logPout);
+        logP = abs(logPin - logPout);
+        if(logPin >= logPout) {
+            relativePhase = 0;
+        } else {
+            relativePhase = 1;
+        }
     }
 }
 
@@ -6704,11 +6796,7 @@ void AssemblyGraph2::PhasingGraph::writeGraphviz(const string& fileName) const
         if(edge.isTreeEdge) {
             color = "black";
         } else {
-            const uint64_t diagonalCount = edge.diagonalCount();
-            const uint64_t offDiagonalCount = edge.offDiagonalCount();
-            if(diagonalCount == offDiagonalCount) {
-                color = "yellow";
-            } else if(diagonalCount > offDiagonalCount) {
+            if(edge.logPin >= edge.logPout) {
                 if(phase0 == phase1) {
                     color = "green";
                 } else {
