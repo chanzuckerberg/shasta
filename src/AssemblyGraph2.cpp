@@ -4723,6 +4723,25 @@ void AssemblyGraph2::findBubbleChains()
 
 
 
+void AssemblyGraph2::clearBubbleChains()
+{
+    G& g = *this;
+
+    bubbleChains.clear();
+
+    BGL_FORALL_VERTICES(v, g, G) {
+        V& vertex = g[v];
+        vertex.bubbleChainsBeginningHere.clear();
+        vertex.bubbleChainsEndingHere.clear();
+    }
+
+    BGL_FORALL_EDGES(e, g, G) {
+        g[e].bubbleChain = {0, 0};
+    }
+}
+
+
+
 // Find PhasingRegions within BubbleChains.
 void AssemblyGraph2::findPhasingRegions()
 {

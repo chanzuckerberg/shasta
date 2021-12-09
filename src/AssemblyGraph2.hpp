@@ -460,6 +460,7 @@ private:
     // Linear chains of bubbles in the AssemblyGraph2.
     vector<BubbleChain> bubbleChains;
     void findBubbleChains();
+    void clearBubbleChains();
     void writeBubbleChains();
     void findPhasingRegions();
     void findPhasingRegions(BubbleChain&);
