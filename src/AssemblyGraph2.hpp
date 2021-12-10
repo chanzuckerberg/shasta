@@ -123,8 +123,7 @@ public:
     vector<Branch> branches;
 
     // The strongest branch.
-    uint64_t strongestBranchId;
-    void findStrongestBranch();
+    uint64_t getStrongestBranchId() const;
 
     // Functions that remove some of the branches.
     void removeAllSecondaryBranches();
@@ -436,12 +435,11 @@ private:
 
     // Finds edges that form bubbles, then combine
     // each of them into a single edge with multiple paths.
-    void gatherBubbles(bool findStrongestBranch);
+    void gatherBubbles();
     edge_descriptor createBubble(
         vertex_descriptor v0,
         vertex_descriptor v1,
-        const vector<edge_descriptor>&,
-        bool findStrongestBranch);
+        const vector<edge_descriptor>&);
 
     void removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold);
     void removeWeakBranches(uint64_t strongBranchThreshold);

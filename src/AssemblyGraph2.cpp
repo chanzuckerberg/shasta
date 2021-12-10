@@ -108,7 +108,7 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Gather parallel edges into bubbles.
     removeShortLoopbackEdges(superbubbleRemovalEdgeLengthThreshold);
-    gatherBubbles(false);
+    gatherBubbles();
     if(debug) {
         writeDetailedEarly("2");
     }
@@ -129,7 +129,7 @@ AssemblyGraph2::AssemblyGraph2(
     // removeSecondaryBubbles(secondaryEdgeCleanupThreshold); OLD
     removeWeakBranches(strongBranchThreshold);
     merge(true, false);
-    gatherBubbles(true);    // So we get the bubbles that appear since we last did this.
+    gatherBubbles();    // So we get the bubbles that appear since we last did this.
     forceMaximumPloidy(2);
     if(debug) {
         writeDetailedEarly("4");
@@ -589,7 +589,7 @@ void AssemblyGraph2::createAndCleanupBubbleGraph(
 
         // Some new bubbles may form after we merge.
         merge(true, true);
-        gatherBubbles(true);
+        gatherBubbles();
         forceMaximumPloidy(2);
 
         currentDiscordantRatioThreshold -= discordantRatioThresholdStep;
@@ -837,7 +837,7 @@ void AssemblyGraph2::iterativePhase(
 
         // Some new bubbles may form after we merge.
         merge(true, true);
-        gatherBubbles(true);
+        gatherBubbles();
         forceMaximumPloidy(2);
 
     }
@@ -1518,7 +1518,7 @@ void AssemblyGraph2::assemble(edge_descriptor e)
 
 // Finds edges that form bubbles, then combine
 // each of them into a single edge with multiple paths.
-void AssemblyGraph2::gatherBubbles(bool findStrongestBranch)
+void AssemblyGraph2::gatherBubbles()
 {
     G& g = *this;
 
@@ -1553,7 +1553,7 @@ void AssemblyGraph2::gatherBubbles(bool findStrongestBranch)
             const vertex_descriptor v1 = p.first;
 
             // Create the bubble remove these edges.
-            createBubble(v0, v1, edges01, findStrongestBranch);
+            createBubble(v0, v1, edges01);
         }
     }
 
@@ -1588,8 +1588,7 @@ void AssemblyGraph2::writePloidyHistogram(ostream& s) const
 AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     vertex_descriptor v0,
     vertex_descriptor v1,
-    const vector<edge_descriptor>& edges01,
-    bool findStrongestBranch)
+    const vector<edge_descriptor>& edges01)
 {
     G& g = *this;
 
@@ -1612,10 +1611,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
         copy(edge01.branches.begin(), edge01.branches.end(),
            back_inserter(edgeNew.branches));
         boost::remove_edge(e01, g);
-    }
-
-    if(findStrongestBranch) {
-        edgeNew.findStrongestBranch();
     }
 
     return eNew;
@@ -1798,7 +1793,7 @@ void AssemblyGraph2::writeDetailed(
                 csv << ",";
 
                 if(edge.isBubble() and (edge.isBad or edge.phase == std::numeric_limits<uint64_t>::max())) {
-                    if(branchId == edge.strongestBranchId) {
+                    if(branchId == edge.getStrongestBranchId()) {
                         csv << "Strong";
                     } else {
                         csv << "Weak";
@@ -1862,7 +1857,7 @@ void AssemblyGraph2::writeDetailed(
                     if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
 
                         // This edge is homozygous or unphased.
-                        const string segmentName = edge.pathId(edge.strongestBranchId);
+                        const string segmentName = edge.pathId(edge.getStrongestBranchId());
                         path0.push_back(segmentName);
                         path1.push_back(segmentName);
 
@@ -2364,7 +2359,7 @@ void AssemblyGraph2::computeBubbleChainGfaSequence(
     sequence.clear();
     for(const edge_descriptor e: bubbleChain.edges) {
         const E& edge = g[e];
-        const E::Branch& branch = edge.branches[edge.strongestBranchId];
+        const E::Branch& branch = edge.branches[edge.getStrongestBranchId()];
         copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
             back_inserter(sequence));
     }
@@ -2388,7 +2383,7 @@ void AssemblyGraph2::computeUnphasedRegionGfaSequence(
         position<=phasingRegion.lastPosition; position++) {
         const edge_descriptor e = bubbleChain.edges[position];
         const E& edge = g[e];
-        const E::Branch& branch = edge.branches[edge.strongestBranchId];
+        const E::Branch& branch = edge.branches[edge.getStrongestBranchId()];
         copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
             back_inserter(sequence));
     }
@@ -2415,7 +2410,7 @@ void AssemblyGraph2::computePhasedRegionGfaSequence(
         if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
 
             // This edge is homozygous or unphased.
-            const E::Branch& branch = edge.branches[edge.strongestBranchId];
+            const E::Branch& branch = edge.branches[edge.getStrongestBranchId()];
             copy(branch.gfaSequence.begin(), branch.gfaSequence.end(),
                 back_inserter(sequence));
 
@@ -2446,7 +2441,7 @@ string AssemblyGraph2Edge::color(uint64_t branchId) const
 
         // A bad or unphased bubble is grey - darker on the strongest branch.
         if(isBad or phase == std::numeric_limits<uint64_t>::max()) {
-            if(branchId == strongestBranchId) {
+            if(branchId == getStrongestBranchId()) {
                 return "#808080";
             } else {
                 return "#C0C0C0";
@@ -2801,15 +2796,15 @@ void AssemblyGraph2Edge::storeReadInformation(const MarkerGraph& markerGraph)
     for(Branch& branch: branches) {
         branch.storeReadInformation(markerGraph);
     }
-    findStrongestBranch();
 }
 
 
 
-void AssemblyGraph2Edge::findStrongestBranch()
+uint64_t AssemblyGraph2Edge::getStrongestBranchId() const
 {
     SHASTA_ASSERT(not branches.empty());
-    strongestBranchId = 0;
+    uint64_t strongestBranchId = 0;
+
     uint64_t strongestBranchCoverage = branches.front().averageCoverage();
 
     for(uint64_t branchId=0; branchId<branches.size(); branchId++) {
@@ -2819,6 +2814,8 @@ void AssemblyGraph2Edge::findStrongestBranch()
             strongestBranchCoverage = coverage;
         }
     }
+
+    return strongestBranchId;
 }
 
 
@@ -4039,13 +4036,11 @@ void AssemblyGraph2::removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThresho
             // There is at least one primary branch, so we can
             // remove all the secondary ones.
             edge.removeAllSecondaryBranches();
-            edge.findStrongestBranch();
         } else {
 
             // There are no primary branches.
             // Remove all secondary branches except the strongest.
             edge.removeAllBranchesExceptStrongest();
-            edge.findStrongestBranch();
         }
     }
 
@@ -4066,14 +4061,12 @@ void AssemblyGraph2::removeWeakBranches(uint64_t strongBranchThreshold)
             continue;
         }
 
-        edge.findStrongestBranch();
-
         // Find the weak branches.
         std::set<uint64_t> weakBranches;
         for(uint64_t branchId=0; branchId<edge.ploidy(); branchId++) {
             const E::Branch& branch = edge.branches[branchId];
 
-            if( (branchId != edge.strongestBranchId) and
+            if( (branchId != edge.getStrongestBranchId()) and
                 (uint64_t(branch.orientedReadIds.size()) < strongBranchThreshold)) {
                 weakBranches.insert(branchId);
             }
@@ -4089,7 +4082,6 @@ void AssemblyGraph2::removeWeakBranches(uint64_t strongBranchThreshold)
                 }
             }
             edge.branches.swap(branches);
-            edge.findStrongestBranch();
         }
 
     }
@@ -4112,9 +4104,8 @@ void AssemblyGraph2Edge::removeAllSecondaryBranches()
 
 void AssemblyGraph2Edge::removeAllBranchesExceptStrongest()
 {
-    vector<Branch> newBranches(1, branches[strongestBranchId]);
+    vector<Branch> newBranches(1, branches[getStrongestBranchId()]);
     branches.swap(newBranches);
-    strongestBranchId = 0;
 }
 
 
@@ -4141,7 +4132,6 @@ void AssemblyGraph2Edge::forceMaximumPloidy(uint64_t maxPloidy)
         newBranches.push_back(branches[v[i].first]);
     }
     branches.swap(newBranches);
-    strongestBranchId = 0;
 }
 
 
@@ -4225,8 +4215,6 @@ void AssemblyGraph2::removeDegenerateBranches()
             newBranches.push_back(edge.branches[branchId]);
         }
         edge.branches.swap(newBranches);
-
-        edge.findStrongestBranch();
     }
 }
 
@@ -4396,7 +4384,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
 
     // Add the new edge.
     const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges);
-    g[eNew].strongestBranchId = 0;
     if(storeReadInformation) {
         g[eNew].storeReadInformation(markerGraph);
     }
@@ -4463,7 +4450,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::mergeWithPreviousIfPossible(edge
     edge_descriptor eNew;
     tie(eNew, ignore) = add_edge(source(ePrevious, g), target(e, g), E(nextId++), g);
     g[eNew].branches.resize(1);
-    g[eNew].strongestBranchId = 0;
 
     // Access the branches we are working with.
     const AssemblyGraph2Edge::Branch& branch = g[e].branches.front();
@@ -4532,7 +4518,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::mergeWithFollowingIfPossible(edg
     edge_descriptor eNew;
     tie(eNew, ignore) = add_edge(source(e, g), target(eFollowing, g), E(nextId++), g);
     g[eNew].branches.resize(1);
-    g[eNew].strongestBranchId = 0;
 
     // Access the branches we are working with.
     const AssemblyGraph2Edge::Branch& branch = g[e].branches.front();
@@ -6564,7 +6549,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
 
         // Some new bubbles may form after we merge.
         merge(true, true);
-        gatherBubbles(true);
+        gatherBubbles();
         forceMaximumPloidy(2);
 
         // Handle superbubbles that may have appeared as a result of removing bubbles.
