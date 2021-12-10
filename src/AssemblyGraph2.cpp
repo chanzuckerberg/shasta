@@ -114,7 +114,9 @@ AssemblyGraph2::AssemblyGraph2(
     }
 
     // Handle superbubbles.
-    handleSuperbubbles(superbubbleRemovalEdgeLengthThreshold);
+    handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold);
+    merge(false, false);
+    handleSuperbubbles1();
     merge(false, false);
     if(debug) {
         writeDetailedEarly("3");
@@ -186,6 +188,7 @@ AssemblyGraph2::AssemblyGraph2(
         minConcordantReadCountForBubbleRemoval,
         maxDiscordantReadCountForBubbleRemoval,
         minLogPForBubbleRemoval,
+        superbubbleRemovalEdgeLengthThreshold,
         threadCount);
     // EXPOSE THE CONSTANTS BELOW WHEN CODE STABILIZES.
     const uint64_t minConcordantReadCountForPhasing = 2;
@@ -210,8 +213,8 @@ AssemblyGraph2::AssemblyGraph2(
     merge(true, true);
 #endif
 
-    cout << "Final ploidy histogram:" << endl;
-    writePloidyHistogram(cout);
+    // cout << "Final ploidy histogram:" << endl;
+    // writePloidyHistogram(cout);
 
     // Find chains of bubbles.
     // These are linear chains of edges of length at least 2.
@@ -785,6 +788,7 @@ void AssemblyGraph2::iterativePhase(
                 ++histogram[n];
             }
 
+            /*
             cout << "Histogram of component sizes:" << endl;
             cout << "Size,Frequency,Bubbles\n";
             for(uint64_t size=0; size<histogram.size(); size++) {
@@ -793,6 +797,7 @@ void AssemblyGraph2::iterativePhase(
                     cout << size << "," << frequency << "," << size*frequency << "\n";
                 }
             }
+            */
         }
 
 
@@ -2553,7 +2558,7 @@ void AssemblyGraph2::countTransferredBases()
 // preceding or following non-bubble edge.
 void AssemblyGraph2::storeGfaSequence()
 {
-    cout << timestamp << "storeGfaSequence begins." << endl;
+    performanceLog << timestamp << "storeGfaSequence begins." << endl;
 
     G& g = *this;
 
@@ -2610,7 +2615,7 @@ void AssemblyGraph2::storeGfaSequence()
         }
     }
 
-    cout << timestamp << "storeGfaSequence ends." << endl;
+    performanceLog << timestamp << "storeGfaSequence ends." << endl;
 }
 
 
@@ -4391,6 +4396,7 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
 
     // Add the new edge.
     const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges);
+    g[eNew].strongestBranchId = 0;
     if(storeReadInformation) {
         g[eNew].storeReadInformation(markerGraph);
     }
@@ -4687,11 +4693,13 @@ void AssemblyGraph2::findBubbleChains()
         bubbleChain.edges.swap(linearChains[i]);
     }
 
+    /*
     cout << "Found " << bubbleChains.size() << " bubble chains with the following numbers of edges:";
     for(const auto& bubbleChain: bubbleChains) {
         cout << " " << bubbleChain.edges.size();
     }
     cout << endl;
+    */
 
 
     // Store pointers in the begin/end vertices.
@@ -4913,10 +4921,10 @@ void AssemblyGraph2::writeBubbleChains()
 
 
 
-void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
+void AssemblyGraph2::handleSuperbubbles0(uint64_t edgeLengthThreshold)
 {
     G& g = *this;
-    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles begins." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 begins." << endl;
 
     // We cannot use boost::connected_components because it
     // only works for undirected graphs.
@@ -4968,7 +4976,70 @@ void AssemblyGraph2::handleSuperbubbles(uint64_t edgeLengthThreshold)
         handleSuperbubble1(superbubble);
     }
 
-    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles ends." << endl;
+    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 ends." << endl;
+}
+
+
+
+// This creates superbubbles using all edges not in bubble chains.
+void AssemblyGraph2::handleSuperbubbles1()
+{
+    G& g = *this;
+    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles1 begins." << endl;
+
+    findBubbleChains();
+
+    // We cannot use boost::connected_components because it
+    // only works for undirected graphs.
+
+    // Map vertices to integers.
+    std::map<vertex_descriptor, uint64_t> vertexMap;
+    uint64_t vertexIndex = 0;
+    BGL_FORALL_VERTICES(v, g, G) {
+        vertexMap.insert(make_pair(v, vertexIndex++));
+    }
+    const uint64_t n = uint64_t(vertexMap.size());
+
+    // Initialize the disjoint sets data structure.
+    vector<uint64_t> rank(n);
+    vector<uint64_t> parent(n);
+    boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint32_t i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+
+    // Main loop over edges that don't belong to bubble chains.
+    BGL_FORALL_EDGES(e, g, G) {
+        const E& edge = g[e];
+        if(edge.bubbleChain.first == 0) {
+            const vertex_descriptor v0 = source(e, g);
+            const vertex_descriptor v1 = target(e, g);
+            disjointSets.union_set(vertexMap[v0], vertexMap[v1]);
+        }
+    }
+
+    // Gather the vertices in each connected component.
+    std::map<uint64_t, vector<vertex_descriptor> > components;
+    BGL_FORALL_VERTICES(v, g, G) {
+        const uint64_t component = disjointSets.find_set(vertexMap[v]);
+        components[component].push_back(v);
+    }
+
+    // Process one components one at a time.
+    // Each component is used to create a superbubble.
+    for(const auto& p: components) {
+        const vector<vertex_descriptor>& componentVertices = p.second;
+
+        // Create a superbubble with this component.
+        Superbubble superbubble(g, componentVertices);
+        // superbubble.writeGraphviz(cout, g);
+
+        // Process it.
+        handleSuperbubble1(superbubble);
+    }
+
+    clearBubbleChains();
+    performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles1 ends." << endl;
 }
 
 
@@ -5771,6 +5842,99 @@ AssemblyGraph2::Superbubble::Superbubble(
 
 
 
+AssemblyGraph2::Superbubble::Superbubble(
+    const AssemblyGraph2& g,
+    const vector<AssemblyGraph2::vertex_descriptor>& aVertices)
+{
+    Superbubble& superbubble = *this;
+
+    // Create the vertices.
+    std::map<AssemblyGraph2::vertex_descriptor, Superbubble::vertex_descriptor> vertexMap;
+    for(const AssemblyGraph2::vertex_descriptor av: aVertices) {
+        Superbubble::vertex_descriptor sv = boost::add_vertex(SuperbubbleVertex(av), superbubble);
+        vertexMap.insert(make_pair(av, sv));
+    }
+
+    /*
+    cout << "Vertex map:" << endl;
+    for(const auto& p: vertexMap) {
+        cout << p.second << " (" << p.first << ")" << endl;
+    }
+    */
+
+    // Create the edges.
+    // For an edge to be part of the superbubble:
+    // - Both its source and target vertices must be part of the superbubble.
+    BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+        BGL_FORALL_OUTEDGES(av0, ae, g, G) {
+            const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
+            auto it = vertexMap.find(av1);
+            if(it != vertexMap.end()) {
+                const E& aEdge = g[ae];
+                SHASTA_ASSERT(aEdge.bubbleChain.first == 0);
+                const Superbubble::vertex_descriptor sv1 = it->second;
+                for(uint64_t branchId=0; branchId<aEdge.ploidy(); branchId++) {
+                    add_edge(sv0, sv1, SuperbubbleEdge(ae, branchId), superbubble);
+                }
+            }
+        }
+    }
+
+
+
+    // Find the entrances and exits.
+    // An entrance has:
+    // - At least one in-edge from a vertex outside the superbubble.
+    // - At least one out-edge to a vertex inside the superbubble.
+    // An exit has:
+    // - At least one in-edge from a vertex inside the superbubble.
+    // - At least one out-edge to a vertex outside the superbubble.
+    BGL_FORALL_VERTICES(sv0, superbubble, Superbubble) {
+        const AssemblyGraph2::vertex_descriptor av0 = superbubble[sv0].av;
+
+        // Check in-edges.
+        bool hasInedgesFromOutside = false;
+        bool hasInedgesFromInside = false;
+        BGL_FORALL_INEDGES(av0, ae, g, G) {
+            const AssemblyGraph2::vertex_descriptor av1 = source(ae, g);
+            if(av1 == av0) {
+                continue;
+            }
+            if(vertexMap.find(av1) == vertexMap.end()) {
+                hasInedgesFromOutside = true;
+            } else {
+                hasInedgesFromInside = true;
+            }
+        }
+
+
+        // Check out-edges.
+        bool hasOutedgesToOutside = false;
+        bool hasOutedgesToInside = false;
+        BGL_FORALL_OUTEDGES(av0, ae, g, G) {
+            const AssemblyGraph2::vertex_descriptor av1 = target(ae, g);
+            if(av1 == av0) {
+                continue;
+            }
+            if(vertexMap.find(av1) == vertexMap.end()) {
+                hasOutedgesToOutside = true;
+            } else {
+                hasOutedgesToInside = true;
+            }
+        }
+
+        if(hasInedgesFromOutside and hasOutedgesToInside) {
+            entrances.push_back(sv0);
+        }
+        if(hasInedgesFromInside and hasOutedgesToOutside) {
+            exits.push_back(sv0);
+        }
+    }
+}
+
+
+
 void AssemblyGraph2::Superbubble::writeGraphviz(
     ostream& out,
     const AssemblyGraph2& g) const
@@ -6283,6 +6447,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     uint64_t minConcordantReadCount,
     uint64_t maxDiscordantReadCount,
     double minLogP,
+    uint64_t superbubbleRemovalEdgeLengthThreshold,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
@@ -6352,6 +6517,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
                 ++(it->second);
             }
 
+            /*
             cout << "Histogram of component sizes:\n";
             cout << "ComponentSize,Frequency,Total\n";
             for(const auto& p: histogram) {
@@ -6361,6 +6527,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
                     cout << p.first * p.second<< "\n";
                 }
             }
+            */
         }
 
 
@@ -6400,6 +6567,12 @@ void AssemblyGraph2::removeBadBubblesIterative(
         gatherBubbles(true);
         forceMaximumPloidy(2);
 
+        // Handle superbubbles that may have appeared as a result of removing bubbles.
+        handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold);
+        merge(false, false);
+        handleSuperbubbles1();
+        merge(false, false);
+
         performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " ends." << endl;
     }
 
@@ -6433,7 +6606,6 @@ void AssemblyGraph2::hierarchicalPhase(
     // At each iteration some phasing components can be combined into larger
     // phasing components.
     for(uint64_t iteration=0; ; iteration++) {
-        cout << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
         performanceLog << timestamp << "Hierarchical phasing iteration " << iteration << " begins." << endl;
 
 

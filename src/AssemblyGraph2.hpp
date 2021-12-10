@@ -328,11 +328,28 @@ private:
     // Remove secondary edges making sure to not introduce any dead ends.
     void cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshold);
 
-    // Handle superbubbles.
-    void handleSuperbubbles(uint64_t edgeLengthThreshold);
+
+
+    // Superbubble removal.
+
+    // This creates superbubbles using edges shorter than a length threshold (in markers).
+    void handleSuperbubbles0(uint64_t edgeLengthThreshold);
+
+    // This creates superbubbles using all edges not in bubble chains.
+    void handleSuperbubbles1();
+
     class Superbubble;
+
+    // This does path enumeration on the entire superbubble.
+    // It can be problematic for large superbubbles.
     void handleSuperbubble0(Superbubble&);
+
+    // This uses a dominator tree to find choking points
+    // and partition the superbubble into chunks,
+    // then does path enumeration on individual chunks.
     void handleSuperbubble1(Superbubble&);
+
+
 
     // Remove short loop-back edges.
     void removeShortLoopbackEdges(uint64_t edgeLengthThreshold);
@@ -545,6 +562,10 @@ private:
             const AssemblyGraph2&,
             const vector<AssemblyGraph2::vertex_descriptor>&,
             uint64_t edgeLengthThreshold
+        );
+        Superbubble(
+            const AssemblyGraph2&,
+            const vector<AssemblyGraph2::vertex_descriptor>&
         );
         vector<Superbubble::vertex_descriptor> entrances;
         vector<Superbubble::vertex_descriptor> exits;
@@ -877,7 +898,8 @@ private:
     void removeBadBubblesIterative(
         uint64_t minConcordantReadCount,
         uint64_t maxDiscordantReadCount,
-        double minLogFisher,
+        double minLogP,
+        uint64_t superbubbleRemovalEdgeLengthThreshold,
         size_t threadCount);
 
     // Hierarchical phasing phasing using the PhasingGraph.
