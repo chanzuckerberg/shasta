@@ -6453,7 +6453,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
 
     G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     for(uint64_t iteration=0; ; iteration++) {
         cout << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
