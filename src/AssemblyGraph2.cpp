@@ -6575,7 +6575,7 @@ void AssemblyGraph2::hierarchicalPhase(
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
 
     G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     // Start by assigning each diploid bubble to its own component.
     uint64_t componentId = 0;
