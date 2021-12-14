@@ -898,6 +898,7 @@ private:
         uint64_t maxDiscordantReadCount,
         double minLogP,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
+        uint64_t pruneLength,
         size_t threadCount);
 
     // Hierarchical phasing phasing using the PhasingGraph.

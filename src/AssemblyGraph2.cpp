@@ -189,6 +189,7 @@ AssemblyGraph2::AssemblyGraph2(
         maxDiscordantReadCountForBubbleRemoval,
         minLogPForBubbleRemoval,
         superbubbleRemovalEdgeLengthThreshold,
+        pruneLength,
         threadCount);
     // EXPOSE THE CONSTANTS BELOW WHEN CODE STABILIZES.
     const uint64_t minConcordantReadCountForPhasing = 2;
@@ -6433,6 +6434,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     uint64_t maxDiscordantReadCount,
     double minLogP,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
+    uint64_t pruneLength,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
@@ -6557,6 +6559,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
         merge(false, false);
         handleSuperbubbles1();
         merge(false, false);
+        prune(pruneLength);
 
         performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " ends." << endl;
     }
