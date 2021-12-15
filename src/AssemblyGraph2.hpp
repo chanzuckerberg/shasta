@@ -443,10 +443,6 @@ private:
 
     void forceMaximumPloidy(uint64_t maxPloidy);
 
-    // Remove bubbles marked isBad during phasing.
-    // Only keep the strongest branch for each.
-    void removeBadBubbles();
-
     // For each edge, compute the number of raw sequence bases
     // transfered in each direction for gfa output.
     void countTransferredBases();
@@ -804,28 +800,8 @@ private:
     };
 
 
-
+    // The BubbleGraph is no longer used. We use the PhasingGraph instead.
     BubbleGraph bubbleGraph;
-    void createAndCleanupBubbleGraph(
-        uint64_t readCount,             // Total.
-        uint64_t phasingMinReadCount,   // For an edge to be kept.
-        size_t threadCount,
-        double discordantRatioThreshold,
-        double ambiguityThreshold);
-    void createBubbleGraph(
-        uint64_t readCount,             // Total.
-        uint64_t phasingMinReadCount,   // For an edge to be kept.
-        size_t threadCount
-        );
-    void cleanupBubbleGraph(
-        uint64_t readCount,
-        uint64_t phasingMinReadCount,
-        double discordantRatioThreshold,
-        double ambiguityThreshold);
-    // 0.8.0 version.
-    void cleanupBubbleGraph(
-        double discordantRatioThreshold,
-        double ambiguityThreshold);
 
 
 
