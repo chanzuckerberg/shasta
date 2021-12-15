@@ -877,12 +877,7 @@ private:
         }
     };
 
-    // Iteratively create the bubble graph, phase, remove unphased bubbles,
-    // add newly created bubbles.
-    void iterativePhase(
-        uint64_t readCount,             // Total.
-        uint64_t phasingMinReadCount,   // For an edge to be kept.
-        size_t threadCount);
+
 
     // Iteratively remove bad bubbles using the PhasingGraph.
     void removeBadBubblesIterative(
@@ -904,17 +899,10 @@ private:
     void renumberComponents();
 
 
-    // Use each connected component of the bubble graph to phase the bubbles.
-    void phase(size_t threadCount);
-    void phaseThreadFunction(size_t threadId);
-    void phaseBubbleGraphComponent(uint64_t componentId);
-
-
 
     // The PhasingGraph is used for hierarchical phasing.
-    // Each vertex represents a set of bubbles already phased.
-    // This is in contrast with the BubbleGraph, where each vertex
-    // represents a single bubble.
+    // Each vertex represents a set of bubbles already phased
+    // relative to each other.
 
     class PhasingGraphVertex {
     public:
