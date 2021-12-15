@@ -4311,7 +4311,7 @@ void AssemblyGraph2::PhasingGraph::createEdges(
     // Create a vector of all vertices, to be processed
     // one by one in parallel.
     createEdgesData.allVertices.clear();
-    BGL_FORALL_VERTICES(v, phasingGraph, BubbleGraph) {
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
         createEdgesData.allVertices.push_back(v);
     }
 
@@ -4732,9 +4732,9 @@ void AssemblyGraph2::PhasingGraph::computeSpanningTree()
     // Process edges in order of decreasing logP.
     uint64_t treeEdgeCount = 0;
     for(const auto& p: edgeTable) {
-        const BubbleGraph::edge_descriptor e = p.first;
-        const BubbleGraph::vertex_descriptor v0 = source(e, phasingGraph);
-        const BubbleGraph::vertex_descriptor v1 = target(e, phasingGraph);
+        const PhasingGraph::edge_descriptor e = p.first;
+        const PhasingGraph::vertex_descriptor v0 = source(e, phasingGraph);
+        const PhasingGraph::vertex_descriptor v1 = target(e, phasingGraph);
         if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
             disjointSets.union_set(v0, v1);
             phasingGraph[e].isTreeEdge = true;
@@ -4759,7 +4759,7 @@ void AssemblyGraph2::PhasingGraph::phase()
 
         // If this vertex has already been assigned to a component,
         // don't use it as a start vertex.
-        if(vertexStart.componentId != BubbleGraphVertex::invalidComponentId) {
+        if(vertexStart.componentId != PhasingGraphVertex::invalidComponentId) {
             continue;
         }
 
