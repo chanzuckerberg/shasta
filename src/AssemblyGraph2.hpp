@@ -692,7 +692,6 @@ private:
 
         // Fisher test for randomness of the frequency matrix of this edge.
         // Returns log(P) in decibels (dB). High is good.
-        void computeLogFisher();
         double logFisher = 0.;
 
         bool isTreeEdge = false;
@@ -727,53 +726,8 @@ private:
         // for a newly added vertex.
         void createNewEdges(BubbleGraph::vertex_descriptor, uint64_t phasingMinReadCount);
 
-        void removeWeakEdges(uint64_t minReadCount);
-        double discordantRatio(vertex_descriptor) const;
-        void removeWeakVertices(
-            double discordantRatioThreshold,
-            vector<AssemblyGraph2::edge_descriptor>& badBubbles);
-
-        void computeConnectedComponents();
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
 
-        // Similar to above, but works under the assumption the discordantCount() = 0.
-        bool edgeIsConsistent(edge_descriptor e) const;
-
-        // Compute chi2 for a random hypothesis for this edge.
-        // We have small samples and it is probably possible to do better.
-        double chi2(edge_descriptor e) const;
-        double chi2(vertex_descriptor, vertex_descriptor, const BubbleGraphEdge&) const;
-
-
-        // Edge creation is expensive.
-        // There is a simple sequential version and a more complex
-        // parallel version.
-        void createEdges(uint64_t phasingMinReadCount);
-        void createEdgesParallel(
-            uint64_t phasingMinReadCount,
-            size_t threadCount);
-        void createEdgesParallelThreadFunction(size_t threadId);
-        class CreateEdgesParallelData {
-        public:
-            uint64_t phasingMinReadCount;
-            vector<BubbleGraph::vertex_descriptor> allVertices;
-            class EdgeData {
-            public:
-                BubbleGraph::vertex_descriptor vB;
-                uint64_t sideA;
-                uint64_t sideB;
-                bool operator<(const EdgeData& that) const
-                {
-                    return vB < that.vB;
-                }
-            };
-        };
-        CreateEdgesParallelData createEdgesParallelData;
-        void createEdges(
-            BubbleGraph::vertex_descriptor,
-            uint64_t phasingMinReadCount,
-            vector<CreateEdgesParallelData::EdgeData>&,
-            vector< tuple<vertex_descriptor, vertex_descriptor, BubbleGraphEdge> >& threadEdges);
     };
 
 
