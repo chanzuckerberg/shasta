@@ -717,47 +717,24 @@ private:
         // pairs(vertex, side) that the OrientedReadId appears on.
         // Indexed by OrientedReadId::getValue().
         vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
-        void createOrientedReadsTable(uint64_t readCount);
 
         // A more dynamic version of the orientedReadsTable.
         // For each OrientedReadId, it contains the bubble graph vertices
         // that contain it. It does not keep track of sides.
         vector< std::set< pair<BubbleGraph::vertex_descriptor, uint64_t> > > dynamicOrientedReadsTable;
-        void createDynamicOrientedReadsTable(uint64_t readCount);
-        void updateDynamicOrientedReadsTableForRemoval(BubbleGraph::vertex_descriptor);
-        void updateDynamicOrientedReadsTableForAddition(BubbleGraph::vertex_descriptor);
 
         // Use the dynamic oriented reads table to create edges
         // for a newly added vertex.
         void createNewEdges(BubbleGraph::vertex_descriptor, uint64_t phasingMinReadCount);
 
-        void writeVerticesCsv(const string& fileName) const;
-        void writeEdgesCsv(const string& fileName) const;
         void removeWeakEdges(uint64_t minReadCount);
         double discordantRatio(vertex_descriptor) const;
         void removeWeakVertices(
             double discordantRatioThreshold,
             vector<AssemblyGraph2::edge_descriptor>& badBubbles);
 
-        // Pre-phasing.
-        void writeHtml(const string& fileName);
-        void writeGraphviz(const string& fileName) const;
-
-        // Post-phasing.
-        void writeHtml(
-            const string& fileName,
-            const std::set<edge_descriptor>& treeEdges,
-            bool onlyShowUnhappyEdges);
-
         void computeConnectedComponents();
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
-
-        // Create a new BubbleGraph from a given connected component.
-        void extractComponent(uint64_t componentId, BubbleGraph&) const;
-
-        // Return true if the give edge has relative phase consistent
-        // with the phases assigned to its two vertices.
-        bool edgeIsHappy(edge_descriptor e) const;
 
         // Similar to above, but works under the assumption the discordantCount() = 0.
         bool edgeIsConsistent(edge_descriptor e) const;
