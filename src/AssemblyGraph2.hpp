@@ -588,139 +588,6 @@ private:
 
 
 
-    // Graph used for diploid phasing of the bubbles.
-    // Each vertex corresponds to a diploid bubble in the Assembly2Graph.
-
-    class BubbleGraphVertex {
-    public:
-        AssemblyGraph2::edge_descriptor e;
-        uint64_t id;    // The same as the id of the AssemblyGraph2Edge.
-
-        // The vertex stores OrientedReadIds that appear on one side but not
-        // on the opposite side of the bubble.
-        // Stored as pairs (OrientedReadId, side).
-        vector< pair<OrientedReadId, uint64_t> > orientedReadIds;
-
-        // The connected component this vertex belongs to.
-        static const uint64_t invalidComponentId = std::numeric_limits<uint64_t>::max();
-        uint64_t componentId = invalidComponentId;
-
-        // The phase assigned to this vertex (bubble)
-        // It is only meaningful within each connected component.
-        static const uint64_t invalidPhase = std::numeric_limits<uint64_t>::max();
-        uint64_t phase = invalidPhase;
-
-        // Layout position for display.
-        array<double, 2> position;
-
-        bool isBad = false;
-
-
-    };
-
-
-
-    class BubbleGraphEdge {
-    public:
-        // Store the number of common oriented reads for each pair of
-        // branches in the two bubbles.
-        // matrix[sideA][sideB] stores the number of OrientedReadIds
-        // that appear on sideA of the "first" bubble and on
-        // sideB of the "second" bubble of this edge.
-        // The "first" bubble of the edge is the lowered numbered.
-        array<array<uint64_t, 2>, 2> matrix;
-        BubbleGraphEdge()
-        {
-            for(uint64_t i=0; i<2; i++) {
-                for(uint64_t j=0; j<2; j++) {
-                    matrix[i][j] = 0;
-                }
-            }
-        }
-
-        uint64_t diagonalCount() const
-        {
-            return matrix[0][0] + matrix[1][1];
-        }
-        uint64_t offDiagonalCount() const
-        {
-            return matrix[0][1] + matrix[1][0];
-        }
-        uint64_t totalCount() const
-        {
-            return diagonalCount() + offDiagonalCount();
-        }
-        uint64_t concordantCount() const
-        {
-            return max(diagonalCount(), offDiagonalCount());
-        }
-        uint64_t discordantCount() const
-        {
-            return min(diagonalCount(), offDiagonalCount());
-        }
-
-        // Ambiguity of the edge is 0 if discordantCount() is 0
-        // and 1 if discordantCount() = totalCount()/2, in which case
-        // discordantCount() = concordantCount();
-        double ambiguity() const
-        {
-            return double(2 * discordantCount()) / double(totalCount());
-        }
-
-        int64_t delta() const
-        {
-            const int64_t d = int64_t(concordantCount()) - int64_t(discordantCount());
-            SHASTA_ASSERT(d >= 0);
-            return d;
-        }
-
-        // Return the relative phase implied by this edge, which is
-        // +1 if offdiagonalCount() is 0 and
-        // -1 if diagonalCount() is 0.
-        double relativePhase() const
-        {
-            const double diagonalRatio = double(diagonalCount()) / double(totalCount());
-            return 2. * diagonalRatio - 1.;
-        }
-
-        // Fisher test for randomness of the frequency matrix of this edge.
-        // Returns log(P) in decibels (dB). High is good.
-        double logFisher = 0.;
-
-        bool isTreeEdge = false;
-
-    };
-
-
-
-    // Bubble graph.
-    // It is an undirected graph where each vertex represents a bubble.
-    using BubbleGraphBaseClass =
-        boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
-        BubbleGraphVertex, BubbleGraphEdge>;
-
-    class BubbleGraph:
-        public BubbleGraphBaseClass,
-        public MultithreadedObject<BubbleGraph> {
-    public:
-        BubbleGraph() : MultithreadedObject<BubbleGraph>(*this) {}
-
-        // A table that, for each OrientedReadId, contains a list of
-        // pairs(vertex, side) that the OrientedReadId appears on.
-        // Indexed by OrientedReadId::getValue().
-        vector< vector< pair<BubbleGraph::vertex_descriptor, uint64_t> > > orientedReadsTable;
-
-        // A more dynamic version of the orientedReadsTable.
-        // For each OrientedReadId, it contains the bubble graph vertices
-        // that contain it. It does not keep track of sides.
-        vector< std::set< pair<BubbleGraph::vertex_descriptor, uint64_t> > > dynamicOrientedReadsTable;
-
-        vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
-
-    };
-
-
-
     // Iteratively remove bad bubbles using the PhasingGraph.
     void removeBadBubblesIterative(
         uint64_t minConcordantReadCount,
@@ -892,10 +759,10 @@ private:
             uint64_t maxDiscordantReadCount;
             double minLogP;
             bool allowRandomHypothesis;
-            vector<BubbleGraph::vertex_descriptor> allVertices;
+            vector<PhasingGraph::vertex_descriptor> allVertices;
             class EdgeData {
             public:
-                BubbleGraph::vertex_descriptor vB;
+                PhasingGraph::vertex_descriptor vB;
                 uint64_t sideA;
                 uint64_t sideB;
                 bool operator<(const EdgeData& that) const
