@@ -595,18 +595,11 @@ private:
     public:
         AssemblyGraph2::edge_descriptor e;
         uint64_t id;    // The same as the id of the AssemblyGraph2Edge.
-        BubbleGraphVertex(
-            AssemblyGraph2::edge_descriptor,
-            const AssemblyGraph2Edge&);
-        BubbleGraphVertex() {}
 
         // The vertex stores OrientedReadIds that appear on one side but not
         // on the opposite side of the bubble.
         // Stored as pairs (OrientedReadId, side).
         vector< pair<OrientedReadId, uint64_t> > orientedReadIds;
-
-        // Return the number of oriented reads on each side.
-        array<uint64_t, 2> countOrientedReads() const;
 
         // The connected component this vertex belongs to.
         static const uint64_t invalidComponentId = std::numeric_limits<uint64_t>::max();
@@ -722,66 +715,8 @@ private:
         // that contain it. It does not keep track of sides.
         vector< std::set< pair<BubbleGraph::vertex_descriptor, uint64_t> > > dynamicOrientedReadsTable;
 
-        // Use the dynamic oriented reads table to create edges
-        // for a newly added vertex.
-        void createNewEdges(BubbleGraph::vertex_descriptor, uint64_t phasingMinReadCount);
-
         vector< vector<BubbleGraph::vertex_descriptor> > connectedComponents;
 
-    };
-
-
-    // The BubbleGraph is no longer used. We use the PhasingGraph instead.
-    BubbleGraph bubbleGraph;
-
-
-
-    // A predicate used to filter BubbleGraph edges for which
-    // relativePhase() >= minRelativePhase.
-    // This is only used for html output of the BubbleGraph.
-    class BubbleGraphEdgePredicate1 {
-    public:
-        BubbleGraphEdgePredicate1(
-            const BubbleGraph& bubbleGraph,
-            double minRelativePhase) :
-            bubbleGraph(&bubbleGraph),
-            minRelativePhase(minRelativePhase) {}
-
-        const BubbleGraph* bubbleGraph;
-        double minRelativePhase;
-
-        bool operator() (const BubbleGraph::edge_descriptor e) const
-        {
-            return (*bubbleGraph)[e].relativePhase() >= minRelativePhase;
-        }
-    };
-
-
-
-    // A predicate used to filter BubbleGraph spanning tree edges
-    // and edges for which relativePhase() >= minRelativePhase.
-    // This is only used for graphviz output of each connectec component, post-phasing.
-    class BubbleGraphEdgePredicate2 {
-    public:
-        BubbleGraphEdgePredicate2(
-            const BubbleGraph& bubbleGraph,
-            double minRelativePhase,
-            const std::set<BubbleGraph::edge_descriptor>& treeEdges) :
-            bubbleGraph(&bubbleGraph),
-            minRelativePhase(minRelativePhase),
-            treeEdges(&treeEdges) {}
-
-        const BubbleGraph* bubbleGraph;
-        double minRelativePhase;
-        const std::set<BubbleGraph::edge_descriptor>* treeEdges;
-
-        bool operator() (const BubbleGraph::edge_descriptor e) const
-        {
-            return
-                (*bubbleGraph)[e].relativePhase() >= minRelativePhase
-                or
-                treeEdges->find(e) != treeEdges->end();
-        }
     };
 
 
