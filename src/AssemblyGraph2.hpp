@@ -324,9 +324,6 @@ private:
     // Prune leafs in which all branches are shorter than the specified length.
     void prune(uint64_t pruneLength);
 
-    // Remove secondary edges making sure to not introduce any dead ends.
-    void cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshold);
-
 
 
     // Superbubble removal.
@@ -445,11 +442,6 @@ private:
     void removeWeakBranches(uint64_t strongBranchThreshold);
 
     void forceMaximumPloidy(uint64_t maxPloidy);
-
-    // Find/remove bubbles caused by copy number changes in repeats
-    // with period up to maxPeriod.
-    void findCopyNumberBubbles(uint64_t maxPeriod);
-    void removeCopyNumberBubbles();
 
     // Remove bubbles marked isBad during phasing.
     // Only keep the strongest branch for each.

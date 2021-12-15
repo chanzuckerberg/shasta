@@ -70,14 +70,6 @@ AssemblyGraph2::AssemblyGraph2(
     const bool debug = false;
     performanceLog << timestamp << "AssemblyGraph2 constructor begins." << endl;
 
-#if 0
-    // Length threshold (in markers) for cleanupSecondaryEdges
-    // and removeSecondaryBubbles. Assembly graph edges
-    // longer than this are excluded from removal.
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t secondaryEdgeCleanupThreshold = 6;
-#endif
-
     // Threshold that defines a strong branch.
     // A branch if strong if it is supported by at least this number of
     // distinct oriented reads.
@@ -96,15 +88,6 @@ AssemblyGraph2::AssemblyGraph2(
     if(debug) {
         writeDetailedEarly("0");
     }
-
-#if 0
-    // Remove secondary edges, making sure to not introduce any dead ends.
-    cleanupSecondaryEdges(secondaryEdgeCleanupThreshold);
-    merge(false, false);
-    if(debug) {
-        writeDetailedEarly("1");
-    }
-#endif
 
     // Gather parallel edges into bubbles.
     removeShortLoopbackEdges(superbubbleRemovalEdgeLengthThreshold);
@@ -1026,75 +1009,6 @@ void AssemblyGraph2::create()
 
 
 
-// Remove secondary edges making sure to not introduce any dead ends.
-// This must be called early, when there are no bubbles.
-void AssemblyGraph2::cleanupSecondaryEdges(uint64_t secondaryEdgeCleanupThreshold)
-{
-    G& g = *this;
-
-    // Create a table of secondary edges.
-    // For each edge also store the minimum secondary coverage,
-    // that is, the minimum edge coverage of all secondary marker graph edges
-    // that correspond to the edge.
-    vector< pair<edge_descriptor, uint64_t> > edgeTable;
-    BGL_FORALL_EDGES(e, g, G) {
-        const E& edge = g[e];
-
-        // This must be called early, when there are no bubbles.
-        // Each edge has a single branch.
-        SHASTA_ASSERT(not edge.isBubble());
-        SHASTA_ASSERT(edge.branches.size() == 1);
-        const E::Branch& branch = edge.branches.front();
-
-        // If the branch does not contain secondary edges, skip it.
-        if(not branch.containsSecondaryEdges) {
-            continue;
-        }
-
-        // If the branch is long, skip it.
-        if(branch.path.size() > secondaryEdgeCleanupThreshold) {
-            continue;
-        }
-
-        // Find minimum edge coverage for secondary edges of this branch.
-        uint64_t minimumSecondaryCoverage = std::numeric_limits<uint64_t>::max();
-        for(const MarkerGraphEdgeId mId: branch.path) {
-            const MarkerGraph::Edge& mEdge = markerGraph.edges[mId];
-            if(mEdge.isSecondary) {
-                minimumSecondaryCoverage = min(minimumSecondaryCoverage, uint64_t(mEdge.coverage));
-            }
-        }
-        SHASTA_ASSERT(minimumSecondaryCoverage != std::numeric_limits<uint64_t>::max());
-        edgeTable.push_back(make_pair(e, minimumSecondaryCoverage));
-    }
-
-    // Sort the edge table by increasing coverage.
-    sort(edgeTable.begin(), edgeTable.end(),
-        OrderPairsBySecondOnly<edge_descriptor, uint64_t>());
-
-
-
-    // Process the edges in this order.
-    // Remove an edge if removal does not create a dead end.
-    uint64_t removedCount = 0;
-    for(const auto& p: edgeTable) {
-        const edge_descriptor e = p.first;
-        const vertex_descriptor v0 = source(e, g);
-        if(out_degree(v0, g) == 1) {
-            continue;
-        }
-        const vertex_descriptor v1 = target(e, g);
-        if(in_degree(v1, g) == 1) {
-            continue;
-        }
-        boost::remove_edge(e, g);
-        ++removedCount;
-    }
-    cout << "Removed " << removedCount << " secondary edges." << endl;
-}
-
-
-
 // Prune leaves in which all branches are shorter than the specified length.
 #if 0
 void AssemblyGraph2::prune(uint64_t pruneLength)
@@ -1615,65 +1529,6 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::createBubble(
     }
 
     return eNew;
-}
-
-
-
-// Find bubbles caused by copy number changes in repeats
-// with period up to maxPeriod.
-void AssemblyGraph2::findCopyNumberBubbles(uint64_t maxPeriod)
-{
-    cout << timestamp << "findCopyNumberBubbles begins." << endl;
-    G& g = *this;
-
-    uint64_t totalCount = 0;
-    uint64_t bubbleCount = 0;
-    uint64_t copyNumberCount = 0;
-    BGL_FORALL_EDGES(e, g, G) {
-        E& edge = g[e];
-        ++totalCount;
-        if(not edge.isBubble()) {
-            continue;
-        }
-        ++bubbleCount;
-        edge.computeCopyNumberDifferencePeriod(maxPeriod);
-        if(edge.period == 0) {
-            continue;
-        }
-        ++copyNumberCount;
-        /*
-        cout << "Bubble " << edge.id << " of ploidy " << edge.ploidy() <<
-            " is a copy number bubble with period " << period << endl;
-        */
-    }
-    cout << "Total number of assembly graph edges " << totalCount << endl;
-    cout << "Number of bubbles " << bubbleCount << endl;
-    cout << "Number of copy number bubbles " << copyNumberCount << endl;
-
-    cout << timestamp << "findCopyNumberBubbles ends." << endl;
-}
-
-
-
-// Remove bubbles caused by copy number changes.
-void AssemblyGraph2::removeCopyNumberBubbles()
-{
-    G& g = *this;
-
-    uint64_t totalCount = 0;
-    uint64_t removedCount = 0;
-    BGL_FORALL_EDGES(e, g, G) {
-        ++totalCount;
-        E& edge = g[e];
-        if(edge.period != 0) {
-            edge.removeAllBranchesExceptStrongest();
-            ++removedCount;
-        }
-    }
-    cout << "Cleaned up " << removedCount <<
-        " bubbles caused by repeat counts out of " <<
-        totalCount << " total." << endl;
-
 }
 
 
