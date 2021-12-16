@@ -80,6 +80,9 @@ AssemblyGraph2::AssemblyGraph2(
     const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
     const double minLogPForBubbleRemoval = 30.;
 
+    // Parameters for superbubble removal.
+    const uint64_t maxSuperbubbleSize = 50;
+
     // Parameters for phasing.
     const uint64_t minConcordantReadCountForPhasing = 2;
     const uint64_t maxDiscordantReadCountForPhasing = 1;
@@ -102,9 +105,9 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
 
     // Handle superbubbles.
-    handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold);
+    handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold, maxSuperbubbleSize);
     merge(false, false);
-    handleSuperbubbles1();
+    handleSuperbubbles1(maxSuperbubbleSize);
     merge(false, false);
 
     // Store the reads supporting each branch of each edge.
@@ -131,6 +134,7 @@ AssemblyGraph2::AssemblyGraph2(
         minLogPForBubbleRemoval,
         epsilon,
         superbubbleRemovalEdgeLengthThreshold,
+        maxSuperbubbleSize,
         pruneLength,
         threadCount);
     hierarchicalPhase(
@@ -674,8 +678,6 @@ void AssemblyGraph2::writeEdgeDetailsCsv(const string& fileName) const
 
 
 
-
-
 // Assemble sequence for every marker graph path of every edge.
 void AssemblyGraph2::assemble()
 {
@@ -692,6 +694,7 @@ void AssemblyGraph2::assemble()
 
     performanceLog << timestamp << "AssemblyGraph2::assemble ends." << endl;
 }
+
 
 
 // Assemble sequence for every marker graph path of every edge. Multithreaded version.
@@ -731,6 +734,7 @@ void AssemblyGraph2::assembleThreadFunction(size_t threadId)
         }
     }
 }
+
 
 
 // Assemble sequence for every marker graph path of a given edge.
@@ -2021,6 +2025,7 @@ uint64_t AssemblyGraph2Edge::getStrongestBranchId() const
 
 
 
+// This is currently not used.
 void AssemblyGraph2::removeSecondaryBubbles(uint64_t secondaryEdgeCleanupThreshold)
 {
     G& g = *this;
@@ -2911,7 +2916,9 @@ void AssemblyGraph2::writeBubbleChains()
 
 
 
-void AssemblyGraph2::handleSuperbubbles0(uint64_t edgeLengthThreshold)
+void AssemblyGraph2::handleSuperbubbles0(
+    uint64_t edgeLengthThreshold,
+    uint64_t maxSuperbubbleSize)
 {
     G& g = *this;
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 begins." << endl;
@@ -2962,7 +2969,7 @@ void AssemblyGraph2::handleSuperbubbles0(uint64_t edgeLengthThreshold)
         Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
         // Process it.
-        handleSuperbubble1(superbubble);
+        handleSuperbubble1(superbubble, maxSuperbubbleSize);
     }
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 ends." << endl;
 }
@@ -2970,7 +2977,7 @@ void AssemblyGraph2::handleSuperbubbles0(uint64_t edgeLengthThreshold)
 
 
 // This creates superbubbles using all edges not in bubble chains.
-void AssemblyGraph2::handleSuperbubbles1()
+void AssemblyGraph2::handleSuperbubbles1(uint64_t maxSuperbubbleSize)
 {
     G& g = *this;
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles1 begins." << endl;
@@ -3023,7 +3030,7 @@ void AssemblyGraph2::handleSuperbubbles1()
         // superbubble.writeGraphviz(cout, g);
 
         // Process it.
-        handleSuperbubble1(superbubble);
+        handleSuperbubble1(superbubble, maxSuperbubbleSize);
     }
 
     clearBubbleChains();
@@ -3032,109 +3039,9 @@ void AssemblyGraph2::handleSuperbubbles1()
 
 
 
-// This does path enumeration on the entire superbubble.
-// It can be problematic for large superbubbles.
-void AssemblyGraph2::handleSuperbubble0(Superbubble& superbubble)
-{
-    G& g = *this;
-    const bool debug = true;
-
-    // If there are no edges, don't do anything.
-    if(num_edges(superbubble) == 0) {
-        return;
-    }
-
-    // If just a simple linear chain, don't do anything.
-    if(superbubble.isSimpleLinearChain()) {
-        return;
-    }
-
-    if(debug) {
-        cout << "Processing a non-trivial superbubble with " <<
-            superbubble.entrances.size() << " entrances, " <<
-            superbubble.exits.size() << " exits, " <<
-            num_vertices(superbubble) << " vertices, and " << num_edges(superbubble) << " edges:\n";
-        superbubble.writeGraphviz(cout, g);
-    }
-
-
-
-    // Ignore superbubbles that don't have exactly one entrance and one exit.
-    if((superbubble.entrances.size() != 1) or (superbubble.exits.size() != 1)) {
-        cout << "Superbubble ignored because does not have exactly one entrance and one exit." << endl;
-        return;
-    }
-
-    // Enumerate paths from the entrance to the exit.
-    superbubble.enumeratePaths();
-
-    if(debug) {
-        cout << "Found " << superbubble.paths.size() << " paths:" << endl;
-        for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
-            for(const Superbubble::edge_descriptor se: path) {
-                const SuperbubbleEdge& sEdge = superbubble[se];
-                const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-                const uint64_t branchId = sEdge.branchId;
-                cout << " " << g[ae].pathId(branchId);
-            }
-            cout << endl;
-        }
-    }
-
-
-
-    // Create a new edge and add a branch for each path.
-    const AssemblyGraph2::vertex_descriptor v0 = superbubble[superbubble.entrances.front()].av;
-    const AssemblyGraph2::vertex_descriptor v1 = superbubble[superbubble.exits.front()].av;
-    AssemblyGraph2::edge_descriptor eNew;
-    bool edgeWasAdded = false;
-    tie(eNew, edgeWasAdded)= add_edge(v0, v1, E(nextId++), g);
-    SHASTA_ASSERT(edgeWasAdded);
-    E& newEdge = g[eNew];
-
-    for(const vector<Superbubble::edge_descriptor>& path: superbubble.paths) {
-
-        // Construct the marker graph path.
-        MarkerGraphPath markerGraphPath;
-        bool containsSecondaryEdges = false;
-        for(const Superbubble::edge_descriptor se: path) {
-            const SuperbubbleEdge sEdge = superbubble[se];
-            const AssemblyGraph2::edge_descriptor ae = sEdge.ae;
-            const uint64_t branchId = sEdge.branchId;
-            const E& edge = g[ae];
-            const E::Branch& branch = edge.branches[branchId];
-            copy(branch.path.begin(), branch.path.end(), back_inserter(markerGraphPath));
-            if(branch.containsSecondaryEdges) {
-                containsSecondaryEdges = true;
-            }
-        }
-
-        // Add the branch.
-        newEdge.branches.push_back(E::Branch(markerGraphPath, containsSecondaryEdges));
-    }
-
-    // Now remove all the edges internal to the superbubble.
-    BGL_FORALL_EDGES(se, superbubble, Superbubble) {
-        const SuperbubbleEdge& sEdge = superbubble[se];
-        if(sEdge.branchId == 0) {
-            boost::remove_edge(sEdge.ae, g);
-        }
-    }
-
-    // Also remove any vertices that have been left isolated.
-    BGL_FORALL_VERTICES(sv, superbubble, Superbubble) {
-        AssemblyGraph2::vertex_descriptor av = superbubble[sv].av;
-        if(in_degree(av, g)==0 and out_degree(av, g)==0) {
-            remove_vertex(av, g);
-        }
-    }
-}
-
-
-
 /*******************************************************************************
 
-Better version that avoids enumerating paths over the entire superbubble.
+Version of superbubble removal that avoids enumerating paths over the entire superbubble.
 
 For a superbubble with exactly one entrance and one exit, this uses
 a dominator tree to divide the superbubble in chunks, and then
@@ -3187,7 +3094,9 @@ one exit is processed as follows:
 
 *******************************************************************************/
 
-void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
+void AssemblyGraph2::handleSuperbubble1(
+    Superbubble& superbubble,
+    uint64_t maxSuperbubbleSize)
 {
     G& g = *this;
     const bool debug = false;
@@ -3222,7 +3131,7 @@ void AssemblyGraph2::handleSuperbubble1(Superbubble& superbubble)
 
 
     // If the superbubble is too big, ignore it.
-    if(num_vertices(superbubble) > 50) {    // ********** EXPOSE?
+    if(num_vertices(superbubble) > maxSuperbubbleSize) {
         if(debug) {
             cout << "Superbubble ignored because it is too big." << endl;
         }
@@ -4150,6 +4059,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     double minLogP,
     double epsilon,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
+    uint64_t maxSuperbubbleSize,
     uint64_t pruneLength,
     size_t threadCount)
 {
@@ -4271,9 +4181,9 @@ void AssemblyGraph2::removeBadBubblesIterative(
         forceMaximumPloidy(2);
 
         // Handle superbubbles that may have appeared as a result of removing bubbles.
-        handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold);
+        handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold, maxSuperbubbleSize);
         merge(false, false);
-        handleSuperbubbles1();
+        handleSuperbubbles1(maxSuperbubbleSize);
         merge(false, false);
         prune(pruneLength);
 

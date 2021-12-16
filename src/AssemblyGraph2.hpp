@@ -331,21 +331,21 @@ private:
     // Superbubble removal.
 
     // This creates superbubbles using edges shorter than a length threshold (in markers).
-    void handleSuperbubbles0(uint64_t edgeLengthThreshold);
+    void handleSuperbubbles0(
+        uint64_t edgeLengthThreshold,
+        uint64_t maxSuperbubbleSize);
 
     // This creates superbubbles using all edges not in bubble chains.
-    void handleSuperbubbles1();
+    void handleSuperbubbles1(uint64_t maxSuperbubbleSize);
 
     class Superbubble;
-
-    // This does path enumeration on the entire superbubble.
-    // It can be problematic for large superbubbles.
-    void handleSuperbubble0(Superbubble&);
 
     // This uses a dominator tree to find choking points
     // and partition the superbubble into chunks,
     // then does path enumeration on individual chunks.
-    void handleSuperbubble1(Superbubble&);
+    void handleSuperbubble1(
+        Superbubble&,
+        uint64_t maxSuperbubbleSize);
 
 
 
@@ -597,6 +597,7 @@ private:
         double minLogP,
         double epsilon,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
+        uint64_t maxSuperbubbleSize,
         uint64_t pruneLength,
         size_t threadCount);
 
