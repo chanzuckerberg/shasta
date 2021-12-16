@@ -60,16 +60,35 @@ AssemblyGraph2::AssemblyGraph2(
     markerGraph(markerGraph)
 {
 
-    const bool debug = false;
-    performanceLog << timestamp << "AssemblyGraph2 constructor begins." << endl;
+
+
+    // ************ CONSTANTS TO BE EXPOSED AS COMMAND LINE OPTIONS.
+
+    // Epsilon for Bayesian model used for phasing
+    // (probability that a read appears on the wrong branch).
+    const double epsilon = 0.1;
 
     // Threshold that defines a strong branch.
-    // A branch if strong if it is supported by at least this number of
+    // A branch is strong if it is supported by at least this number of
     // distinct oriented reads.
     // Weak branches are subject to removal by removeWeakBranches
     // (but at least one branch in each bubble will always be kept).
-    // EXPOSE WHEN CODE STABILIZES.
     const uint64_t strongBranchThreshold = 2;
+
+    // Parameters for bubble removal.
+    const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
+    const double minLogPForBubbleRemoval = 30.;
+
+    // Parameters for phasing.
+    const uint64_t minConcordantReadCountForPhasing = 2;
+    const uint64_t maxDiscordantReadCountForPhasing = 1;
+    const double minLogPForPhasing = 10.;
+
+
+
+    const bool debug = false;
+    performanceLog << timestamp << "AssemblyGraph2 constructor begins." << endl;
+
 
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
@@ -125,25 +144,20 @@ AssemblyGraph2::AssemblyGraph2(
 
 
     // Use the PhasingGraph to iteratively remove bad bubbles, then to phase.
-    // EXPOSE THE CONSTANTS BELOW WHEN CODE STABILIZES.
     const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;
-    const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
-    const double minLogPForBubbleRemoval = 30.;
     removeBadBubblesIterative(
         minConcordantReadCountForBubbleRemoval,
         maxDiscordantReadCountForBubbleRemoval,
         minLogPForBubbleRemoval,
+        epsilon,
         superbubbleRemovalEdgeLengthThreshold,
         pruneLength,
         threadCount);
-    // EXPOSE THE CONSTANTS BELOW WHEN CODE STABILIZES.
-    const uint64_t minConcordantReadCountForPhasing = 2;
-    const uint64_t maxDiscordantReadCountForPhasing = 1;
-    const double minLogPForPhasing = 10.;
     hierarchicalPhase(
         minConcordantReadCountForPhasing,
         maxDiscordantReadCountForPhasing,
         minLogPForPhasing,
+        epsilon,
         threadCount);
 
     // Final pruning.
@@ -4157,6 +4171,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     uint64_t minConcordantReadCount,
     uint64_t maxDiscordantReadCount,
     double minLogP,
+    double epsilon,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t pruneLength,
     size_t threadCount)
@@ -4186,7 +4201,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
         const bool allowRandomHypothesis = true;
         PhasingGraph phasingGraph(
             g,
-            minConcordantReadCount, maxDiscordantReadCount, minLogP,
+            minConcordantReadCount, maxDiscordantReadCount, minLogP, epsilon,
             threadCount, allowRandomHypothesis);
         cout << "The number of diploid bubbles before this iteration is " << num_vertices(phasingGraph) << endl;
 
@@ -4297,6 +4312,7 @@ void AssemblyGraph2::hierarchicalPhase(
     uint64_t minConcordantReadCount,
     uint64_t maxDiscordantReadCount,
     double minLogP,
+    double epsilon,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::hierarchicalPhase begins." << endl;
@@ -4324,7 +4340,7 @@ void AssemblyGraph2::hierarchicalPhase(
         // Create the PhasingGraph.
         const bool allowRandomHypothesis = false;
         PhasingGraph phasingGraph(
-            g, minConcordantReadCount, maxDiscordantReadCount, minLogP,
+            g, minConcordantReadCount, maxDiscordantReadCount, minLogP, epsilon,
             threadCount, allowRandomHypothesis);
         cout << "The phasing graph has " << num_vertices(phasingGraph) <<
             " vertices and " << num_edges(phasingGraph) << " edges." << endl;
@@ -4352,7 +4368,7 @@ void AssemblyGraph2::hierarchicalPhase(
     }
 
     // Create a final PhasinGraph with permissive criteria for edge creation.
-    PhasingGraph phasingGraph(g, 0, 100, 0., threadCount, false);
+    PhasingGraph phasingGraph(g, 0, 100, 0., epsilon, threadCount, false);
     if(true) {
         phasingGraph.writeCsv("PhasingGraph-Final", g);
         phasingGraph.writeGraphviz("PhasingGraph-Final.dot");

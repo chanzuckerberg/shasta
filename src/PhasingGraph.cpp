@@ -24,6 +24,8 @@ void PhasingGraphEdge::runBayesianModel(double epsilon, bool allowRandomHypothes
     tie(logPin, logPout) = diploidBayesianPhase(matrix, epsilon);
 
     if(allowRandomHypothesis) {
+
+        // Used for bubble removal.
         if(logPin >= logPout) {
             relativePhase = 0;
             logP = min(logPin-logPout, logPin);
@@ -31,13 +33,17 @@ void PhasingGraphEdge::runBayesianModel(double epsilon, bool allowRandomHypothes
             relativePhase = 1;
             logP = min(logPout-logPin, logPout);
         }
+
     } else {
+
+        // Used for phasing.
         logP = std::abs(logPin - logPout);
         if(logPin >= logPout) {
             relativePhase = 0;
         } else {
             relativePhase = 1;
         }
+
     }
 }
 
@@ -48,13 +54,16 @@ PhasingGraph::PhasingGraph(
     uint64_t minConcordantReadCount,
     uint64_t maxDiscordantReadCount,
     double minLogP,
+    double epsilon,
     size_t threadCount,
     bool allowRandomHypothesis) :
     MultithreadedObject<PhasingGraph>(*this)
 {
     createVertices(assemblyGraph2);
     createOrientedReadsTable(assemblyGraph2.getReadCount());
-    createEdges(minConcordantReadCount, maxDiscordantReadCount, minLogP, threadCount, allowRandomHypothesis);
+    createEdges(
+        minConcordantReadCount, maxDiscordantReadCount,
+        minLogP, epsilon, threadCount, allowRandomHypothesis);
 }
 
 
@@ -164,6 +173,80 @@ void PhasingGraph::createVertices(const AssemblyGraph2& assemblyGraph2)
 
 
 
+void PhasingGraph::createEdges(
+    uint64_t minConcordantReadCount,
+    uint64_t maxDiscordantReadCount,
+    double minLogP,
+    double epsilon,
+    size_t threadCount,
+    bool allowRandomHypothesis)
+{
+    performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges begins." << endl;
+    PhasingGraph& phasingGraph = *this;
+
+    // Create a vector of all vertices, to be processed
+    // one by one in parallel.
+    createEdgesData.allVertices.clear();
+    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
+        createEdgesData.allVertices.push_back(v);
+    }
+
+    // Store the parameters so all threads can see them.
+    createEdgesData.minConcordantReadCount = minConcordantReadCount;
+    createEdgesData.maxDiscordantReadCount = maxDiscordantReadCount;
+    createEdgesData.minLogP = minLogP;
+    createEdgesData.epsilon = epsilon;
+    createEdgesData.allowRandomHypothesis = allowRandomHypothesis;
+
+    // Process all vertices in parallel.
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(createEdgesData.allVertices.size(), batchSize);
+    runThreads(&PhasingGraph::createEdgesThreadFunction, threadCount);
+
+    performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges ends." << endl;
+}
+
+
+
+void PhasingGraph::createEdgesThreadFunction(size_t threadId)
+{
+    PhasingGraph& phasingGraph = *this;
+
+    const uint64_t minConcordantReadCount = createEdgesData.minConcordantReadCount;
+    const uint64_t maxDiscordantReadCount = createEdgesData.maxDiscordantReadCount;
+    const double minLogP = createEdgesData.minLogP;
+    const double epsilon = createEdgesData.epsilon;
+    const bool allowRandomHypothesis = createEdgesData.allowRandomHypothesis;
+    vector<CreateEdgesData::EdgeData> edgeData;
+
+    // Temporary storage of the edges found by this thread.
+    vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> > threadEdges;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all vertices assigned to this batch.
+        for(uint64_t i=begin; i!=end; ++i) {
+            createEdges(createEdgesData.allVertices[i],
+                minConcordantReadCount,
+                maxDiscordantReadCount,
+                minLogP, epsilon, edgeData, threadEdges,
+                allowRandomHypothesis);
+        }
+    }
+
+    std::lock_guard<std::mutex> lock(mutex);
+    for(const auto& t: threadEdges) {
+        const vertex_descriptor v0 = get<0>(t);
+        const vertex_descriptor v1 = get<1>(t);
+        const PhasingGraphEdge&  edge = get<2>(t);
+        add_edge(v0, v1, edge, phasingGraph);
+    }
+}
+
+
+
 // Create edges between vertex vA and vertices vB with id greater
 // that the id of vA.
 void PhasingGraph::createEdges(
@@ -171,6 +254,7 @@ void PhasingGraph::createEdges(
     uint64_t minConcordantReadCount,
     uint64_t maxDiscordantReadCount,
     double minLogP,
+    double epsilon,
     vector<CreateEdgesData::EdgeData>& edgeData,
     vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges,
     bool allowRandomHypothesis)
@@ -217,7 +301,7 @@ void PhasingGraph::createEdges(
             ++streakEnd;
         }
 
-        // If this streak is sufficiently long, it generates an edge.
+        // If this streak is sufficiently long, it can generate an edge.
         const uint64_t streakLength = uint64_t(streakEnd - streakBegin);
         if(streakLength >= minConcordantReadCount) {
             PhasingGraphEdge edge;
@@ -228,7 +312,6 @@ void PhasingGraph::createEdges(
             if( (edge.concordantCount() >= minConcordantReadCount) and
                 (edge.discordantCount() <= maxDiscordantReadCount)) {
 
-                const double epsilon = 0.1;     // ********** EXPOSE WHEN CODE STABILIZES
                 edge.runBayesianModel(epsilon, allowRandomHypothesis);
 
                 if(edge.logP > minLogP) {
@@ -242,76 +325,6 @@ void PhasingGraph::createEdges(
     }
 }
 
-
-
-void PhasingGraph::createEdges(
-    uint64_t minConcordantReadCount,
-    uint64_t maxDiscordantReadCount,
-    double minLogP,
-    size_t threadCount,
-    bool allowRandomHypothesis)
-{
-    performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges begins." << endl;
-    PhasingGraph& phasingGraph = *this;
-
-    // Create a vector of all vertices, to be processed
-    // one by one in parallel.
-    createEdgesData.allVertices.clear();
-    BGL_FORALL_VERTICES(v, phasingGraph, PhasingGraph) {
-        createEdgesData.allVertices.push_back(v);
-    }
-
-    // Store the parameters so all threads can see them.
-    createEdgesData.minConcordantReadCount = minConcordantReadCount;
-    createEdgesData.maxDiscordantReadCount = maxDiscordantReadCount;
-    createEdgesData.minLogP = minLogP;
-    createEdgesData.allowRandomHypothesis = allowRandomHypothesis;
-
-    // Process all vertices in parallel.
-    const uint64_t batchSize = 100;
-    setupLoadBalancing(createEdgesData.allVertices.size(), batchSize);
-    runThreads(&PhasingGraph::createEdgesThreadFunction, threadCount);
-
-    performanceLog << timestamp << "AssemblyGraph2::PhasingGraph::createEdges ends." << endl;
-}
-
-
-
-void PhasingGraph::createEdgesThreadFunction(size_t threadId)
-{
-    PhasingGraph& phasingGraph = *this;
-
-    const uint64_t minConcordantReadCount = createEdgesData.minConcordantReadCount;
-    const uint64_t maxDiscordantReadCount = createEdgesData.maxDiscordantReadCount;
-    const double minLogP = createEdgesData.minLogP;
-    const bool allowRandomHypothesis = createEdgesData.allowRandomHypothesis;
-    vector<CreateEdgesData::EdgeData> edgeData;
-
-    // Temporary storage of the edges found by this thread.
-    vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> > threadEdges;
-
-    // Loop over all batches assigned to this thread.
-    uint64_t begin, end;
-    while(getNextBatch(begin, end)) {
-
-        // Loop over all vertices assigned to this batch.
-        for(uint64_t i=begin; i!=end; ++i) {
-            createEdges(createEdgesData.allVertices[i],
-                minConcordantReadCount,
-                maxDiscordantReadCount,
-                minLogP, edgeData, threadEdges,
-                allowRandomHypothesis);
-        }
-    }
-
-    std::lock_guard<std::mutex> lock(mutex);
-    for(const auto& t: threadEdges) {
-        const vertex_descriptor v0 = get<0>(t);
-        const vertex_descriptor v1 = get<1>(t);
-        const PhasingGraphEdge&  edge = get<2>(t);
-        add_edge(v0, v1, edge, phasingGraph);
-    }
-}
 
 
 void PhasingGraph::createOrientedReadsTable(uint64_t readCount)

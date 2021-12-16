@@ -137,10 +137,6 @@ public:
         return d;
     }
 
-    bool isInPhase() const
-    {
-        return matrix[0][0] + matrix[1][1] >= matrix[1][0] + matrix[0][1];
-    }
 };
 
 
@@ -154,6 +150,7 @@ public:
         uint64_t minConcordantReadCount,
         uint64_t maxDiscordantReadCount,
         double minLogP,
+        double epsilon,
         size_t threadCount,
         bool allowRandomHypothesis);
 
@@ -182,6 +179,7 @@ private:
         uint64_t minConcordantReadCount,
         uint64_t maxDiscordantReadCount,
         double minLogP,
+        double epsilon,
         size_t threadCount,
         bool allowRandomHypothesis);
     void createEdgesThreadFunction(size_t threadId);
@@ -190,6 +188,7 @@ private:
         uint64_t minConcordantReadCount;
         uint64_t maxDiscordantReadCount;
         double minLogP;
+        double epsilon; // For Bayesian model.
         bool allowRandomHypothesis;
         vector<PhasingGraph::vertex_descriptor> allVertices;
         class EdgeData {
@@ -209,6 +208,7 @@ private:
         uint64_t minConcordantReadCount,
         uint64_t maxDiscordantReadCount,
         double minLogP,
+        double epsilon,
         vector<CreateEdgesData::EdgeData>&,
         vector< tuple<vertex_descriptor, vertex_descriptor, PhasingGraphEdge> >& threadEdges,
         bool allowRandomHypothesis);

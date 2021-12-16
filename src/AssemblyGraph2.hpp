@@ -595,15 +595,17 @@ private:
         uint64_t minConcordantReadCount,
         uint64_t maxDiscordantReadCount,
         double minLogP,
+        double epsilon,
         uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t pruneLength,
         size_t threadCount);
 
-    // Hierarchical phasing phasing using the PhasingGraph.
+    // Hierarchical phasing using the PhasingGraph.
     void hierarchicalPhase(
         uint64_t minConcordantReadCount,
         uint64_t maxDiscordantReadCount,
-        double minLogFisher,
+        double minLogP,
+        double epsilon,
         size_t threadCount);
 
     // Renumber component to make them contiguous starting at 0.
