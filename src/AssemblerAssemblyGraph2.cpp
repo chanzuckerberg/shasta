@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "AssemblyGraph2.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace shasta;
@@ -34,7 +35,7 @@ void Assembler::createAssemblyGraph2(
         threadCount = std::thread::hardware_concurrency();
     }
 
-    cout << timestamp << "Assembler::createAssemblyGraph2 begins." << endl;
+    performanceLog << timestamp << "Assembler::createAssemblyGraph2 begins." << endl;
 
     assemblyGraph2Pointer = make_shared<AssemblyGraph2>(
         assemblerInfo->readRepresentation,
@@ -56,5 +57,5 @@ void Assembler::createAssemblyGraph2(
         threadCount
         );
 
-    cout << timestamp << "Assembler::createAssemblyGraph2 ends." << endl;
+    performanceLog << timestamp << "Assembler::createAssemblyGraph2 ends." << endl;
 }

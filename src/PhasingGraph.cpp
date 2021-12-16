@@ -384,7 +384,7 @@ void PhasingGraph::computeSpanningTree()
             ++treeEdgeCount;
         }
     }
-    cout << "Found " << treeEdgeCount << " edges of the optimal spanning tree." << endl;
+    // cout << "Found " << treeEdgeCount << " edges of the optimal spanning tree." << endl;
 
 }
 

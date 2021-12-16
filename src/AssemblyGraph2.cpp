@@ -1295,7 +1295,7 @@ void AssemblyGraph2::writeHaploid(
         }
         cout << "Total length of bubble chains " << totalLength <<
             ", N50 " << n50 << endl;
-        cout << "Total length outside of bubble chains " << totalNonBubbleChainLength << endl;
+        // cout << "Total length assembled outside of bubble chains " << totalNonBubbleChainLength << endl;
     }
 
     performanceLog << timestamp << "AssemblyGraph2::writeHaploid ends." << endl;
@@ -4086,7 +4086,6 @@ void AssemblyGraph2::removeBadBubblesIterative(
     const bool debug = false;
 
     for(uint64_t iteration=0; ; iteration++) {
-        cout << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
         performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
 
         // Assign each diploid bubble to its own component.
@@ -4107,7 +4106,8 @@ void AssemblyGraph2::removeBadBubblesIterative(
             g,
             minConcordantReadCount, maxDiscordantReadCount, minLogP, epsilon,
             threadCount, allowRandomHypothesis);
-        cout << "The number of diploid bubbles before this iteration is " << num_vertices(phasingGraph) << endl;
+        cout << "The number of diploid bubbles before iteration " <<
+            iteration << " is " << num_vertices(phasingGraph) << endl;
 
         // Compute the optimal spanning tree.
         phasingGraph.computeSpanningTree();
@@ -4187,9 +4187,12 @@ void AssemblyGraph2::removeBadBubblesIterative(
             const AssemblyGraph2::edge_descriptor e = vertex.bubbles.front().first;
             g[e].removeAllBranchesExceptStrongest();
         }
+
+        /*
         cout << "Removed " << badBubbles.size() << " bubbles." << endl;
         cout << num_vertices(phasingGraph) - badBubbles.size() <<
             " diploid bubbles are left." << endl;
+        */
 
 
         // Some new bubbles may form after we merge.
