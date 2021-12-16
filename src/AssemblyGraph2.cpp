@@ -76,6 +76,7 @@ AssemblyGraph2::AssemblyGraph2(
     const uint64_t strongBranchThreshold = 2;
 
     // Parameters for bubble removal.
+    const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;
     const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
     const double minLogPForBubbleRemoval = 30.;
 
@@ -86,49 +87,34 @@ AssemblyGraph2::AssemblyGraph2(
 
 
 
-    const bool debug = false;
     performanceLog << timestamp << "AssemblyGraph2 constructor begins." << endl;
-
 
     // Because of the way we write the GFA file (without overlaps),
     // k is required to be even.
     SHASTA_ASSERT((k % 2) == 0);
 
-    // Create the assembly graph.
+    // Create the assembly graph and do some initial simple transformations.
     create();
     prune(pruneLength);
-    if(debug) {
-        writeDetailedEarly("0");
-    }
+    removeShortLoopbackEdges(superbubbleRemovalEdgeLengthThreshold);
 
     // Gather parallel edges into bubbles.
-    removeShortLoopbackEdges(superbubbleRemovalEdgeLengthThreshold);
     gatherBubbles();
-    if(debug) {
-        writeDetailedEarly("2");
-    }
 
     // Handle superbubbles.
     handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold);
     merge(false, false);
     handleSuperbubbles1();
     merge(false, false);
-    if(debug) {
-        writeDetailedEarly("3");
-    }
 
-    // Store the reads supporting each branch of each edges.
+    // Store the reads supporting each branch of each edge.
     storeReadInformationParallel(threadCount);
 
     // Remove weak branches.
-    // removeSecondaryBubbles(secondaryEdgeCleanupThreshold); OLD
     removeWeakBranches(strongBranchThreshold);
     merge(true, false);
-    gatherBubbles();    // So we get the bubbles that appear since we last did this.
+    gatherBubbles();
     forceMaximumPloidy(2);
-    if(debug) {
-        writeDetailedEarly("4");
-    }
 
     // Assemble sequence.
     assembleParallel(threadCount);
@@ -137,14 +123,8 @@ AssemblyGraph2::AssemblyGraph2(
     removeDegenerateBranches();
     merge(true, true);
     prune(pruneLength);
-    if(debug) {
-        writeDetailedEarly("5");
-    }
-
-
 
     // Use the PhasingGraph to iteratively remove bad bubbles, then to phase.
-    const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;
     removeBadBubblesIterative(
         minConcordantReadCountForBubbleRemoval,
         maxDiscordantReadCountForBubbleRemoval,
@@ -170,8 +150,6 @@ AssemblyGraph2::AssemblyGraph2(
     findPhasingRegions();
     writePhasingRegions();
 
-
-
     // Write out what we have.
     storeGfaSequence();
     if(not suppressDetailedOutput) {
@@ -193,21 +171,20 @@ AssemblyGraph2::AssemblyGraph2(
         }
     }
 
-
-
     // Het snp statistics.
     uint64_t transitionCount, transversionCount, nonSnpCount;
     hetSnpStatistics(transitionCount, transversionCount, nonSnpCount);
     const uint64_t snpCount = transitionCount + transversionCount;
     cout <<
+        "The following SNP statistics only count SNPs that are well separated "
+        "from other heterozygous variants. \n"
         "There are " << snpCount <<
         " heterozygous SNPs (" <<
         transitionCount << " transitions, " <<
         transversionCount << " transversions).\n" <<
         "Transition/transversion ratio is " <<
         double(transitionCount) / double(transversionCount) << "\n"
-        "There are " << nonSnpCount << " small bubbles which are not snps." << endl;
-
+        "There are " << nonSnpCount << " small bubbles which are not SNPs." << endl;
 
     performanceLog << timestamp << "AssemblyGraph2 constructor ends." << endl;
 }
