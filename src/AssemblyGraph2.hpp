@@ -334,12 +334,14 @@ private:
     void handleSuperbubbles0(
         uint64_t edgeLengthThreshold,
         uint64_t maxSuperbubbleSize,
-        uint64_t maxSuperbubbleChunkSize);
+        uint64_t maxSuperbubbleChunkSize,
+        uint64_t maxSuperbubbleChunkPathCount);
 
     // This creates superbubbles using all edges not in bubble chains.
     void handleSuperbubbles1(
         uint64_t maxSuperbubbleSize,
-        uint64_t maxSuperbubbleChunkSize);
+        uint64_t maxSuperbubbleChunkSize,
+        uint64_t maxSuperbubbleChunkPathCount);
 
     class Superbubble;
 
@@ -349,7 +351,8 @@ private:
     void handleSuperbubble1(
         Superbubble&,
         uint64_t maxSuperbubbleSize,
-        uint64_t maxSuperbubbleChunkSize);
+        uint64_t maxSuperbubbleChunkSize,
+        uint64_t maxSuperbubbleChunkPathCount);
 
 
 
@@ -603,6 +606,7 @@ private:
         uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t maxSuperbubbleSize,
         uint64_t maxSuperbubbleChunkSize,
+        uint64_t maxSuperbubbleChunkPathCount,
         uint64_t pruneLength,
         size_t threadCount);
 

@@ -83,6 +83,7 @@ AssemblyGraph2::AssemblyGraph2(
     // Parameters for superbubble removal.
     const uint64_t maxSuperbubbleSize = 50;
     const uint64_t maxSuperbubbleChunkSize = 20;
+    const uint64_t maxSuperbubbleChunkPathCount = 100;
 
     // Parameters for phasing.
     const uint64_t minConcordantReadCountForPhasing = 2;
@@ -106,9 +107,11 @@ AssemblyGraph2::AssemblyGraph2(
     gatherBubbles();
 
     // Handle superbubbles.
-    handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold, maxSuperbubbleSize, maxSuperbubbleChunkSize);
+    handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold,
+        maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
     merge(false, false);
-    handleSuperbubbles1(maxSuperbubbleSize, maxSuperbubbleChunkSize);
+    handleSuperbubbles1(
+        maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
     merge(false, false);
 
     // Store the reads supporting each branch of each edge.
@@ -137,6 +140,7 @@ AssemblyGraph2::AssemblyGraph2(
         superbubbleRemovalEdgeLengthThreshold,
         maxSuperbubbleSize,
         maxSuperbubbleChunkSize,
+        maxSuperbubbleChunkPathCount,
         pruneLength,
         threadCount);
     hierarchicalPhase(
@@ -2921,7 +2925,8 @@ void AssemblyGraph2::writeBubbleChains()
 void AssemblyGraph2::handleSuperbubbles0(
     uint64_t edgeLengthThreshold,
     uint64_t maxSuperbubbleSize,
-    uint64_t maxSuperbubbleChunkSize)
+    uint64_t maxSuperbubbleChunkSize,
+    uint64_t maxSuperbubbleChunkPathCount)
 {
     G& g = *this;
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 begins." << endl;
@@ -2972,7 +2977,8 @@ void AssemblyGraph2::handleSuperbubbles0(
         Superbubble superbubble(g, componentVertices, edgeLengthThreshold);
 
         // Process it.
-        handleSuperbubble1(superbubble, maxSuperbubbleSize, maxSuperbubbleChunkSize);
+        handleSuperbubble1(superbubble,
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
     }
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 ends." << endl;
 }
@@ -2982,7 +2988,8 @@ void AssemblyGraph2::handleSuperbubbles0(
 // This creates superbubbles using all edges not in bubble chains.
 void AssemblyGraph2::handleSuperbubbles1(
     uint64_t maxSuperbubbleSize,
-    uint64_t maxSuperbubbleChunkSize)
+    uint64_t maxSuperbubbleChunkSize,
+    uint64_t maxSuperbubbleChunkPathCount)
 {
     G& g = *this;
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles1 begins." << endl;
@@ -3035,7 +3042,8 @@ void AssemblyGraph2::handleSuperbubbles1(
         // superbubble.writeGraphviz(cout, g);
 
         // Process it.
-        handleSuperbubble1(superbubble, maxSuperbubbleSize, maxSuperbubbleChunkSize);
+        handleSuperbubble1(superbubble,
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
     }
 
     clearBubbleChains();
@@ -3102,7 +3110,8 @@ one exit is processed as follows:
 void AssemblyGraph2::handleSuperbubble1(
     Superbubble& superbubble,
     uint64_t maxSuperbubbleSize,
-    uint64_t maxSuperbubbleChunkSize)
+    uint64_t maxSuperbubbleChunkSize,
+    uint64_t maxSuperbubbleChunkPathCount)
 {
     G& g = *this;
     const bool debug = false;
@@ -3322,7 +3331,7 @@ void AssemblyGraph2::handleSuperbubble1(
         superbubble.enumeratePaths(chunkEntrance, chunkExit);
 
         // If we found too many paths, ignore this chunk.
-        if(superbubble.paths.size() > 100) {    // *************** EXPOSE?
+        if(superbubble.paths.size() > maxSuperbubbleChunkPathCount) {
             if(debug) {
                 cout << "Chunk ignored because it has too many paths." << endl;
             }
@@ -4067,6 +4076,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t maxSuperbubbleSize,
     uint64_t maxSuperbubbleChunkSize,
+    uint64_t maxSuperbubbleChunkPathCount,
     uint64_t pruneLength,
     size_t threadCount)
 {
@@ -4189,9 +4199,10 @@ void AssemblyGraph2::removeBadBubblesIterative(
 
         // Handle superbubbles that may have appeared as a result of removing bubbles.
         handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold,
-            maxSuperbubbleSize, maxSuperbubbleChunkSize);
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
         merge(false, false);
-        handleSuperbubbles1(maxSuperbubbleSize, maxSuperbubbleChunkSize);
+        handleSuperbubbles1(
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
         merge(false, false);
         prune(pruneLength);
 
