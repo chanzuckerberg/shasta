@@ -79,16 +79,17 @@ AssemblyGraph2::AssemblyGraph2(
     const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;
     const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
     const double minLogPForBubbleRemoval = 30.;
-
-    // Parameters for superbubble removal.
-    const uint64_t maxSuperbubbleSize = 50;
-    const uint64_t maxSuperbubbleChunkSize = 20;
-    const uint64_t maxSuperbubbleChunkPathCount = 100;
+    uint64_t componentSizeThreshold = 10;
 
     // Parameters for phasing.
     const uint64_t minConcordantReadCountForPhasing = 2;
     const uint64_t maxDiscordantReadCountForPhasing = 1;
     const double minLogPForPhasing = 10.;
+
+    // Parameters for superbubble removal.
+    const uint64_t maxSuperbubbleSize = 50;
+    const uint64_t maxSuperbubbleChunkSize = 20;
+    const uint64_t maxSuperbubbleChunkPathCount = 100;
 
 
 
@@ -142,6 +143,7 @@ AssemblyGraph2::AssemblyGraph2(
         maxSuperbubbleChunkSize,
         maxSuperbubbleChunkPathCount,
         pruneLength,
+        componentSizeThreshold,
         threadCount);
     hierarchicalPhase(
         minConcordantReadCountForPhasing,
@@ -4078,6 +4080,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     uint64_t maxSuperbubbleChunkSize,
     uint64_t maxSuperbubbleChunkPathCount,
     uint64_t pruneLength,
+    uint64_t componentSizeThreshold,
     size_t threadCount)
 {
     performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
@@ -4165,7 +4168,6 @@ void AssemblyGraph2::removeBadBubblesIterative(
         // Right now, these are the bubbles in small connected components.
         // Later, we will add bubbles with inconsistent edges.
         vector<PhasingGraph::vertex_descriptor> badBubbles;
-        const uint64_t componentSizeThreshold = 10;    // *************** EXPOSE WHEN CODE STABILIZES
         for(const vector<PhasingGraph::vertex_descriptor>& component: components) {
             if(component.size() >= componentSizeThreshold) {
                 continue;

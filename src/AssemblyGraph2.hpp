@@ -608,6 +608,7 @@ private:
         uint64_t maxSuperbubbleChunkSize,
         uint64_t maxSuperbubbleChunkPathCount,
         uint64_t pruneLength,
+        uint64_t componentSizeThreshold,
         size_t threadCount);
 
     // Hierarchical phasing using the PhasingGraph.
