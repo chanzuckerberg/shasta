@@ -1599,16 +1599,15 @@ void shasta::main::listConfiguration(const AssemblerOptions& options)
         throw runtime_error("Specify --config with a valid configuration name.");
     }
 
-    auto it = configurationTable.find(configName);
-    if(it == configurationTable.end()) {
+    const string* configuration = getConfiguration(configName);
+    if(configuration == 0) {
         const string message = configName + " is not a valid configuration name.";
         cout << message << endl;
         listConfigurations();
         throw runtime_error(configName);
     }
 
-    const string& configuration = it->second;
-    cout << configuration << flush;
+    cout << *configuration << flush;
 }
 
 

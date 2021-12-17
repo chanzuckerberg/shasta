@@ -57,7 +57,7 @@ out.write("""
 #include "ConfigurationTable.hpp"
 
 namespace shasta {
-   const std::map<string, string> configurationTable = {
+   const std::vector< pair<string, string> > configurationTable = {
 """)
 
 # Write the configurations.

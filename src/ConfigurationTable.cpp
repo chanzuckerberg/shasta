@@ -2,7 +2,7 @@
 #include "ConfigurationTable.hpp"
 
 namespace shasta {
-   const std::map<string, string> configurationTable = {
+   const std::vector< pair<string, string> > configurationTable = {
     {"Nanopore-Dec2019", R"zzz(# This file contains Shasta options that, as of December 2019,
 # are known to work with Oxford Nanopore reads under the following 
 # circumstances:
