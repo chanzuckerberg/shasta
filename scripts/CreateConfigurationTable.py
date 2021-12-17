@@ -36,10 +36,8 @@ configurations = [
     'Nanopore-UL-Sep2020',
     'Nanopore-OldGuppy-Sep2020',
     'Nanopore-Plants-Apr2021',
-    'Nanopore-Phased-Aug2021',
     'Nanopore-Oct2021',
     'Nanopore-UL-Oct2021',
-    'Nanopore-UL-Phased-Oct2021',
     'HiFi-Oct2021',
     ]
 

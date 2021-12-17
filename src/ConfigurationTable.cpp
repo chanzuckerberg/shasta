@@ -636,60 +636,6 @@ detangleMethod = 2
 
 
 )zzz"},
-    {"Nanopore-Phased-Aug2021", R"zzz(# EXPERIMENTAL configuration file that uses assembly mode 2
-# to create a phased diploid assembly.
-
-# Suitable for Guppy 5.0.7 reads at coverage 40x to 80x. 
-
-# Same as Nanopore-Sep2020.conf, except for the following:
-# - Added options to use assembly mode 2.
-# - Removed options that are not relevant for assembly mode 2.
-# - Bayesian consensus caller for Guppy 5.0.7.
-
-
-
-[Reads]
-minReadLength = 10000
-noCache = True
-
-[Kmers]
-k = 14
-
-[MinHash]
-minBucketSize = 5
-maxBucketSize = 30
-minFrequency = 5
-
-[Align]
-alignMethod = 3
-downsamplingFactor = 0.05
-matchScore = 6
-sameChannelReadAlignment.suppressDeltaThreshold = 30
-
-# Permissive alignment criteria as required for read graph creation method 2.
-maxSkip = 100
-maxDrift = 100
-maxTrim = 100
-minAlignedMarkerCount = 10
-minAlignedFraction = 0.1
-
-[ReadGraph]
-creationMethod = 2
-strandSeparationMethod = 2
-
-[MarkerGraph]
-minCoverage = 6
-minCoveragePerStrand = 1
-minEdgeCoverage = 6
-minEdgeCoveragePerStrand = 1
-
-[Assembly]
-mode = 2
-consensusCaller = Bayesian:guppy-5.0.7-a
-
-
-
-)zzz"},
     {"Nanopore-Oct2021", R"zzz(# This is known to work at least under the following conditions:
 # - Oxford Nanopore reads.
 # - Guppy 5 base caller.
@@ -791,55 +737,6 @@ minCoverage = 0
 [Assembly]
 consensusCaller = Bayesian:guppy-5.0.7-a
 detangleMethod = 2
-
-
-)zzz"},
-    {"Nanopore-UL-Phased-Oct2021", R"zzz(# EXPERIMENTAL configuration file that uses assembly mode 2
-# to create a phased diploid assembly.
-
-# Tested with Guppy 5.0.7 Ultra-Long (ULT) reads at coverage around 60x. 
-
-
-
-[Reads]
-minReadLength = 35000
-noCache = True
-
-[Kmers]
-k = 14
-
-[MinHash]
-minBucketSize = 10
-maxBucketSize = 60
-minFrequency = 5
-
-[Align]
-alignMethod = 3
-downsamplingFactor = 0.05
-matchScore = 6
-minAlignedMarkerCount = 400
-minAlignedFraction = 0.6
-maxDrift = 20
-maxSkip = 50
-maxTrim = 50
-sameChannelReadAlignment.suppressDeltaThreshold = 30
-
-[ReadGraph]
-creationMethod = 0
-maxAlignmentCount = 12 
-strandSeparationMethod = 2
-
-[MarkerGraph]
-minCoverage = 8
-minCoveragePerStrand = 1
-minEdgeCoverage = 8
-minEdgeCoveragePerStrand = 1
-
-[Assembly]
-mode = 2
-consensusCaller = Bayesian:guppy-5.0.7-a
-phasing.minReadCount = 2
-
 
 
 )zzz"},
