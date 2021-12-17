@@ -596,13 +596,13 @@ Vertices with lower coverage on either strand are not generated.
 <td><code>--MarkerGraph.minEdgeCoverage</code><td class=centered><code>6</code><td>
 Minimum edge coverage (number of supporting oriented reads)
 for a marker graph edge to be created.
-Experimental. Only used with <code>--Assembly.mode 1</code> and <code>2</code>.
+Only used with <code>--Assembly.mode 2</code>.
 
 <tr id='MarkerGraph.minEdgeCoveragePerStrand'>
 <td><code>--MarkerGraph.minEdgeCoveragePerStrand</code><td class=centered><code>2</code><td>
 Minimum edge coverage (number of supporting oriented reads)
 on each strand for a marker graph edge to be created.
-Experimental. Only used with <code>--Assembly.mode 1</code> and <code>2</code>.
+Experimental. Only used with <code>--Assembly.mode 2</code>.
 
 <tr id='MarkerGraph.allowDuplicateMarkers'>
 <td><code>--MarkerGraph.allowDuplicateMarkers</code><td class=centered><code>False</code><td>
@@ -705,7 +705,7 @@ Used in the automatic selection of
 <tr id='Assembly.mode'>
 <td><code>--Assembly.mode</code>
 <td class=centered><code>0</code><td>
-Assembly mode (0=default, 1 or 2=experimental).
+Assembly mode (0 = haploid assembly, 2 = phased diploid assembly).
 
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
 <td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>

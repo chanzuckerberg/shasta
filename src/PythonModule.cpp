@@ -359,10 +359,6 @@ PYBIND11_MODULE(shasta, module)
              arg("maxAlignmentCount"),
              arg("threadCount") = 1
              )
-         .def("createReadGraphMode1",
-              &Assembler::createReadGraphMode1,
-              arg("maxAlignmentCount")
-              )
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
         .def("accessReadGraphReadWrite",
@@ -616,9 +612,6 @@ PYBIND11_MODULE(shasta, module)
             arg("offDiagonalRatio"))
         .def("alignPseudoPaths",
             &Assembler::alignPseudoPaths)
-        .def("analyzeAssemblyGraphBubbles",
-            &Assembler::analyzeAssemblyGraphBubbles,
-            arg("debug") = true)
         .def("removeAssemblyGraph",
             &Assembler::removeAssemblyGraph)
 

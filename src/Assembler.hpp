@@ -32,7 +32,6 @@ namespace shasta {
     class AssemblerOptions;
     class AssembledSegment;
     class AssemblyGraph2;
-    class Bubbles;
     class CompressedAssemblyGraph;
     class ConsensusCaller;
     class Histogram2;
@@ -1118,10 +1117,6 @@ private:
     CreateReadGraph2Data createReadGraph2Data;
 public:
 #endif
-
-
-    // Read graph creation for mode 1 assembly.
-    void createReadGraphMode1(uint64_t maxAlignmentCount);
 
 
 
@@ -2362,14 +2357,7 @@ public:
     void setupConsensusCaller(const string&);
 private:
     shared_ptr<ConsensusCaller> consensusCaller;
-
-
-
-    // Bubbles in the initial assembly graph.
-    // Only used in assembly mode 1.
-    shared_ptr<Bubbles> bubbles = 0;
 public:
-    void analyzeAssemblyGraphBubbles(bool debug = false);
 
 
 

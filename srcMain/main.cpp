@@ -35,10 +35,6 @@ namespace shasta {
             Assembler&,
             const AssemblerOptions&,
             uint32_t threadCount);
-        void mode1Assembly(
-            Assembler&,
-            const AssemblerOptions&,
-            uint32_t threadCount);
         void mode2Assembly(
             Assembler&,
             const AssemblerOptions&,
@@ -815,15 +811,12 @@ void shasta::main::assemble(
     case 0:
         mode0Assembly(assembler, assemblerOptions, threadCount);
         break;
-    case 1:
-        mode1Assembly(assembler, assemblerOptions, threadCount);
-        break;
     case 2:
         mode2Assembly(assembler, assemblerOptions, threadCount);
         break;
     default:
         throw runtime_error("Invalid value specified for --Assembly.mode. "
-            "Valid values are 0 (default) and 1 or 2 (experimental), but " +
+            "Valid values are 0 (haploid assembly) and 2 (phased diploid assembly), but " +
             to_string(assemblerOptions.assemblyOptions.mode) +
             " was specified.");
     }
@@ -1106,129 +1099,6 @@ void shasta::main::mode0Assembly(
 
 
 
-void shasta::main::mode1Assembly(
-    Assembler& assembler,
-    const AssemblerOptions& assemblerOptions,
-    uint32_t threadCount)
-{
-    // Create marker graph vertices.
-    assembler.createMarkerGraphVertices(
-        assemblerOptions.markerGraphOptions.minCoverage,
-        assemblerOptions.markerGraphOptions.maxCoverage,
-        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
-        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
-        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
-        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
-        threadCount);
-    assembler.findMarkerGraphReverseComplementVertices(threadCount);
-
-    // Create marker graph edges.
-    // For assembly mode 1 we use createMarkerGraphEdgesStrict
-    // with minimum edge coverage (total and per strand).
-    assembler.createMarkerGraphEdgesStrict(
-        assemblerOptions.markerGraphOptions.minEdgeCoverage,
-        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
-    assembler.findMarkerGraphReverseComplementEdges(threadCount);
-
-    // Coverage histograms for vertices and edges of the marker graph.
-    assembler.computeMarkerGraphCoverageHistogram();
-
-    // Create the assembly graph.
-    assembler.createAssemblyGraphEdges();
-    assembler.createAssemblyGraphVertices();
-
-    // Analyze bubbles in the assembly graph.
-    assembler.analyzeAssemblyGraphBubbles(true);
-
-    // Create a new read graph, using the bubble analysis
-    // to exclude alignments.
-    assembler.createReadGraphMode1(
-        assemblerOptions.readGraphOptions.maxAlignmentCount);
-
-    // Compute connected components of the read graph.
-    // These are currently not used.
-    assembler.computeReadGraphConnectedComponents();
-
-
-
-    // Create a new marker graph and assembly graph using this new read graph.
-
-    // Remove the old marker graph and assembly graph.
-    assembler.removeMarkerGraph();
-    assembler.removeAssemblyGraph();
-
-    // For the second step we use lower coverage thresholds
-    // for marker graph vertices and edges.
-    // ******* EXPOSE THESE WHEN CODE STABILIZES (also in Mode1Assembly.py)
-    const uint64_t minVertexCoverageFinal = 3;
-    const uint64_t minVertexCoveragePerStrandFinal = 0;
-    const uint64_t minEdgeCoverageFinal = 2;
-    const uint64_t minEdgeCoveragePerStrandFinal = 0;
-
-
-    // Create marker graph vertices.
-    assembler.createMarkerGraphVertices(
-        minVertexCoverageFinal,
-        assemblerOptions.markerGraphOptions.maxCoverage,
-        minVertexCoveragePerStrandFinal,
-        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
-        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
-        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
-        threadCount);
-    assembler.findMarkerGraphReverseComplementVertices(threadCount);
-
-    // Create marker graph edges.
-    // For assembly mode 1 we use createMarkerGraphEdgesStrict
-    // with minimum edge coverage (total and per strand).
-    assembler.createMarkerGraphEdgesStrict(
-        minEdgeCoverageFinal,
-        minEdgeCoveragePerStrandFinal, threadCount);
-    assembler.findMarkerGraphReverseComplementEdges(threadCount);
-
-    // To recovery contiguity, add secondary edges.
-    const uint32_t secondaryEdgeMaxSkip = 1000000;    // ********* EXPOSE WHEN CODE STABILIZES (also in Mode1Assembly.py)
-    assembler.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, threadCount);
-
-    // Coverage histograms for vertices and edges of the marker graph.
-    assembler.computeMarkerGraphCoverageHistogram();
-
-    // Simplify the marker graph to remove bubbles and superbubbles.
-    // The maxLength parameter controls the maximum number of markers
-    // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
-
-    // Create the assembly graph.
-    assembler.createAssemblyGraphEdges();
-    assembler.createAssemblyGraphVertices();
-    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
-
-    // Compute optimal repeat counts for each vertex of the marker graph.
-    if(assemblerOptions.readsOptions.representation == 1) {
-        assembler.assembleMarkerGraphVertices(threadCount);
-    }
-
-    // Compute consensus sequence for marker graph edges to be used for assembly.
-    assembler.assembleMarkerGraphEdges(
-        threadCount,
-        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
-        assemblerOptions.assemblyOptions.storeCoverageData or
-        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0,
-        false
-        );
-
-    // Use the assembly graph for sequence assembly.
-    assembler.assemble(
-        threadCount,
-        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
-    assembler.computeAssemblyStatistics();
-    assembler.writeGfa1("Assembly.gfa");
-    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
-    assembler.writeFasta("Assembly.fasta");
-
-}
-
-
-
 void shasta::main::mode2Assembly(
     Assembler& assembler,
     const AssemblerOptions& assemblerOptions,
@@ -1257,7 +1127,7 @@ void shasta::main::mode2Assembly(
     assembler.computeMarkerGraphCoverageHistogram();
 
     // To recover contiguity, add secondary edges.
-    const uint32_t secondaryEdgeMaxSkip = 1000000;    // ********* EXPOSE WHEN CODE STABILIZES (also in Mode1Assembly.py)
+    const uint32_t secondaryEdgeMaxSkip = 1000000;    // Effective infinity
     assembler.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, threadCount);
 
     // Coverage histograms for vertices and edges of the marker graph.
