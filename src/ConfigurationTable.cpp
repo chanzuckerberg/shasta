@@ -263,53 +263,6 @@ detangleMethod = 1
 
 
 )zzz"},
-    {"Nanopore-UL-iterative-Sep2020", R"zzz(# This configuration file is EXPERIMENTAL and should only
-# be used under the following conditions:
-# - Nanopore reads created by Guppy 3.6.0 or newer.
-# - Ultra-Long (UL) reads with typical N50 80Kb or more.
-# - High coverage 80X.
-# Iterative assembly results in some separation of haplotypes
-# and does better at resolving segmental duplications.
-
-[Reads]
-minReadLength = 30000 
-noCache = True
-
-[Kmers]
-k = 10 
-
-[MinHash]
-minBucketSize = 10 
-maxBucketSize = 40 
-minFrequency = 5 
-
-[Align]
-alignMethod = 3 
-matchScore = 6
-gapScore = -3 
-downsamplingFactor = 0.05 
-maxSkip = 100
-maxDrift = 100
-maxTrim = 100
-minAlignedMarkerCount = 10
-minAlignedFraction = 0.1
-sameChannelReadAlignment.suppressDeltaThreshold = 30 
-
-[ReadGraph]
-maxAlignmentCount = 12
-creationMethod = 2
-
-[MarkerGraph]
-minCoveragePerStrand = 3
-simplifyMaxLength = 10,100
-crossEdgeCoverageThreshold = 3 
-
-[Assembly]
-detangleMethod = 2 
-consensusCaller = Bayesian:guppy-3.6.0-a
-iterative = True
-
-)zzz"},
     {"Nanopore-Sep2020", R"zzz(# DO NOT USE THIS FILE IF YOU HAVE READS CREATED BY A
 # GUPPY VERSION OLDER THAN 3.6.0.
 
@@ -493,6 +446,53 @@ minCoverage = 0
 consensusCaller = Bayesian:guppy-3.6.0-a
 detangleMethod = 2
 
+
+)zzz"},
+    {"Nanopore-UL-iterative-Sep2020", R"zzz(# This configuration file is EXPERIMENTAL and should only
+# be used under the following conditions:
+# - Nanopore reads created by Guppy 3.6.0 or newer.
+# - Ultra-Long (UL) reads with typical N50 80Kb or more.
+# - High coverage 80X.
+# Iterative assembly results in some separation of haplotypes
+# and does better at resolving segmental duplications.
+
+[Reads]
+minReadLength = 30000 
+noCache = True
+
+[Kmers]
+k = 10 
+
+[MinHash]
+minBucketSize = 10 
+maxBucketSize = 40 
+minFrequency = 5 
+
+[Align]
+alignMethod = 3 
+matchScore = 6
+gapScore = -3 
+downsamplingFactor = 0.05 
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+sameChannelReadAlignment.suppressDeltaThreshold = 30 
+
+[ReadGraph]
+maxAlignmentCount = 12
+creationMethod = 2
+
+[MarkerGraph]
+minCoveragePerStrand = 3
+simplifyMaxLength = 10,100
+crossEdgeCoverageThreshold = 3 
+
+[Assembly]
+detangleMethod = 2 
+consensusCaller = Bayesian:guppy-3.6.0-a
+iterative = True
 
 )zzz"},
     {"Nanopore-OldGuppy-Sep2020", R"zzz(# This file contains Shasta options which attempt to partially automate
