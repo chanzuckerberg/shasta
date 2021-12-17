@@ -1285,11 +1285,11 @@ void shasta::main::mode2Assembly(
         assemblerOptions.assemblyOptions.superbubbleRemovalEdgeLengthThreshold,
         assemblerOptions.assemblyOptions.pruneLength,
         assemblerOptions.assemblyOptions.phasingMinReadCount,
-        assemblerOptions.assemblyOptions.suppressGfaOutput,
-        assemblerOptions.assemblyOptions.suppressFastaOutput,
-        assemblerOptions.assemblyOptions.suppressDetailedOutput,
-        assemblerOptions.assemblyOptions.suppressPhasedOutput,
-        assemblerOptions.assemblyOptions.suppressHaploidOutput,
+        assemblerOptions.assemblyOptions.mode2Options.suppressGfaOutput,
+        assemblerOptions.assemblyOptions.mode2Options.suppressFastaOutput,
+        assemblerOptions.assemblyOptions.mode2Options.suppressDetailedOutput,
+        assemblerOptions.assemblyOptions.mode2Options.suppressPhasedOutput,
+        assemblerOptions.assemblyOptions.mode2Options.suppressHaploidOutput,
         threadCount);
 
 

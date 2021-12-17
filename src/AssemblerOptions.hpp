@@ -75,6 +75,7 @@ namespace shasta {
     class KmersOptions;
     class MarkerGraphOptions;
     class MinHashOptions;
+    class Mode2AssemblyOptions;
     class PalindromicReadOptions;
     class ReadsOptions;
     class ReadGraphOptions;
@@ -260,6 +261,19 @@ public:
 
 
 
+// Assembly options that are specific to Mode 2 assembly.
+class shasta::Mode2AssemblyOptions {
+public:
+    bool suppressGfaOutput;
+    bool suppressFastaOutput;
+    bool suppressDetailedOutput;
+    bool suppressPhasedOutput;
+    bool suppressHaploidOutput;
+
+};
+
+
+
 // Options in the [Assembly] section of the configuration file.
 // Can also be entered on the command line with option names
 // beginning with "Assembly.".
@@ -294,16 +308,12 @@ public:
     uint64_t iterativeBridgeRemovalMaxDistance;
 
     // Mode 2 assembly options.
+    Mode2AssemblyOptions mode2Options;
     double bubbleRemovalDiscordantRatioThreshold;
     double bubbleRemovalAmbiguityThreshold;
     uint64_t bubbleRemovalMaxPeriod;
     uint64_t superbubbleRemovalEdgeLengthThreshold;
     uint64_t phasingMinReadCount;
-    bool suppressGfaOutput;
-    bool suppressFastaOutput;
-    bool suppressDetailedOutput;
-    bool suppressPhasedOutput;
-    bool suppressHaploidOutput;
 
     void write(ostream&) const;
 

@@ -876,28 +876,28 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(3),
         "Minimum number of reads for phasing (assembly mode 2 only, experimental).")
 
-        ("Assembly.suppressGfaOutput",
-        bool_switch(&assemblyOptions.suppressGfaOutput)->
+        ("Assembly.mode2.suppressGfaOutput",
+        bool_switch(&assemblyOptions.mode2Options.suppressGfaOutput)->
         default_value(false),
         "Suppress all GFA output (Mode 2 assembly only).")
 
-        ("Assembly.suppressFastaOutput",
-        bool_switch(&assemblyOptions.suppressFastaOutput)->
+        ("Assembly.mode2.suppressFastaOutput",
+        bool_switch(&assemblyOptions.mode2Options.suppressFastaOutput)->
         default_value(false),
         "Suppress all FASTA output (Mode 2 assembly only).")
 
-        ("Assembly.suppressDetailedOutput",
-        bool_switch(&assemblyOptions.suppressDetailedOutput)->
+        ("Assembly.mode2.suppressDetailedOutput",
+        bool_switch(&assemblyOptions.mode2Options.suppressDetailedOutput)->
         default_value(false),
         "Suppress output of detailed representation of the assembly (Mode 2 assembly only).")
 
-        ("Assembly.suppressPhasedOutput",
-        bool_switch(&assemblyOptions.suppressPhasedOutput)->
+        ("Assembly.mode2.suppressPhasedOutput",
+        bool_switch(&assemblyOptions.mode2Options.suppressPhasedOutput)->
         default_value(false),
         "Suppress output of phased representation of the assembly (Mode 2 assembly only).")
 
-        ("Assembly.suppressHaploidOutput",
-        bool_switch(&assemblyOptions.suppressHaploidOutput)->
+        ("Assembly.mode2.suppressHaploidOutput",
+        bool_switch(&assemblyOptions.mode2Options.suppressHaploidOutput)->
         default_value(false),
         "Suppress output of haploid representation of the assembly (Mode 2 assembly only).")
 
@@ -1087,11 +1087,11 @@ void AssemblyOptions::write(ostream& s) const
     s << "superbubbleRemoval.edgeLengthThreshold = " << superbubbleRemovalEdgeLengthThreshold << "\n";
     s << "phasing.minReadCount = " << phasingMinReadCount << "\n";
 
-    s << "suppressGfaOutput = " << convertBoolToPythonString(suppressGfaOutput) << "\n";
-    s << "suppressFastaOutput = " << convertBoolToPythonString(suppressFastaOutput) << "\n";
-    s << "suppressDetailedOutput = " << convertBoolToPythonString(suppressDetailedOutput) << "\n";
-    s << "suppressPhasedOutput = " << convertBoolToPythonString(suppressPhasedOutput) << "\n";
-    s << "suppressHaploidOutput = " << convertBoolToPythonString(suppressHaploidOutput) << "\n";
+    s << "mode2.suppressGfaOutput = " << convertBoolToPythonString(mode2Options.suppressGfaOutput) << "\n";
+    s << "mode2.suppressFastaOutput = " << convertBoolToPythonString(mode2Options.suppressFastaOutput) << "\n";
+    s << "mode2.suppressDetailedOutput = " << convertBoolToPythonString(mode2Options.suppressDetailedOutput) << "\n";
+    s << "mode2.suppressPhasedOutput = " << convertBoolToPythonString(mode2Options.suppressPhasedOutput) << "\n";
+    s << "mode2.suppressHaploidOutput = " << convertBoolToPythonString(mode2Options.suppressHaploidOutput) << "\n";
 }
 
 
