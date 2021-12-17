@@ -627,9 +627,6 @@ PYBIND11_MODULE(shasta, module)
         // Assembly mode 2.
         .def("createAssemblyGraph2",
             &Assembler::createAssemblyGraph2,
-            arg("bubbleRemovalDiscordantRatioThreshold"),
-            arg("bubbleRemovalAmbiguityThreshold"),
-            arg("bubbleRemovalMaxPeriod"),
             arg("superbubbleRemovalEdgeLengthThreshold"),
             arg("pruneLength"),
             arg("phasingMinReadCount"),

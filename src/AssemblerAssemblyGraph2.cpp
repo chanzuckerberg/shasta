@@ -8,9 +8,6 @@ using namespace shasta;
 
 
 void Assembler::createAssemblyGraph2(
-    double bubbleRemovalDiscordantRatioThreshold,
-    double bubbleRemovalAmbiguityThreshold,
-    uint64_t bubbleRemovalMaxPeriod,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t pruneLength,
     uint64_t phasingMinReadCount,
@@ -43,9 +40,6 @@ void Assembler::createAssemblyGraph2(
         getReads().getFlags(),
         markers,
         markerGraph,
-        bubbleRemovalDiscordantRatioThreshold,
-        bubbleRemovalAmbiguityThreshold,
-        bubbleRemovalMaxPeriod,
         superbubbleRemovalEdgeLengthThreshold,
         pruneLength,
         phasingMinReadCount,

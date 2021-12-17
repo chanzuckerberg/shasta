@@ -23,9 +23,6 @@ a.accessMarkerGraphReverseComplementEdge()
 a.accessMarkerGraphConsensus()
 
 a.createAssemblyGraph2(
-    bubbleRemovalDiscordantRatioThreshold = float(config['Assembly']['bubbleRemoval.discordantRatioThreshold']),
-    bubbleRemovalAmbiguityThreshold = float(config['Assembly']['bubbleRemoval.ambiguityThreshold']),
-    bubbleRemovalMaxPeriod = int(config['Assembly']['bubbleRemoval.maxPeriod']),
     superbubbleRemovalEdgeLengthThreshold = int(config['Assembly']['superbubbleRemoval.edgeLengthThreshold']),
     pruneLength = int(config['Assembly']['pruneLength']),
     phasingMinReadCount = int(config['Assembly']['phasing.minReadCount']),

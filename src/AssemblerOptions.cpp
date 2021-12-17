@@ -850,21 +850,6 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(2),
         "Maximum distance for read graph bridge removal for iterative assembly (experimental).")
 
-        ("Assembly.bubbleRemoval.discordantRatioThreshold",
-        value<double>(&assemblyOptions.bubbleRemovalDiscordantRatioThreshold)->
-        default_value(0.2),
-        "Discordant ratio threshold for bubble removal (assembly mode 2 only, experimental).")
-
-        ("Assembly.bubbleRemoval.ambiguityThreshold",
-        value<double>(&assemblyOptions.bubbleRemovalAmbiguityThreshold)->
-        default_value(0.5),
-        "Ambiguity threshold for bubble removal (assembly mode 2 only, experimental).")
-
-        ("Assembly.bubbleRemoval.maxPeriod",
-        value<uint64_t>(&assemblyOptions.bubbleRemovalMaxPeriod)->
-        default_value(4),
-        "Maximum repeat period for bubble removal (assembly mode 2 only, experimental).")
-
         ("Assembly.superbubbleRemoval.edgeLengthThreshold",
         value<uint64_t>(&assemblyOptions.superbubbleRemovalEdgeLengthThreshold)->
         default_value(6),
@@ -1081,9 +1066,6 @@ void AssemblyOptions::write(ostream& s) const
     s << "iterative.bridgeRemovalIterationCount = " << iterativeBridgeRemovalIterationCount << "\n";
     s << "iterative.bridgeRemovalMaxDistance = " << iterativeBridgeRemovalMaxDistance << "\n";
 
-    s << "bubbleRemoval.discordantRatioThreshold = " << bubbleRemovalDiscordantRatioThreshold << "\n";
-    s << "bubbleRemoval.ambiguityThreshold = " << bubbleRemovalAmbiguityThreshold << "\n";
-    s << "bubbleRemoval.maxPeriod = " << bubbleRemovalMaxPeriod << "\n";
     s << "superbubbleRemoval.edgeLengthThreshold = " << superbubbleRemovalEdgeLengthThreshold << "\n";
     s << "phasing.minReadCount = " << phasingMinReadCount << "\n";
 

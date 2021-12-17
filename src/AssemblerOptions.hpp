@@ -309,9 +309,6 @@ public:
 
     // Mode 2 assembly options.
     Mode2AssemblyOptions mode2Options;
-    double bubbleRemovalDiscordantRatioThreshold;
-    double bubbleRemovalAmbiguityThreshold;
-    uint64_t bubbleRemovalMaxPeriod;
     uint64_t superbubbleRemovalEdgeLengthThreshold;
     uint64_t phasingMinReadCount;
 
