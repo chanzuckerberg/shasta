@@ -35,17 +35,17 @@ using namespace pybind11;
 
 
 
-PYBIND11_MODULE(shasta, module)
+PYBIND11_MODULE(shasta, shastaModule)
 {
 
     // Expose class OrientedReadPair to Python.
-    class_<OrientedReadPair>(module, "OrientedReadPair")
+    class_<OrientedReadPair>(shastaModule, "OrientedReadPair")
         .def_readonly("readIds", &OrientedReadPair::readIds)
         .def_readonly("isSameStrand", &OrientedReadPair::isSameStrand)
         ;
 
     // Expose class Reads to Python
-    class_<Reads>(module, "Reads")
+    class_<Reads>(shastaModule, "Reads")
         .def("readCount", &Reads::readCount, "Get the number of reads.")
         .def("writeReads",
             &Reads::writeReads,
@@ -82,7 +82,7 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Expose class AlignOptions to Python.
-    class_<AlignOptions>(module, "AlignOptions")
+    class_<AlignOptions>(shastaModule, "AlignOptions")
         .def(pybind11::init<>())
         .def_readwrite("alignMethod", &AlignOptions::alignMethod)
         .def_readwrite("maxSkip", &AlignOptions::maxSkip)
@@ -109,7 +109,7 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Expose class Assembler to Python.
-    class_<Assembler>(module, "Assembler")
+    class_<Assembler>(shastaModule, "Assembler")
 
         // Constructor.
         .def(pybind11::init<const string&, bool, uint64_t, size_t>(),
@@ -653,7 +653,7 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Expose class AssembledSegment to Python.
-    class_<AssembledSegment>(module, "AssembledSegment")
+    class_<AssembledSegment>(shastaModule, "AssembledSegment")
         .def("size", &AssembledSegment::size)
         .def("getBase", &AssembledSegment::getBase)
         .def("getRepeatCount", &AssembledSegment::getRepeatCount)
@@ -663,7 +663,7 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Expose class CompressedCoverageData to Python.
-    class_<CompressedCoverageData>(module, "CompressedCoverageData")
+    class_<CompressedCoverageData>(shastaModule, "CompressedCoverageData")
         .def("getBase", &CompressedCoverageData::getBase)
         .def("getStrand", &CompressedCoverageData::getStrand)
         .def("getRepeatCount", &CompressedCoverageData::getRepeatCount)
@@ -673,53 +673,53 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Constants.
-    module.attr("invalidGlobalMarkerGraphVertexId") = MarkerGraph::invalidVertexId;
-    module.attr("invalidCompressedGlobalMarkerGraphVertexId") =
+    shastaModule.attr("invalidGlobalMarkerGraphVertexId") = MarkerGraph::invalidVertexId;
+    shastaModule.attr("invalidCompressedGlobalMarkerGraphVertexId") =
         uint64_t(MarkerGraph::invalidCompressedVertexId);
 
 
 
     // Non-member functions exposed to Python.
-    module.def("openPerformanceLog",
+    shastaModule.def("openPerformanceLog",
         openPerformanceLog
         );
-    module.def("testMultithreadedObject",
+    shastaModule.def("testMultithreadedObject",
         testMultithreadedObject
         );
-    module.def("testMemoryMappedVector",
+    shastaModule.def("testMemoryMappedVector",
         testMemoryMappedVector
         );
-    module.def("testBase",
+    shastaModule.def("testBase",
         testBase
         );
-    module.def("testShortBaseSequence",
+    shastaModule.def("testShortBaseSequence",
         testShortBaseSequence
         );
-    module.def("testLongBaseSequence",
+    shastaModule.def("testLongBaseSequence",
         testLongBaseSequence
         );
-    module.def("testSplitRange",
+    shastaModule.def("testSplitRange",
         testSplitRange
         );
-    module.def("testCompactUndirectedGraph1",
+    shastaModule.def("testCompactUndirectedGraph1",
         testCompactUndirectedGraph1
         );
-    module.def("testCompactUndirectedGraph2",
+    shastaModule.def("testCompactUndirectedGraph2",
         testCompactUndirectedGraph1
         );
-    module.def("testSpoa",
+    shastaModule.def("testSpoa",
         testSpoa
         );
-    module.def("testSimpleBayesianConsensusCaller",
+    shastaModule.def("testSimpleBayesianConsensusCaller",
         testSimpleBayesianConsensusCaller
         );
-    module.def("testMedianConsensusCaller",
+    shastaModule.def("testMedianConsensusCaller",
         testMedianConsensusCaller
         );
-    module.def("testDeduplicateAndCount",
+    shastaModule.def("testDeduplicateAndCount",
         testDeduplicateAndCount
         );
-    module.def("dset64Test",
+    shastaModule.def("dset64Test",
         dset64Test,
         arg("n"),
         arg("m"),
@@ -727,25 +727,25 @@ PYBIND11_MODULE(shasta, module)
         arg("batchSize"),
         arg("seed")
         );
-    module.def("mappedCopy",
+    shastaModule.def("mappedCopy",
         mappedCopy
         );
-    module.def("testAlignmentCompression",
+    shastaModule.def("testAlignmentCompression",
         testAlignmentCompression
         );
-    module.def("testMap",
+    shastaModule.def("testMap",
         testMap
         );
-    module.def("testMemoryMappedAllocator",
+    shastaModule.def("testMemoryMappedAllocator",
         MemoryMapped::testMemoryMappedAllocator
         );
-    module.def("testLapack",
+    shastaModule.def("testLapack",
         testLapack
         );
-    module.def("testShortestPathBoundedDistance",
+    shastaModule.def("testShortestPathBoundedDistance",
         testShortestPathBoundedDistance
         );
-    module.def("testDiploidBayesianPhase",
+    shastaModule.def("testDiploidBayesianPhase",
         testDiploidBayesianPhase
         );
 }
