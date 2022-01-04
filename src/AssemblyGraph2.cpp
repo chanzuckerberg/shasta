@@ -2,6 +2,7 @@
 #include "AssemblyGraph2.hpp"
 #include "AssembledSegment.hpp"
 #include "assembleMarkerGraphPath.hpp"
+#include "AssemblerOptions.hpp"
 #include "copyNumber.hpp"
 #include "deduplicate.hpp"
 #include "dominatorTree.hpp"
@@ -42,11 +43,7 @@ AssemblyGraph2::AssemblyGraph2(
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t pruneLength,
     uint64_t phasingMinReadCount,
-    bool suppressGfaOutput,
-    bool suppressFastaOutput,
-    bool suppressDetailedOutput,
-    bool suppressPhasedOutput,
-    bool suppressHaploidOutput,
+    const Mode2AssemblyOptions& mode2Options,
     size_t threadCount
     ) :
     MultithreadedObject<AssemblyGraph2>(*this),
@@ -161,21 +158,24 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Write out what we have.
     storeGfaSequence();
-    if(not suppressDetailedOutput) {
-        writeDetailed("Assembly-Detailed", true, false, true, not suppressGfaOutput, not suppressFastaOutput);
-        if(not suppressGfaOutput) {
+    if(not mode2Options.suppressDetailedOutput) {
+        writeDetailed("Assembly-Detailed", true, false, true,
+            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput);
+        if(not mode2Options.suppressGfaOutput) {
             writeDetailed("Assembly-Detailed-NoSequence", false, false, false, true, false);
         }
     }
-    if(not suppressHaploidOutput) {
-        writeHaploid("Assembly-Haploid", true, true, not suppressGfaOutput, not suppressFastaOutput);
-        if(not suppressGfaOutput) {
+    if(not mode2Options.suppressHaploidOutput) {
+        writeHaploid("Assembly-Haploid", true, true,
+            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput);
+        if(not mode2Options.suppressGfaOutput) {
             writeHaploid("Assembly-Haploid-NoSequence", false, false, true, false);
         }
     }
-    if(not suppressPhasedOutput) {
-        writePhased("Assembly-Phased", true, true, not suppressGfaOutput, not suppressFastaOutput);
-        if(not suppressGfaOutput) {
+    if(not mode2Options.suppressPhasedOutput) {
+        writePhased("Assembly-Phased", true, true,
+            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput);
+        if(not mode2Options.suppressGfaOutput) {
             writePhased("Assembly-Phased-NoSequence", false, false, true, false);
         }
     }

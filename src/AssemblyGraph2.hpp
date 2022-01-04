@@ -24,6 +24,7 @@ namespace shasta {
     class AssemblyGraph2Edge;
     class BubbleChain;
     class MarkerGraph;
+    class Mode2AssemblyOptions;
     class ReadFlags;
 
     using AssemblyGraph2BaseClass =
@@ -252,11 +253,7 @@ public:
         uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t pruneLength,
         uint64_t phasingMinReadCount,
-        bool suppressGfaOutput,
-        bool suppressFastaOutput,
-        bool suppressSmallBubblesOutput,
-        bool suppressPhasedOutput,
-        bool suppressHaploidOutput,
+        const Mode2AssemblyOptions&,
         size_t threadCount
         );
 

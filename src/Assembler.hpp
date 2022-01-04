@@ -45,6 +45,7 @@ namespace shasta {
     class LongBaseSequences;
     class MarkerConnectivityGraph;
     class MarkerConnectivityGraphVertexMap;
+    class Mode2AssemblyOptions;
     class OrientedReadPair;
     class Reads;
     class ReferenceOverlapMap;
@@ -2367,11 +2368,7 @@ public:
         uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t pruneLength,
         uint64_t phasingMinReadCount,
-        bool suppressGfaOutput,
-        bool suppressFastaOutput,
-        bool suppressDetailedOutput,
-        bool suppressPhasedOutput,
-        bool suppressHaploidOutput,
+        const Mode2AssemblyOptions&,
         size_t threadCount);
 
 

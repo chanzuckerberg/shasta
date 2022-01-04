@@ -106,6 +106,15 @@ PYBIND11_MODULE(shasta, shastaModule)
         .def_readwrite("align4MaxDistanceFromBoundary", &AlignOptions::align4MaxDistanceFromBoundary)
         ;
 
+    // Expose class Mode2AssemblyOptions to Python.
+    class_<Mode2AssemblyOptions>(shastaModule, "Mode2AssemblyOptions")
+        .def(pybind11::init<>())
+        .def_readwrite("suppressGfaOutput", &Mode2AssemblyOptions::suppressGfaOutput)
+        .def_readwrite("suppressFastaOutput", &Mode2AssemblyOptions::suppressFastaOutput)
+        .def_readwrite("suppressDetailedOutput", &Mode2AssemblyOptions::suppressDetailedOutput)
+        .def_readwrite("suppressPhasedOutput", &Mode2AssemblyOptions::suppressPhasedOutput)
+        .def_readwrite("suppressHaploidOutput", &Mode2AssemblyOptions::suppressHaploidOutput)
+        ;
 
 
     // Expose class Assembler to Python.
@@ -623,11 +632,7 @@ PYBIND11_MODULE(shasta, shastaModule)
             arg("superbubbleRemovalEdgeLengthThreshold"),
             arg("pruneLength"),
             arg("phasingMinReadCount"),
-            arg("suppressGfaOutput"),
-            arg("suppressFastaOutput"),
-            arg("suppressDetailedOutput"),
-            arg("suppressPhasedOutput"),
-            arg("suppressHaploidOutput"),
+            arg("mode2Options"),
             arg("threadCount") = 0)
 
 
