@@ -58,16 +58,16 @@ AssemblyGraph2::AssemblyGraph2(
 
     // ************ CONSTANTS TO BE EXPOSED AS COMMAND LINE OPTIONS.
 
-    // Epsilon for Bayesian model used for phasing
-    // (probability that a read appears on the wrong branch).
-    const double epsilon = 0.1;
-
     // Threshold that defines a strong branch.
     // A branch is strong if it is supported by at least this number of
     // distinct oriented reads.
     // Weak branches are subject to removal by removeWeakBranches
     // (but at least one branch in each bubble will always be kept).
     const uint64_t strongBranchThreshold = 2;
+
+    // Epsilon for the Bayesian model used for phasing and for bubble removal.
+    // This is the probability that a read appears on the wrong branch.
+    const double epsilon = 0.1;
 
     // Parameters for bubble removal.
     const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;

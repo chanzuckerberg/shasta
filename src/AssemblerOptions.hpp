@@ -262,13 +262,45 @@ public:
 
 
 // Assembly options that are specific to Mode 2 assembly.
+// See class AssemblyGraph2 for more information.
 class shasta::Mode2AssemblyOptions {
 public:
+
+    // Threshold that defines a strong branch.
+    // A branch is strong if it is supported by at least this number of
+    // distinct oriented reads.
+    // Weak branches are subject to removal by removeWeakBranches
+    // (but at least one branch in each bubble will always be kept).
+    uint64_t strongBranchThreshold;
+
+    // Epsilon for the Bayesian model used for phasing and for bubble removal.
+    // This is the probability that a read appears on the wrong branch.
+    double epsilon;
+
+    // Parameters for bubble removal.
+    uint64_t minConcordantReadCountForBubbleRemoval;
+    uint64_t maxDiscordantReadCountForBubbleRemoval;
+    double minLogPForBubbleRemoval;
+    uint64_t componentSizeThresholdForBubbleRemoval;
+
+    // Parameters for phasing.
+    uint64_t minConcordantReadCountForPhasing;
+    uint64_t maxDiscordantReadCountForPhasing;
+    double minLogPForPhasing;
+
+    // Parameters for superbubble removal.
+    uint64_t maxSuperbubbleSize;
+    uint64_t maxSuperbubbleChunkSize;
+    uint64_t maxSuperbubbleChunkPathCount;
+
+    // Parameters to suppress output.
     bool suppressGfaOutput;
     bool suppressFastaOutput;
     bool suppressDetailedOutput;
     bool suppressPhasedOutput;
     bool suppressHaploidOutput;
+
+    void write(ostream&) const;
 
 };
 

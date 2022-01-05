@@ -861,6 +861,78 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(3),
         "Minimum number of reads for phasing (assembly mode 2 only, experimental).")
 
+        ("Assembly.mode2.strongBranchThreshold",
+        value<uint64_t>(&assemblyOptions.mode2Options.strongBranchThreshold)->
+        default_value(2),
+        "Minimum number of supported reads required for a strong branch. Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.epsilon",
+        value<double>(&assemblyOptions.mode2Options.epsilon)->
+        default_value(0.1),
+        "Epsilon for the Bayesian model used for phasing and for bubble removal."
+        "This is the probability that a read appears on the wrong branch of a diploid bubble. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.bubbleRemoval.minConcordantReadCount",
+        value<uint64_t>(&assemblyOptions.mode2Options.minConcordantReadCountForBubbleRemoval)->
+        default_value(3),
+        "Minimum number of concordant reads for bubble removal. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.bubbleRemoval.maxDiscordantReadCount",
+        value<uint64_t>(&assemblyOptions.mode2Options.maxDiscordantReadCountForBubbleRemoval)->
+        default_value(6),
+        "Maximum number of discordant reads for bubble removal. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.bubbleRemoval.minLogP",
+        value<double>(&assemblyOptions.mode2Options.minLogPForBubbleRemoval)->
+        default_value(30.),
+        "Minimul log(P) (in decibels) for bubble removal. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.bubbleRemoval.componentSizeThreshold",
+        value<uint64_t>(&assemblyOptions.mode2Options.componentSizeThresholdForBubbleRemoval)->
+        default_value(10),
+        "Component size threshold for bubble removal. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.phasing.minConcordantReadCount",
+        value<uint64_t>(&assemblyOptions.mode2Options.minConcordantReadCountForPhasing)->
+        default_value(2),
+        "Minimum number of concordant reads for phasing. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.phasing.maxDiscordantReadCount",
+        value<uint64_t>(&assemblyOptions.mode2Options.maxDiscordantReadCountForPhasing)->
+        default_value(1),
+        "Maximum number of discordant reads for phasing. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.phasing.minLogP",
+        value<double>(&assemblyOptions.mode2Options.minLogPForPhasing)->
+        default_value(10.),
+        "Minimul log(P) (in decibels) for phasing. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.superbubble.maxSize",
+        value<uint64_t>(&assemblyOptions.mode2Options.maxSuperbubbleSize)->
+        default_value(50),
+        "Maximum size of a superbubble to be processed. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.superbubble.maxChunkSize",
+        value<uint64_t>(&assemblyOptions.mode2Options.maxSuperbubbleChunkSize)->
+        default_value(20),
+        "Maximum size of a superbubble chunk to be processed. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.superbubble.maxChunkPathCount",
+        value<uint64_t>(&assemblyOptions.mode2Options.maxSuperbubbleChunkPathCount)->
+        default_value(20),
+        "Maximum number of paths to be processed in a superbubble chunk. "
+        "Only used in Mode 2 assembly.")
+
         ("Assembly.mode2.suppressGfaOutput",
         bool_switch(&assemblyOptions.mode2Options.suppressGfaOutput)->
         default_value(false),
@@ -1069,11 +1141,31 @@ void AssemblyOptions::write(ostream& s) const
     s << "superbubbleRemoval.edgeLengthThreshold = " << superbubbleRemovalEdgeLengthThreshold << "\n";
     s << "phasing.minReadCount = " << phasingMinReadCount << "\n";
 
-    s << "mode2.suppressGfaOutput = " << convertBoolToPythonString(mode2Options.suppressGfaOutput) << "\n";
-    s << "mode2.suppressFastaOutput = " << convertBoolToPythonString(mode2Options.suppressFastaOutput) << "\n";
-    s << "mode2.suppressDetailedOutput = " << convertBoolToPythonString(mode2Options.suppressDetailedOutput) << "\n";
-    s << "mode2.suppressPhasedOutput = " << convertBoolToPythonString(mode2Options.suppressPhasedOutput) << "\n";
-    s << "mode2.suppressHaploidOutput = " << convertBoolToPythonString(mode2Options.suppressHaploidOutput) << "\n";
+    mode2Options.write(s);
+}
+
+
+
+void Mode2AssemblyOptions::write(ostream& s) const
+{
+    s << "mode2.strongBranchThreshold = " << strongBranchThreshold << "\n";
+    s << "mode2.epsilon = " << epsilon << "\n";
+    s << "mode2.bubbleRemoval.minConcordantReadCount = " << minConcordantReadCountForBubbleRemoval << "\n";
+    s << "mode2.bubbleRemoval.maxDiscordantReadCount = " << maxDiscordantReadCountForBubbleRemoval << "\n";
+    s << "mode2.bubbleRemoval.minLogP = " << minLogPForBubbleRemoval << "\n";
+    s << "mode2.bubbleRemoval.componentSizeThreshold = " << componentSizeThresholdForBubbleRemoval << "\n";
+    s << "mode2.phasing.minConcordantReadCount = " << minConcordantReadCountForPhasing << "\n";
+    s << "mode2.phasing.maxDiscordantReadCount = " << maxDiscordantReadCountForPhasing << "\n";
+    s << "mode2.phasing.minLogP = " << minLogPForPhasing << "\n";
+    s << "mode2.superbubble.maxSize = " << maxSuperbubbleSize << "\n";
+    s << "mode2.superbubble.maxChunkSize = " << maxSuperbubbleChunkSize << "\n";
+    s << "mode2.superbubble.maxChunkPathCount = " << maxSuperbubbleChunkPathCount << "\n";
+
+    s << "mode2.suppressGfaOutput = " << convertBoolToPythonString(suppressGfaOutput) << "\n";
+    s << "mode2.suppressFastaOutput = " << convertBoolToPythonString(suppressFastaOutput) << "\n";
+    s << "mode2.suppressDetailedOutput = " << convertBoolToPythonString(suppressDetailedOutput) << "\n";
+    s << "mode2.suppressPhasedOutput = " << convertBoolToPythonString(suppressPhasedOutput) << "\n";
+    s << "mode2.suppressHaploidOutput = " << convertBoolToPythonString(suppressHaploidOutput) << "\n";
 }
 
 
