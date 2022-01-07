@@ -780,7 +780,7 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(0),
         "Specify the method used to detangle the assembly graph. "
         "0 = no detangling, 1 = strict detangling, "
-        "2 = less strict detangling, controlled by Assembly.detangle.* options (experimental).")
+        "2 = less strict detangling, controlled by Assembly.detangle.* options.")
 
         ("Assembly.detangle.diagonalReadCountMin",
         value<uint64_t>(&assemblyOptions.detangleDiagonalReadCountMin)->
