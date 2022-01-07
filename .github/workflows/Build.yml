@@ -15,7 +15,7 @@ jobs:
     - name: Build-ubuntu-20.04
       run: |
         lsb_release -a
-        tar -cvf shasta-docs.tar -s '/^docs/shastaDocs/' docs       
+        tar -cvf shasta-docs.tar --transform='s/docs/shastaDocs/' docs       
         mkdir shasta-build
         cd shasta-build 
         cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.8.0 at commit "$GITHUB_SHA
