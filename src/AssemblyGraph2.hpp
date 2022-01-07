@@ -250,7 +250,6 @@ public:
         const MemoryMapped::Vector<ReadFlags>& readFlags,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&,
-        uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t pruneLength,
         const Mode2AssemblyOptions&,
         size_t threadCount

@@ -8,7 +8,6 @@ using namespace shasta;
 
 
 void Assembler::createAssemblyGraph2(
-    uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t pruneLength,
     const Mode2AssemblyOptions& mode2Options,
     size_t threadCount
@@ -35,7 +34,6 @@ void Assembler::createAssemblyGraph2(
         getReads().getFlags(),
         markers,
         markerGraph,
-        superbubbleRemovalEdgeLengthThreshold,
         pruneLength,
         mode2Options,
         threadCount

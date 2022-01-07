@@ -42,6 +42,7 @@ mode2Options.minLogPForPhasing = float(config['Assembly']['mode2.phasing.minlogP
 mode2Options.maxSuperbubbleSize = int(config['Assembly']['mode2.superbubble.maxSize'])
 mode2Options.maxSuperbubbleChunkSize = int(config['Assembly']['mode2.superbubble.maxChunkSize'])
 mode2Options.maxSuperbubbleChunkPathCount = int(config['Assembly']['mode2.superbubble.maxChunkPathCount'])
+mode2Options.superbubbleEdgeLengthThreshold = int(config['Assembly']['mode2.superbubble.edgeLengthThreshold'])
 
 mode2Options.suppressGfaOutput      = ast.literal_eval(config['Assembly']['mode2.suppressGfaOutput'])
 mode2Options.suppressFastaOutput    = ast.literal_eval(config['Assembly']['mode2.suppressFastaOutput'])
@@ -53,7 +54,6 @@ mode2Options.suppressHaploidOutput  = ast.literal_eval(config['Assembly']['mode2
 
 
 a.createAssemblyGraph2(
-    superbubbleRemovalEdgeLengthThreshold = int(config['Assembly']['superbubbleRemoval.edgeLengthThreshold']),
     pruneLength = int(config['Assembly']['pruneLength']),
     mode2Options = mode2Options 
     )

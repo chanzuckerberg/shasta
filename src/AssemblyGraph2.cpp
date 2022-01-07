@@ -40,7 +40,6 @@ AssemblyGraph2::AssemblyGraph2(
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph,
-    uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t pruneLength,
     const Mode2AssemblyOptions& mode2Options,
     size_t threadCount
@@ -81,6 +80,7 @@ AssemblyGraph2::AssemblyGraph2(
     const uint64_t maxSuperbubbleSize = mode2Options.maxSuperbubbleSize;
     const uint64_t maxSuperbubbleChunkSize = mode2Options.maxSuperbubbleChunkSize;
     const uint64_t maxSuperbubbleChunkPathCount = mode2Options.maxSuperbubbleChunkPathCount;
+    const uint64_t superbubbleRemovalEdgeLengthThreshold = mode2Options.superbubbleEdgeLengthThreshold;
 
 
 

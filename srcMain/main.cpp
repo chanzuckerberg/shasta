@@ -1149,7 +1149,6 @@ void shasta::main::mode2Assembly(
 
     // Create the mode 2 assembly graph.
     assembler.createAssemblyGraph2(
-        assemblerOptions.assemblyOptions.superbubbleRemovalEdgeLengthThreshold,
         assemblerOptions.assemblyOptions.pruneLength,
         assemblerOptions.assemblyOptions.mode2Options,
         threadCount);

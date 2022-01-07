@@ -121,6 +121,7 @@ PYBIND11_MODULE(shasta, shastaModule)
         .def_readwrite("maxSuperbubbleSize", &Mode2AssemblyOptions::maxSuperbubbleSize)
         .def_readwrite("maxSuperbubbleChunkSize", &Mode2AssemblyOptions::maxSuperbubbleChunkSize)
         .def_readwrite("maxSuperbubbleChunkPathCount", &Mode2AssemblyOptions::maxSuperbubbleChunkPathCount)
+        .def_readwrite("superbubbleEdgeLengthThreshold", &Mode2AssemblyOptions::superbubbleEdgeLengthThreshold)
         .def_readwrite("suppressGfaOutput", &Mode2AssemblyOptions::suppressGfaOutput)
         .def_readwrite("suppressFastaOutput", &Mode2AssemblyOptions::suppressFastaOutput)
         .def_readwrite("suppressDetailedOutput", &Mode2AssemblyOptions::suppressDetailedOutput)
@@ -642,7 +643,6 @@ PYBIND11_MODULE(shasta, shastaModule)
         // Assembly mode 2.
         .def("createAssemblyGraph2",
             &Assembler::createAssemblyGraph2,
-            arg("superbubbleRemovalEdgeLengthThreshold"),
             arg("pruneLength"),
             arg("mode2Options"),
             arg("threadCount") = 0)

@@ -292,6 +292,7 @@ public:
     uint64_t maxSuperbubbleSize;
     uint64_t maxSuperbubbleChunkSize;
     uint64_t maxSuperbubbleChunkPathCount;
+    uint64_t superbubbleEdgeLengthThreshold;
 
     // Parameters to suppress output.
     bool suppressGfaOutput;
@@ -341,7 +342,6 @@ public:
 
     // Mode 2 assembly options.
     Mode2AssemblyOptions mode2Options;
-    uint64_t superbubbleRemovalEdgeLengthThreshold;
 
     void write(ostream&) const;
 

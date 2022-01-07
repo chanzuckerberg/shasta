@@ -2365,7 +2365,6 @@ public:
     // Assembly graph for mode 2 assembly.
     shared_ptr<AssemblyGraph2> assemblyGraph2Pointer;
     void createAssemblyGraph2(
-        uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t pruneLength,
         const Mode2AssemblyOptions&,
         size_t threadCount);

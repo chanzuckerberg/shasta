@@ -850,12 +850,6 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(2),
         "Maximum distance for read graph bridge removal for iterative assembly (experimental).")
 
-        ("Assembly.superbubbleRemoval.edgeLengthThreshold",
-        value<uint64_t>(&assemblyOptions.superbubbleRemovalEdgeLengthThreshold)->
-        default_value(6),
-        "Edge length threshold in markers for superbubble removal "
-        "(assembly mode 2 only, experimental).")
-
         ("Assembly.mode2.strongBranchThreshold",
         value<uint64_t>(&assemblyOptions.mode2Options.strongBranchThreshold)->
         default_value(2),
@@ -926,6 +920,12 @@ void AssemblerOptions::addConfigurableOptions()
         value<uint64_t>(&assemblyOptions.mode2Options.maxSuperbubbleChunkPathCount)->
         default_value(20),
         "Maximum number of paths to be processed in a superbubble chunk. "
+        "Only used in Mode 2 assembly.")
+
+        ("Assembly.mode2.superbubble.edgeLengthThreshold",
+        value<uint64_t>(&assemblyOptions.mode2Options.superbubbleEdgeLengthThreshold)->
+        default_value(6),
+        "Edge length threshold (in markers) for superbubble removal. "
         "Only used in Mode 2 assembly.")
 
         ("Assembly.mode2.suppressGfaOutput",
@@ -1133,8 +1133,6 @@ void AssemblyOptions::write(ostream& s) const
     s << "iterative.bridgeRemovalIterationCount = " << iterativeBridgeRemovalIterationCount << "\n";
     s << "iterative.bridgeRemovalMaxDistance = " << iterativeBridgeRemovalMaxDistance << "\n";
 
-    s << "superbubbleRemoval.edgeLengthThreshold = " << superbubbleRemovalEdgeLengthThreshold << "\n";
-
     mode2Options.write(s);
 }
 
@@ -1154,6 +1152,7 @@ void Mode2AssemblyOptions::write(ostream& s) const
     s << "mode2.superbubble.maxSize = " << maxSuperbubbleSize << "\n";
     s << "mode2.superbubble.maxChunkSize = " << maxSuperbubbleChunkSize << "\n";
     s << "mode2.superbubble.maxChunkPathCount = " << maxSuperbubbleChunkPathCount << "\n";
+    s << "mode2.superbubble.edgeLengthThreshold = " << superbubbleEdgeLengthThreshold << "\n";
 
     s << "mode2.suppressGfaOutput = " << convertBoolToPythonString(suppressGfaOutput) << "\n";
     s << "mode2.suppressFastaOutput = " << convertBoolToPythonString(suppressFastaOutput) << "\n";
