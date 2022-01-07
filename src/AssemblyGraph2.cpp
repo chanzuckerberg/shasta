@@ -42,7 +42,6 @@ AssemblyGraph2::AssemblyGraph2(
     const MarkerGraph& markerGraph,
     uint64_t superbubbleRemovalEdgeLengthThreshold,
     uint64_t pruneLength,
-    uint64_t phasingMinReadCount,
     const Mode2AssemblyOptions& mode2Options,
     size_t threadCount
     ) :
@@ -56,34 +55,32 @@ AssemblyGraph2::AssemblyGraph2(
 
 
 
-    // ************ CONSTANTS TO BE EXPOSED AS COMMAND LINE OPTIONS.
-
     // Threshold that defines a strong branch.
     // A branch is strong if it is supported by at least this number of
     // distinct oriented reads.
     // Weak branches are subject to removal by removeWeakBranches
     // (but at least one branch in each bubble will always be kept).
-    const uint64_t strongBranchThreshold = 2;
+    const uint64_t strongBranchThreshold = mode2Options.strongBranchThreshold;
 
     // Epsilon for the Bayesian model used for phasing and for bubble removal.
     // This is the probability that a read appears on the wrong branch.
-    const double epsilon = 0.1;
+    const double epsilon = mode2Options.epsilon;
 
     // Parameters for bubble removal.
-    const uint64_t minConcordantReadCountForBubbleRemoval = phasingMinReadCount;
-    const uint64_t maxDiscordantReadCountForBubbleRemoval = 6;
-    const double minLogPForBubbleRemoval = 30.;
-    uint64_t componentSizeThreshold = 10;
+    const uint64_t minConcordantReadCountForBubbleRemoval = mode2Options.minConcordantReadCountForBubbleRemoval;
+    const uint64_t maxDiscordantReadCountForBubbleRemoval = mode2Options.maxDiscordantReadCountForBubbleRemoval;
+    const double minLogPForBubbleRemoval = mode2Options.minLogPForBubbleRemoval;
+    const uint64_t componentSizeThresholdForBubbleRemoval = mode2Options.componentSizeThresholdForBubbleRemoval;
 
     // Parameters for phasing.
-    const uint64_t minConcordantReadCountForPhasing = 2;
-    const uint64_t maxDiscordantReadCountForPhasing = 1;
-    const double minLogPForPhasing = 10.;
+    const uint64_t minConcordantReadCountForPhasing = mode2Options.minConcordantReadCountForPhasing;
+    const uint64_t maxDiscordantReadCountForPhasing = mode2Options.maxDiscordantReadCountForPhasing;
+    const double minLogPForPhasing = mode2Options.minLogPForPhasing;
 
     // Parameters for superbubble removal.
-    const uint64_t maxSuperbubbleSize = 50;
-    const uint64_t maxSuperbubbleChunkSize = 20;
-    const uint64_t maxSuperbubbleChunkPathCount = 100;
+    const uint64_t maxSuperbubbleSize = mode2Options.maxSuperbubbleSize;
+    const uint64_t maxSuperbubbleChunkSize = mode2Options.maxSuperbubbleChunkSize;
+    const uint64_t maxSuperbubbleChunkPathCount = mode2Options.maxSuperbubbleChunkPathCount;
 
 
 
@@ -137,7 +134,7 @@ AssemblyGraph2::AssemblyGraph2(
         maxSuperbubbleChunkSize,
         maxSuperbubbleChunkPathCount,
         pruneLength,
-        componentSizeThreshold,
+        componentSizeThresholdForBubbleRemoval,
         threadCount);
     hierarchicalPhase(
         minConcordantReadCountForPhasing,

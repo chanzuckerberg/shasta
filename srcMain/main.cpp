@@ -1151,7 +1151,6 @@ void shasta::main::mode2Assembly(
     assembler.createAssemblyGraph2(
         assemblerOptions.assemblyOptions.superbubbleRemovalEdgeLengthThreshold,
         assemblerOptions.assemblyOptions.pruneLength,
-        assemblerOptions.assemblyOptions.phasingMinReadCount,
         assemblerOptions.assemblyOptions.mode2Options,
         threadCount);
 

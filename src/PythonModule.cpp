@@ -109,12 +109,25 @@ PYBIND11_MODULE(shasta, shastaModule)
     // Expose class Mode2AssemblyOptions to Python.
     class_<Mode2AssemblyOptions>(shastaModule, "Mode2AssemblyOptions")
         .def(pybind11::init<>())
+        .def_readwrite("strongBranchThreshold", &Mode2AssemblyOptions::strongBranchThreshold)
+        .def_readwrite("epsilon", &Mode2AssemblyOptions::epsilon)
+        .def_readwrite("minConcordantReadCountForBubbleRemoval", &Mode2AssemblyOptions::minConcordantReadCountForBubbleRemoval)
+        .def_readwrite("maxDiscordantReadCountForBubbleRemoval", &Mode2AssemblyOptions::maxDiscordantReadCountForBubbleRemoval)
+        .def_readwrite("minLogPForBubbleRemoval", &Mode2AssemblyOptions::minLogPForBubbleRemoval)
+        .def_readwrite("componentSizeThresholdForBubbleRemoval", &Mode2AssemblyOptions::componentSizeThresholdForBubbleRemoval)
+        .def_readwrite("minConcordantReadCountForPhasing", &Mode2AssemblyOptions::minConcordantReadCountForPhasing)
+        .def_readwrite("maxDiscordantReadCountForPhasing", &Mode2AssemblyOptions::maxDiscordantReadCountForPhasing)
+        .def_readwrite("minLogPForPhasing", &Mode2AssemblyOptions::minLogPForPhasing)
+        .def_readwrite("maxSuperbubbleSize", &Mode2AssemblyOptions::maxSuperbubbleSize)
+        .def_readwrite("maxSuperbubbleChunkSize", &Mode2AssemblyOptions::maxSuperbubbleChunkSize)
+        .def_readwrite("maxSuperbubbleChunkPathCount", &Mode2AssemblyOptions::maxSuperbubbleChunkPathCount)
         .def_readwrite("suppressGfaOutput", &Mode2AssemblyOptions::suppressGfaOutput)
         .def_readwrite("suppressFastaOutput", &Mode2AssemblyOptions::suppressFastaOutput)
         .def_readwrite("suppressDetailedOutput", &Mode2AssemblyOptions::suppressDetailedOutput)
         .def_readwrite("suppressPhasedOutput", &Mode2AssemblyOptions::suppressPhasedOutput)
         .def_readwrite("suppressHaploidOutput", &Mode2AssemblyOptions::suppressHaploidOutput)
         ;
+
 
 
     // Expose class Assembler to Python.
@@ -631,13 +644,12 @@ PYBIND11_MODULE(shasta, shastaModule)
             &Assembler::createAssemblyGraph2,
             arg("superbubbleRemovalEdgeLengthThreshold"),
             arg("pruneLength"),
-            arg("phasingMinReadCount"),
             arg("mode2Options"),
             arg("threadCount") = 0)
 
 
 
-            // Consensus caller.
+        // Consensus caller.
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
 

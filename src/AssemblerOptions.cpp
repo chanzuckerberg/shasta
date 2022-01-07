@@ -856,11 +856,6 @@ void AssemblerOptions::addConfigurableOptions()
         "Edge length threshold in markers for superbubble removal "
         "(assembly mode 2 only, experimental).")
 
-        ("Assembly.phasing.minReadCount",
-        value<uint64_t>(&assemblyOptions.phasingMinReadCount)->
-        default_value(3),
-        "Minimum number of reads for phasing (assembly mode 2 only, experimental).")
-
         ("Assembly.mode2.strongBranchThreshold",
         value<uint64_t>(&assemblyOptions.mode2Options.strongBranchThreshold)->
         default_value(2),
@@ -1139,7 +1134,6 @@ void AssemblyOptions::write(ostream& s) const
     s << "iterative.bridgeRemovalMaxDistance = " << iterativeBridgeRemovalMaxDistance << "\n";
 
     s << "superbubbleRemoval.edgeLengthThreshold = " << superbubbleRemovalEdgeLengthThreshold << "\n";
-    s << "phasing.minReadCount = " << phasingMinReadCount << "\n";
 
     mode2Options.write(s);
 }

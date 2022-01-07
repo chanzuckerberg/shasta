@@ -342,7 +342,6 @@ public:
     // Mode 2 assembly options.
     Mode2AssemblyOptions mode2Options;
     uint64_t superbubbleRemovalEdgeLengthThreshold;
-    uint64_t phasingMinReadCount;
 
     void write(ostream&) const;
 

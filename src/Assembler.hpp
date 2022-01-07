@@ -2367,7 +2367,6 @@ public:
     void createAssemblyGraph2(
         uint64_t superbubbleRemovalEdgeLengthThreshold,
         uint64_t pruneLength,
-        uint64_t phasingMinReadCount,
         const Mode2AssemblyOptions&,
         size_t threadCount);
 
