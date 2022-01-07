@@ -15,6 +15,7 @@ jobs:
     - name: Build-ubuntu-20.04
       run: |
         lsb_release -a
+        tar -cvf shasta-docs.tar shasta/docs       
         mkdir shasta-build
         cd shasta-build 
         cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.8.0 at commit "$GITHUB_SHA
@@ -29,6 +30,10 @@ jobs:
         gunzip tests/TinyTest.fasta.gz
         shasta-build/shasta-Ubuntu-20.04/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-docs.tar
+        path: shasta-docs.tar
     - uses: actions/upload-artifact@master
       with:
         name: shasta-Linux
