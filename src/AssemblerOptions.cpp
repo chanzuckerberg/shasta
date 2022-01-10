@@ -853,7 +853,7 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.mode2.strongBranchThreshold",
         value<uint64_t>(&assemblyOptions.mode2Options.strongBranchThreshold)->
         default_value(2),
-        "Minimum number of supported reads required for a strong branch. Only used in Mode 2 assembly.")
+        "Minimum number of supporting reads required for a strong branch. Only used in Mode 2 assembly.")
 
         ("Assembly.mode2.epsilon",
         value<double>(&assemblyOptions.mode2Options.epsilon)->
@@ -907,13 +907,13 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.mode2.superbubble.maxSize",
         value<uint64_t>(&assemblyOptions.mode2Options.maxSuperbubbleSize)->
         default_value(50),
-        "Maximum size of a superbubble to be processed. "
+        "Maximum size (number of edges) of a superbubble to be processed. "
         "Only used in Mode 2 assembly.")
 
         ("Assembly.mode2.superbubble.maxChunkSize",
         value<uint64_t>(&assemblyOptions.mode2Options.maxSuperbubbleChunkSize)->
         default_value(20),
-        "Maximum size of a superbubble chunk to be processed. "
+        "Maximum size (numbef of edges) of a superbubble chunk to be processed. "
         "Only used in Mode 2 assembly.")
 
         ("Assembly.mode2.superbubble.maxChunkPathCount",
