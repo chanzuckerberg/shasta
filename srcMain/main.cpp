@@ -1429,7 +1429,7 @@ void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerO
 void shasta::main::listCommands()
 {
     cout << "Valid commands are:" << endl;
-    for(const string command: commands) {
+    for(const string& command: commands) {
         cout << command << endl;
     }
 }
