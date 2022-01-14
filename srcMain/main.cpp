@@ -532,7 +532,7 @@ void shasta::main::assemble(
 
 
     // Add reads from the specified input files.
-    cout << timestamp << "Begin loading reads from " << inputFileNames.size() << " files." << endl;
+    performanceLog << timestamp << "Begin loading reads from " << inputFileNames.size() << " files." << endl;
     const auto t0 = steady_clock::now();
     for(const string& inputFileName: inputFileNames) {
         // Only dump the palindromes to a separate csv if running in filter mode.

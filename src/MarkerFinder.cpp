@@ -1,6 +1,7 @@
 // shasta.
 #include "MarkerFinder.hpp"
 #include "LongBaseSequence.hpp"
+#include "performanceLog.hpp"
 #include "ReadId.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -24,7 +25,7 @@ MarkerFinder::MarkerFinder(
     threadCount(threadCountArgument)
 {
     // Initial message.
-    cout << timestamp << "Finding markers in " << reads.readCount() << " reads." << endl;
+    performanceLog << timestamp << "Finding markers in " << reads.readCount() << " reads." << endl;
     const auto tBegin = std::chrono::steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
@@ -47,7 +48,7 @@ MarkerFinder::MarkerFinder(
     // Final message.
     const auto tEnd = std::chrono::steady_clock::now();
     const double tTotal = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tBegin)).count());
-    cout << timestamp << "Finding markers completed in " << tTotal << " s." << endl;
+    performanceLog << timestamp << "Finding markers completed in " << tTotal << " s." << endl;
 }
 
 

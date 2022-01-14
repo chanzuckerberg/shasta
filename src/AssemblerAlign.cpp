@@ -7,6 +7,7 @@
 #include "Align4.hpp"
 #include "AssemblerOptions.hpp"
 #include "compressAlignment.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "span.hpp"
 #include "timestamp.hpp"
@@ -656,7 +657,7 @@ void Assembler::flagPalindromicReads(
     bool writeToCsv,
     size_t threadCount)
 {
-    cout << timestamp << "Finding palindromic reads." << endl;
+    performanceLog << timestamp << "Finding palindromic reads." << endl;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -690,7 +691,7 @@ void Assembler::flagPalindromicReads(
         }
     }
     assemblerInfo->palindromicReadCount = palindromicReadCount;
-    cout << timestamp << "Flagged " << palindromicReadCount <<
+    cout << "Flagged " << palindromicReadCount <<
         " reads as palindromic out of " << readCount << " total." << endl;
     cout << "Palindromic fraction is " <<
         double(palindromicReadCount)/double(readCount) << endl;
@@ -736,13 +737,8 @@ void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     reads->assertReadsAndFlagsOfSameSize();
-    ReadId readCount = reads->readCount();
 
     while(getNextBatch(begin, end)) {
-        if((begin%1000000) == 0) {
-            std::lock_guard<std::mutex> lock(mutex);
-            cout << timestamp << begin << "/" << readCount << endl;
-        }
 
         // Loop over all reads in this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {

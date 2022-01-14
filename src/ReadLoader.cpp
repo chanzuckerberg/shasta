@@ -1,6 +1,7 @@
 // Shasta.
 #include "ReadLoader.hpp"
 #include "computeRunLengthRepresentation.hpp"
+#include "performanceLog.hpp"
 #include "splitRange.hpp"
 using namespace shasta;
 
@@ -42,7 +43,8 @@ ReadLoader::ReadLoader(
     writePalindromesToCsv(writePalindromesToCsv),
     reads(reads)
 {
-    cout << timestamp << "Loading reads from " << fileName << endl;
+    cout << "Loading reads from " << fileName << endl;
+    performanceLog << timestamp << "Loading reads from " << fileName << endl;
 
     adjustThreadCount();
 
@@ -107,7 +109,7 @@ void ReadLoader::processFastaFile()
     const auto t3 = std::chrono::steady_clock::now();
 
 
-    cout << "Time to process this file:\n" <<
+    performanceLog << "Time to process this file:\n" <<
         "Allocate buffer + read: " << seconds(t1-t0) << " s.\n" <<
         "Parse: " << seconds(t2-t1) << " s.\n"
         "Store: " << seconds(t3-t2) << " s.\n"
@@ -314,7 +316,7 @@ void ReadLoader::processFastqFile()
     // Find all line ends in the file.
     const auto t1 = std::chrono::steady_clock::now();
     findLineEnds();
-    cout << "Found " << lineEnds.size() << " lines in this file." << endl;
+    // cout << "Found " << lineEnds.size() << " lines in this file." << endl;
 
     // Check that the number of lines is a multiple of 4
     // (there must be exactly 4 mlines per read per the above assumptions).
@@ -338,7 +340,7 @@ void ReadLoader::processFastqFile()
     const auto t4 = std::chrono::steady_clock::now();
 
 
-    cout << "Time to process this file:\n" <<
+    performanceLog << "Time to process this file:\n" <<
         "Allocate buffer + read: " << seconds(t1-t0) << " s.\n" <<
         "Locate: " << seconds(t2-t1) << " s.\n"
         "Parse: " << seconds(t3-t2) << " s.\n"
@@ -583,8 +585,8 @@ void ReadLoader::allocateBuffer()
 
     const auto t1 = std::chrono::steady_clock::now();
 
-    cout <<  "File size: " << fileSize << " bytes." << endl;
-    cout << "Buffer allocate time: " << seconds(t1 - t0) << " s." << endl;
+    performanceLog <<  "File size: " << fileSize << " bytes." << endl;
+    performanceLog << "Buffer allocate time: " << seconds(t1 - t0) << " s." << endl;
 }
 
 
@@ -626,8 +628,8 @@ bool ReadLoader::readFile(bool useODirect)
     const auto t1 = std::chrono::steady_clock::now();
     const double t01 = seconds(t1 - t0);
 
-    cout << "Read time: " << t01 << " s." << endl;
-    cout << "Read rate: " << double(fileSize) / t01 << " bytes/s." << endl;
+    performanceLog << "Read time: " << t01 << " s." << endl;
+    performanceLog << "Read rate: " << double(fileSize) / t01 << " bytes/s." << endl;
     return true;
 }
 

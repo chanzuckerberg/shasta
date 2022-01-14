@@ -1,5 +1,6 @@
 // Shasta.
 #include "LowHash0.hpp"
+#include "performanceLog.hpp"
 #include "ReadFlags.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -53,7 +54,7 @@ LowHash0::LowHash0(
     histogramCsv("LowHashBucketHistogram.csv")
 
 {
-    cout << timestamp << "LowHash0 begins." << endl;
+    performanceLog << timestamp << "LowHash0 begins." << endl;
     const auto tBegin = steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
@@ -98,7 +99,7 @@ LowHash0::LowHash0(
 
     // Create vectors containing only the k-mer ids of all markers.
     // This is used to speed up the computation of hash functions.
-    cout << timestamp << "Creating kmer ids for oriented reads." << endl;
+    performanceLog << timestamp << "Creating kmer ids for oriented reads." << endl;
     createKmerIds();
 
     // Compute the threshold for a hash value to be considered low.
@@ -107,7 +108,6 @@ LowHash0::LowHash0(
     // The number of oriented reads, each with its own vector of markers.
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
     const ReadId readCount = orientedReadCount / 2;
-    cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
     
 
     // Set up work areas.
@@ -155,7 +155,7 @@ LowHash0::LowHash0(
 
 
 
-        cout << timestamp << "LowHash0 iteration " << iteration << " begins." << endl;
+        performanceLog << timestamp << "LowHash0 iteration " << iteration << " begins." << endl;
 
         // Pass1: compute the low hashes for each oriented read
         // and prepare the buckets for filling.
@@ -187,7 +187,7 @@ LowHash0::LowHash0(
             total += s.total;
             capacity += s.capacity;
         }
-        cout << "Alignment candidates after iteration " << iteration;
+        cout << "Alignment candidates after lowhash iteration " << iteration;
         cout << ": high frequency " << highFrequency;
         cout << ", total " << total;
         cout << ", capacity " << capacity << "." << endl;
@@ -250,7 +250,7 @@ LowHash0::LowHash0(
     // Done.
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "LowHash0 completed in " << tTotal << " s." << endl;
+    performanceLog << timestamp << "LowHash0 completed in " << tTotal << " s." << endl;
 }
 
 
