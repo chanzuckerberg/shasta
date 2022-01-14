@@ -857,7 +857,8 @@ void shasta::main::assemble(
         "    Elapsed minutes: " << elapsedTime/60. << "\n"
         "    Elapsed hours:   " << elapsedTime/3600. << "\n";
     cout << "Average CPU utilization: " << averageCpuUtilization << endl;
-    cout << "Peak Memory usage (bytes): " << peakMemoryUsage << endl;
+    cout << "Peak Memory usage: " << peakMemoryUsage << " bytes = " <<
+        int(std::round(double(peakMemoryUsage) / (1024. * 1024. * 1024.)) ) << " GiB" << endl;
 }
 
 
