@@ -7,6 +7,7 @@
 #include "Coverage.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "PeakFinder.hpp"
+#include "performanceLog.hpp"
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
@@ -73,7 +74,7 @@ void Assembler::createMarkerGraphVertices(
     // using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
 
     const auto tBegin = steady_clock::now();
-    cout << timestamp << "Begin computing marker graph vertices." << endl;
+    performanceLog << timestamp << "Begin computing marker graph vertices." << endl;
 
     // Check that we have what we need.
     reads->checkReadsAreOpen();
@@ -119,24 +120,23 @@ void Assembler::createMarkerGraphVertices(
 
     // Update the disjoint set data structure for each alignment
     // in the read graph.
-    cout << timestamp << "Disjoint set computation begins." << endl;
+    performanceLog << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
     setupLoadBalancing(readGraph.edges.size(), batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1, threadCount);
-    cout << timestamp << "Disjoint set computation completed." << endl;
+    performanceLog << timestamp << "Disjoint set computation completed." << endl;
 
 
 
     // Find the disjoint set that each oriented marker was assigned to.
     // Iterate till each marker has its set representative populated in the parent (lower 64 bits)
-    cout << timestamp << "Finding the disjoint set that each oriented marker was assigned to." << endl;
     uint64_t pass = 1;
     do {
         (data.disjointSetsPointer)->parentUpdated = 0;
-        cout << "    " << timestamp << " Iteration  " << pass << endl;
+        performanceLog << "    " << timestamp << " Iteration  " << pass << endl;
         setupLoadBalancing(data.orientedMarkerCount, batchSize);
         runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount);
-        cout << "    " << timestamp << " Updated parent of - " << (data.disjointSetsPointer)->parentUpdated << " entries." << endl;
+        performanceLog << "    " << timestamp << " Updated parent of - " << (data.disjointSetsPointer)->parentUpdated << " entries." << endl;
         pass++;
     } while ((data.disjointSetsPointer)->parentUpdated > 0 && pass <= 10);
 
@@ -148,10 +148,10 @@ void Assembler::createMarkerGraphVertices(
     }
     
 
-    cout << timestamp << "Verifying convergence of parent information." << endl;
+    performanceLog << timestamp << "Verifying convergence of parent information." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction21, threadCount);
-    cout << timestamp << "Done verifying convergence of parent information." << endl;
+    performanceLog << timestamp << "Done verifying convergence of parent information." << endl;
 
 
     // data.disjointSetTable now has the correct set representative for entry N at location 2*N.
@@ -159,13 +159,13 @@ void Assembler::createMarkerGraphVertices(
     // it uses for each entry. Since we only care about these bits, we can compact data.disjointSetTable
     // and free up half the memory.
     // This bit seems tricky to parallelize. It's not worth the effort as this is pretty fast as is.
-    cout << timestamp << "Compacting the Disjoint Set data-structure." << endl;
+    performanceLog << timestamp << "Compacting the Disjoint Set data-structure." << endl;
     for(uint64_t i=0; i<data.orientedMarkerCount; i++) {
         data.disjointSetTable[i] = data.disjointSetTable[2*i];
     }
     data.disjointSetTable.resize(data.orientedMarkerCount);
     data.disjointSetTable.unreserve();
-    cout << timestamp << "Done compacting the Disjoint Set data-structure." << endl;
+    performanceLog << timestamp << "Done compacting the Disjoint Set data-structure." << endl;
 
     // Don't need the DisjointSets data-structure any more.
     data.disjointSetsPointer = 0;
@@ -185,13 +185,12 @@ void Assembler::createMarkerGraphVertices(
     // because it would significantly increase the peak memory usage.
     // This way, we allocate data.workArea only after compacting 
     // data.disjointSetTable.
-    cout << timestamp << "Counting the number of markers in each disjoint set." << endl;
+    performanceLog << timestamp << "Counting the number of markers in each disjoint set." << endl;
     data.workArea.createNew(
         largeDataName("tmp-WorkArea"),
         largeDataPageSize);
     data.workArea.reserveAndResize(data.orientedMarkerCount);
     fill(data.workArea.begin(), data.workArea.end(), 0ULL);
-    cout << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction3, threadCount);
 
@@ -266,7 +265,7 @@ void Assembler::createMarkerGraphVertices(
     // as we will later remove "bad" vertices
     // (vertices with more than one marker on the same read).
     // This block is recursive and cannot be multithreaded.
-    cout << timestamp << "Renumbering the disjoint sets." << endl;
+    performanceLog << timestamp << "Renumbering the disjoint sets." << endl;
     MarkerGraph::VertexId newDisjointSetId = 0ULL;
     for(MarkerGraph::VertexId oldDisjointSetId=0;
         oldDisjointSetId<data.orientedMarkerCount; ++oldDisjointSetId) {
@@ -296,7 +295,7 @@ void Assembler::createMarkerGraphVertices(
     // Reassign vertices to disjoint sets using this new numbering.
     // Vertices assigned to no disjoint set will store MarkerGraph::invalidVertexId.
     // This could be multithreaded if necessary.
-    cout << timestamp << "Assigning vertices to renumbered disjoint sets." << endl;
+    performanceLog << timestamp << "Assigning vertices to renumbered disjoint sets." << endl;
     for(MarkerGraph::VertexId markerId=0;
         markerId<data.orientedMarkerCount; ++markerId) {
         auto& d = data.disjointSetTable[markerId];
@@ -328,14 +327,14 @@ void Assembler::createMarkerGraphVertices(
     data.disjointSetMarkers.createNew(
         largeDataName("tmp-DisjointSetMarkers"),
         largeDataPageSize);
-    cout << timestamp << "Gathering markers in disjoint sets, pass1." << endl;
+    performanceLog << timestamp << "Gathering markers in disjoint sets, pass1." << endl;
     data.disjointSetMarkers.beginPass1(disjointSetCount);
-    cout << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
+    performanceLog << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction4, threadCount);
-    cout << timestamp << "Gathering markers in disjoint sets, pass2." << endl;
+    performanceLog << timestamp << "Gathering markers in disjoint sets, pass2." << endl;
     data.disjointSetMarkers.beginPass2();
-    cout << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
+    performanceLog << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction5, threadCount);
     data.disjointSetMarkers.endPass2();
@@ -343,7 +342,7 @@ void Assembler::createMarkerGraphVertices(
 
 
     // Sort the markers in each disjoint set.
-    cout << timestamp << "Sorting the markers in each disjoint set." << endl;
+    performanceLog << timestamp << "Sorting the markers in each disjoint set." << endl;
     setupLoadBalancing(disjointSetCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction6, threadCount);
 
@@ -381,7 +380,7 @@ void Assembler::createMarkerGraphVertices(
         largeDataName("tmp-IsBadDisjointSet"),
         largeDataPageSize);
     data.isBadDisjointSet.reserveAndResize(disjointSetCount);
-    cout << timestamp << "Flagging bad disjoint sets." << endl;
+    performanceLog << timestamp << "Flagging bad disjoint sets." << endl;
     setupLoadBalancing(disjointSetCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction7, threadCount);
     const size_t badDisjointSetCount = std::count(
@@ -394,7 +393,7 @@ void Assembler::createMarkerGraphVertices(
 
 
     // Renumber the disjoint sets again, this time without counting the ones marked as bad.
-    cout << timestamp << "Renumbering disjoint sets to remove the bad ones." << endl;
+    performanceLog << timestamp << "Renumbering disjoint sets to remove the bad ones." << endl;
     data.workArea.createNew(
         largeDataName("tmp-WorkArea"),
         largeDataPageSize);
@@ -426,7 +425,7 @@ void Assembler::createMarkerGraphVertices(
     // Compute the final disjoint set number for each marker.
     // That becomes the vertex id assigned to that marker.
     // This could be multithreaded.
-    cout << timestamp << "Assigning vertex ids to markers." << endl;
+    performanceLog << timestamp << "Assigning vertex ids to markers." << endl;
     markerGraph.vertexTable.createNew(
         largeDataName("MarkerGraphVertexTable"),
         largeDataPageSize);
@@ -448,7 +447,7 @@ void Assembler::createMarkerGraphVertices(
     // Store the disjoint sets that are not marked bad.
     // Each corresponds to a vertex of the global marker graph.
     // This could be multithreaded.
-    cout << timestamp << "Gathering the markers of each vertex of the marker graph." << endl;
+    performanceLog << timestamp << "Gathering the markers of each vertex of the marker graph." << endl;
     markerGraph.constructVertices();
     markerGraph.vertices().createNew(
         largeDataName("MarkerGraphVertices"),
@@ -515,8 +514,8 @@ void Assembler::createMarkerGraphVertices(
 
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "Computation of global marker graph vertices ";
-    cout << "completed in " << tTotal << " s." << endl;
+    performanceLog << timestamp << "Computation of global marker graph vertices ";
+    performanceLog << "completed in " << tTotal << " s." << endl;
 
 }
 
@@ -1136,7 +1135,7 @@ void Assembler::getMarkerIntervals(
 // Find the reverse complement of each marker graph vertex.
 void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
 {
-    cout << timestamp << "Begin findMarkerGraphReverseComplementVertices."
+    performanceLog << timestamp << "Begin findMarkerGraphReverseComplementVertices."
         << endl;
 
     // Check that we have what we need.
@@ -1171,7 +1170,7 @@ void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
     setupLoadBalancing(vertexCount, 10000);
     runThreads(&Assembler::findMarkerGraphReverseComplementVerticesThreadFunction2,
         threadCount);
-    cout << timestamp << "Begin findMarkerGraphReverseComplementVertices." << endl;
+    performanceLog << timestamp << "End findMarkerGraphReverseComplementVertices." << endl;
 
 }
 
@@ -2863,7 +2862,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 
     // At each prune iteration we prune one layer of leaves.
     for(size_t iteration=0; iteration!=iterationCount; iteration++) {
-        cout << timestamp << "Begin prune iteration " << iteration << endl;
+        performanceLog << timestamp << "Begin prune iteration " << iteration << endl;
 
         // Find the edges to be pruned at each iteration.
         for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
@@ -4092,8 +4091,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         // If this component is self-complementary, it requires special handling.
         // Skip for now.
         if(rcComponentTable[componentId] == componentId) {
-        	cout << "Skipped a self-complementary component with " <<
-        		component.size() << " vertices." << endl;
+            // cout << "Skipped a self-complementary component with "
+            //     << component.size() << " vertices." << endl;
             for(const AssemblyGraph::VertexId v0: component) {
                 const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
                 const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
