@@ -2150,12 +2150,34 @@ that also appear on either branch of bubble <i>A</i> on is
 that also appear on either branch of bubble <i>B</i> on is 
 <i>n<sub>B1</sub> = n<sub>01</sub> + n<sub>11</sub></i>. 
 
+<li>The number of reads on the diagonal of <i>n<sub>ij</sub></i>
+is defined as 
+<i>n<sub>diagonal</sub> = n<sub>00</sub> + n<sub>11</sub></i>.
+This is the number of reads that suggest that the two bubbles are in-phase.
+
+<li>The number of reads off the diagonal of <i>n<sub>ij</sub></i>
+is defined as 
+<i>n<sub>off-diagonal</sub> = n<sub>01</sub> + n<sub>10</sub></i>.
+This is the number of reads that suggest that the two bubbles are out of phase.
+
+<li>The number of reads that suggest the "best" of the
+in-phase and out of phase hypotheses (based on simple read counts)
+is defined as
+<i>n<sub>concordant</sub> = max(n<sub>diagonal</sub>, n<sub>off-diagonal</sub>)</i>.
+
+<li>The number of reads that suggest the "worst" of the
+in-phase and out of phase hypotheses (based on simple read counts)
+is defined as
+<i>n<sub>discordant</sub> = min(n<sub>diagonal</sub>, n<sub>off-diagonal</sub>)</i>.
+
 <li>The total number of reads that appear on both bubbles is
 <i>n 
 = n<sub>A0</sub> + n<sub>A1</sub>
 = n<sub>B0</sub> + n<sub>B1</sub> =
 n<sub>00</sub> + n<sub>01</sub> +
-n<sub>10</sub> + n<sub>11</sub></i>
+n<sub>10</sub> + n<sub>11</sub> =
+n<sub>diagonal</sub> + n<sub>off-diagonal</sub> =
+n<sub>concordant</sub> + n<sub>discordant</sub></i>
 
 </ul>
 
@@ -2297,6 +2319,166 @@ remaining expressions have been evaluated in the above sections.
 Because we assumed <i>&epsilon;>0</i>,
 all terms in the above expressions are non-singular.
 
+
+
+<h3>Phasing graph</h3>
+<p>
+Phasing information for a set of diploid bubbles can
+be described using a <i>phasing graph</i>,
+an undirected graph in which each vertex represents a bubble.
+The phasing graph is used in two steps, described in more
+detail below. 
+<ul>
+<li>The goal of the first step, bubble removal,  is to remove bubbles that 
+are likely to be the result of errors.
+<li>The goal of the second step, phasing,
+is to assign a haplotype to each branch of each bubble.
+</ul>
+
+<p>
+The phasing graph is used in both steps, with some differences.
+
+<p>An edge between two vertices can be created if the two corresponding
+bubbles have enough common reads to permit phasing. The precise 
+criteria for edge creation are different for bubble removal and for phasing,
+but in both cases each edge stores the <i>n<sub>ij</sub></i>
+phasing matrix for the bubbles corresponding to the vertices it joins.
+But in both cases we enforce a minimum allowed value for 
+<i>n<sub>concordant</sub></i> and a maximum allowed value for 
+<i>n<sub>discordant</sub></i>. 
+This reflects the fact that, for an edge to carry sufficient information,
+we would like <i>n<sub>concordant</sub></i> to be high and
+<i>n<sub>discordant</sub></i> to be small.
+These thresholds are controlled by the following command line options:
+<ul>
+<li>For bubble removal, 
+<code>--Assembly.mode2.bubbleRemoval.minConcordantReadCount</code>
+and 
+<code>--Assembly.mode2.bubbleRemoval.maxDiscordantReadCount</code>.
+<li>For phasing, 
+<code>--Assembly.mode2.phasing.minConcordantReadCount</code>
+and 
+<code>--Assembly.mode2.phasing.maxDiscordantReadCount</code>.
+</ul>
+
+<p>
+In addition, an edge is only generated if it carries sufficient useful information.
+For the simpler case of phasing, when bubbles in error have 
+been removed, we can ignore the random hypothesis. We use the Bayesian model to compute
+
+<p>
+<i>
+log(P<sub>phasing</sub>) = 
+<span style='font-size:150%'>|</span>
+log
+<span style='font-size:150%'>[</span>
+P<sub>posterior</sub>(in-phase) / P<sub>posterior</sub>(out-of-phase)<span style='font-size:150%'>]</span>
+<span style='font-size:150%'>|</span>
+</i>
+
+<p>
+Because of the absolute value, this gives the logarithmic spacing between the 
+in-phase and out-of-phase hypothesis. 
+A large value means that the edge strongly supports either the
+in-phase or out-of-phase hypothesis.
+The edge is only generated if 
+<i>log(P<sub>phasing</sub>)</i>
+is greater than the value specified
+by command line option 
+<code>--Assembly.mode2.phasing.minLogP</code>.
+This values specifies the minimum required value of
+<i>log(P<sub>phasing</sub>)</i>, expressed in 
+<a href='https://en.wikipedia.org/wiki/Decibel'>decibels</a> (dB).
+
+<p>
+The generated edge is then assigned a relative phase equal to 0 (in-phase) if
+
+<p>
+<i>
+P<sub>posterior</sub>(in-phase) > P<sub>posterior</sub>(out-of-phase)
+</i>
+
+<p>and 1 (out-of-phase) otherwise.
+
+
+
+<p>
+For bubble removal things are a bit more complicated because
+now we also have to allow for the random hypothesis. 
+For an edge to be generated we want it to decisively support 
+either the in-phase or out-of-phase agains <b>both</b> the random hypothesis
+and the opposite phasing hypothesis. Therefore in this case
+<span style='white-space:nowrap'><i>log(P<sub>bubble-removal</sub>)</i></span> 
+for an edge is defined as follows:
+
+<p>
+If <i>
+log
+<span style='font-size:150%'>[</span>
+P<sub>posterior</sub>(in-phase) / P<sub>posterior</sub>(out-of-phase)
+<span style='font-size:150%'>]</span> > 0
+</i>:
+
+<p style='margin-left:4em'>
+<i>
+log(P<sub>bubble-removal</sub>) =
+min 
+<span style='font-size:150%'>{</span>
+log
+<span style='font-size:150%'>[</span>
+P<sub>posterior</sub>(in-phase) / P<sub>posterior</sub>(out-of-phase)
+<span style='font-size:150%'>]</span>
+,
+log
+<span style='font-size:150%'>[</span>
+P<sub>posterior</sub>(in-phase) / P<sub>posterior</sub>(random)
+<span style='font-size:150%'>]</span>
+<span style='font-size:150%'>}</span>
+</i>
+
+<p>
+Otherwise:
+
+<p style='margin-left:4em'>
+<i>
+log(P<sub>bubble-removal</sub>) =
+min 
+<span style='font-size:150%'>{</span>
+log
+<span style='font-size:150%'>[</span>
+P<sub>posterior</sub>(out-of-phase) / P<sub>posterior</sub>(in-phase)
+<span style='font-size:150%'>]</span>
+,
+log
+<span style='font-size:150%'>[</span>
+P<sub>posterior</sub>(out-of-phase) / P<sub>posterior</sub>(random)
+<span style='font-size:150%'>]</span>
+<span style='font-size:150%'>}</span>
+</i>
+
+<p>
+In both cases, 
+<i>
+log(P<sub>bubble-removal</sub>)
+</i>
+is the logarithmic spacing between the best of the two phasing hypotheses
+against the next best hypothesis - either the opposite phasing hypothesis
+or the random hypothesis. 
+
+<p>
+The edge is only generated if 
+<i>log(P<sub>bubble-removal</sub>)</i>
+is greater than the value specified
+by command line option 
+<code>--Assembly.mode2.bubbleRemoval.minLogP</code>.
+This values specifies the minimum required value of
+<i>log(P<sub>bubble-removal</sub>)</i>, expressed in 
+<a href='https://en.wikipedia.org/wiki/Decibel'>decibels</a> (dB).
+
+<p>
+Therefore the presence of an edge indicates good support
+for one of the phasing hypotheses, which in turn means that
+neither of the two bubbles are due to errors.
 
 
 <h3>Bubble removal</h3>
