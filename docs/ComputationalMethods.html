@@ -34,7 +34,7 @@ in reads below 10 Kb and 10% or more of coverage in reads longer than 100 Kb.
 There are also <i>Ultra-Long (UL)</i> protocols that provide longer reads, with 
 typical lengths around 100 Kb.
 <li>Sequence identity around 97%, or equivalently an error rate around 3%.
-This relative high error rate has been improving significantly in time.
+This relatively high error rate has been improving significantly in time.
 <li>The dominant error mode consists of errors in the length of homopolymer runs
 of all lengths. Errors in short homopolymer runs (lengths 1-5)
 are particularly deleterious due to their high frequency.
@@ -47,7 +47,7 @@ are particularly deleterious due to their high frequency.
 <p>
 Due to their length, Oxford Nanopore reads have
 unique value for <i>de novo</i>
-assembly. However a successful approach needs
+assembly. However, a successful approach needs
 to deal with the high error rate.
 
 <p>Traditional approaches to <i>de novo</i> assembly typically
@@ -57,24 +57,24 @@ rely on selecting a k-mer length that satisfies the following:
 <li>K-mers of the selected length are reasonably unique
 in the target genome. For human assemblies, this typically means
 k &#10886; 30.
-<li>Most k-mers of the selected length are error free in the
+<li>Most k-mers of the selected length are error-free in the
 target reads. This means that k must be significantly less
 than the inverse of the error rate.
 </ul>
 
 <p>
-For many sequencing technolgies the above conditions 
+For many sequencing technolgies, the above conditions 
 are satisfied for k around 30.
 But for our target reads, with an error rate around 3%,
-most 30-mers contains errors, and therefore 
+most 30-mers contain errors, and therefore 
 assembly algorithms based on using such k-mers become unfeasible.
 
 <p>
 A possible approach consists of adding a preliminary error correction
-step in which reads are aligned to each other and corrected based on consensus,
+step in which reads are aligned to each other and corrected based on consensus
 and then presenting to the assembler the corrected reads,
 which hopefully have a much lower error rate. 
-But such approaches tends to be slow, and in addition 
+But such approaches tend to be slow, and in addition, 
 any errors made in the error correction step
 are permanent and cannot be fixed during the assembly process.
 
@@ -84,7 +84,7 @@ are permanent and cannot be fixed during the assembly process.
 <p> 
 The computational techniques used in the Shasta assembler
 rely on representing the sequence of input reads in a way
-that the reduces the effect of errors on 
+that reduces the effect of errors on 
 the <i>de novo</i> assembly process:
 <ul>
 <li>
@@ -132,7 +132,7 @@ CGATTTAAGTTA
 CGATTAAGGGTTA
 </pre>
 
-Using their raw representation above, these reads can aligned like this:
+Using their raw representation above, these reads can be aligned like this:
 
 <pre>
 CGATTTAAG--TTA
@@ -167,7 +167,7 @@ The differences between the two reads only appear in the repeat counts:
 
 <p>
 The Shasta assembler uses one byte to represent repeat counts,
-and as a result it only represents repeat counts
+and as a result, it only represents repeat counts
 between 1 and 255. If a read contains more than 255
 consecutive bases, it is discarded on input.
 Such reads are extremely rare, and the occurrence of such a large
@@ -202,17 +202,17 @@ in the raw representation.
 <h2 id=Markers>Markers</h2>
 
 <p>
-Even with run-length encoding, error in input reads are still frequent.
+Even with run-length encoding, errors in input reads are still frequent.
 To further reduce sensitivity to errors, and also to speed up
 some of the computational steps in the assembly process,
 the Shasta assembler also uses a read representation
 based on <i>markers</i>. Markers are 
 occurrences in reads of a pre-determined subset of short k-mers.
 By default, Shasta uses for this purpose k-mers with k=10 in run-length
-encoding, corresponding to an average approximately 13 bases
+encoding, corresponding to an average of approximately 13 bases
 in raw read representation. 
 
-<p>Just for the purposes of illustration, consider a description
+<p>Just for illustration, consider a description
 using markers of length 3 in run-length encoding.
 There is a total 4&times;3<sup>2</sup> = 36 distinct such markers. 
 We arbitrarily choose the following fixed subset of the 36, and we assign an id 
@@ -268,7 +268,7 @@ as markers. The length of the markers k is controlled by
 assembly parameter 
 <code><a href='CommandLineOptions.html#Kmers.k'>--Kmers.k</a></code> 
 with a default value of 10.
-Each k-mer is randomly choosen to be used as a marker
+Each k-mer is randomly chosen to be used as a marker
 with probability determined by assembly parameter 
 <code><a href='CommandLineOptions.html#Kmers.probability'>--Kmers.probability</a></code>
 with a default value of 0.1.
@@ -283,8 +283,8 @@ markers is approximately 0.1&times;4&times;3<sup>9</sup>&#8776;7900.
 Options are also provided to read from a file the RLE k-mers to
 be used as markers. This permits experimentation with marker k-mers
 chosen in ways other than random. To date, no marker selection
-algorithm has proven more successful than random selection,
-but is is very possible that assembly quality can be improved
+algorithm has proven more successful than random selection
+but it is very possible that assembly quality can be improved
 by non-random selection of markers.
 
 <p>
@@ -294,7 +294,7 @@ complement should also be a marker. This makes it easy to construct
 the marker representation of the reverse complement
 of a read from the
 marker representation of the original read.
-It also ensures strand symetry in some of the computational steps.
+It also ensures strand symmetry in some of the computational steps.
 
 <p>
 Below is the run-length representation of a portion of a read
@@ -312,7 +312,7 @@ and its markers, as displayed by the Shasta http server.
 
 The marker representation of a read is a sequence 
 in an alphabet consisting of the marker ids.
-This sequence is much shorter than the original sequence of the read,
+This sequence is much shorter than the original sequence of the read
 but uses a much larger alphabet.
 For example, 
 with default Shasta assembly parameters, the marker representation
@@ -354,7 +354,7 @@ or, in words, A<sub>ij</sub> is 1 if x<sub>i</sub>=y<sub>j</sub>
 and 0 otherwise.
 (The Shasta assembler never explicitly constructs alignment matrices
 except for display when requested interactively.
-Alignment matrices are used here just for the purpose of illustration).
+Alignment matrices are used here just for illustration).
 <p>
 In portions where the sequences x and y are perfectly aligned,
 the alignment matrix consists of a matrix diagonal set to 1.
@@ -447,7 +447,7 @@ shown above. The portion of alignment matrix in marker space
 shown here covers about 120 markers or about 1500 bases
 in the original representation of the read, compared to
 only about
-100 bases in the alignment matrix in raw representation shown above .
+100 bases in the alignment matrix in raw representation shown above.
 
 
 For these reasons, the marker representation
@@ -471,7 +471,7 @@ on the second oriented read, where <i>N</i>
 is the number of aligned markers. 
 That is, <i>x<sub>i</sub></i> and <i>y<sub>i</sub></i>
 are the coordinates of the green points in the alignment matrix as depicted above.
-Also call <i>N<sub>x</i> the number of markers in the first oriented read and 
+Also, call <i>N<sub>x</i> the number of markers in the first oriented read and 
 <i>N<sub>y</i> the number of markers in the second oriented read.
 <i>N<sub>x</i> and <i>N<sub>y</i> are
 the horizontal and vertical sizes, respectively,
@@ -545,7 +545,7 @@ gaps with large diagonal shift.
 
 
 <li id=Trim>
-An alignment should always begins near the beginning of at least one of the two oriented
+An alignment should always begin near the beginning of at least one of the two oriented
 reads, but we need to allow for an initial incorrect portion at the beginning of each read.
 The minimum over the two oriented reads of the number of markers skipped at
 the beginning of the alignment, 
@@ -569,7 +569,7 @@ is at most equal to the value of
 <h3 id=OptimalAlignments>Computing optimal alignments in marker representation</h3>
 <p>
 To compute the optimal alignment highlighted in green in the above figure,
-one of the folowing methods is used,
+one of the following methods is used,
 under control of command line option
 <code><a href='CommandLineOptions.html#Align.alignMethod'>--Align.alignMethod</a></code>:
 <ul>
@@ -615,7 +615,7 @@ as the default alignment method selected by
 provides better performance and accuracy.
 
 This algorithm effectively constructs an optimal path in the alignment matrix,
-but using some heuristics to speed up the computation:
+but uses some heuristics to speed up the computation:
 <ul>
 <li>The maximum number of markers that an alignment 
 can skip on either read is limited to a maximum,
@@ -639,7 +639,7 @@ have an initial or final portion that is not usable.
 marker k-mers that are too frequent in either of the two reads
 being aligned are not used in the alignment computation.
 For this purpose, the Shasta assembler uses a criterion based
-on absolute number of occurrences of marker k-mers in the two reads,
+on an absolute number of occurrences of marker k-mers in the two reads,
 although a relative criterion (occurrences per Kb) may be more appropriate.
 The current absolute frequency threshold is under control of assembly parameter
 <code><a href='CommandLineOptions.html#Align.maxMarkerFrequency'>--Align.maxMarkerFrequency</a></code>
@@ -678,10 +678,10 @@ of the marker sequences of the reads to be aligned.
 This is <i>O(N<sup>2</sup>)</i> 
 in the number of markers
 in the two reads being aligned, but still reasonably fast because
-od downsampling.
+of downsampling.
 <li>
 In a second step, SeqAn is used to compute a banded alignment
-of the markerrepresentation of the two reads.
+of the marker representation of the two reads.
 The position and width of the band is obtained from 
 the downsampled alignment computed in the first step.
 </ul>
@@ -692,7 +692,7 @@ the downsampled alignment computed in the first step.
 <p>
 Even though computing read alignments in marker representation is fast,
 it still is not feasible to compute alignments among all possible pairs of reads.
-For a human size genome with &#8776;10<sup>6</sup>-10<sup>7</sup> reads,
+For a human-size genome with &#8776;10<sup>6</sup>-10<sup>7</sup> reads,
 the number of pairs to consider would be &#8776;10<sup>12</sup>-10<sup>14</sup>,
 and even at 10<sup>-3</sup> seconds per alignment the compute time
 would be &#8776;10<sup>9</sup>-10<sup>11</sup> seconds,
@@ -740,7 +740,7 @@ and compute the Jaccard similarity index for each,
 then keep only the pairs for which the index is sufficiently high.
 The algorithm does not guarantee that all pairs 
 with high similarity will be found - only that the probability
-of finding all pairs is an increasing function of their similarity.
+of finding all pairs is an increasing function of their similarities.
 
 <p>
 The algorithm is used by Shasta with items being oriented reads
@@ -773,13 +773,13 @@ markers are relatively common. We have to keep in mind that,
 with Shasta default parameters, 4 consecutive markers 
 span an average 40 bases in run-length encoding or about 52 bases
 in the original raw base representation.
-At a typical error rate around 10%, such a portion of a read would
+At a typical error rate of around 10%, such a portion of a read would
 contain on average 5 errors. Yet, the marker representation
 in run-length space
 is sufficiently robust that these common "features"
 are relatively common despite the high error rate.
 This indicates that we can expect the
-MinHash algorith to be effective in finding pairs of overlapping reads.
+MinHash algorithm to be effective in finding pairs of overlapping reads.
 
 <p>
 However, the MinHash algorithm has a feature that is undesirable
@@ -792,7 +792,7 @@ J = |X&#8745;Y| / |X&#8746;Y|
 </pre>
 
 Because the read length distribution of Oxford Nanopore reads
-is very wide, it is very common to have pairs of reads with 
+is wide, it is common to have pairs of reads with 
 very different lengths. Consider now two reads with lengths n<sub>x</sub> and n<sub>y</sub>, with 
 n<sub>x</sub>&lt;n<sub>y</sub>, that overlap exactly over the entire length n<sub>x</sub>.
 The Jaccard similarity is in this case given by n<sub>x</sub>/n<sub>y</sub> &lt; 1.
@@ -800,7 +800,7 @@ This means that, if one of the reads in a pair is much shorter than
 the other one, their Jaccard similarity will be low even in 
 the best case of exact overlap. As a result, the
 unmodified MinHash algorithm will not do a good job
-at finding overlapping pairs of reads with very different length.
+at finding overlapping pairs of reads with very different lengths.
 
 <p>
 For this reason, the Shasta assembler uses a small modification to
@@ -812,7 +812,7 @@ This has the effect of eliminating the bias against
 pairs in which one read is much shorter than the other.
 The modified algorithm is referred to as <i>LowHash</i>
 in the Shasta source code.
-It is effectively equivalent to a an indexing approach
+It is effectively equivalent to an indexing approach
 in which we index all features with low hash.
 
 <p>
@@ -849,7 +849,7 @@ unrelated oriented reads.
 <code><a href='CommandLineOptions.html#MinHash.minBucketSize'>--MinHash.minBucketSize</a></code>
 (default 0):
 The minimum number of items for a bucket to be considered.
-Buckets with less than this number of items are ignored,
+Buckets with less than this number of items are ignored
 because MinHash features in these buckets are likely to be in error.
 
 <li>
@@ -892,7 +892,7 @@ and when they occur they are of suspicious quality.
 above the specified number of bases.
 <li>K-mers to be used as markers are randomly selected.
 <li>Occurrences of those marker k-mers in all oriented reads are found.
-<li>Reads are aligned to their own reverse complement to determine if they are
+<li>Reads are aligned to their reverse complement to determine if they are
 palindromic. Palindromes are flagged and ignored during assembly.
 <li>The LowHash algorithm finds candidate pairs of overlapping oriented reads.
 <li>A marker alignment is computed for each candidate pair of oriented reads.
@@ -973,7 +973,7 @@ typically for high similarity segment duplications:
 <img class="fit-in-main" src=ReadGraph2.png>
 
 <p>
-The obviously incorrect connections can destroy the linear structure
+Obviously incorrect connections can destroy the linear structure
 of assembled sequence. This is dealt with later in the assembly process.
 
 
@@ -995,7 +995,7 @@ for each vertex is controlled by assembly option
 <code><a href='CommandLineOptions.html#ReadGraph.maxAlignmentCount'>--ReadGraph.maxAlignmentCount</a></code>,
 with a default value of 6.
 Note that, despite the <i>k</i>-Nearest-Neighbor subset,
-it remains possible for a vertex to have degree
+it remains possible for a vertex to have a degree
 more than <i>k</i>.
 
 
@@ -1057,11 +1057,11 @@ out by above percentile criteria.
 <p>
 Because of its adaptiveness to alignment characteristics,
 this method is more robust and less sensitive 
-to the choice of alignment criteria,
+to the choice of alignment criteria
 and results in more accurate and more contiguous assemblies.
 However, when using <code>--ReadGraph.creationMethod 2</code>
 it is important to use very liberal choices for the 
-options that control alignment quality, because
+options that control alignment quality because
 bad alignments will be discarded anyway using the
 percentile criteria. 
 An example of assembly options with <code>--ReadGraph.creationMethod 2</code>
@@ -1085,7 +1085,7 @@ Consider a read whose marker representation is:
 a b c d e
 </pre>
 We can represent this read as a directed graph
-that the describes the sequence in which its markers appear:
+that describes the sequence in which its markers appear:
 <p>
 <img src="MarkerGraph-1.dot.png">
 <p>
@@ -1099,7 +1099,7 @@ between consecutive markers.
 We can associate sequence with each vertex and edge of the
 marker graph:
 <ul>
-<li>Each vertex is associated with the sequence of the corrersponding 
+<li>Each vertex is associated with the sequence of the corresponding 
 marker.
 <li>If the markers of the source and target vertex of an edge
 do not overlap, the edge is associated with the sequence
@@ -1139,7 +1139,7 @@ a marker graph describing the two aligned reads:
 <img src="MarkerGraph-4.dot.png">
 
 <p>
-Here, by construction each vertex still has a unique
+Here, by construction, each vertex still has a unique
 sequence associated with it - the common sequence
 of the markers that were merged
 (however the corresponding repeat counts
@@ -1154,7 +1154,7 @@ the two markers.
 
 <p>
 We call coverage of a vertex or edge the number of reads "contributing"
-to it. In this example, vertices <code>a, b, d, e</code> have coverage 2
+to it. In this example, vertices <code>a, b, d, e</code> have coverage 2,
 and vertices <code>c, x</code> have coverage 1.
 Edges <code>a->b</code>
 and <code>d->e</code> have coverage 2, and the remaining edges have coverage 1.
@@ -1174,7 +1174,7 @@ using default assembly parameters).
 corresponding to an edge of the read graph,
 we merge vertices corresponding to aligned markers.
 <li>Of the resulting merged vertices, we remove those whose 
-coverage in too low or two high, indicating that the contributing
+coverage is too low or too high, indicating that the contributing
 reads or some of the alignments involved are probably in error.
 This is controlled by assembly parameters
 <code>MarkerGraph.minCoverage</code> (default 10)
@@ -1226,26 +1226,26 @@ Shasta http server, is shown here:
 
 <p>
 Each vertex, shown in green, contains a list
-of the oriented reads the contribute to it.
+of the oriented reads that contribute to it.
 Each oriented read is labeled with the read id 
 (a number) followed by "-0" for original orientation
 and "-1" for reverse complemented orientation. Each vertex
 is also labeled with the marker sequence (run-length encoded).
-Edges are drawn with an arrow whose thickness is proportional to edge coverage,
+Edges are drawn with an arrow whose thickness is proportional to edge coverage
 and labeled with the sequence contributed by each read.
 In edge labels, a sequence consisting of a number indicates
 the number of overlapping bases between adjacent markers.
 
 <p>
-On as larger scale and with less detail, a typical portion of the marker graph looks
+On a larger scale and with less detail, a typical portion of the marker graph looks
 like this:
 
 <p>
 <img class=fit-in-main src=MarkerGraph-6.png>
 
 <p>
-Here, each vertex is drawn with size proportional to its coverage.
-Edge arrows are again displayed with thickness porportional to edge coverage.
+Here, each vertex is drawn with a size proportional to its coverage.
+Edge arrows are again displayed with thickness proportional to edge coverage.
 The marker graph has a linear structure with a dominant path
 and side branches due to errors.
 
@@ -1267,7 +1267,7 @@ For example, this marker graph
 
 <p>
 can be represented as an assembly graph as follows.
-Colors were chosen to indicate the correspondance
+Colors were chosen to indicate the correspondence
 to marker graph edges:
 
 <p>
@@ -1277,8 +1277,7 @@ to marker graph edges:
 The <i>length</i>
 of an edge of the assembly graph is defined as the number
 of marker graph edges that it corresponds to. 
-For each edge of the assembly graph,
-an average coverage is also computed, by averaging the
+For each edge of the assembly graph, average coverage is also computed, by averaging the
 coverage of the marker graph edges it corresponds to.
 
 
@@ -1286,7 +1285,7 @@ coverage of the marker graph edges it corresponds to.
 <h2 id=AssembleSequence>Using the marker graph to assemble sequence</h2>
 <p>
 The marker graph is a partial description of the multiple sequence
-alignment between reads and can be used to assemble consensus sequence.
+alignment between reads and can be used to assemble a consensus sequence.
 One simple way to do that is to only keep the "dominant" path
 in the graph, and then move on that path from vertex to edge to vertex,
 assembling run-length encoded sequence as follows:
@@ -1299,7 +1298,7 @@ to a vertex, and the marker sequence can be used directly as
 the contribution of the vertex to assembled sequence.
 <li>For edges, there are two possible situations plus a hybrid case:
 <ul style='list-style:none'>
-<li>2.1. If the adjacent markers overlap, in most cases all
+<li>2.1. If the adjacent markers overlap, in most cases, all
 contributing reads have the same number of 
 overlapping bases between the two markers, and we are again in a situation
 of trivial consensus, where all reads contribute the same sequence,
@@ -1319,7 +1318,7 @@ markers at both sides.
 <li>
 2.3. A hybrid situation occasionally arises, in which
 some reads have the two markers overlapping,
-and some do not. In this case we count reads
+and some do not. In this case, we count reads
 of the two kinds and discard the reads of the minority kind,
 then revert to one of the two cases 2.1 or 2.2 above.
 </ul>
@@ -1347,7 +1346,7 @@ assembles run-length encoded sequence.
 The final step to create raw assembled sequence
 is to compute the most likely repeat count for
 each sequence position in run-length encoding.
-In Shasta 0.1.0 this was done done by choosing as the
+In Shasta 0.1.0 this was done by choosing as the
 most likely repeat count the one that appears
 the most frequently in the
 reads that contributed to each assembled position.
@@ -1404,7 +1403,7 @@ The default is <code>--Assembly.Modal</code>.
 Some testing showed a significant decrease of false positive indels
 in assembled sequence compared to Shasta 0.1.0 behavior, corresponding to
 <code>--Assembly.consensusCaller Modal</code>. This testing was done
-for reads called using Guppy 2.3.5. However even using
+for reads called using Guppy 2.3.5. However, even using
 <code>--Assembly.consensusCaller Bayesian:guppy-2.3.1-a</code>
 resulted in significant improvement over 
 <code>--Assembly.consensusCaller Modal</code>, indicating
@@ -1429,7 +1428,7 @@ This is done by a series of steps that "remove" edges
 (but not vertices) from the marker graph until the
 marker graph consists mainly of linear sections
 which can be used as the assembly paths. 
-For speed, edges are not actualy removed but just marked
+For speed, edges are not actually removed but just marked
 as removed using a set of flag bits allocated for this 
 purpose in each edge.
 However, the description below will use the loose term <q>remove</q>
@@ -1451,7 +1450,7 @@ described in more detail in the following sections:
 <p>
 The goal of this step is to eliminate the side branches in the marker
 graph, which are the result of errors. 
-Despite the fact that
+Although
 the number of side branches is substantially reduced thanks to the use of
 run-length encoding, side branches are still abundant.
 This step uses an approximate transitive reduction of the marker graph which only 
@@ -1498,7 +1497,7 @@ with coverage greater than
 (default 256), and that were not previously removed,
 are processed in order of increasing coverage.
 Note that with the default values of these parameters all edges
-are processed, because edge coverage is stored using one byte
+are processed because edge coverage is stored using one byte
 and therefore can never be more than 255 (it is saturated at 255).
 For each edge <code>v0&rarr;v1</code>, 
 a <a href='https://en.wikipedia.org/wiki/Breadth-first_search'>Breadth-First Search</a> 
@@ -1515,7 +1514,7 @@ exists, edge <code>v0&rarr;v1</code> is removed.
 Note that the BFS does not use edges that have already
 been removed, and so the process is guaranteed not to affect
 reachability. Processing edges in order of increasing coverage
-makes sure that low coverage edges are more the most likely to be removed.
+makes sure that low coverage edges are the most likely to be removed.
 </ul>
 
 The transitive reduction step is intrinsically sequential and
@@ -1607,12 +1606,12 @@ determines the size of the smallest bubble or superbubble
 that will survive the process. 
 The default 1000 markers is equivalent to roughly 13 Kb.
 To suppress more bubble/superbubbles, increase
-the threshold for the last iterarion.
+the threshold for the last iteration.
 To see more bubbles/superbubbles, decrease
 the length threshold for the last iteration, or remove the last iteration entirely. 
 
 <p>
-The goal of the increasing threshold values is to work
+The goal of the increased threshold values is to work
 on small features at first, and on larger features in the later iterations.
 The best choice of 
 <code><a href='CommandLineOptions.html#MarkerGraph.simplifyMaxLength'>MarkerGraph.simplifyMaxLength</a></code>
@@ -1689,7 +1688,7 @@ for an assembly graph to be its own reverse complement.
 <h2 id=Detangle>Detangling</h3>
 
 <p>
-In many real life situations, the assembly graph contains
+In many real-life situations, the assembly graph contains
 features like this one, called a tangle:
 
 <p>
@@ -1716,7 +1715,7 @@ and this what the above picture and the following text assume, for clarity.
 <p>
 Because DNA structure is linear, this pattern expressed that two portions of
 sequence have similar portions (the green edge) which the assembly is not able to separate.
-However, in some cases it is possible to separate or "detangle" these two copies
+However, in some cases, it is possible to separate or "detangle" these two copies
 of similar sequence. 
 
 <p>
@@ -1727,13 +1726,13 @@ the blue edge on the left to the blue edge on the right,
 and reads going from the red edge on the left to the red edge on the right -
 but no reads crossing between blue and red edges.
 Then we can infer that one of the copies follows the blue edges on both sides, while
-the other copy follow the red edge. This allows us to detangle the two copies as follows:
+the other copy follows the red edge. This allows us to detangle the two copies as follows:
 
 <p>
 <img src='Detangle-After.png'/>
 
 <p>
-Note that the sequence in the green edge was duplicated. This makes sense,
+Note that the sequence in the green edge was duplicated. This makes sense
 because there are two copies of that sequence. 
 This detangling scheme was first proposed, in a different context,
 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC55524/'>Pevzner <i>et al.</i> (2001)</a>.
@@ -1781,7 +1780,7 @@ resolve segmental duplications.
 In current tests, it requires Ultra-Long (UL)
 Nanopore reads created by base caller Guppy 3.6.0 or newer
 at high coverage 80X. 
-The assembly options that were used in this process are captured in configuration file
+The assembly options that were used in this process are captured in the configuration file
 <code>Nanopore-UL-iterative-Sep2020.conf</code>.
 
 <p>
@@ -1789,8 +1788,8 @@ The Shasta iterative assembly code is at an experimental stage
 and therefore still subject to further
 improvements and developments. In its implementation as of September 2020,
 it operates as follows. In this description, <code>copy</code> refers
-to a haplotype or to a copy of a segmental duplication 
-or other long repeat.
+to a haplotype or a copy of a segmental duplication 
+or other long repeats.
 
 <ul>
 
@@ -1865,13 +1864,13 @@ but adds a phasing process for diploid genomes
 that results in a good amount of haplotype separation in many cases.
 
 <p>
-Being specialized for separation of haplotypes in a diploid assembly, this 
+Being specialized for the separation of haplotypes in a diploid assembly, this 
 process is not effective at separating copies of
 segmental duplications, and for the same reason 
 is not effective for genomes with higher ploidy.
 However, it can be used for genomes with mixed ploidy 1 and 2
 such as the human genome.
-It will typically assemble two haplotyopes at most
+It will typically assemble two haplotypes at most
 locations in the genomes except segmental duplication, if:
 <ul>
 <li>Coverage is high enough.
@@ -1970,8 +1969,8 @@ AAGG
 
 For both alleles, the RLE sequence is AG, so no bubble is generated.
 
-For this reason, for phased assembly using current nanopore reads
-is is best to turn off the RLE representation of the reads
+For this reason, for a phased assembly using current nanopore reads
+it is best to turn off the RLE representation of the reads
 via <code>--Reads.representation 0</code>. 
 Fortunately, 
 RLE is not as essential with today's higher quality nanopore
@@ -1991,10 +1990,10 @@ coverage of the secondary edges that are created.
 
 <p>
 Because of the strict coverage criteria used, this results
-in a marker graph that is mostly linear.
+in a mostly linear marker graph.
 The transitive reduction 
 used for mode 2 assembly is not used.
-And the bubble and superbubble remnoval process work differently in mode 2
+And the bubble and superbubble removal process work differently in mode 2
 assembly, as described below.
 
 
@@ -2002,7 +2001,7 @@ assembly, as described below.
 <h3>Heterozygous bubbles</h3>
 <p>
 The marker graph created as described above 
-is mostly linear,
+is mostly linear
 but has occasional <i>bubbles</i> caused by heterozygous loci.
 A bubble is a set of parallel edges in the marker graph.
 The number of parallel edges is the <i>ploidy</i>
@@ -2026,9 +2025,9 @@ called <i>n<sub>0</sub></i> and <i>n<sub>1</sub></i>.
 <p>
 Diploid bubbles in the marker graph don't necessarily
 reflect the difference between haplotypes at a 
-heterozygous locus, and can be caused by errors.
+heterozygous locus and can be caused by errors.
 In fact, with current Nanopore reads
-most heterogygous bubbles are caused by errors.
+most heterozygous bubbles are caused by errors.
 Therefore, heterozygous bubbles are handled in two steps
 in mode 2 assembly:
 <ul>
@@ -2043,20 +2042,20 @@ was not removed in the first step.
 <p>
 The first step is essential. 
 Attempting to phase bubbles without first removing
-the ones caused by errors woudl render tha phasing proces noisy
+the ones caused by errors would render that phasing process noisy
 and unreliable.
 
 <p>
 In the phasing step,
-it is impossible to assign haplotypes in a global way.
-Rather, in the phasing step heterozygous bubbles are partitioned into
+it is impossible to assign haplotypes globally.
+Rather, in the phasing step, heterozygous bubbles are partitioned into
 <i>phasing components</i>, and all bubbles in a
 phasing component are assigned a haplotype,
 which is valid only relative to other bubbles in the
 same component. 
 Each phasing component corresponds to one "large bubble"
 in the phased representation of the assembly (see below).
-Occasionally, it can also correspond to more than one large bubbles.
+Occasionally, it can also correspond to more than one large bubble.
 
 
 
@@ -2085,7 +2084,7 @@ We can create a 2 by 2 <i>phasing matrix</i>
 that counts the number of common reads between each side of the two bubbles.
 That is, <i>n<sub>ij</sub></i> is the number of common reads
 between branch <i>i</i> of bubble <i>A</i> and branch <i>j</i>
-of the bubble <i>B</i>.
+of bubble <i>B</i>.
 In an ideal error-free scenario, one of two following situations
 would occur:
 
@@ -2122,7 +2121,7 @@ as branch 0 of bubble <i>B</i>.
 <p>
 However, due to errors that can be deviations
 from this ideal behavior. In addition, if even one of the
-two bubbles is cause by errors the distribution 
+two bubbles is caused by errors the distribution 
 of the reads between the branches of the two bubbles can
 be entirely random.
 To describe this quantitatively, we use a simple Bayesian model
@@ -2188,18 +2187,18 @@ we now consider three possible hypotheses for the two bubbles:
 <ul>
 <li><i>Random</i> hypothesis: one or both of the two bubbles
 are caused by errors, and therefore reads visits the 
-two bubble in an entirely uncorrelated fashion.
+two bubbles in an entirely uncorrelated fashion.
 <li><i>Ideal in-phase</i> hypothesis: the two bubbles
 are in-phase, that is, branches 0 of the two bubbles
 are on the same haplotype, and similarly for branches 1.
 Under this ideal version of the in-phase hypothesis we also rule out all errors,
-and as a result the phasing matrix is exactly diagonal.
+and as a result, the phasing matrix is exactly diagonal.
 <li><i>Ideal out-of-phase</i> hypothesis: the two bubbles
 are out-of-phase, that is, branch 0 of bubble <i>A</i>
 is on the same haplotype as branch 1 of bubble <i>B</i>, 
 and similarly for the other two haplotypes.
 Under this ideal version of the out-of-phase hypothesis we also rule out all errors,
-and as a result the diagonal of the phasing matrix is exactly zero.
+and as a result, the diagonal of the phasing matrix is exactly zero.
 </ul>
 
  
@@ -2242,7 +2241,7 @@ The result is:
 <h5>Ideal out-of-phase hypothesis</h5>
 <p>
 The corresponding expression for the ideal
-out-of-phase hypothesis can be obained in a similar way.
+out-of-phase hypothesis can be obtained in a similar way.
 The result is:
 
 <p>
@@ -2253,12 +2252,12 @@ The result is:
 
 <h5>Non-ideal hypotheses</h5>
 <p>
-In reality, we have consider non-ideal in-phase and out-of phase hypotheses
+In reality, we have to consider non-ideal in-phase and out-of-phase hypotheses
 in which reads have probability <i>&epsilon;>0</i>
-of visiting branches in the two bubbles that inconsistent 
+of visiting branches in the two bubbles that is inconsistent 
 with the corresponding ideal hypothesis
 (a simple but perhaps oversimplistic assumption).
-Under these non-ideal hypotheses, that probability
+Under these non-ideal hypotheses, the probability
 that one of the <i>n</i> reads visits branch
 <i>i</i> of bubble <i>A</i> and branch
 <i>j</i> of bubble <i>B</i> is
@@ -2282,7 +2281,7 @@ P(ij &nbsp; </i>|<i> &nbsp; out-of-phase) =
 <h5>Bayesian model</h5>
 <p>
 With the above expressions available,
-we are a position to construct a simple Bayesian
+we are in a position to construct a simple Bayesian
 model in which we evaluate posterior probability 
 ratios of the above hypotheses conditional
 to the observed distribution of reads
@@ -2340,10 +2339,10 @@ The phasing graph is used in both steps, with some differences.
 
 <p>An edge between two vertices can be created if the two corresponding
 bubbles have enough common reads to permit phasing. The precise 
-criteria for edge creation are different for bubble removal and for phasing,
+criteria for edge creation are different for bubble removal and phasing,
 but in both cases each edge stores the <i>n<sub>ij</sub></i>
 phasing matrix for the bubbles corresponding to the vertices it joins.
-But in both cases we enforce a minimum allowed value for 
+But in both cases, we enforce a minimum allowed value for 
 <i>n<sub>concordant</sub></i> and a maximum allowed value for 
 <i>n<sub>discordant</sub></i>. 
 This reflects the fact that, for an edge to carry sufficient information,
@@ -2386,7 +2385,7 @@ The edge is only generated if
 is greater than the value specified
 by command line option 
 <code>--Assembly.mode2.phasing.minLogP</code>.
-This values specifies the minimum required value of
+This value specifies the minimum required value of
 <i>log(P<sub>phasing</sub>)</i>, expressed in 
 <a href='https://en.wikipedia.org/wiki/Decibel'>decibels</a> (dB).
 
@@ -2403,10 +2402,10 @@ P<sub>posterior</sub>(in-phase) > P<sub>posterior</sub>(out-of-phase)
 
 
 <p>
-For bubble removal things are a bit more complicated because
+For bubble removal, things are a bit more complicated because
 now we also have to allow for the random hypothesis. 
 For an edge to be generated we want it to decisively support 
-either the in-phase or out-of-phase agains <b>both</b> the random hypothesis
+either the in-phase or out-of-phase against <b>both</b> the random hypothesis
 and the opposite phasing hypothesis. Therefore in this case
 <span style='white-space:nowrap'><i>log(P<sub>bubble-removal</sub>)</i></span> 
 for an edge is defined as follows:
@@ -2471,7 +2470,7 @@ The edge is only generated if
 is greater than the value specified
 by command line option 
 <code>--Assembly.mode2.bubbleRemoval.minLogP</code>.
-This values specifies the minimum required value of
+This value specifies the minimum required value of
 <i>log(P<sub>bubble-removal</sub>)</i>, expressed in 
 <a href='https://en.wikipedia.org/wiki/Decibel'>decibels</a> (dB).
 
@@ -2624,12 +2623,12 @@ red or blue depending on the haplotype assigned
 to each branch during phasing.
 The intervening haploid segments are
 shown in grey.
-In most cases there is a haploid segment 
+In most cases, there is a haploid segment 
 in between each pair of adjacent bubbles,
 but sometimes two bubbles can immediately follow each other.
 
 <p>
-Bubble chains are useful for the purpose of organizing assembly output.
+Bubble chains are useful for organizing assembly output.
 As explained above, the phasing process assigns each 
 bubble to a connected component
 and each branch to a haplotype.
@@ -2668,7 +2667,7 @@ to one of the two paths for the phased region.
 
 <h3>Mode 2 assembly output</h3>
 <p>
-At the conclusion of a mode 2 assembly run,
+After a mode 2 assembly run,
 the resulting assembly is output in three different 
 representations containing different levels of detail:
 
@@ -2688,7 +2687,7 @@ in the Detailed representation of the assembly.
 <li>A <i>Haploid</i> representation
 in which each bubble chain is replaced
 by a single linear segment. This is done by discarding, 
-in each phased region, the branch with lowest average coverage.
+in each phased region, the branch with the lowest average coverage.
 This representation can be useful to understand and describe
 the large-scale structure of the assembly.
 
@@ -2713,7 +2712,7 @@ for each segment in the GFA and FASTA files.
 All GFA files are in 
 <a href="https://gfa-spec.github.io/GFA-spec/GFA1.html">GFA 1 format</a>. 
 
-So in total there are 12 output files, summarized in the table below:
+So in total, there are 12 output files, summarized in the table below:
 
 <p>
 <table>
@@ -2901,13 +2900,12 @@ maps very well to one haplotype of a reference genome
 for the assembly being sequenced, much less well to the 
 opposite haplotype.
 <li>The assembly only includes about half of the
-heterozygous SNPs. This is due to the fact
-that many SNPs are invisible in
+heterozygous SNPs. This is because many SNPs are invisible in
 the RLE representation of the reads. 
 This issue will be corrected in an upcoming release
 with an option to turn off the RLE representation of the reads.
 The RLE representation was introduced to handle
-reads with much lower accuracy than current reads,
+reads with much lower accuracy than current reads
 and is no longer an essential ingredient.
 <li>For the same reason,
 the transition/transversion ratio is overestimated.
@@ -2953,14 +2951,14 @@ assembly mode 2 has a built-in assumption of two copies.
 However, iterative assembly uses a different approach:
 it uses the assembly graph to separate reads and
 then iteratively reassembles while enforcing 
-separation of the read pairs found in previous 
+separation of the read pairs found in the previous 
 iteration to belong to different copies.
 In summary, one could say that iterative assembly 
 "phases the reads", while mode 2 assembly
 "phases the bubbles".
 
 <p>
-This approach used in iterative assembly, while effective in some cases, proved
+This approach used an iterative assembly, while effective in some cases, proved
 to be much less robust and causes abundant assembly artifacts and
 breaks. A future generalization of
 mode 2 assembly without the assumption of two copies
@@ -3008,13 +3006,13 @@ inspect and analyze an assembly and its data structures
 marker graph, or assembly graph).
 <li>For optimal performance, assembler data structures can be mapped to
 Linux 2 MB pages (<q>huge pages</q>). This makes it faster for
-the operating system to allocate and manage the memory,
+the operating system to allocate and manage the memory
 and improves TLB efficiency. Using huge pages mapped on the
 <code>hugetlbfs</code> filesystem 
 (Shasta executable options 
 <code>--<a href='CommandLineOptions.html#memoryMode'>memoryMode</a> filesystem --<a href='CommandLineOptions.html#memoryBacking'>memoryBacking</a> 2M</code>)
 can result in a significant speed up (20-30%) for large assemblies.
-However it requires root privilege via <code>sudo</code>.
+However, it requires root privilege via <code>sudo</code>.
 </ul>
 
 <p>
