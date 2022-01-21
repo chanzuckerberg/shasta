@@ -23,7 +23,7 @@ A list of available options can also be found
 <a href=CommandLineOptions.html>here</a>.
 
 <p>
-The only mandatory options is <code>--input</code> 
+The only mandatory option is <code>--input</code> 
 which must be used to specify the input FASTA or FASTQ files
 containing reads to be used for the assembly.
 If there is more than one file, the names
@@ -77,7 +77,7 @@ For best performance, the Shasta assembler uses a single large
 machine rather than a cluster of smaller machines, 
 and operates in memory,
 with no access to data on disk except during
-initial input of the reads, final output of the assembly,
+initial input of the reads, the final output of the assembly,
 and for small output files containing summary assembly information.
 As a result, for optimal performance, Shasta memory requirements
 are higher than
@@ -85,17 +85,17 @@ comparable tools that keep some or most of their data on disk.
 
 <p>
 Memory requirements for optimal performance are roughly proportional
-to genome size and coverage, and 
+to genome size and coverage and 
 are around 4 to 6 bytes per input base.
 This only counts input bases that are used in the assembly -
 that is, excluding reads that were discarded
 because they were too short or for other reasons.
-For a human size genome (&#8776;3 Gb) at coverage 60x,
+For a human-size genome (&#8776;3 Gb) at coverage 60x,
 this works out to around 
 1 TB of memory. 
 
 <p>
-Machine with 1 to 4 TB of memory have become available
+Machines with 1 to 4 TB of memory have become available
 at reasonable prices in the last few years, and they are widely available
 on cloud computing platforms. 
 For example, for human assemblies using Shasta, we have routinely
@@ -104,19 +104,19 @@ been using AWS <code>x1.32xlarge</code> instances with
 (64 cores with hyperthreading). 
 These machines are available at around $13/hour as on demand
 instances and they complete a typical human assembly at coverage
-60x in about 4 hours, at a compute cost around $50 per assembly,
+60x in about 4 hours, at a compute cost of around $50 per assembly,
 much lower than current sequencing costs to produce the input reads. 
 Much lower prices (2x to 3x lower) are also available for
 reserved instances and on the AWS spot market,
 which means that a production facility could achieve
-a compute cost around $20 per genome.
+a compute cost of around $20 per genome.
 
 <h2 id=LowMemory>Running with less than optimal memory</h2>
 
 <p>
 Shasta also supports a mode of operation
 with data structures physically on disk
-or other storage system,
+or other storage systems,
 mapped to virtual memory.
 In this mode of operation, the operating system
 dynamically moves pages to disk from memory and back as needed,
@@ -152,9 +152,8 @@ In addition to specifying these options, make sure the assembly directory
 (command line option <code>--assemblyDirectory</code>)
 is on a filesystem backed by the storage type 
 (SSD or NVMe) you want to use. 
-If you are using a local or departmental machine,
-it is likely that a filesystem is already mounted on that storage.
-If you are using an AWS instance, you can used the directions
+If you are using a local or departmental machine, likely that a filesystem is already mounted on that storage.
+If you are using an AWS instance, you can use the directions
 <a href='https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html'>here</a>
 and 
 <a href='https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nvme-ebs-volumes.html'>here</a>
@@ -183,12 +182,10 @@ equal to the number of virtual processors.
 <li>Costs are shown as on demand AWS prices in the AWS us-west-2
 region (Oregon).
 <li>For Intel
-machines there is one core for each two virtual processors,
+machines, there is one core for each two virtual processors,
 while for ARM processors
-there is one core for each virtual processor.
-<li>A Shasta executable for ARM is currenly not available
-with any Shasta release but can be built from source.
-It will be first available with Shasta Release 0.7.0.
+there is one core for every virtual processor.
+<li>A Shasta executable for ARM is currently available starting with Shasta Release 0.7.0.
 </ul>
 
 <table>
