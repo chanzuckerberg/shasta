@@ -4,6 +4,7 @@
 #include "deduplicate.hpp"
 #include "LocalReadGraph.hpp"
 #include "orderPairs.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "shastaLapack.hpp"
 #include "timestamp.hpp"
@@ -353,7 +354,7 @@ bool Assembler::createLocalReadGraph(
 // is flagged as chimeric.
 void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
 {
-    cout << timestamp << "Begin flagging chimeric reads, max distance " << maxDistance << endl;
+    performanceLog << timestamp << "Begin flagging chimeric reads." << endl;
 
     // Check that we have what we need.
     checkReadGraphIsOpen();
@@ -379,11 +380,10 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     }
 
     // Multithreaded loop over all reads.
-    cout << timestamp << "Processing " << readCount << " reads." << endl;
     setupLoadBalancing(readCount, 10000);
     runThreads(&Assembler::flagChimericReadsThreadFunction, threadCount);
 
-    cout << timestamp << "Done flagging chimeric reads." << endl;
+    performanceLog << timestamp << "Done flagging chimeric reads." << endl;
 
     size_t chimericReadCount = 0;
     for(ReadId readId=0; readId!=readCount; readId++) {
@@ -392,7 +392,7 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
         }
     }
     assemblerInfo->chimericReadCount = chimericReadCount;
-    cout << timestamp << "Flagged " << chimericReadCount << " reads as chimeric out of ";
+    cout << "Flagged " << chimericReadCount << " reads as chimeric out of ";
     cout << readCount << " total." << endl;
     cout << "Chimera rate is " << double(chimericReadCount) / double(readCount) << endl;
 }
@@ -605,7 +605,7 @@ void Assembler::computeReadGraphConnectedComponents() const
     vector<ReadId> rank(orientedReadCount);
     vector<ReadId> parent(orientedReadCount);
     boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
-    cout << timestamp << "Computing connected components of the read graph." << endl;
+    performanceLog << timestamp << "Computing connected components of the read graph." << endl;
     for(ReadId readId=0; readId<readCount; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             disjointSets.make_set(OrientedReadId(readId, strand).getValue());
@@ -663,7 +663,7 @@ void Assembler::computeReadGraphConnectedComponents() const
     for(const auto& p: componentTable) {
         components.push_back(componentMap[p.second]);
     }
-    cout << timestamp << "Done computing connected components of the read graph." << endl;
+    performanceLog << timestamp << "Done computing connected components of the read graph." << endl;
 
 
 
@@ -777,7 +777,7 @@ void Assembler::flagCrossStrandReadGraphEdges1(int maxDistance, size_t threadCou
     const bool debug = false;
 
     // Initial message.
-    cout << timestamp << "Begin flagCrossStrandReadGraphEdges." << endl;
+    performanceLog << timestamp << "Begin flagCrossStrandReadGraphEdges." << endl;
 
     // Check that we have what we need.
     checkReadGraphIsOpen();
@@ -1007,7 +1007,7 @@ void Assembler::flagCrossStrandReadGraphEdges1(int maxDistance, size_t threadCou
         " total as cross-strand." << endl;
 
     // Done.
-    cout << timestamp << "End flagCrossStrandReadGraphEdges." << endl;
+    performanceLog << timestamp << "End flagCrossStrandReadGraphEdges." << endl;
 }
 
 
@@ -1026,10 +1026,6 @@ void Assembler::flagCrossStrandReadGraphEdges1ThreadFunction(size_t threadId)
     while(getNextBatch(begin, end)) {
 
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            if((readId %100000) == 0) {
-                std::lock_guard<std::mutex> lock(mutex);
-                cout << timestamp << threadId << " " << readId << "/" << readCount << endl;
-            }
             const OrientedReadId orientedReadId0(readId, 0);
             const OrientedReadId orientedReadId1(readId, 1);
             readGraph.computeShortPath(orientedReadId0, orientedReadId1,
@@ -1240,7 +1236,7 @@ void Assembler::flagCrossStrandReadGraphEdges2()
     for(const auto& p: componentTable) {
         components.push_back(componentMap[p.second]);
     }
-    cout << timestamp << "Done computing connected components of the read graph." << endl;
+    performanceLog << timestamp << "Done computing connected components of the read graph." << endl;
 
 
 

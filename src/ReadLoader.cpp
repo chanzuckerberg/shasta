@@ -43,7 +43,6 @@ ReadLoader::ReadLoader(
     writePalindromesToCsv(writePalindromesToCsv),
     reads(reads)
 {
-    cout << "Loading reads from " << fileName << endl;
     performanceLog << timestamp << "Loading reads from " << fileName << endl;
 
     adjustThreadCount();

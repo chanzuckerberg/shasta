@@ -162,7 +162,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
         assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
 
         // For assemblies we also echo out the command line options.
-        cout << timestamp << "Assembly begins with the following command line:" << endl;
+        performanceLog << timestamp << "Assembly begins." << endl;
+        cout << "Command line:" << endl;
         for(int i=0; i<argumentCount; i++) {
             cout << arguments[i] << " ";
         }
@@ -601,8 +602,8 @@ void shasta::main::assemble(
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
     const auto t1 = steady_clock::now();
-    cout << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
-    cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
+    performanceLog << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
+    performanceLog << "Read loading took " << seconds(t1-t0) << "s." << endl;
 
 
 

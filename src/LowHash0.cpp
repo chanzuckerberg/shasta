@@ -196,7 +196,7 @@ LowHash0::LowHash0(
 
 
     // Create the candidate alignments.
-    cout << timestamp << "Storing candidate alignments." << endl;
+    performanceLog << timestamp << "Storing candidate alignments." << endl;
     SHASTA_ASSERT(orientedReadCount == 2*readCount);
     for(ReadId readId0=0; readId0<readCount; readId0++) {
         const auto& candidates0 = candidates[readId0];

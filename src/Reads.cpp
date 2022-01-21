@@ -489,8 +489,6 @@ void Reads::writeReadLengthHistogram(const string& fileName) {
         SHASTA_ASSERT(cumulativeBaseCount == 0);
     }
 
-    cout << "See " << fileName << " and Binned-" << fileName <<
-        " for details of the read length distribution." << endl;
 }
 
 

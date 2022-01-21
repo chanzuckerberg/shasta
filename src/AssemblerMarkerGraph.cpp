@@ -1245,7 +1245,7 @@ void Assembler::accessMarkerGraphReverseComplementVertex(bool readWriteAccess)
 // Find the reverse complement of each marker graph edge.
 void Assembler::findMarkerGraphReverseComplementEdges(size_t threadCount)
 {
-    cout << timestamp << "Begin findMarkerGraphReverseComplementEdges." << endl;
+    performanceLog << timestamp << "Begin findMarkerGraphReverseComplementEdges." << endl;
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
@@ -1278,7 +1278,7 @@ void Assembler::findMarkerGraphReverseComplementEdges(size_t threadCount)
     runThreads(&Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2,
         threadCount);
 
-    cout << timestamp << "End findMarkerGraphReverseComplementEdges." << endl;
+    performanceLog << timestamp << "End findMarkerGraphReverseComplementEdges." << endl;
 
 }
 
@@ -2018,7 +2018,7 @@ bool Assembler::extractLocalMarkerGraph(
 // Compute edges of the global marker graph.
 void Assembler::createMarkerGraphEdges(size_t threadCount)
 {
-    cout << timestamp << "createMarkerGraphEdges begins." << endl;
+    performanceLog << timestamp << "createMarkerGraphEdges begins." << endl;
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
@@ -2031,13 +2031,13 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     // Each thread stores the edges it finds in a separate vector.
     createMarkerGraphEdgesData.threadEdges.resize(threadCount);
     createMarkerGraphEdgesData.threadEdgeMarkerIntervals.resize(threadCount);
-    cout << timestamp << "Processing " << markerGraph.vertexCount();
-    cout << " marker graph vertices." << endl;
+    performanceLog << timestamp << "Processing " << markerGraph.vertexCount();
+    performanceLog << " marker graph vertices." << endl;
     setupLoadBalancing(markerGraph.vertexCount(), 100);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount);
 
     // Combine the edges found by each thread.
-    cout << timestamp << "Combining the edges found by each thread." << endl;
+    performanceLog << timestamp << "Combining the edges found by each thread." << endl;
     markerGraph.edges.createNew(
             largeDataName("GlobalMarkerGraphEdges"),
             largeDataPageSize);
@@ -2065,14 +2065,14 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     markerGraph.edgeMarkerIntervals.unreserve();
     
     SHASTA_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
-    cout << timestamp << "Found " << markerGraph.edges.size();
+    cout << "Found " << markerGraph.edges.size();
     cout << " edges for " << markerGraph.vertexCount() << " vertices." << endl;
 
 
 
     // Now we need to create edgesBySource and edgesByTarget.
     createMarkerGraphEdgesBySourceAndTarget(threadCount);
-    cout << timestamp << "createMarkerGraphEdges ends." << endl;
+    performanceLog << timestamp << "createMarkerGraphEdges ends." << endl;
 }
 
 
@@ -2280,7 +2280,7 @@ void Assembler::transitiveReduction(
     using Edge = MarkerGraph::Edge;
 
     // Initial message.
-    cout << timestamp << "Transitive reduction of the marker graph begins." << endl;
+    performanceLog << timestamp << "Transitive reduction of the marker graph begins." << endl;
     cout << "The marker graph has " << markerGraph.vertexCount() << " vertices and ";
     cout << edges.size() << " edges." << endl;
 
@@ -2345,7 +2345,7 @@ void Assembler::transitiveReduction(
     for(size_t coverage=1; coverage<=lowCoverageThreshold; coverage++) {
         const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
         if(edgesWithThisCoverage.size() > 0) {
-            cout << timestamp << "Flagging as weak " << 2 * edgesWithThisCoverage.size() << " edges with coverage "
+            cout << "Flagging as weak " << 2 * edgesWithThisCoverage.size() << " edges with coverage "
                 << coverage << "." << endl;
         }
         for(const EdgeId edgeId: edgesWithThisCoverage) {
@@ -2376,7 +2376,7 @@ void Assembler::transitiveReduction(
             }
         }
     }
-    cout << timestamp << "Flagged as weak " << coverage1HighSkipCount <<
+    cout << "Flagged as weak " << coverage1HighSkipCount <<
         " edges with coverage 1 and marker skip greater than " <<
         edgeMarkerSkipThreshold << endl;
 
@@ -2459,7 +2459,7 @@ void Assembler::transitiveReduction(
         }
 
         if(count) {
-            cout << timestamp << "Flagged as weak " << count <<
+            cout << "Flagged as weak " << count <<
                 " edges with coverage " << coverage <<
                 " out of "<< 2*edgesWithThisCoverage.size() << " total." << endl;
         }
@@ -2486,7 +2486,7 @@ void Assembler::transitiveReduction(
     cout << "The marker graph has " << markerGraph.vertexCount() << " vertices and ";
     cout << markerGraph.edges.size()-weakEdgeCount << " strong edges." << endl;
 
-    cout << timestamp << "Transitive reduction of the marker graph ends." << endl;
+    performanceLog << timestamp << "Transitive reduction of the marker graph ends." << endl;
 }
 
 

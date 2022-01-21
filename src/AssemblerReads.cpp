@@ -95,9 +95,6 @@ void Assembler::histogramReadLength(const string& fileName)
     cout << "    Average read length is " << double(reads->getTotalBaseCount()) / double(reads->readCount());
     cout << " bases." << endl;
     cout << "    N50 for read length is " << reads->getN50() << " bases." << endl;
-    cout << "    The above statistics only include reads that will be used in this assembly." << endl;
-    cout << "    Read discarded because they contained invalid bases, were too short or contained repeat counts 256"
-        " or more are not counted." << endl;
 
     // Store read statistics in AssemblerInfo.
     assemblerInfo->readCount = reads->readCount();

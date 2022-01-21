@@ -213,8 +213,8 @@ void Assembler::computeAlignments(
 )
 {
     const auto tBegin = steady_clock::now();
-    cout << timestamp << "Begin computing alignments for ";
-    cout << alignmentCandidates.candidates.size() << " alignment candidates." << endl;
+    performanceLog << timestamp << "Begin computing alignments for ";
+    performanceLog << alignmentCandidates.candidates.size() << " alignment candidates." << endl;
 
     // Check that we have what we need.
     reads->checkReadsAreOpen();
@@ -251,13 +251,13 @@ void Assembler::computeAlignments(
     data.threadAlignmentData.resize(threadCount);
     data.threadCompressedAlignments.resize(threadCount);
     
-    cout << timestamp << "Alignment computation begins." << endl;
+    performanceLog << timestamp << "Alignment computation begins." << endl;
     setupLoadBalancing(alignmentCandidates.candidates.size(), batchSize);
     runThreads(&Assembler::computeAlignmentsThreadFunction, threadCount);
-    cout << timestamp << "Alignment computation completed." << endl;
+    performanceLog << timestamp << "Alignment computation completed." << endl;
 
     // Store the alignments found by each thread.
-    cout << timestamp << "Storing the alignment found by each thread." << endl;
+    performanceLog << timestamp << "Storing the alignment found by each thread." << endl;
     alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
     compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
     
@@ -290,15 +290,15 @@ void Assembler::computeAlignments(
     }
 
     cout << "Found and stored " << alignmentData.size() << " good alignments." << endl;
-    cout << timestamp << "Creating alignment table." << endl;
+    performanceLog << timestamp << "Creating alignment table." << endl;
     computeAlignmentTable();
 
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "Computation of alignments ";
-    cout << "completed in " << tTotal << " s." << endl;
+    performanceLog << timestamp << "Computation of alignments ";
+    performanceLog << "completed in " << tTotal << " s." << endl;
 
-    cout << timestamp;
+    performanceLog << timestamp;
 }
 
 
@@ -367,8 +367,8 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     while(getNextBatch(begin, end)) {
         if((begin % 1000000) == 0){
             std::lock_guard<std::mutex> lock(mutex);
-            cout << timestamp << "Working on alignment " << begin;
-            cout << " of " << alignmentCandidates.candidates.size() << endl;
+            performanceLog << timestamp << "Working on alignment " << begin;
+            performanceLog << " of " << alignmentCandidates.candidates.size() << endl;
         }
 
         for(size_t i=begin; i!=end; i++) {
@@ -1183,11 +1183,10 @@ void Assembler::suppressAlignmentCandidates(
     uint64_t delta,
     size_t threadCount)
 {
-    cout << timestamp << "Suppressing alignment candidates." << endl;
+    performanceLog << timestamp << "Suppressing alignment candidates." << endl;
 
     // Allocate memory for flags to keep track of which alignments
     // should be suppressed.
-
     suppressAlignmentCandidatesData.suppress.createNew(
         largeDataName("tmp-suppressAlignmentCandidates"), largeDataPageSize);
     const uint64_t candidateCount = alignmentCandidates.candidates.size();
@@ -1229,7 +1228,7 @@ void Assembler::suppressAlignmentCandidates(
     // Clean up.
     suppressAlignmentCandidatesData.suppress.remove();
 
-    cout << timestamp << "Done suppressing alignment candidates." << endl;
+    performanceLog << timestamp << "Done suppressing alignment candidates." << endl;
 }
 
 
