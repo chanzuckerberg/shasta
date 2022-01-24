@@ -163,7 +163,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
         // For assemblies we also echo out the command line options.
         performanceLog << timestamp << "Assembly begins." << endl;
-        cout << "Command line:" << endl;
+        cout << timestamp << "Assembly begins.\nCommand line:" << endl;
         for(int i=0; i<argumentCount; i++) {
             cout << arguments[i] << " ";
         }
@@ -399,6 +399,7 @@ void shasta::main::assemble(
     cout << buildId() << endl;
 
     performanceLog << timestamp << "Assembly ends." << endl;
+    cout << timestamp << "Assembly ends." << endl;
 }
 
 
@@ -852,14 +853,15 @@ void shasta::main::assemble(
     ofstream htmlIndex("index.html");
     assembler.writeAssemblyIndex(htmlIndex);
 
-    cout << timestamp << endl;
-    cout << "Assembly time statistics:\n"
+    performanceLog << timestamp << endl;
+    performanceLog << "Assembly time statistics:\n"
         "    Elapsed seconds: " << elapsedTime << "\n"
         "    Elapsed minutes: " << elapsedTime/60. << "\n"
         "    Elapsed hours:   " << elapsedTime/3600. << "\n";
-    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
-    cout << "Peak Memory usage: " << peakMemoryUsage << " bytes = " <<
+    performanceLog << "Average CPU utilization: " << averageCpuUtilization << endl;
+    performanceLog << "Peak Memory usage: " << peakMemoryUsage << " bytes = " <<
         int(std::round(double(peakMemoryUsage) / (1024. * 1024. * 1024.)) ) << " GiB" << endl;
+
 }
 
 

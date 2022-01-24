@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "performanceLog.hpp"
 #include "ReadLoader.hpp"
 using namespace shasta;
 
@@ -106,6 +107,8 @@ void Assembler::histogramReadLength(const string& fileName)
 // Write a csv file with summary information for each read.
 void Assembler::writeReadsSummary()
 {
+    performanceLog << timestamp << "writeReadsSummary begins." << endl;
+
     reads->checkReadsAreOpen();
     reads->checkReadNamesAreOpen();
     SHASTA_ASSERT(markers.isOpen());
@@ -230,6 +233,8 @@ void Assembler::writeReadsSummary()
         // End of the line for this read.
         csv << "\n";
     }
+
+    performanceLog << timestamp << "writeReadsSummary ends." << endl;
 }
 
 

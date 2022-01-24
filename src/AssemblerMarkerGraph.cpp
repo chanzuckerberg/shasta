@@ -3708,7 +3708,8 @@ void Assembler::simplifyMarkerGraph(
     // At each iteration we use a different maxLength value.
     for(size_t iteration=0; iteration<maxLengthVector.size(); iteration++) {
         const size_t maxLength = maxLengthVector[iteration];
-        cout << timestamp << "Begin simplifyMarkerGraph iteration " << iteration <<
+        performanceLog << timestamp << "Begin simplifyMarkerGraph iteration " << iteration << endl;
+        cout << "Begin simplifyMarkerGraph iteration " << iteration <<
             " with maxLength = " << maxLength << endl;
         checkMarkerGraphIsStrandSymmetric();
         simplifyMarkerGraphIterationPart1(iteration, maxLength, debug);
@@ -4498,7 +4499,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 // Compute consensus repeat counts for each vertex of the marker graph.
 void Assembler::assembleMarkerGraphVertices(size_t threadCount)
 {
-    cout << timestamp << "assembleMarkerGraphVertices begins." << endl;
+    performanceLog << timestamp << "assembleMarkerGraphVertices begins." << endl;
 
     // Thus should only be called when using reads in RLE representation.
     SHASTA_ASSERT(assemblerInfo->readRepresentation == 1);
@@ -4525,7 +4526,7 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
     setupLoadBalancing(markerGraph.vertexCount(), batchSize);
     runThreads(&Assembler::assembleMarkerGraphVerticesThreadFunction, threadCount);
 
-    cout << timestamp << "assembleMarkerGraphVertices ends." << endl;
+    performanceLog << timestamp << "assembleMarkerGraphVertices ends." << endl;
 }
 
 
@@ -4569,7 +4570,7 @@ void Assembler::accessMarkerGraphVertexRepeatCounts()
 // This is only called if Assembly.storeCoverageData in shasta.conf is True.
 void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
 {
-    cout << timestamp<< "computeMarkerGraphVerticesCoverageData begins." << endl;
+    performanceLog << timestamp<< "computeMarkerGraphVerticesCoverageData begins." << endl;
 
     // Check that we have what we need.
     checkKmersAreOpen();
@@ -4630,7 +4631,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     computeMarkerGraphVerticesCoverageDataData.threadVertexIds.clear();
     computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData.clear();
 
-    cout << timestamp<< "computeMarkerGraphVerticesCoverageData ends." << endl;
+    performanceLog << timestamp<< "computeMarkerGraphVerticesCoverageData ends." << endl;
 }
 
 
@@ -4740,7 +4741,7 @@ void Assembler::assembleMarkerGraphEdges(
     bool assembleAllEdges
     )
 {
-    cout << timestamp << "assembleMarkerGraphEdges begins." << endl;
+    performanceLog << timestamp << "assembleMarkerGraphEdges begins." << endl;
 
     // Check that we have what we need.
     checkKmersAreOpen();
@@ -4831,7 +4832,7 @@ void Assembler::assembleMarkerGraphEdges(
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.clear();
     }
 
-    cout << timestamp << "assembleMarkerGraphEdges ends." << endl;
+    performanceLog << timestamp << "assembleMarkerGraphEdges ends." << endl;
 }
 
 
@@ -4905,10 +4906,6 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        if((begin % 10000000) == 0){
-            std::lock_guard<std::mutex> lock(mutex);
-            cout << timestamp << begin << "/" << markerGraph.edges.size() << endl;
-        }
 
         // Loop over marker graph vertices assigned to this batch.
         for(MarkerGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {

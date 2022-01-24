@@ -5,6 +5,7 @@
 #include "deduplicate.hpp"
 #include "LocalAssemblyGraph.hpp"
 #include "orderPairs.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -743,7 +744,7 @@ void Assembler::assemble(
     for(size_t i=0; i<assemblyGraph.repeatCounts.totalSize(); i++) {
         totalBaseCount += assemblyGraph.repeatCounts.begin()[i];
     }
-    cout << timestamp << "Assembled a total " << totalBaseCount <<
+    cout << "Assembled a total " << totalBaseCount <<
         " bases for " << assemblyGraph.edgeLists.size() << " assembly graph edges of which " <<
         assembledEdgeCount << " were assembled." << endl;
 
@@ -947,7 +948,7 @@ void Assembler::writeGfa1(const string& fileName)
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    cout << timestamp << "writeGfa1 begins" << endl;
+    performanceLog << timestamp << "writeGfa1 begins" << endl;
 
     ofstream gfa(fileName);
 
@@ -1088,7 +1089,7 @@ void Assembler::writeGfa1(const string& fileName)
         }
 
     }
-    cout << timestamp << "writeGfa1 ends" << endl;
+    performanceLog << timestamp << "writeGfa1 ends" << endl;
 }
 
 
@@ -1102,7 +1103,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    cout << timestamp << "writeGfa1BothStrands begins" << endl;
+    performanceLog << timestamp << "writeGfa1BothStrands begins" << endl;
 
     ofstream gfa(fileName);
 
@@ -1249,7 +1250,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
         }
     }
 
-    cout << timestamp << "writeGfa1BothStrands ends" << endl;
+    performanceLog << timestamp << "writeGfa1BothStrands ends" << endl;
 
 }
 
@@ -1268,7 +1269,7 @@ void Assembler::writeFasta(const string& fileName)
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    cout << timestamp << "writeFasta begins" << endl;
+    performanceLog << timestamp << "writeFasta begins" << endl;
 
     ofstream fasta(fileName);
 
@@ -1303,7 +1304,7 @@ void Assembler::writeFasta(const string& fileName)
         }
         fasta << "\n";
     }
-    cout << timestamp << "writeFasta ends" << endl;
+    performanceLog << timestamp << "writeFasta ends" << endl;
 
 }
 

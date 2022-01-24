@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "AssemblyPathGraph.hpp"
 #include "AssemblyPathGraph2.hpp"
+#include "performanceLog.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -27,7 +28,7 @@ void Assembler::detangle()
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
     SHASTA_ASSERT(assemblyGraph.reverseComplementEdge.isOpen);
 
-    cout << timestamp << "Before detangling, the assembly graph has " <<
+    cout << "Before detangling, the assembly graph has " <<
         assemblyGraph.vertices.size() << " vertices and " <<
         assemblyGraph.edges.size() << " edges." << endl;
 
@@ -38,7 +39,7 @@ void Assembler::detangle()
 
 
     // Fill in the oriented read ids of the edges.
-    cout << timestamp << "Filling in oriented reads." << endl;
+    performanceLog << timestamp << "Filling in oriented reads." << endl;
     BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
         AssemblyPathGraphEdge& edge = graph[e];
 
@@ -70,7 +71,7 @@ void Assembler::detangle()
 
 
     // Create the tangles.
-    cout << timestamp << "Creating the tangles." << endl;
+    performanceLog << timestamp << "Creating the tangles." << endl;
     graph.createTangles();
 
     // Do the detangling.
@@ -324,7 +325,7 @@ void Assembler::detangle2(
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
     SHASTA_ASSERT(assemblyGraph.reverseComplementEdge.isOpen);
 
-    cout << timestamp << "Before detangling, the assembly graph has " <<
+    cout << "Before detangling, the assembly graph has " <<
         assemblyGraph.vertices.size() << " vertices and " <<
         assemblyGraph.edges.size() << " edges." << endl;
 
@@ -339,7 +340,7 @@ void Assembler::detangle2(
 
 
     // Fill in the oriented read ids of the edges.
-    cout << timestamp << "Filling in oriented reads." << endl;
+    performanceLog << timestamp << "Filling in oriented reads." << endl;
     BGL_FORALL_EDGES(e, graph, AssemblyPathGraph2) {
         AssemblyPathGraph2Edge& edge = graph[e];
 
@@ -372,7 +373,7 @@ void Assembler::detangle2(
 
 
     // Create the tangles.
-    cout << timestamp << "Creating the tangles." << endl;
+    performanceLog << timestamp << "Creating the tangles." << endl;
     graph.createTangles();
 
     // Do the detangling.
