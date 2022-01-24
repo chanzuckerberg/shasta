@@ -188,7 +188,12 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         default_value(0),
         "Number of threads, or 0 to use one thread per virtual processor.")
         
-#ifdef SHASTA_HTTP_SERVER
+        ("suppressStdoutLog",
+        bool_switch(&commandLineOnlyOptions.suppressStdoutLog)->
+        default_value(false),
+        "Suppress echoing stdout to stdout.log.")
+
+        #ifdef SHASTA_HTTP_SERVER
         ("exploreAccess",
         value<string>(&commandLineOnlyOptions.exploreAccess)->
         default_value("user"),

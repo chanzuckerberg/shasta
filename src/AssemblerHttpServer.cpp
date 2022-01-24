@@ -26,6 +26,19 @@ namespace shasta {
             "Html file containing a list of assembly output files and their descriptions."
         },
         {
+            "stdout.log",
+            "Assembly log output."
+        },
+        {
+            "performance.log",
+            "Performance log output. Contains messages that are mnostly useful for "
+            "performance analysis."
+        },
+        {
+            "Data",
+            "Directory containing Shasta binary data."
+        },
+        {
             "AssemblySummary.json",
             "Assembly summary information in json format."
         },

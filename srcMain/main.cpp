@@ -14,6 +14,7 @@
 #include "filesystem.hpp"
 #include "performanceLog.hpp"
 #include "Reads.hpp"
+#include "Tee.hpp"
 #include "timestamp.hpp"
 #include "platformDependent.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
@@ -51,7 +52,7 @@ namespace shasta {
         void segmentFaultHandler(int);
 
         // Functions that implement --command keywords
-        void assemble(const AssemblerOptions&);
+        void assemble(const AssemblerOptions&, int argumentCount, const char** arguments);
         void saveBinaryData(const AssemblerOptions&);
         void cleanupBinaryData(const AssemblerOptions&);
         void createBashCompletionScript(const AssemblerOptions&);
@@ -75,6 +76,9 @@ namespace shasta {
             "saveBinaryData"};
 
     }
+
+    Tee tee;
+    ofstream shastaLog;
 }
 using namespace shasta;
 
@@ -160,16 +164,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // Execute the requested command.
     if(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
         assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
-
-        // For assemblies we also echo out the command line options.
-        performanceLog << timestamp << "Assembly begins." << endl;
-        cout << timestamp << "Assembly begins.\nCommand line:" << endl;
-        for(int i=0; i<argumentCount; i++) {
-            cout << arguments[i] << " ";
-        }
-        cout << endl;
-
-        assemble(assemblerOptions);
+        assemble(assemblerOptions, argumentCount, arguments);
         return;
 
     } else if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
@@ -209,7 +204,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 // Implementation of --command assemble.
 void shasta::main::assemble(
-    const AssemblerOptions& assemblerOptions)
+    const AssemblerOptions& assemblerOptions,
+    int argumentCount, const char** arguments)
 {
     SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
         assemblerOptions.commandLineOnlyOptions.command == "filterReads");
@@ -328,6 +324,20 @@ void shasta::main::assemble(
     // Open the performance log.
     openPerformanceLog("performance.log");
     performanceLog << timestamp << "Assembly begins." << endl;
+
+    // Open stdout.log and "tee" (duplicate) stdout to it.
+    if(not assemblerOptions.commandLineOnlyOptions.suppressStdoutLog) {
+        shastaLog.open("stdout.log");
+        tee.duplicate(cout, shastaLog);
+    }
+
+    // Echo out the command line options.
+    performanceLog << timestamp << "Assembly begins." << endl;
+    cout << timestamp << "Assembly begins.\nCommand line:" << endl;
+    for(int i=0; i<argumentCount; i++) {
+        cout << arguments[i] << " ";
+    }
+    cout << endl;
 
 
 

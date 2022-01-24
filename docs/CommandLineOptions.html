@@ -138,6 +138,16 @@ was specified.
 Specifies the number of threads to be used, or 0
 to request one thread per virtual processor.
 
+<tr id='suppressStdoutLog'><td><code>--suppressStdoutLog</code><td class=centered><code>false</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+Normally, Shasta duplicates output to <code>stdout</code>
+by sending a copy to <code>stdout.log</code>
+in the assembly directory.
+If this option is used, this behavior is suppressed, and
+<code>stdout.log</code> is not created.
+
+
 <tr><td><code>--exploreAccess</code><td class=centered><code>user</code><td>
 Specifies access control for <code>--command explore</code>.
 <a class=qm href='InspectingResults.html#AccessControl'/>

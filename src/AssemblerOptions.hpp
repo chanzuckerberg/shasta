@@ -97,6 +97,7 @@ public:
     string memoryMode;
     string memoryBacking;
     uint32_t threadCount;
+    bool suppressStdoutLog;
 #ifdef SHASTA_HTTP_SERVER
     string exploreAccess;
     uint16_t port;
