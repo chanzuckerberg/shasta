@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
+#include "performanceLog.hpp"
 #include "Reads.hpp"
 using namespace shasta;
 
@@ -23,7 +24,7 @@ void Assembler::createMarkerGraphEdgesStrict(
     uint64_t minEdgeCoveragePerStrand,
     size_t threadCount)
 {
-    cout << timestamp << "createMarkerGraphEdgesStrict begins." << endl;
+    performanceLog << timestamp << "createMarkerGraphEdgesStrict begins." << endl;
 
     // Check that we have what we need.
     checkMarkersAreOpen();
@@ -95,7 +96,7 @@ void Assembler::createMarkerGraphEdgesStrict(
     markerGraph.edgeMarkerIntervals.unreserve();
 
     SHASTA_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
-    cout << timestamp << "Found " << markerGraph.edges.size();
+    cout << "Found " << markerGraph.edges.size();
     cout << " edges for " << markerGraph.vertexCount() << " vertices." << endl;
 
 
@@ -103,7 +104,7 @@ void Assembler::createMarkerGraphEdgesStrict(
     // Now we need to create edgesBySource and edgesByTarget.
     createMarkerGraphEdgesBySourceAndTarget(threadCount);
 
-    cout << timestamp << "createMarkerGraphEdgesStrict ends." << endl;
+    performanceLog << timestamp << "createMarkerGraphEdgesStrict ends." << endl;
 }
 
 
@@ -449,7 +450,7 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
 
     const VertexId vertexCount = markerGraph.vertexCount();
-    cout << timestamp << "createMarkerGraphSecondaryEdges begins." << endl;
+    performanceLog << timestamp << "createMarkerGraphSecondaryEdges begins." << endl;
     cout << "The initial marker graph has " << vertexCount <<
         " vertices and " << markerGraph.edges.size() << " edges." << endl;
 
