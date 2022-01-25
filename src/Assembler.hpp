@@ -139,12 +139,16 @@ public:
     uint64_t isolatedReadCount = 0;
     uint64_t isolatedReadBaseCount = 0;
 
-    // Alignment criteria for readGraph creation method 2
-    double automatedAlignedFractionThreshold = 0;
-    double automatedMarkerCountThreshold = 0;
-    double automatedMaxDriftThreshold = 0;
-    double automatedMaxSkipThreshold = 0;
-    double automatedMaxTrimThreshold = 0;
+    // Alignment criteria actually used.
+    // For readGraph creation method 0, they are the values specified
+    // by the command line options and/or configuration.
+    // For readGraph creation method 2, they are dynamically selected
+    // based on alignments statistics.
+    double actualAlignedFractionThreshold = 0;
+    double actualMarkerCountThreshold = 0;
+    double actualMaxDriftThreshold = 0;
+    double actualMaxSkipThreshold = 0;
+    double actualMaxTrimThreshold = 0;
 
     // Marker graph statistics.
     size_t markerGraphVerticesNotIsolatedCount = 0;

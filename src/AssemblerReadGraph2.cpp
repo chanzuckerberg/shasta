@@ -66,19 +66,19 @@ bool Assembler::passesReadGraph2Criteria(const AlignmentInfo& info) const{
     const auto trim = max(trims.first, trims.second);
 
     // If this alignment doesn't pass the thresholds, skip it
-    if (info.minAlignedFraction() < assemblerInfo->automatedAlignedFractionThreshold){
+    if (info.minAlignedFraction() < assemblerInfo->actualAlignedFractionThreshold){
         return false;
     }
-    if (info.markerCount < assemblerInfo->automatedMarkerCountThreshold){
+    if (info.markerCount < assemblerInfo->actualMarkerCountThreshold){
         return false;
     }
-    if (info.maxDrift > assemblerInfo->automatedMaxDriftThreshold){
+    if (info.maxDrift > assemblerInfo->actualMaxDriftThreshold){
         return false;
     }
-    if (info.maxSkip > assemblerInfo->automatedMaxSkipThreshold){
+    if (info.maxSkip > assemblerInfo->actualMaxSkipThreshold){
         return false;
     }
-    if (trim > assemblerInfo->automatedMaxTrimThreshold){
+    if (trim > assemblerInfo->actualMaxTrimThreshold){
         return false;
     }
 
@@ -139,25 +139,25 @@ void Assembler::setReadGraph2Criteria(
     }
 
     // Minimums
-    assemblerInfo->automatedAlignedFractionThreshold =
+    assemblerInfo->actualAlignedFractionThreshold =
             alignedFractionHistogram.thresholdByCumulativeProportion(alignedFractionPercentile);
-    assemblerInfo->automatedMarkerCountThreshold =
+    assemblerInfo->actualMarkerCountThreshold =
             markerCountHistogram.thresholdByCumulativeProportion(markerCountPercentile);
 
     // Maximums use (1 - percentile)
-    assemblerInfo->automatedMaxDriftThreshold =
+    assemblerInfo->actualMaxDriftThreshold =
             maxDriftHistogram.thresholdByCumulativeProportion(1 - maxDriftPercentile);
-    assemblerInfo->automatedMaxSkipThreshold =
+    assemblerInfo->actualMaxSkipThreshold =
             maxSkipHistogram.thresholdByCumulativeProportion(1 - maxSkipPercentile);
-    assemblerInfo->automatedMaxTrimThreshold =
+    assemblerInfo->actualMaxTrimThreshold =
             maxTrimHistogram.thresholdByCumulativeProportion(1 - maxTrimPercentile);
 
     cout << "Selected thresholds automatically for the following parameters:\n\t"
-         << "alignedFraction:\t" << assemblerInfo->automatedAlignedFractionThreshold << "\n\t"
-         << "markerCount:\t\t" << assemblerInfo->automatedMarkerCountThreshold << "\n\t"
-         << "maxDrift:\t\t" << assemblerInfo->automatedMaxDriftThreshold << "\n\t"
-         << "maxSkip:\t\t" << assemblerInfo->automatedMaxSkipThreshold << "\n\t"
-         << "maxTrim:\t\t" << assemblerInfo->automatedMaxTrimThreshold << "\n";
+         << "alignedFraction:\t" << assemblerInfo->actualAlignedFractionThreshold << "\n\t"
+         << "markerCount:\t\t" << assemblerInfo->actualMarkerCountThreshold << "\n\t"
+         << "maxDrift:\t\t" << assemblerInfo->actualMaxDriftThreshold << "\n\t"
+         << "maxSkip:\t\t" << assemblerInfo->actualMaxSkipThreshold << "\n\t"
+         << "maxTrim:\t\t" << assemblerInfo->actualMaxTrimThreshold << "\n";
 
     ofstream alignedFractionHistogramCsv("AlignedFractionHistogram.csv");
     ofstream markerCountHistogramCsv("AlignmentMarkerCountHistogram.csv");
