@@ -769,6 +769,15 @@ void shasta::main::assemble(
             assemblerOptions.readGraphOptions.maxAlignmentCount,
             assemblerOptions.alignOptions.maxTrim);
 
+        // Actual alignment criteria are as specified in the command line options
+        // and/or configuration.
+        assembler.assemblerInfo->actualMinAlignedFraction = assemblerOptions.alignOptions.minAlignedFraction;
+        assembler.assemblerInfo->actualMinAlignedMarkerCount = assemblerOptions.alignOptions.minAlignedMarkerCount;
+        assembler.assemblerInfo->actualMaxDrift = assemblerOptions.alignOptions.maxDrift;
+        assembler.assemblerInfo->actualMaxSkip = assemblerOptions.alignOptions.maxSkip;
+        assembler.assemblerInfo->actualMaxTrim = assemblerOptions.alignOptions.maxTrim;
+
+
     } else if(assemblerOptions.readGraphOptions.creationMethod == 2) {
         assembler.createReadGraph2(
             assemblerOptions.readGraphOptions.maxAlignmentCount,

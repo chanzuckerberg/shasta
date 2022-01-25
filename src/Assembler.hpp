@@ -144,11 +144,11 @@ public:
     // by the command line options and/or configuration.
     // For readGraph creation method 2, they are dynamically selected
     // based on alignments statistics.
-    double actualAlignedFractionThreshold = 0;
-    double actualMarkerCountThreshold = 0;
-    double actualMaxDriftThreshold = 0;
-    double actualMaxSkipThreshold = 0;
-    double actualMaxTrimThreshold = 0;
+    double actualMinAlignedFraction = 0;
+    uint64_t actualMinAlignedMarkerCount = 0;
+    uint64_t actualMaxDrift = 0;
+    uint64_t actualMaxSkip = 0;
+    uint64_t actualMaxTrim = 0;
 
     // Marker graph statistics.
     size_t markerGraphVerticesNotIsolatedCount = 0;
@@ -394,8 +394,8 @@ private:
 
     // Various pieces of assembler information stored in shared memory.
     // See class AssemblerInfo for more information.
-    MemoryMapped::Object<AssemblerInfo> assemblerInfo;
 public:
+    MemoryMapped::Object<AssemblerInfo> assemblerInfo;
     uint64_t getMarkerGraphMinCoverageUsed() const
     {
         return assemblerInfo->markerGraphMinCoverageUsed;
