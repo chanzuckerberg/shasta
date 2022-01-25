@@ -332,7 +332,6 @@ void shasta::main::assemble(
     }
 
     // Echo out the command line options.
-    performanceLog << timestamp << "Assembly begins." << endl;
     cout << timestamp << "Assembly begins.\nCommand line:" << endl;
     for(int i=0; i<argumentCount; i++) {
         cout << arguments[i] << " ";
