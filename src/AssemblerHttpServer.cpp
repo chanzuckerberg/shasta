@@ -1032,11 +1032,11 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
 
         "<h3>Alignment criteria actually used for creation of the read graph</h3>"
         "<table>"
-        "<tr><td>minAlignedMarkerCount<td>" << assemblerInfo->actualMinAlignedMarkerCount <<
-        "<tr><td>minAlignedFraction<td>" << assemblerInfo->actualMinAlignedFraction <<
-        "<tr><td>maxSkip<td>" << assemblerInfo->actualMaxSkip <<
-        "<tr><td>maxDrift<td>" << assemblerInfo->actualMaxDrift <<
-        "<tr><td>maxTrim<td>" << assemblerInfo->actualMaxTrim <<
+        "<tr><td>minAlignedMarkerCount<td class=right>" << assemblerInfo->actualMinAlignedMarkerCount <<
+        "<tr><td>minAlignedFraction<td class=right>" << assemblerInfo->actualMinAlignedFraction <<
+        "<tr><td>maxSkip<td class=right>" << assemblerInfo->actualMaxSkip <<
+        "<tr><td>maxDrift<td class=right>" << assemblerInfo->actualMaxDrift <<
+        "<tr><td>maxTrim<td class=right>" << assemblerInfo->actualMaxTrim <<
         "</table>"
 
 
