@@ -896,28 +896,34 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
 
         "<h3>Reads used in this assembly</h3>"
         "<table>"
+        "<tr><td>Read representation"
+        "<td class=right>" << (assemblerInfo->readRepresentation==1 ? "1 (RLE)" : "0 (Raw - no RLE)") <<
         "<tr><td>Minimum read length"
         "<td class=right>" << assemblerInfo->minReadLength <<
         "<tr><td>Number of reads"
         "<td class=right>" << assemblerInfo->readCount <<
-        "<tr><td>Number of raw sequence bases"
+        "<tr><td>Number of read bases"
         "<td class=right>" << assemblerInfo->baseCount <<
-        "<tr><td>Average read length (for raw read sequence)"
+        "<tr><td>Average read length"
         "<td class=right>" << assemblerInfo->baseCount / assemblerInfo->readCount <<
-        "<tr><td>Read N50 (for raw read sequence)"
-        "<td class=right>" << assemblerInfo->readN50 <<
+        "<tr><td>Read N50"
+        "<td class=right>" << assemblerInfo->readN50;
+
+    if(assemblerInfo->readRepresentation == 1) {
+        html <<
         "<tr><td>Number of run-length encoded bases"
         "<td class=right>" << reads->getRepeatCountsTotalSize() <<
         "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
-        "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) <<
+        "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount);
+    }
+
+    html <<
         "<tr><td>Number of reads flagged as palindromic by self alignment"
         "<td class=right>" << assemblerInfo->palindromicReadCount <<
         "<tr><td>Number of reads flagged as chimeric"
         "<td class=right>" << assemblerInfo->chimericReadCount <<
         "</table>"
         "<ul>"
-        "<li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
-        "as opposed to run-length encoded sequence."
         "<li>Reads discarded on input are not included in the above table (see "
         "<a href='#discarded'>below</a>)."
         "<li>See ReadLengthHistogram.csv and Binned-ReadLengthHistogram.csv "
@@ -982,24 +988,36 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
         "<tr><td>Total number of markers on all reads, one strand"
         "<td class=right>" << markers.totalSize()/2 <<
         "<tr><td>Total number of markers on all reads, both strands"
-        "<td class=right>" << markers.totalSize() <<
-        "<tr><td>Average number of markers per raw base"
-        "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
-        "<tr><td>Average number of markers per run-length encoded base"
-        "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(reads->getRepeatCountsTotalSize()) <<
-        "<tr><td>Average base offset between markers in raw sequence"
-        "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
-        "<tr><td>Average base offset between markers in run-length encoded sequence"
-        "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) <<
-        "<tr><td>Average base gap between markers in run-length encoded sequence"
-        "<td class=right>" << setprecision(4) <<
-        double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) <<
-        "</table>"
-        "<ul><li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
-        "as opposed to run-length encoded sequence.</ul>"
+        "<td class=right>" << markers.totalSize();
+
+    if(assemblerInfo->readRepresentation == 1) {
+        html <<
+            "<tr><td>Average number of markers per raw base"
+            "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
+            "<tr><td>Average number of markers per run-length encoded base"
+            "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(reads->getRepeatCountsTotalSize()) <<
+            "<tr><td>Average base offset between markers in raw sequence"
+            "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
+            "<tr><td>Average base offset between markers in run-length encoded sequence"
+            "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) <<
+            "<tr><td>Average base gap between markers in run-length encoded sequence"
+            "<td class=right>" << setprecision(4) <<
+            double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k);
+    } else {
+        html <<
+            "<tr><td>Average number of markers per base"
+            "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
+            "<tr><td>Average base offset between markers "
+            "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
+            "<tr><td>Average base gap between markers"
+            "<td class=right>" << setprecision(4) <<
+            double(assemblerInfo->baseCount)/double(markers.totalSize()/2) - double(assemblerInfo->k);
+    }
+    html << "</table>";
 
 
 
+    html <<
         "<h3>Alignments</h3>"
         "<table>"
         "<tr><td>Number of alignment candidates found by the LowHash algorithm"
@@ -1156,15 +1174,23 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
 
         "  \"Reads used in this assembly\":\n"
         "  {\n"
+        "    \"Read representation\": \"" << (assemblerInfo->readRepresentation==1 ? "1 (RLE)" : "0 (Raw - no RLE)") << "\",\n"
         "    \"Minimum read length\": " << assemblerInfo->minReadLength << ",\n"
         "    \"Number of reads\": " << assemblerInfo->readCount << ",\n"
-        "    \"Number of raw sequence bases\": " << assemblerInfo->baseCount << ",\n"
-        "    \"Average read length (for raw read sequence)\": " <<
+        "    \"Number of read bases\": " << assemblerInfo->baseCount << ",\n"
+        "    \"Average read length\": " <<
         assemblerInfo->baseCount / assemblerInfo->readCount << ",\n"
-        "    \"Read N50 (for raw read sequence)\": " << assemblerInfo->readN50 << ",\n"
-        "    \"Number of run-length encoded bases\": " << reads->getRepeatCountsTotalSize() << ",\n"
-        "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
-        setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n"
+        "    \"Read N50\": " << assemblerInfo->readN50 << ",\n";
+
+    if(assemblerInfo->readRepresentation == 1) {
+        json <<
+            "    \"Number of run-length encoded bases\": " << reads->getRepeatCountsTotalSize() << ",\n"
+            "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
+            setprecision(4) <<
+            double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n";
+    }
+
+    json <<
         "    \"Number of reads flagged as palindromic by self alignment\": " << assemblerInfo->palindromicReadCount << ",\n"
         "    \"Number of reads flagged as chimeric\": " << assemblerInfo->chimericReadCount << "\n"
         "  },\n"
@@ -1232,18 +1258,36 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
         "    \"Total number of markers on all reads, one strand\": "
         << markers.totalSize()/2 << ",\n"
         "    \"Total number of markers on all reads, both strands\": "
-        << markers.totalSize() << ",\n"
-        "    \"Average number of markers per raw base\": "
-        << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) << ",\n"
-        "    \"Average number of markers per run-length encoded base\": "
-        << setprecision(4) << double(markers.totalSize()/2)/double(reads->getRepeatCountsTotalSize()) << ",\n"
-        "    \"Average base offset between markers in raw sequence\": "
-        << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) << ",\n"
-        "    \"Average base offset between markers in run-length encoded sequence\": "
-        << setprecision(4) << double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) << ",\n"
-        "    \"Average base gap between markers in run-length encoded sequence\": "
-        << setprecision(4) <<
-        double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) << "\n"
+        << markers.totalSize() << ",\n";
+
+    if(assemblerInfo->readRepresentation == 1) {
+        json <<
+            "    \"Average number of markers per raw base\": "
+            << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) << ",\n"
+            "    \"Average number of markers per run-length encoded base\": "
+            << setprecision(4) << double(markers.totalSize()/2)/double(reads->getRepeatCountsTotalSize()) << ",\n"
+            "    \"Average base offset between markers in raw sequence\": "
+            << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) << ",\n"
+            "    \"Average base offset between markers in run-length encoded sequence\": "
+            << setprecision(4) << double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) << ",\n"
+            "    \"Average base gap between markers in run-length encoded sequence\": "
+            << setprecision(4) <<
+            double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) << "\n";
+    } else {
+        json <<
+            "    \"Average number of markers per base\": "
+            << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) << ",\n"
+            "    \"Average base offset between markers\": "
+            << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) << ",\n"
+            "    \"Average base gap between markers\": "
+            << setprecision(4) <<
+            double(assemblerInfo->baseCount)/double(markers.totalSize()/2) - double(assemblerInfo->k) << "\n";
+
+    }
+
+
+
+    json <<
         "  },\n"
 
 
