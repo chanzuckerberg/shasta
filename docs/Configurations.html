@@ -92,27 +92,59 @@ use Shasta command <code>listConfigurations</code> as follows:
 shasta --command listConfigurations
 </pre>
 
-At the time of writing (October 2021), this outputs the following
+At the time of writing (January 2022), this outputs the following
 list of built-in configurations:
 
 <pre>
-HiFi-Oct2021
 Nanopore-Dec2019
-Nanopore-Jun2020
-Nanopore-Oct2021
-Nanopore-OldGuppy-Sep2020
-Nanopore-Phased-Aug2021
-Nanopore-Plants-Apr2021
-Nanopore-Sep2020
 Nanopore-UL-Dec2019
+Nanopore-Jun2020
 Nanopore-UL-Jun2020
-Nanopore-UL-Oct2021
-Nanopore-UL-Phased-Oct2021
+Nanopore-Sep2020
 Nanopore-UL-Sep2020
 Nanopore-UL-iterative-Sep2020
+Nanopore-OldGuppy-Sep2020
+Nanopore-Plants-Apr2021
+Nanopore-Oct2021
+Nanopore-UL-Oct2021
+HiFi-Oct2021
+Nanopore-UL-Jan2022
+Nanopore-Phased-Jan2022
+Nanopore-UL-Phased-Jan2022
 </pre>
 
-To get details of a specific built-in configurations
+<p>
+The following table summarizes configurations 
+recommended at the time of writing (January 2022)
+under the following conditions:
+<ul>
+<li>Human assemblies
+<li>Oxford Nanopore reads.
+<li>Guppy 5.0.7 with "super" accuracy.
+<li>Coverage &#x2245; 60x.
+</ul>
+
+Three of these four configurations will first be available in 
+Shasta release 0.9.0.
+
+<p>
+<table>
+<tr><td><th>Haploid assembly<th>Phased assembly
+<tr><th>Standard reads
+<td class=centered>Nanopore-Oct2021
+<td class=centered>Nanopore-Phased-Jan2022
+
+
+<tr><th class=centered>Ultra-Long (UL) reads
+<br>(N<sub>50</sub> &#x2273; 60 Kb)
+<td class=centered>Nanopore-UL-Jan2022
+<td class=centered>Nanopore-UL-Phased-Jan2022
+
+</table>
+
+
+<p>
+To get details of a specific built-in configuration
 use Shasta command <code>listConfiguration</code> as follows,
 specifiying the built-in configuration of interest after <code>--config</code>:
 
@@ -120,6 +152,7 @@ specifiying the built-in configuration of interest after <code>--config</code>:
 shasta --command listConfiguration --config Nanopore-Oct2021
 </pre>
 
+<p>
 This output includes comments that describe the 
 applicability of the selected configuration.
 Details of the configuration are written out in the configuration
