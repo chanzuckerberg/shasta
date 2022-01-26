@@ -381,6 +381,9 @@ void shasta::main::assemble(
 
     // Create the Assembler.
     Assembler assembler(dataDirectory, true, assemblerOptions.readsOptions.representation, pageSize);
+    assembler.assemblerInfo->readGraphCreationMethod = assemblerOptions.readGraphOptions.creationMethod;
+    assembler.assemblerInfo->assemblyMode = assemblerOptions.assemblyOptions.mode;
+
 
     // Run the assembly.
     assemble(assembler, assemblerOptions, inputFileAbsolutePaths);

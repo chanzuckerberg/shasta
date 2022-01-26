@@ -99,6 +99,11 @@ public:
     // The page size in use for this run.
     size_t largeDataPageSize;
 
+    // Assembly mode (0=haploid, 2=phased).
+    uint64_t assemblyMode;
+
+    // Read graph creation method.
+    uint64_t readGraphCreationMethod;
 
 
     // Statistics on the number of reads discarded on input.
