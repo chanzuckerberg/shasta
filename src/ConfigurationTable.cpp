@@ -806,7 +806,6 @@ detangleMethod = 2
 
 
 
-
 [Reads]
 minReadLength = 50000
 noCache = True
@@ -851,6 +850,197 @@ minCoverage = 0
 [Assembly]
 consensusCaller = Bayesian:guppy-5.0.7-a
 detangleMethod = 2
+
+
+)zzz"},
+    {"Nanopore-Phased-Jan2022", R"zzz(
+# Configuration file that uses assembly mode 2
+# to create a phased diploid assembly using 
+# Nanopore reads.
+
+# This is known to work at least under the following conditions:
+# - Oxford Nanopore reads.
+# - Guppy 5 base caller with "super" accuracy.
+# - Human genome.
+# - Coverage 40x to 80x. If you have more coverage, 
+#   adjust --Reads.minReadLength or --Reads.desiredCoverage
+#   to bring coverage down to this range.
+
+
+
+[Reads]
+
+# Don't use the RLE representation of the reads.
+representation = 0
+
+# Read length. Adjust as necessary,
+# or use desiredCoverage option to get coverage 
+# around 40x to 80x.
+minReadLength = 10000
+
+noCache = True
+
+
+
+[Kmers]
+
+# Because we are not using the RLE representation,
+# use shorter k-mers.
+k = 8
+
+# Compensate for the non-RLE representation
+# to get about the same number of markers
+# we would get with the RLE representation and probability = 0.1.
+probability = 0.07
+
+
+
+[MinHash]
+minBucketSize = 5
+maxBucketSize = 30
+minFrequency = 5
+
+
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+# Permissive alignment criteria as required for read graph creation method 2.
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+
+
+
+[ReadGraph]
+
+# Automatic adjustment of alignment criteria.
+creationMethod = 2
+
+# Strict strand separation is required for Mode 2 (phased) assembly.
+strandSeparationMethod = 2
+
+maxAlignmentCount = 6
+
+
+
+[MarkerGraph]
+minCoverage = 6
+minCoveragePerStrand = 1
+minEdgeCoverage = 6
+minEdgeCoveragePerStrand = 1
+
+
+
+[Assembly]
+mode = 2
+consensusCaller = Bayesian:guppy-5.0.7-a
+pruneLength = 100
+mode2.bubbleRemoval.minConcordantReadCount = 2
+
+
+
+
+
+)zzz"},
+    {"Nanopore-UL-Phased-Jan2022", R"zzz(
+# Configuration file that uses assembly mode 2
+# to create a phased diploid assembly using 
+# Nanopore Ultra-Long (UL) reads.
+
+# This is known to work at least under the following conditions:
+# - Oxford Nanopore Ultra-Long (UL) reads with read N50 50 Kb or more.
+# - Guppy 5 base caller with "super" accuracy.
+# - Human genome.
+# - Coverage 60x to 80x. If you have more coverage, 
+#   adjust --Reads.minReadLength or --Reads.desiredCoverage
+#   to bring coverage down to this range.
+#   For a human genome you can set --Reads.desiredCoverage 200G. 
+
+
+
+[Reads]
+
+# Don't use the RLE representation of the reads.
+representation = 0
+
+# Read length cutoff for UL reads, adjust as necessary,
+# or use desiredCoverage option to get coverage 
+# around 40x to 80x.
+minReadLength = 50000
+
+noCache = True
+
+
+
+[Kmers]
+
+# Because we are not using the RLE representation,
+# use shorter k-mers.
+k = 8
+
+# Compensate for the non-RLE representation
+# to get about the same number of markers
+# we would get with the RLE representation and probability = 0.1.
+probability = 0.07
+
+
+
+[MinHash]
+minBucketSize = 10
+maxBucketSize = 50
+minFrequency = 5
+
+
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+# Permissive alignment criteria as required for read graph creation method 2.
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+
+
+
+[ReadGraph]
+
+# Automatic adjustment of alignment criteria.
+creationMethod = 2
+
+# Strict strand separation is required for Mode 2 (phased) assembly.
+strandSeparationMethod = 2
+
+maxAlignmentCount = 12
+
+
+
+[MarkerGraph]
+minCoverage = 6
+minCoveragePerStrand = 1
+minEdgeCoverage = 6
+minEdgeCoveragePerStrand = 1
+
+
+
+[Assembly]
+mode = 2
+consensusCaller = Bayesian:guppy-5.0.7-a
+pruneLength = 100
+mode2.bubbleRemoval.minConcordantReadCount = 2
+
+
+
 
 
 )zzz"}
