@@ -1030,6 +1030,17 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
 
 
 
+        "<h3>Alignment criteria actually used for creation of the read graph</h3>"
+        "<table>"
+        "<tr><td>minAlignedMarkerCount<td>" << assemblerInfo->actualMinAlignedMarkerCount <<
+        "<tr><td>minAlignedFraction<td>" << assemblerInfo->actualMinAlignedFraction <<
+        "<tr><td>maxSkip<td>" << assemblerInfo->actualMaxSkip <<
+        "<tr><td>maxDrift<td>" << assemblerInfo->actualMaxDrift <<
+        "<tr><td>maxTrim<td>" << assemblerInfo->actualMaxTrim <<
+        "</table>"
+
+
+
         "<h3>Read graph</h3>"
         "<table>"
         "<tr><td>Number of vertices"
@@ -1297,6 +1308,17 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
         alignmentCandidates.candidates.size() << ",\n"
         "    \"Number of good alignments\": " << alignmentData.size() << ",\n"
         "    \"Number of good alignments kept in the read graph\": " << readGraph.edges.size()/2 << "\n"
+        "  },\n"
+
+
+
+        "  \"Alignment criteria actually used for creation of the read graph\":\n"
+        "  {\n"
+        "    \"minAlignedMarkerCount\": " << assemblerInfo->actualMinAlignedMarkerCount << ",\n"
+        "    \"minAlignedFraction\": " << assemblerInfo->actualMinAlignedFraction << ",\n"
+        "    \"maxSkip\": " << assemblerInfo->actualMaxSkip << ",\n"
+        "    \"maxDrift\": " << assemblerInfo->actualMaxDrift << ",\n"
+        "    \"maxTrim\": " << assemblerInfo->actualMaxTrim << "\n"
         "  },\n"
 
 
