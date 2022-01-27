@@ -13,15 +13,14 @@
 <h1>Exploring assembly results</h1>
 
 <p>
-The Shasta assembler provides functionality that allows exploring
+Shasta has functionality for exploring
 details of many data structures used during assembly.
-<b>This can be useful to gain insight into assembler behavior
-for purposes of testing, debugging, parameter optimization,
+<b>It can be useful to understand assembler behavior
+for testing, debugging, parameter optimization,
 development of new algorithms, or for gaining insight
-not available by simply studying assembled sequence</b>
-stored in the <code>fasta</code> and <code>gfa</code>
-files created by the assembly.
-When this functionality is activated, the Shasta assembler
+not available by visually examining the assembled sequence</b>
+files.
+When this functionality is activated, Shasta
 behaves as an http server, and the user communicates with it
 via a standard Internet browser.
 
@@ -43,7 +42,7 @@ related distributions, use: <pre>sudo yum install graphviz</pre>
 please file an 
 <a href="https://github.com/chanzuckerberg/shasta/issues">issue</a> on the Shasta GitHub repository mentioning 
 the distribution you are using. 
-An effort will be made to update the documentation to cover that distribution.
+We will make an effort to update the documentation to cover that distribution.
 </ul>
 
 <p>
@@ -121,8 +120,8 @@ details of many assembler data structures.
 For example, this allows you to look at local subgraphs
 of the read graph, marker graph, and assembly graph 
 (see <a href="ComputationalMethods.html">here</a> for more information).
-It also provides details of sequence assembly, 
-and of the input reads used in the assembly.
+It also provides details of sequence assembly 
+and of the input reads used.
 Finally, there are several useful links between 
 the various data structures. For example,
 you can easily navigate from the assembly graph to the marker
@@ -138,10 +137,10 @@ as long as the binary data remain available.
 
 <h2 id=AccessControl>Access control</h2>
 <p>
-By default, the server runs in a mode in which it only responds
+By default, the server runs in a mode that it only responds
 to requests originating from the same computer in which 
-the server is running, and from the same user.
-However, you can use command line option 
+the server is running and from the same user.
+However, you can use the command line option 
 <code>--exploreAccess</code> to relax this restriction:
 
 <ul>
