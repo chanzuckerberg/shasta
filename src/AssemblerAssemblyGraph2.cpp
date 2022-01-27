@@ -36,6 +36,7 @@ void Assembler::createAssemblyGraph2(
         markerGraph,
         pruneLength,
         mode2Options,
+        assemblerInfo->assemblyGraph2Statistics,
         threadCount
         );
 

@@ -71,6 +71,10 @@ public:
     T* operator->();
     const T* operator->() const;
 
+    // Return a reference to the stored object.
+    T& object();
+    const T& object() const;
+
 private:
 
     // Compute the number of pages needed to hold n bytes.
@@ -516,6 +520,22 @@ template<class T> inline const T* shasta::MemoryMapped::Object<T>::operator->() 
     SHASTA_ASSERT(isOpen);
     SHASTA_ASSERT(data);
     return data;
+}
+
+
+
+// Return a reference to the stored object.
+template<class T> inline T& shasta::MemoryMapped::Object<T>::object()
+{
+    SHASTA_ASSERT(isOpen);
+    SHASTA_ASSERT(data);
+    return *data;
+}
+template<class T> inline const T& shasta::MemoryMapped::Object<T>::object() const
+{
+    SHASTA_ASSERT(isOpen);
+    SHASTA_ASSERT(data);
+    return *data;
 }
 
 

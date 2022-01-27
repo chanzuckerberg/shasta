@@ -22,6 +22,7 @@ namespace shasta {
     class AssemblyGraph2;
     class AssemblyGraph2Vertex;
     class AssemblyGraph2Edge;
+    class AssemblyGraph2Statistics;
     class BubbleChain;
     class MarkerGraph;
     class Mode2AssemblyOptions;
@@ -32,6 +33,8 @@ namespace shasta {
         AssemblyGraph2Vertex, AssemblyGraph2Edge>;
 
     using MarkerGraphPath = vector<MarkerGraph::EdgeId>;
+
+    class AssemblerInfo;
 
     namespace MemoryMapped {
         template<class T, class Int> class VectorOfVectors;
@@ -252,6 +255,7 @@ public:
         const MarkerGraph&,
         uint64_t pruneLength,
         const Mode2AssemblyOptions&,
+        AssemblyGraph2Statistics&,
         size_t threadCount
         );
 
@@ -277,13 +281,15 @@ public:
         bool writeSequence,
         bool writeCsv,
         bool writeGfa,
-        bool writeFasta) const;
+        bool writeFasta,
+        AssemblyGraph2Statistics* statistics = 0) const;
     void writePhased(
         const string& baseName,
         bool writeSequence,
         bool writeCsv,
         bool writeGfa,
-        bool writeFasta) const;
+        bool writeFasta,
+        AssemblyGraph2Statistics* statistics = 0) const;
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;

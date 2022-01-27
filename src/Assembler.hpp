@@ -3,6 +3,7 @@
 
 // Shasta.
 #include "AlignmentCandidates.hpp"
+#include "AssemblyGraph2Statistics.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
@@ -165,6 +166,9 @@ public:
     size_t totalAssembledSegmentLength = 0;
     size_t longestAssembledSegmentLength = 0;
     size_t assembledSegmentN50 = 0;
+
+    // Mode 2 assembly statistics.
+    AssemblyGraph2Statistics assemblyGraph2Statistics;
 
     // Performance statistics.
     double assemblyElapsedTimeSeconds = 0.;

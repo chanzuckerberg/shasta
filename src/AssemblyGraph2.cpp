@@ -1,5 +1,6 @@
 // Shasta.
 #include "AssemblyGraph2.hpp"
+#include "AssemblyGraph2Statistics.hpp"
 #include "AssembledSegment.hpp"
 #include "assembleMarkerGraphPath.hpp"
 #include "AssemblerOptions.hpp"
@@ -42,6 +43,7 @@ AssemblyGraph2::AssemblyGraph2(
     const MarkerGraph& markerGraph,
     uint64_t pruneLength,
     const Mode2AssemblyOptions& mode2Options,
+    AssemblyGraph2Statistics& statistics,
     size_t threadCount
     ) :
     MultithreadedObject<AssemblyGraph2>(*this),
@@ -164,14 +166,14 @@ AssemblyGraph2::AssemblyGraph2(
     }
     if(not mode2Options.suppressHaploidOutput) {
         writeHaploid("Assembly-Haploid", true, true,
-            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput);
+            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput, &statistics);
         if(not mode2Options.suppressGfaOutput) {
             writeHaploid("Assembly-Haploid-NoSequence", false, false, true, false);
         }
     }
     if(not mode2Options.suppressPhasedOutput) {
         writePhased("Assembly-Phased", true, true,
-            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput);
+            not mode2Options.suppressGfaOutput, not mode2Options.suppressFastaOutput, &statistics);
         if(not mode2Options.suppressGfaOutput) {
             writePhased("Assembly-Phased-NoSequence", false, false, true, false);
         }
@@ -191,6 +193,9 @@ AssemblyGraph2::AssemblyGraph2(
         "Transition/transversion ratio is " <<
         double(transitionCount) / double(transversionCount) << "\n"
         "There are " << nonSnpCount << " small bubbles which are not SNPs." << endl;
+    statistics.simpleSnpBubbleTransitionCount = transitionCount;
+    statistics.simpleSnpBubbleTransversionCount = transversionCount;
+    statistics.nonSimpleSnpBubbleCount = nonSnpCount;
 
     performanceLog << timestamp << "AssemblyGraph2 constructor ends." << endl;
 }
@@ -1141,7 +1146,8 @@ void AssemblyGraph2::writeHaploid(
     bool writeSequence,
     bool writeCsv,
     bool writeGfa,
-    bool writeFasta) const
+    bool writeFasta,
+    AssemblyGraph2Statistics* statistics) const
 {
     performanceLog << timestamp << "AssemblyGraph2::writeHaploid begins." << endl;
     const G& g = *this;
@@ -1292,6 +1298,10 @@ void AssemblyGraph2::writeHaploid(
         cout << "Total length of bubble chains " << totalLength <<
             ", N50 " << n50 << endl;
         // cout << "Total length assembled outside of bubble chains " << totalNonBubbleChainLength << endl;
+        if(statistics) {
+            statistics->totalBubbleChainLength = totalLength;
+            statistics->bubbleChainN50 = n50;
+        }
     }
 
     performanceLog << timestamp << "AssemblyGraph2::writeHaploid ends." << endl;
@@ -1304,7 +1314,8 @@ void AssemblyGraph2::writePhased(
     bool writeSequence,
     bool writeCsv,
     bool writeGfa,
-    bool writeFasta) const
+    bool writeFasta,
+    AssemblyGraph2Statistics* statistics) const
 {
     performanceLog << timestamp << "AssemblyGraph2::writePhased begins." << endl;
     const G& g = *this;
@@ -1546,6 +1557,14 @@ void AssemblyGraph2::writePhased(
             totalDiploidBases/2 + totalHaploidBases << endl;
         cout << "Total length assembled outside bubble chains: " <<
             totalNonBubbleChainBases << endl;
+
+        if(statistics) {
+            statistics->totalDiploidLengthBothHaplotypes = totalDiploidBases;
+            statistics->diploidN50 = diploidN50;
+            statistics->totalHaploidLength = totalHaploidBases;
+            statistics->haploidN50 = haploidN50;
+            statistics->outsideBubbleChainsLength = totalNonBubbleChainBases;
+        }
     }
 
     performanceLog << timestamp << "AssemblyGraph2::writePhased ends." << endl;
