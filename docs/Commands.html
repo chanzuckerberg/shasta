@@ -13,7 +13,7 @@
 
 <p>
 Shasta is most commonly used to run an assembly.
-However, it provides additional utility functions
+However, it offers additional utility functions
 via command line option 
 <a href="CommandLineOptions.html#command"><code>--command</code></a>.
 Following <code>--command</code>, you specify a command name
@@ -43,7 +43,7 @@ The default command is <code>assemble</code>, so you don't need to use the
 
 <p>
 The rest of this page provides a brief description of the functionality
-provided by each of these commands.
+offered by each of these commands.
 
 <h3 id=assemble>Command <code>assemble</code></h3>
 <p>
@@ -53,19 +53,19 @@ See <a href="Running.html">here</a> for more information.
 
 <h3 id=cleanupBinaryData>Command <code>cleanupBinaryData</code></h3>
 <p>
-This is used to unmount the filesystem in memory used to
+This command is used to unmount the filesystem in memory used to
 hold Shasta binary data, mounted at the <code>Data</code>
 directory under the assembly directory. 
-This frees the memory (in 4 Kb or 2 MB pages 
+It frees the memory (in 4 Kb or 2 MB pages 
 depending on the setting of <code>--memoryBacking</code>)
 used to store data in the filesystem.
 
 <p>
-This also removes the <code>Data</code> directory.
+It also removes the <code>Data</code> directory.
 If a <code>DataOnDisk</code> directory exists,
-it creates a symbolic link to it, named <code>Data</code>.
-This makes it possible to use Shasta http server functionality
-and the Python API even after the binary data are 
+it creates a symbolic link named <code>Data</code>.
+This makes it possible to use the Shasta http server functionality
+and Python API even after the binary data are 
 no longer in memory, as long as they were saved 
 on disk using <a href="#saveBinaryData"><code>--command saveBinaryData</code></a>.
 
@@ -78,7 +78,7 @@ See <a href="Running.html">here</a> for more information.
 <h3>Command <code>createBashCompletionScript</code></h3>
 <p>
 Running this command creates a Bash completion script 
-that provides completion of Shasta commands to facilitate typing.
+that completes Shasta commands to facilitate typing.
 The script is named <code>shastaCompletion.sh</code>
 and can be invoked from a Bash shell as follows:
 <code>
@@ -89,25 +89,23 @@ See <a href="CommandLineOptions.html#bashCompletion">here</a> for more informati
 
 <h3>Command <code>explore</code></h3>
 <p>
-This command starts Shasta in a mode in which it behaves as an
+This command starts Shasta in a mode that behaves as an
 http server. You can use a browser to connect to it
-and visualize detailed information about your assembly.
-This requires the binary data for the assembly to be available.
+and visualize detailed information about your assembly, and this requires the binary data for the assembly to be available.
 
-See <a href="InspectingResults.html">here</a> for more information.
+See <a href="InspectingResults.html">here</a> for more details.
 
 
 
 <h3>Command <code>filterReads</code></h3>
-<p>This command is experimental and is useful mostly for Shasta development.
+<p>This command is experimental and is useful mainly for Shasta development.
 It is intended to allow the user to perform read processing 
 separately from running an assembly.
 Invoking <code>filterReads</code> will run Shasta, loading the reads, 
-applying thresholds, and removing palindromes as is normally 
-done during assembly, 
-but the list of passing reads is written to a csv file and Shasta terminates once all reads are processed. 
-The Shasta command line arguments with a <code>--Reads</code> prefix 
-therefore all apply to the <code>filterReads</code> command.
+applying thresholds, and removing palindromes as is typically 
+done during assembly. 
+Shasta writes the list of passing reads to a csv file and terminates once all reads are processed. 
+Therefore, the command line arguments with a <code>--Reads</code> prefix all apply to the <code>filterReads</code> command.
 This writes the names of all reads marked palindromic to 
 <code>PalindromicReads.csv</code>
 and a list of all remaining reads longer than 
@@ -130,7 +128,7 @@ To print details of a specific configuration, use:
 <code>
 shasta --command listConfiguration --config Name
 </code>
-For example
+For example,
 <code>
 shasta --command listConfiguration --config Nanopore-Sep2020
 </code>
@@ -158,8 +156,8 @@ for more information.
 
 <h3 id=saveBinaryData>Command <code>saveBinaryData</code></h3>
 <p>
-This is used to save Shasta binary data.
-Binary data are stored in directory <code>Data</code> in the assembly directory.
+This command is used to save Shasta binary data.
+Shasta stores binary data in directory <code>Data</code> in the assembly directory.
 This command makes a copy on disk in <code>Data</code>. 
 You will usually want to run 
 <code>--command cleanupBinaryData</code>
