@@ -1102,27 +1102,75 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
 
 
 
-        html <<
-        "<h3>Assembled segments (&quot;contigs&quot;)</h3>"
-        "<table>"
-        "<tr><td>Number of segments assembled"
-        "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
-        "<tr><td>Total assembled segment length"
-        "<td class=right>" << assemblerInfo->totalAssembledSegmentLength <<
-        "<tr><td>Longest assembled segment length"
-        "<td class=right>" << assemblerInfo->longestAssembledSegmentLength <<
-        "<tr><td>Assembled segments N<sub>50</sub>"
-        "<td class=right>" << assemblerInfo->assembledSegmentN50 <<
-        "</table>"
-        "<ul><li>Shasta uses GFA terminology "
-        "(<i>segment</i> instead of the most common <i>contig</i>). "
-        "A contiguous section of assembled sequence can consist of multiple segments, "
-        "for example in the presence of heterozygous bubbles."
-        "<li>See AssemblySummary.csv for lengths of assembled segments."
-        "</ul>"
+        if(assemblerInfo->assemblyMode == 0) {
+            html <<
+            "<h3>Assembled segments (&quot;contigs&quot;)</h3>"
+            "<table>"
+            "<tr><td>Number of segments assembled"
+            "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
+            "<tr><td>Total assembled segment length"
+            "<td class=right>" << assemblerInfo->totalAssembledSegmentLength <<
+            "<tr><td>Longest assembled segment length"
+            "<td class=right>" << assemblerInfo->longestAssembledSegmentLength <<
+            "<tr><td>Assembled segments N<sub>50</sub>"
+            "<td class=right>" << assemblerInfo->assembledSegmentN50 <<
+            "</table>"
+            "<ul><li>Shasta uses GFA terminology "
+            "(<i>segment</i> instead of the most common <i>contig</i>). "
+            "A contiguous section of assembled sequence can consist of multiple segments, "
+            "for example in the presence of heterozygous bubbles."
+            "<li>See AssemblySummary.csv for lengths of assembled segments."
+            "</ul>";
+        }
 
 
 
+        if(assemblerInfo->assemblyMode == 2) {
+            const AssemblyGraph2Statistics& statistics = assemblerInfo->assemblyGraph2Statistics;
+            html <<
+            "<h3>Phased assembly statistics</h3>"
+            "<table>"
+            "<tr><th><th>Length<th>N<sub>50</sub>"
+            "<tr><td>Bubble chains"
+            "<td class=right>" << statistics.totalBubbleChainLength <<
+            "<td class=right>" << statistics.bubbleChainN50 <<
+            "<tr><td>Diploid sequence (per haplotype)"
+            "<td class=right>" << statistics.totalDiploidLengthBothHaplotypes / 2 <<
+            "<td class=right>" << statistics.diploidN50 <<
+            "<tr><td>Haploid sequence"
+            "<td class=right>" << statistics.totalHaploidLength <<
+            "<td class=right>" << statistics.haploidN50 <<
+            "<tr><td>Total sequence assembled in bubble chains, per haplotype"
+            "<td class=right>" <<
+            statistics.totalDiploidLengthBothHaplotypes / 2 +
+            statistics.totalHaploidLength <<
+            "<td class=right>"
+            "<tr><td>Sequence outside bubble chains"
+            "<td class=right>" << statistics.outsideBubbleChainsLength <<
+            "<td class=right>"
+            "</table>"
+
+            "<p>"
+            "<table>"
+            "<tr><td>Number of bubbles that describe a single SNP (transition)"
+            "<td class=right>" << statistics.simpleSnpBubbleTransitionCount <<
+            "<tr><td>Number of bubbles that describe a single SNP (transversion)"
+            "<td class=right>" << statistics.simpleSnpBubbleTransversionCount <<
+            "<tr><td>Number of bubbles that describe a single SNP (total)"
+            "<td class=right>" <<
+            statistics.simpleSnpBubbleTransitionCount +
+            statistics.simpleSnpBubbleTransversionCount <<
+            "<tr><td>Transition/transversion ratio for bubbles that describe a single SNP"
+            "<td class=right>" <<
+            double(statistics.simpleSnpBubbleTransitionCount) /
+            double(statistics.simpleSnpBubbleTransversionCount) <<
+            "<tr><td>Number of bubbles that describe indels or more than one SNP"
+            "<td class=right>" << statistics.nonSimpleSnpBubbleCount <<
+            "</table>";
+        }
+
+
+    html <<
         "<h3>Performance</h3>"
         "<table>"
         "<tr><td>Elapsed time (seconds)"
@@ -1135,7 +1183,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
         "<td class=right>" << assemblerInfo->averageCpuUtilization <<
         "<tr><td>Peak Memory utilization (bytes)"
         "<td class=right>" <<
-	assemblerInfo->peakMemoryUsageForSummaryStats() <<
+        assemblerInfo->peakMemoryUsageForSummaryStats() <<
         "</table>"
         ;
 }
