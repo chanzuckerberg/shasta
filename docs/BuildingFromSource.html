@@ -13,8 +13,7 @@
 
 <h2>When is it necessary to build from source?</h2>
 <p>
-In most cases, you don't need to build from source,
-and instead you can use a release build
+In most cases, you can use a release build
 downloaded from the 
 <a href='https://github.com/chanzuckerberg/shasta/releases'>Releases</a> page on GitHub.
 (See the <a href="QuickStart.html">quick start</a> page for more information)
@@ -24,9 +23,9 @@ following circumstances:
 <li>
 To build a version of Shasta for which no release exists.
 For example, if you want to get a recently added feature
-that is not available in the most recent release build.
-For this specific use case, you can also download a
-Shasta test build form GitHub, as described 
+not available in the most recent release build.
+For this specific use case, you can download a
+Shasta test build from GitHub, as described 
 <a href="#DownloadTestBuild">below</a>.
 <li>
 To test, develop, or debug Shasta code.
@@ -40,10 +39,10 @@ To port the Shasta build to a different platform.
 
 <h3>Build platforms</h3>
 <p>
-Building from source is currently supported for Ubuntu (20.04 LTS) and macOS (10.15).
+We currently support building from source for Ubuntu (20.04 LTS) and macOS (10.15).
 Porting the build process to other Linux platforms is possible.
-If you are specifically interested in porting to a different Linux
-platorm, please file an Issue on GitHub.
+If you are interested in porting to a different Linux
+platform, please file an Issue on GitHub.
 Even better, submit a Pull Request with the necessary changes.
 
 
@@ -92,7 +91,7 @@ If you don't plan to use your build for debugging, you
 can use command <code>make install/strip</code>
 instead of <code>make install</code> as the last
 step of the build process.
-This will strip debug symbols from the Shaste executable and shared library, which significantly reduces
+This will strip debug symbols from the Shasta executable and shared library, which significantly reduces
 the size of the
 build directory.
 
@@ -107,9 +106,9 @@ The main goal of these builds is to test that new code continues to build
 on all supported platforms,
 but the builds are accessible to all users for download
 for 90 days after their creation.
-The test builds, however, are generally not as reliable as 
-release builds, and can sometimes be non-functional.
-With this in mind, you can use the folowing steps to download one of these test builds:
+The test builds are generally not as reliable as 
+release builds and can sometimes be non-functional.
+With this in mind, you can use the following steps to download one of these test builds:
 <ul>
 <li>Make sure to be logged in to GitHub. Any user will work, but GitHub
 will not allow downloading a test build anonymously.
@@ -121,16 +120,15 @@ page of the Shasta repository.
 The checkmark indicates that a push occurred at that commit,
 followed by a successful test build.
 <li>Click on the green checkmark, then click on one of the 
-<i>Details</i> links that appear in the pop up Window.
+<i>Details</i> links that appear in the pop up window.
 <li>You are now on the GitHub Actions page for that test build.
 Click on <i>Summary</i> on the left of the window,
 then scroll down to the <i>Artifacts</i> section
 and select what you want to download.
-Your browser will then download the file you selected,
-which will be downloaded zipped.
+Your browser will then download the file you selected as zipped.
 You can use the <code>unzip</code>
 command, or equivalent, to unzip it. 
-After unzipping it, if it is an executable, before you can run it you will also have to set its execute permission bit
+After unzipping it, if it is an executable. Before running it, you will have to set its execute permission bit
 via <code>chmod ugo+x filename</code>.
 </ul>
 
