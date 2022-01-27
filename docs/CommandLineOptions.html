@@ -14,26 +14,26 @@
 
 <p>
 This page summarizes command line options for the Shasta executable.
-An effort will be made to keep this page consistent with the code,
-but it is possible that discrepancies may temporarily appear
-as new features are added. In that case, the list of command line options
+We will make an effort to keep this page consistent with the code,
+but discrepancies may temporarily appear
+as we add new features. In that case, the list of command line options
 obtained by invoking the Shasta executable with 
-<code>--help</code> is, of course, more authoritative than the contents
+<code>--help</code> is more authoritative than the contents
 of this page.
 
 
 
 <h2 id=bashCompletion>Saving some typing</h2>
-<p>Many option names are long and descriptive, and to make it easier to type them
+<p>Many option names are long and descriptive. To make it easier to type them
 Shasta provides the ability to create a <code>bash</code> completion script.
 If you are using the <code>bash</code> shell 
-(the default shell in most modern  Linux distributions),
+(the default shell in most modern Linux distributions),
 you can use the commands below to save yourself some typing.
 This assumes that the <code>shasta</code> executable is
 named just like this - <code>shasta</code> - and is 
 accessible via your
 <code>PATH</code> environment variable
-(if it is not you have to invoke <code>shasta</code> using
+(if it is not, you have to invoke <code>shasta</code> using
 an absolute or relative path):
 
 <pre>
@@ -108,7 +108,7 @@ Specifies the Shasta command to be run. <a class=qm href='Commands.html'/>
 <li>Can be <code>anonymous</code> or <code>filesystem</code>.
 <li>For best performance use 
 <code>--memoryMode filesystem --memoryBacking 2M</code>.
-However, using these options requires root access via <code>sudo</code>.
+However, using these options require root access via <code>sudo</code>.
 Depending on <code>sudo</code> setup, this may 
 result in prompting for a password.
 <li>Not supported on MacOS. On MacOS, Shasta operates as if 
@@ -412,7 +412,7 @@ at the beginning and end of a read.
 <td><code>--Align.maxMarkerFrequency</code><td class=centered><code>10</code><td>
 Marker frequency threshold when computing alignments.
 Markers that occur more than this number of times
-in either ot the two reads to be aligned are ignored.
+in either of the two reads to be aligned are ignored.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='Align.minAlignedMarkerCount'>
@@ -463,9 +463,9 @@ and close in time are suppressed. The <code>read</code> meta data fields
 from the FASTA or FASTQ header are checked. If their difference, in
 absolute value, is less than the value of this option, the alignment
 is suppressed. This can help avoid assembly artifact.
-This check is only done if the two reads have identical meta data fields
+This check is only done if the two reads have identical metadata fields
 <code>runid</code>, <code>sampleid</code>, and <code>ch</code>. 
-If any of these meta data fields are missing, this check is suppressed and this
+If any of these metadata fields are missing, this check is suppressed and this
 option has no effect.
 
 <tr id='Align.suppressContainments'>
@@ -837,7 +837,7 @@ Minimum number of supporting reads required for a strong branch. Mode 2 assembly
 <tr id='Assembly.mode2.epsilon'>
 <td><code>--Assembly.mode2.epsilon</code>
 <td class=centered><code>0.1</code><td>
-Epsilon for the Bayesian model used for phasing and for bubble removal."
+Epsilon for the Bayesian model used for phasing and bubble removal.
 This is the probability that a read appears on the wrong branch 
 of a diploid bubble. Mode 2 assembly only.
 
@@ -854,7 +854,7 @@ Maximum number of discordant reads for bubble removal. Mode 2 assembly only.
 <tr id='Assembly.mode2.bubbleRemoval.minLogP'>
 <td><code>--Assembly.mode2.bubbleRemoval.minLogP</code>
 <td class=centered><code>30</code><td>
-Minimul log(P) (in decibels) for bubble removal. Mode 2 assembly only.
+Minimum log(P) (in decibels) for bubble removal. Mode 2 assembly only.
 
 <tr id='Assembly.mode2.bubbleRemoval.componentSizeThreshold'>
 <td><code>--Assembly.mode2.bubbleRemoval.componentSizeThreshold</code>
@@ -883,7 +883,7 @@ Maximum size (number of edges) of a superbubble to be processed. Mode 2 assembly
 <tr id='Assembly.mode2.superbubble.maxChunkSize'>
 <td><code>--Assembly.mode2.superbubble.maxChunkSize</code>
 <td class=centered><code>20</code><td>
-Maximum size (numbef of edges) of a superbubble chunk to be processed. Mode 2 assembly only.
+Maximum size (number of edges) of a superbubble chunk to be processed. Mode 2 assembly only.
 
 <tr id='Assembly.mode2.superbubble.edgeLengthThreshold'>
 <td><code>--Assembly.mode2.superbubble.edgeLengthThreshold</code>
