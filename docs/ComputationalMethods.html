@@ -2320,25 +2320,63 @@ all terms in the above expressions are non-singular.
 
 
 
+<h3>Extension of the Bayesian model to two sets of diploid bubbles</h3>
+<p>
+Consider two disjoint sets of diploid bubbles, 
+<i>S<sub>0</sub></i> and <i>S<sub>1</sub></i>.
+Assume the bubbles in each of the two sets have already been
+phased relative to each other, that is, we know how the
+haplotypes of each bubble in each of the set
+correspond to haplotypes of other bubbles in the same set.
+The Bayesian model described in the previous section can be
+extended to apply to the phasing of 
+<i>S<sub>0</sub></i> relative to <i>S<sub>1</sub></i>.
+This can be useful, as it is possible that there is
+insufficient evidence to phase individual bubbles of
+<i>S<sub>0</sub></i> relative to bubbles of <i>S<sub>1</sub></i>,
+while sufficient combined evidence still is present to support
+phasing the two sets relative to each other. 
+
+<p>
+Such an extended Bayesian model permits a hierarchical approach to
+phasing, described in more details below, in which sets of
+bubbles are iteratively phased and combined
+into larger phased sets.
+
+<p>
+The phasing matrix for the extended Bayesian model 
+can be constructed similarly for the case of a single pair of bubbles.
+The phasing matrix counts distinct reads, so if a read
+appears in multiple bubbles of the two sets,
+it is counted only once.
+
+
+
+
 <h3 id=PhasingGraph>Phasing graph</h3>
 <p>
 Phasing information for a set of diploid bubbles can
 be described using a <i>phasing graph</i>,
-an undirected graph in which each vertex represents a bubble.
+an undirected graph in which each vertex represents a bubble
+or a set of bubbles already phased relative to each other.
 The phasing graph is used in two steps, described in more
 detail below. 
 <ul>
 <li>The goal of the first step, bubble removal,  is to remove bubbles that 
 are likely to be the result of errors.
+In this step, each vertex of the phasing graph corresponds
+to a single bubble rather than a set of bubbles.
 <li>The goal of the second step, phasing,
 is to assign a haplotype to each branch of each bubble.
+This is done hierarchically by iteratively phasing 
+groups of bubbles relative to each other - see below for more details.
 </ul>
 
 <p>
 The phasing graph is used in both steps, with some differences.
 
 <p>An edge between two vertices can be created if the two corresponding
-bubbles have enough common reads to permit phasing. The precise 
+bubbles or sets of bubbles have enough common reads to permit phasing. The precise 
 criteria for edge creation are different for bubble removal and phasing,
 but in both cases each edge stores the <i>n<sub>ij</sub></i>
 phasing matrix for the bubbles corresponding to the vertices it joins.
@@ -2480,6 +2518,7 @@ for one of the phasing hypotheses, which in turn means that
 neither of the two bubbles are due to errors.
 
 
+
 <h3>Bubble removal</h3>
 <p>
 Bubble removal is an iterative process.
@@ -2503,7 +2542,7 @@ are also suspicious. Therefore, the process for flagging
 bad bubbles at each iteration works as follows:
 
 <ul>
-<li>The phasing graph is created.
+<li>The phasing graph is created, with one vertex per bubble.
 <li>Connected components are computed.
 <li>All bubbles that correspond to vertices in small connected components
 are flagged as bad and removed from the assembly graph
@@ -2523,6 +2562,7 @@ from scratch, and stops when no more bubbles are flagged as bad.
 Note this process can erroneusly flag as bad bubbles that are
 in low heterozygosity regions of the genome.
 This can cause low heterozygosity regions to be assembled haploid.
+
 
 
 <h3>Phasing of bubbles</h3>
@@ -2569,13 +2609,6 @@ This can be done using a Bread First Search (BFS) on the spanning tree
 and assigning haplotypes to vertices based on the <i>log(P<sub>phasing</sub>)</i>
 values of the tree edges.
 
-<p>
-When the process is complete we can count how many edges
-of the entire phasing graph
-(not just the spanning tree)
-have a <i>log(P<sub>phasing</sub>)</i>
-that is inconsistent with the haplotypes assigned in this way.
-The fraction of such edges is usually very small.
 
 <p>
 The spanning tree process has to be done
@@ -2586,13 +2619,23 @@ components. This expresses the fact that
 we cannot phase across regions in the absence of
 a sufficient number of common reads.
 
+<p>
+The bubbles of each connected component
+are then combined into a single vertex of the phasing graph,
+keeping track of the relative phasing of the bubbles
+as determined by the spanning tree.
+This hierarchical phasing process is then repeated until all
+vertices are isolated. Each vertex then corresponds to
+a "phased component" in the final phased assembly.
+
  
 <p>
 At the end of this process, each bubble that was not
 marked as bad has a <code>componentId</code>
-that defines the connected component the bubble
+that defines the final phasing graph vertex each bubble
 was part of, and haplotypes
 0 and 1 are assigned to its two branches. 
+
 
 
 
