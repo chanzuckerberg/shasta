@@ -1902,12 +1902,12 @@ and the output it creates.
 Mode 0 and mode 2 assembly generate marker graph vertices
 in the same way: at the end of the disjoint sets process,
 each disjoint set containing at least
-<code>--MarkerGraph.minCoverage</code> 
+<code><a href='CommandLineOptions.html#MarkerGraph.minCoverage'>--MarkerGraph.minCoverage</a></code>
 markers is allowed to generate a vertex if:
 
 <ul>
 <li>It also contains at least 
-<code>--MarkerGraph.minCoveragePerStrand</code>
+<code><a href='CommandLineOptions.html#MarkerGraph.minCoveragePerStrand'>--MarkerGraph.minCoveragePerStrand</a></code>
 markers on each strand. 
 This is to avoid vertices with extreme strand bias,
 which are likely to correspond to systematic errors.
@@ -1938,9 +1938,9 @@ rather than being very permissive in the initial creation of edges,
 edges are initially created subject to strict coverage criteria
 similar to those used for vertices,
 under control of 
-<code>--MarkerGraph.minEdgeCoverage</code>
+<code><a href='CommandLineOptions.html#MarkerGraph.minEdgeCoverage'>--MarkerGraph.minEdgeCoverage</a></code>
 and 
-<code>--MarkerGraph.minEdgeCoveragePerStrand</code>.
+<code><a href='CommandLineOptions.html#MarkerGraph.minEdgeCoveragePerStrand'>--MarkerGraph.minEdgeCoveragePerStrand</a></code>.
 This ensures that only edges with good read support are generated.
 As an additional requirement, all oriented reads
 that participate in an edge are required to have
@@ -1971,7 +1971,8 @@ For both alleles, the RLE sequence is AG, so no bubble is generated.
 
 For this reason, for a phased assembly using current nanopore reads
 it is best to turn off the RLE representation of the reads
-via <code>--Reads.representation 0</code>. 
+via 
+<code><a href='CommandLineOptions.html#Reads.representation'>--Reads.representation 0</a></code>.
 Fortunately, 
 RLE is not as essential with today's higher quality nanopore
 reads as it was at the time of Shasta's initial implementation.
@@ -2070,7 +2071,7 @@ bubble by choosing the two most likely paths in the superbubble.
 
 
 
-<h3>Simple Bayesian model for a pair of diploid bubbles</h3>
+<h3 id=BayesianPhasing>Simple Bayesian model for a pair of diploid bubbles</h3>
 <p>
 The bubble removal and the phasing steps
 use a simple Bayesian model describing two diploid bubbles.
@@ -2320,7 +2321,7 @@ all terms in the above expressions are non-singular.
 
 
 
-<h3>Extension of the Bayesian model to two sets of diploid bubbles</h3>
+<h3 id=ExtendedBayesianPhasing>Extension of the Bayesian model to two sets of diploid bubbles</h3>
 <p>
 Consider two disjoint sets of diploid bubbles, 
 <i>S<sub>0</sub></i> and <i>S<sub>1</sub></i>.
@@ -2389,13 +2390,13 @@ we would like <i>n<sub>concordant</sub></i> to be high and
 These thresholds are controlled by the following command line options:
 <ul>
 <li>For bubble removal, 
-<code>--Assembly.mode2.bubbleRemoval.minConcordantReadCount</code>
-and 
-<code>--Assembly.mode2.bubbleRemoval.maxDiscordantReadCount</code>.
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.minConcordantReadCount'>--Assembly.mode2.bubbleRemoval.minConcordantReadCount</a></code>
+and
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.maxDiscordantReadCount'>--Assembly.mode2.bubbleRemoval.maxDiscordantReadCount</a></code>.
 <li>For phasing, 
-<code>--Assembly.mode2.phasing.minConcordantReadCount</code>
+<code><a href='CommandLineOptions.html#Assembly.mode2.phasing.minConcordantReadCount'>--Assembly.mode2.phasing.minConcordantReadCount</a></code>
 and 
-<code>--Assembly.mode2.phasing.maxDiscordantReadCount</code>.
+<code><a href='CommandLineOptions.html#Assembly.mode2.phasing.maxDiscordantReadCount'>--Assembly.mode2.phasing.maxDiscordantReadCount</a></code>.
 </ul>
 
 <p>
@@ -2422,7 +2423,7 @@ The edge is only generated if
 <i>log(P<sub>phasing</sub>)</i>
 is greater than the value specified
 by command line option 
-<code>--Assembly.mode2.phasing.minLogP</code>.
+<code><a href='CommandLineOptions.html#Assembly.mode2.phasing.minLogP'>--Assembly.mode2.phasing.minLogP</a></code>.
 This value specifies the minimum required value of
 <i>log(P<sub>phasing</sub>)</i>, expressed in 
 <a href='https://en.wikipedia.org/wiki/Decibel'>decibels</a> (dB).
@@ -2507,7 +2508,7 @@ The edge is only generated if
 <i>log(P<sub>bubble-removal</sub>)</i>
 is greater than the value specified
 by command line option 
-<code>--Assembly.mode2.bubbleRemoval.minLogP</code>.
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.minLogP'>--Assembly.mode2.bubbleRemoval.minLogP</a></code>.
 This value specifies the minimum required value of
 <i>log(P<sub>bubble-removal</sub>)</i>, expressed in 
 <a href='https://en.wikipedia.org/wiki/Decibel'>decibels</a> (dB).
@@ -2519,7 +2520,7 @@ neither of the two bubbles are due to errors.
 
 
 
-<h3>Bubble removal</h3>
+<h3 id=BubbleRemoval>Bubble removal</h3>
 <p>
 Bubble removal is an iterative process.
 At each iteration we remove bubbles that don't phase well with 
@@ -2529,9 +2530,12 @@ and allowing the random hypothesis in the Bayesian model.
 This is done under control of the following command line options:
 
 <ul>
-<li><code>--Assembly.mode2.bubbleRemoval.minConcordantReadCount</code>
-<li><code>--Assembly.mode2.bubbleRemoval.maxDisconcordantReadCount</code>
-<li><code>--Assembly.mode2.bubbleRemoval.minLogP</code>
+<li>
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.minConcordantReadCount'>--Assembly.mode2.bubbleRemoval.minConcordantReadCount</a></code>
+<li>
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.maxDisconcordantReadCount'>--Assembly.mode2.bubbleRemoval.maxDisconcordantReadCount</a></code>
+<li>
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.minLogP'>--Assembly.mode2.bubbleRemoval.minLogP</a></code>
 </ul>
 
 Isolated vertices in the phasing graph
@@ -2549,7 +2553,7 @@ are flagged as bad and removed from the assembly graph
 by only keeping the strongest branch.
 A connected component is considered small if it contains
 less than the number of bubbles specified via command line option 
-<code>--Assembly.mode2.bubbleRemoval.componentSizeThreshold</code>.
+<code><a href='CommandLineOptions.html#Assembly.mode2.bubbleRemoval.minLogP'>--Assembly.mode2.bubbleRemoval.componentSizeThreshold</a></code>.
 
 <li>Any assembly graph simplifications made possible by the
 removal of some bubbles are made. This includes merging of
@@ -2565,7 +2569,7 @@ This can cause low heterozygosity regions to be assembled haploid.
 
 
 
-<h3>Phasing of bubbles</h3>
+<h3id=PhasingBubbles>Phasing of bubbles</h3>
 <p>
 <p>
 Mode 2 assembly works by phasing the bubbles, not the
@@ -2585,9 +2589,12 @@ Creation of the phasing graph is now under control of the
 following command line options:
 
 <ul>
-<li><code>--Assembly.mode2.phasing.minConcordantReadCount</code>
-<li><code>--Assembly.mode2.phasing.maxDisconcordantReadCount</code>
-<li><code>--Assembly.mode2.phasing.minLogP</code>
+<li>
+<code><a href='CommandLineOptions.html#Assembly.mode2.phasing.minConcordantReadCount'>--Assembly.mode2.phasing.minConcordantReadCount</a></code>
+<li>
+<code><a href='CommandLineOptions.html#Assembly.mode2.phasing.maxDisconcordantReadCount'>--Assembly.mode2.phasing.maxDisconcordantReadCount</a></code>
+<li>
+<code><a href='CommandLineOptions.html#Assembly.mode2.phasing.minLogP'>--Assembly.mode2.phasing.minLogP</a></code>
 </ul>
 
 <p>
@@ -2640,7 +2647,7 @@ was part of, and haplotypes
 
 
 
-<h3>Bubble chains</h3>
+<h3 id=BubbleChains>Bubble chains</h3>
 <p>
 A <i>bubble chain</i> is a linear sequence
 of diploid bubbles and intervening segments assembled haploid.
@@ -2699,7 +2706,7 @@ to one of the two paths for the phased region.
 
 
 
-<h3>Mode 2 assembly output</h3>
+<h3 id=Mode2Output>Mode 2 assembly output</h3>
 <p>
 After a mode 2 assembly run,
 the resulting assembly is output in three different 
@@ -2895,17 +2902,28 @@ that is, a numeric identifier possibly followed by
 
 
 
-<h3>Using mode 2 assembly</h3>
+<h3 id=UsingMode2>Using mode 2 assembly</h3>
 <p>
 Phased diploid assembly is turned on via 
 <code>--Assembly.mode 2</code> or, more conveniently, 
-via configuration files yet to be implemented.
-At the time of wrting, only a preliminary
-configuration for Ultra-Long reads is available,
-<code>shasta/conf/Nanopore-UL-Phased-Prelim0-Jan2022.conf</code>.
-See the file itself for a description of the conditions under which it
-was designed for., 
+using command line option
+<code>--config</code>
+to specify one of the following configurations:
 
+<ul>
+<li><code>Nanopore-Phased-Jan2022.conf</code>.
+for standard nanopore reads.
+<li><code>Nanopore-UL-Phased-Jan2022.conf</code>.
+for Ultra-Long (UL) nanopore reads.
+</ul>
+
+<p>
+You can use `shasta --command listConfiguration --config 
+to get a ful description of each these two configurations,
+including comments the describe in more details the conditions
+under which eacxh of the two configurations were tested.
+
+<p>
 Please 
 <a href="https://github.com/chanzuckerberg/shasta/issues">file an issue</a> 
 in the Shasta GitHub repository for discussion of mode 2 assembly parameters.
