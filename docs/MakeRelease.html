@@ -32,14 +32,15 @@ change <code>BUILD_ID</code> to <code>Shasta Release X.Y.Z</code>
 in all <code>cmake</code> commands (4 instances at the time of last update of this documentation).
 <li>Commit and push this change to trigger a new build on GitHub Actions.
 Wait for that build to complete.
-<li>Download the 4 artifacts. Unzip them and rename them to the following:
+<li>Download the 5 artifacts. Unzip them and rename them to the following:
 <ul>
 <li><code>shasta-Linux-X.Y.Z</code>
 <li><code>shasta-macOS-10-X.Y.Z</code>
 <li><code>shasta-macOS-11-X.Y.Z</code>
 <li><code>shasta-Ubuntu-20.04-X.Y.Z.tar</code>
+<li><code>shasta-docs-X.Y.Z.tar</code>
 </ul>
-<li>Build Shasta for 64-bit ARM (<code>aarch64</code>). Github Actions currently don't support ARM. So the easiest way to do this is on a Graviton2 ec2 instance in AWS as follows:
+<li>Build Shasta for 64-bit ARM (<code>aarch64</code>). Github Actions currently does not support ARM. So the easiest way to do this is on a Graviton2 ec2 instance in AWS as follows:
 <ul>
 <li><code>git clone git@github.com:chanzuckerberg/shasta.git
 sudo ./shasta/scripts/InstallPrerequisites-Ubuntu.sh
@@ -49,6 +50,19 @@ cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z for 64 bit ARM"
 make install -j
 </code></li>
 <li>Download the <code>aarch64</code> Shasta binary (using <code>scp</code>) and rename it to <code>shasta-Linux-ARM-X.Y.Z</code>. </li>
+</ul>
+</li>
+
+<li>Build Shasta for macOS ARM (M1). Github Actions currently does not support this platform. So it must be built on a M1 laptop as follows:
+<ul>
+<li><code>git clone git@github.com:chanzuckerberg/shasta.git
+./shasta/scripts/InstallPrerequisites-macOS.sh
+mkdir -p shasta-build
+cd shasta-build
+cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z for macOS 11 ARM"
+make install -j
+</code></li>
+<li>Rename the Shasta binary to <code>shasta-macOS-11-ARM-X.Y.Z</code>. </li>
 </ul>
 </li>
 
@@ -67,7 +81,7 @@ The release name should be just/simply <code>X.Y.Z</code>
 (no additional characters).
 The release will not be visible to users until it gets published
 two steps below.
-<li>Upload the unzipped and renamed artifacts (5) to the new release as assets.
+<li>Upload the unzipped and renamed artifacts (7) to the new release as assets.
 
 <li>Publish the release on GitHub.
 <li>After the release has been published it should not be modified or deleted.
