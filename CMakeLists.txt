@@ -2,15 +2,25 @@ cmake_minimum_required(VERSION 3.0)
 project(shasta)
 
 # This is the top level cmake file for a Shasta build. 
-# Use "cmake -D" to modify these option defined below 
+
+# Before starting a build,
+# run shasta/scripts/InstallPrerequisites-Ubuntu.sh
+# or shasta/scripts/InstallPrerequisites-macOS.sh
+
+# Use "cmake -D" to modify the options defined below 
 # in each "option" line. For example, to turn off
 # building the dynamic executable use
 # cmake -DBUILD_DYNAMIC_EXECUTABLE=OFF
 
+
+
+# Figure out if we are on Intel (as opposed to ARM).
 set(X86_64 OFF)
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
     set(X86_64 ON)
 endif()
+
+
 
 # Figure out if we are on macOS.
 set(MACOS OFF)
@@ -18,9 +28,13 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOS ON)
 endif()
 
+
+
+# Summarize the environment.
 message(STATUS "Processor architecture is " ${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "CMAKE_SYSTEM_NAME is " ${CMAKE_SYSTEM_NAME})
 message(STATUS "MACOS is " ${MACOS})
+
 
 
 # Decide what we want to build.
@@ -33,7 +47,7 @@ if(MACOS)
     option(BUILD_WITH_HTTP_SERVER "Build with embedded HTTP server for debugging." ON)
     option(BUILD_APPIMAGE "Build the AppImage." OFF)
 else(MACOS)
-    # For Linux, build everything.
+    # For Linux, build everything except the AppImage.
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)
@@ -105,12 +119,15 @@ message(STATUS "BUILD_ID is: " ${BUILD_ID})
 if(BUILD_STATIC_LIBRARY)
     add_subdirectory(staticLibrary)
 endif(BUILD_STATIC_LIBRARY)
+
 if(BUILD_STATIC_EXECUTABLE)
     add_subdirectory(staticExecutable)
 endif(BUILD_STATIC_EXECUTABLE)
+
 if(BUILD_DYNAMIC_LIBRARY)
     add_subdirectory(dynamicLibrary)
 endif(BUILD_DYNAMIC_LIBRARY)
+
 if(BUILD_DYNAMIC_EXECUTABLE)
     add_subdirectory(dynamicExecutable)
 endif(BUILD_DYNAMIC_EXECUTABLE)
