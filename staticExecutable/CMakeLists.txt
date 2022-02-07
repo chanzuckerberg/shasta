@@ -99,12 +99,6 @@ else(MACOS)
     
 endif(MACOS)
   
-# Also request the glibc library to be linked statically. 
-# This is not supported on macOS.   
-if(NOT MACOS)
-    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-endif(NOT MACOS)
-
 # The static executable goes to the bin directory.
 install(TARGETS shastaStaticExecutable DESTINATION shasta-install/bin)
 
