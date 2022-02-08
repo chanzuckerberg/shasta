@@ -5,6 +5,8 @@
 
 // Shasta.
 #include "MemoryMappedVectorOfVectors.hpp"
+#include "MultithreadedObject.hpp"
+#include "ReadId.hpp"
 #include "shastaTypes.hpp"
 
 // Boost libraries.
@@ -71,6 +73,19 @@ public:
     // The target vertex of each marker graph edge (real or virtual)
     // is always equal to the source vertex of the next marker graph edge.
     vector<MarkerGraphEdgeInfo> markerGraphEdges;
+
+    // Store the ordinal range for each oriented read that appears
+    // on these marker graph edges,
+    // store the minimum and maximum ordinal on the oriented
+    // read on these marker graph edges.
+    class OrdinalRange {
+    public:
+        OrientedReadId orientedReadId;
+        uint32_t minOrdinal;
+        uint32_t maxOrdinal;
+    };
+    vector<OrdinalRange> ordinalRanges;
+    void computeOrdinalRanges(const MarkerGraph&);
 };
 
 
@@ -89,17 +104,29 @@ public:
 // relative to what happens in the shasta::AssemnblyGraph,
 // where eahc gfa segment corresponds to an edge.
 class shasta::mode3::DynamicAssemblyGraph :
-    public DynamicAssemblyGraphBaseClass {
+    public DynamicAssemblyGraphBaseClass,
+    public MultithreadedObject<DynamicAssemblyGraph> {
 public:
 
     DynamicAssemblyGraph(
         const MemoryMapped::Vector<ReadFlags>&,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&);
+        const MarkerGraph&,
+        size_t threadCount);
     void createVertices(
         const MemoryMapped::Vector<ReadFlags>&,
-        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&);
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers);
+
+    const MarkerGraph& markerGraph;
+
+    // Compute ordinal ranges for all vertices in the graph.
+    void computeOrdinalRanges(size_t threadCount);
+    void computeOrdinalRangesThreadFunction(size_t threadId);
+    class ComputeOrdinalRangesData {
+    public:
+        vector<vertex_descriptor> allVertices;
+    };
+    ComputeOrdinalRangesData computeOrdinalRangesData;
 
     vector<VirtualMarkerGraphEdge> virtualMarkerGraphEdges;
 };

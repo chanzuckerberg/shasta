@@ -9,6 +9,6 @@ using namespace mode3;
 void Assembler::mode3Assembly(
     size_t threadCount)
 {
-    DynamicAssemblyGraph g(reads->getFlags(), markers, markerGraph);
+    DynamicAssemblyGraph g(reads->getFlags(), markers, markerGraph, threadCount);
 
 }

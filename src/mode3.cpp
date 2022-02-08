@@ -1,3 +1,5 @@
+
+// Shasta
 #include "mode3.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerGraph.hpp"
@@ -5,14 +7,24 @@
 using namespace shasta;
 using namespace mode3;
 
+// Boost libraries.
+#include <boost/graph/iteration_macros.hpp>
+
+// Standard library.
+#include <map>
+
 
 
 DynamicAssemblyGraph::DynamicAssemblyGraph(
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph)
+    const MarkerGraph& markerGraph,
+    size_t threadCount) :
+    MultithreadedObject<DynamicAssemblyGraph>(*this),
+    markerGraph(markerGraph)
 {
-    createVertices(readFlags, markers, markerGraph);
+    createVertices(readFlags, markers);
+    computeOrdinalRanges(threadCount);
 }
 
 
@@ -21,8 +33,7 @@ DynamicAssemblyGraph::DynamicAssemblyGraph(
 // of the DynamicAssemblyGraph.
 void DynamicAssemblyGraph::createVertices(
     const MemoryMapped::Vector<ReadFlags>& readFlags,
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph)
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers)
 {
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
     vector<bool> wasFound(edgeCount, false);
@@ -156,3 +167,81 @@ DynamicAssemblyGraphVertex::DynamicAssemblyGraphVertex(const vector<MarkerGraph:
     }
 }
 
+
+
+// Compute ordinal ranges for all vertices in the graph.
+void DynamicAssemblyGraph::computeOrdinalRanges(size_t threadCount)
+{
+    computeOrdinalRangesData.allVertices.clear();
+    BGL_FORALL_VERTICES(v, *this, DynamicAssemblyGraph) {
+        computeOrdinalRangesData.allVertices.push_back(v);
+    }
+
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(computeOrdinalRangesData.allVertices.size(), batchSize);
+    runThreads(&DynamicAssemblyGraph::computeOrdinalRangesThreadFunction, threadCount);
+}
+
+
+
+void DynamicAssemblyGraph::computeOrdinalRangesThreadFunction(size_t threadId)
+{
+    auto& g = *this;
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertices assigned to this batch.
+        for(uint64_t i=begin; i!=end; ++i) {
+            const vertex_descriptor v = computeOrdinalRangesData.allVertices[i];
+
+            g[v].computeOrdinalRanges(markerGraph);
+        }
+    }
+}
+
+
+
+// Compute ordinal ranges for a vertex.
+void DynamicAssemblyGraphVertex::computeOrdinalRanges(const MarkerGraph& markerGraph)
+{
+    std::map<OrientedReadId, pair<uint32_t, uint32_t> > m;
+
+    // Loop over non-virtual marker graph edges.
+    for(const MarkerGraphEdgeInfo& info: markerGraphEdges) {
+        if(info.isVirtual) {
+            continue;
+        }
+
+        // Loop over marker intervals of this edge.
+        const auto& markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+        for(const MarkerInterval& markerInterval: markerIntervals) {
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+            const uint32_t ordinal0 = markerInterval.ordinals[0];
+            const uint32_t ordinal1 = markerInterval.ordinals[1];
+            SHASTA_ASSERT(ordinal0 < ordinal1);
+
+            // Update the map for this read.
+            auto it = m.find(orientedReadId);
+            if(it == m.end()) {
+                m.insert(make_pair(orientedReadId, make_pair(ordinal0, ordinal1)));
+            } else {
+                auto& p = it->second;
+                p.first = min(p.first, ordinal0);
+                p.second = max(p.second, ordinal1);
+            }
+
+        }
+    }
+
+    // Store in the vertex what we found.
+    ordinalRanges.clear();
+    for(const auto& p: m) {
+        OrdinalRange ordinalRange;
+        ordinalRange.orientedReadId = p.first;
+        ordinalRange.minOrdinal = p.second.first;
+        ordinalRange.maxOrdinal = p.second.second;
+        ordinalRanges.push_back(ordinalRange);
+    }
+}
