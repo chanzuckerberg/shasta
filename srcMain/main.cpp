@@ -40,6 +40,10 @@ namespace shasta {
             Assembler&,
             const AssemblerOptions&,
             uint32_t threadCount);
+        void mode3Assembly(
+            Assembler&,
+            const AssemblerOptions&,
+            uint32_t threadCount);
 
         void setupRunDirectory(
             const string& memoryMode,
@@ -837,6 +841,9 @@ void shasta::main::assemble(
     case 2:
         mode2Assembly(assembler, assemblerOptions, threadCount);
         break;
+    case 3:
+        mode3Assembly(assembler, assemblerOptions, threadCount);
+        break;
     default:
         throw runtime_error("Invalid value specified for --Assembly.mode. "
             "Valid values are 0 (haploid assembly) and 2 (phased diploid assembly), but " +
@@ -1176,6 +1183,64 @@ void shasta::main::mode2Assembly(
     assembler.createAssemblyGraph2(
         assemblerOptions.assemblyOptions.pruneLength,
         assemblerOptions.assemblyOptions.mode2Options,
+        threadCount);
+
+
+}
+
+
+
+
+
+
+void shasta::main::mode3Assembly(
+    Assembler& assembler,
+    const AssemblerOptions& assemblerOptions,
+    uint32_t threadCount)
+{
+    // Create marker graph vertices.
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
+        assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
+        assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
+        threadCount);
+    assembler.findMarkerGraphReverseComplementVertices(threadCount);
+
+    // Create marker graph edges.
+    // For assembly mode 1 we use createMarkerGraphEdgesStrict
+    // with minimum edge coverage (total and per strand).
+    assembler.createMarkerGraphEdgesStrict(
+        assemblerOptions.markerGraphOptions.minEdgeCoverage,
+        assemblerOptions.markerGraphOptions.minEdgeCoveragePerStrand, threadCount);
+    assembler.findMarkerGraphReverseComplementEdges(threadCount);
+
+    // Coverage histograms for vertices and edges of the marker graph.
+    assembler.computeMarkerGraphCoverageHistogram();
+
+    // In mode 3 assembly, we don't add secondary edges.
+
+    // Coverage histograms for vertices and edges of the marker graph.
+    assembler.computeMarkerGraphCoverageHistogram();
+
+    // Compute optimal repeat counts for each vertex of the marker graph.
+    if(assemblerOptions.readsOptions.representation == 1) {
+        assembler.assembleMarkerGraphVertices(threadCount);
+    }
+
+    // Compute consensus sequence for all marker graph edges.
+    assembler.assembleMarkerGraphEdges(
+        threadCount,
+        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.assemblyOptions.storeCoverageData or
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0,
+        true
+        );
+
+    // Run mode 3 assembly.
+    assembler.mode3Assembly(
         threadCount);
 
 

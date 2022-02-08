@@ -2383,6 +2383,11 @@ public:
         size_t threadCount);
 
 
+    // Mode 3 assembly.
+    void mode3Assembly(
+        size_t threadCount);
+
+
 
 public:
     void test();
