@@ -14,7 +14,6 @@
 #include "shastaLapack.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
-#include "Map.hpp"
 #include "MedianConsensusCaller.hpp"
 #include "MemoryMappedAllocator.hpp"
 #include "MultithreadedObject.hpp"
@@ -23,7 +22,6 @@
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
 #include "testSpoa.hpp"
-#include "shortestPathBoundedDistance.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 using namespace shasta;
 
@@ -750,17 +748,11 @@ PYBIND11_MODULE(shasta, shastaModule)
     shastaModule.def("testAlignmentCompression",
         testAlignmentCompression
         );
-    shastaModule.def("testMap",
-        testMap
-        );
     shastaModule.def("testMemoryMappedAllocator",
         MemoryMapped::testMemoryMappedAllocator
         );
     shastaModule.def("testLapack",
         testLapack
-        );
-    shastaModule.def("testShortestPathBoundedDistance",
-        testShortestPathBoundedDistance
         );
     shastaModule.def("testDiploidBayesianPhase",
         testDiploidBayesianPhase
