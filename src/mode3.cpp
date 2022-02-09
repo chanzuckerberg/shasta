@@ -29,11 +29,13 @@ DynamicAssemblyGraph::DynamicAssemblyGraph(
     largeDataPageSize(largeDataPageSize),
     threadCount(threadCount)
 {
-    createVertices(readFlags, markers);
+    createVertices(markers);
     computeMarkerGraphEdgeTable();
 
     computePseudoPaths();
     writePseudoPaths("PseudoPaths.csv");
+
+    createEdges();
 }
 
 
@@ -50,8 +52,7 @@ DynamicAssemblyGraph::~DynamicAssemblyGraph()
 // Each  linear chain of marker graph edges generates a vertex
 // of the DynamicAssemblyGraph.
 void DynamicAssemblyGraph::createVertices(
-    const MemoryMapped::Vector<ReadFlags>& readFlags,
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers)
+     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers)
 {
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
     vector<bool> wasFound(edgeCount, false);
@@ -376,3 +377,72 @@ void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
         }
     }
 }
+
+
+
+void DynamicAssemblyGraph::createEdges()
+{
+    G& g = *this;
+
+    // Gather transitions, and store them keyed by the
+    // pair of vertices involved.
+    using Key = pair<vertex_descriptor, vertex_descriptor>;
+    using Value = vector< pair<OrientedReadId, Transition> >;
+    std::map< Key, Value> m;
+
+
+    for(ReadId readId=0; readId<readFlags.size(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
+
+            if(pseudoPath.size() < 2) {
+                continue;
+            }
+
+            for(uint64_t i=1; i<pseudoPath.size(); i++) {
+                const auto& previous = pseudoPath[i-1];
+                const auto& current = pseudoPath[i];
+                if(previous.v == current.v) {
+                    continue;
+                }
+
+                const Key key = make_pair(previous.v, current.v);
+                m[key].push_back(
+                    make_pair(orientedReadId, Transition({previous, current})));
+
+            }
+        }
+    }
+
+
+    ofstream csv("Transitions.csv");
+    for(const auto& p: m) {
+        const vertex_descriptor v0 = p.first.first;
+        const vertex_descriptor v1 = p.first.second;
+        for(const auto& q: p.second) {
+            const OrientedReadId orientedReadId = q.first;
+            // const Transition& transition = q.second.second;
+            csv << g[v0].vertexId << ",";
+            csv << g[v1].vertexId << ",";
+            csv << orientedReadId << "\n";
+        }
+    }
+
+
+
+    ofstream dot("Transitions.dot");
+    const uint64_t minCoverage = 1;
+    dot << "digraph G {\n";
+    for(const auto& p: m) {
+        const vertex_descriptor v0 = p.first.first;
+        const vertex_descriptor v1 = p.first.second;
+        const uint64_t coverage = p.second.size();
+        if(coverage >= minCoverage) {
+            dot << g[v0].vertexId << "->";
+            dot << g[v1].vertexId << " [penwidth=" << 0.2*double(coverage) << "];\n";
+        }
+    }
+    dot << "}\n";
+}
+

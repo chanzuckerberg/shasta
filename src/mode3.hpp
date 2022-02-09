@@ -31,6 +31,7 @@ namespace shasta {
         class AssemblyGraph;
         class MarkerGraphEdgeInfo;
         class PseudoPathEntry;
+        class Transition;
         class VirtualMarkerGraphEdge;
     }
 
@@ -61,6 +62,16 @@ public:
     {
         return ordinals[0] < that.ordinals[0];
     }
+};
+
+
+
+// A Transition occurs when the pseudopath of an oriented read
+// moves from a Segment to a different segment.
+// Transitions are used to create edges (gfa links).
+class shasta::mode3::Transition : public array<PseudoPathEntry, 2> {
+public:
+    Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
 };
 
 
@@ -138,7 +149,6 @@ public:
     // Each vertex (gfa segment) corresponds to a linear sequence
     // of edges (a path) in the marker graph.
     void createVertices(
-        const MemoryMapped::Vector<ReadFlags>&,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers);
 
     // For each marker graph edge, store in the marker graph edge table
@@ -173,6 +183,10 @@ public:
     void writePseudoPaths(const string& fileName) const;
     void writePseudoPaths(ostream&) const;
 
+
+
+    // Use transitions in pseudopaths to create edges (gfa links).
+    void createEdges();
 
 
     // The virtual marker graph edges.
