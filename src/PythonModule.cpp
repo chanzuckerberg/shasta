@@ -645,6 +645,11 @@ PYBIND11_MODULE(shasta, shastaModule)
             arg("mode2Options"),
             arg("threadCount") = 0)
 
+        // Assembly mode 3.
+        .def("mode3Assembly",
+            &Assembler::mode3Assembly,
+            arg("threadCount") = 0)
+
 
 
         // Consensus caller.
