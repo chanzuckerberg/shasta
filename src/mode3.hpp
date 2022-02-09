@@ -29,6 +29,7 @@ namespace shasta {
             DynamicAssemblyGraphVertex, DynamicAssemblyGraphEdge>;
 
         class AssemblyGraph;
+        class Link;
         class MarkerGraphEdgeInfo;
         class PseudoPathEntry;
         class Transition;
@@ -84,7 +85,7 @@ class shasta::mode3::MarkerGraphEdgeInfo {
 public:
     uint64_t isVirtual : 1;
     MarkerGraphEdgeId edgeId: 63;
-    MarkerGraphEdgeInfo(MarkerGraphEdgeId, bool isVirtual);
+    MarkerGraphEdgeInfo(MarkerGraphEdgeId=0, bool isVirtual=false);
 };
 
 
@@ -95,9 +96,7 @@ public:
 class shasta::mode3::DynamicAssemblyGraphVertex {
 public:
 
-    DynamicAssemblyGraphVertex(const vector<MarkerGraphEdgeId>&, uint64_t vertexId);
-
-    uint64_t vertexId;
+    DynamicAssemblyGraphVertex(const vector<MarkerGraphEdgeId>&);
 
     // The marker graph path that
     // makes up the gfa Segment corresponding to this vertex.
@@ -111,6 +110,12 @@ public:
 // Each edge corresponds to a gfa Link in the assembly graph.
 class shasta::mode3::DynamicAssemblyGraphEdge {
 public:
+
+    DynamicAssemblyGraphEdge(uint64_t coverage):
+        coverage(coverage) {}
+
+    // The number of transitions that support this edge.
+    uint64_t coverage;
 };
 
 
@@ -142,8 +147,6 @@ public:
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
     size_t threadCount;
-
-    uint64_t nextVertexId = 0;
 
     // Initial creation of vertices of the DynamicAssemblyGraph.
     // Each vertex (gfa segment) corresponds to a linear sequence
@@ -197,11 +200,44 @@ public:
 
 
 
+// A gfa link in the mode3::AssemblyGraph.
+class shasta::mode3::Link {
+public:
+    uint64_t segmentId0;
+    uint64_t segmentId1;
+    uint64_t coverage;
+
+    Link(
+        uint64_t segmentId0 = 0,
+        uint64_t segmentId1 = 0,
+        uint64_t coverage = 0) :
+        segmentId0(segmentId0),
+        segmentId1(segmentId1),
+        coverage(coverage) {}
+};
+
+
+
 // The AssemblyGraph is used to store the Mode 3 assembly graph,
 // when it no longer needs to be changed,
 // in memory mapped data structures.
 class shasta::mode3::AssemblyGraph {
 public:
+    AssemblyGraph(
+        const DynamicAssemblyGraph&,
+        const string& largeDataFileNamePrefix,
+        size_t largeDataPageSize);
+
+    const string& largeDataFileNamePrefix;
+    size_t largeDataPageSize;
+
+    // The marker graph paths corresponding to each segment.
+    // Indexed by segment id.
+    MemoryMapped::VectorOfVectors<MarkerGraphEdgeInfo, uint64_t> paths;
+
+    // The links.
+    MemoryMapped::Vector<Link> links;
+
 };
 
 #endif

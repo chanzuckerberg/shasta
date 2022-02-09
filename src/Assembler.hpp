@@ -70,6 +70,10 @@ namespace shasta {
         class MatrixEntry;
         class Options;
     }
+
+    namespace mode3 {
+        class AssemblyGraph;
+    }
 }
 
 namespace spoa {
@@ -2386,6 +2390,7 @@ public:
     // Mode 3 assembly.
     void mode3Assembly(
         size_t threadCount);
+    shared_ptr<mode3::AssemblyGraph> mode3AssemblyGraph;
 
 
 

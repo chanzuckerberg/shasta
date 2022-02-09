@@ -45,6 +45,9 @@ DynamicAssemblyGraph::~DynamicAssemblyGraph()
     if(markerGraphEdgeTable.isOpen) {
         markerGraphEdgeTable.remove();
     }
+    if(pseudoPaths.isOpen()) {
+        pseudoPaths.remove();
+    }
 }
 
 
@@ -154,16 +157,13 @@ void DynamicAssemblyGraph::createVertices(
         }
 
         // This path generates a new vertex of the assembly graph.
-        boost::add_vertex(DynamicAssemblyGraphVertex(path, nextVertexId++), *this);
+        boost::add_vertex(DynamicAssemblyGraphVertex(path), *this);
     }
 
 
 
     // Check that all edges of the marker graph were found.
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
-
-    cout << "The initial assembly graph has " << num_vertices(*this) <<
-        " vertices." << endl;
 
 }
 
@@ -179,9 +179,7 @@ MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
 
 
 DynamicAssemblyGraphVertex::DynamicAssemblyGraphVertex(
-    const vector<MarkerGraph::EdgeId>& pathArgument,
-    uint64_t vertexId) :
-    vertexId(vertexId)
+    const vector<MarkerGraph::EdgeId>& pathArgument)
 {
     for(const MarkerGraph::EdgeId edgeId: pathArgument) {
         path.push_back(MarkerGraphEdgeInfo(edgeId, false));
@@ -358,9 +356,7 @@ void DynamicAssemblyGraph::writePseudoPaths(const string& fileName) const
 
 void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
 {
-    const G& g = *this;
-
-    csv << "OrientedReadId,VertexId,Position,Ordinal0,Ordinal1\n";
+    csv << "OrientedReadId,Vertex,Position,Ordinal0,Ordinal1\n";
 
     for(ReadId readId=0; readId<readFlags.size(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
@@ -369,7 +365,7 @@ void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
 
             for(const auto& pseudoPathEntry: pseudoPath) {
                 csv << orientedReadId << ",";
-                csv << g[pseudoPathEntry.v].vertexId << ",";
+                csv << pseudoPathEntry.v << ",";
                 csv << pseudoPathEntry.position << ",";
                 csv << pseudoPathEntry.ordinals[0] << ",";
                 csv << pseudoPathEntry.ordinals[1] << "\n";
@@ -423,8 +419,8 @@ void DynamicAssemblyGraph::createEdges()
         for(const auto& q: p.second) {
             const OrientedReadId orientedReadId = q.first;
             // const Transition& transition = q.second.second;
-            csv << g[v0].vertexId << ",";
-            csv << g[v1].vertexId << ",";
+            csv << v0 << ",";
+            csv << v1 << ",";
             csv << orientedReadId << "\n";
         }
     }
@@ -434,15 +430,68 @@ void DynamicAssemblyGraph::createEdges()
     ofstream dot("Transitions.dot");
     const uint64_t minCoverage = 1;
     dot << "digraph G {\n";
+    BGL_FORALL_VERTICES(v, g, G) {
+        dot << "\"" << v << "\";\n";
+    }
     for(const auto& p: m) {
         const vertex_descriptor v0 = p.first.first;
         const vertex_descriptor v1 = p.first.second;
         const uint64_t coverage = p.second.size();
         if(coverage >= minCoverage) {
-            dot << g[v0].vertexId << "->";
-            dot << g[v1].vertexId << " [penwidth=" << 0.2*double(coverage) << "];\n";
+            dot << "\"" << v0 << "\"->\"";
+            dot << v1 << "\" [penwidth=" << 0.2*double(coverage) << "];\n";
         }
     }
     dot << "}\n";
+
+    for(const auto& p: m) {
+        const vertex_descriptor v0 = p.first.first;
+        const vertex_descriptor v1 = p.first.second;
+        const uint64_t coverage = p.second.size();
+        if(coverage >= minCoverage) {
+            add_edge(v0, v1, DynamicAssemblyGraphEdge(coverage), g);
+        }
+    }
+
 }
 
+
+
+// The mode3::AssemblyGraph stores a permanent and immutable copy
+// of the DynamicAssemblyGraph in memory mapped data structures,
+// so it can be accessed inthe http server and in the Python API.
+mode3::AssemblyGraph::AssemblyGraph(
+    const DynamicAssemblyGraph& dynamicAssemblyGraph,
+    const string& largeDataFileNamePrefix,
+    size_t largeDataPageSize) :
+    largeDataFileNamePrefix(largeDataFileNamePrefix),
+    largeDataPageSize(largeDataPageSize)
+{
+
+    // Create a gfa segment for each vertex of the DynamicAssemblyGraph.
+    std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
+    uint64_t segmentId = 0;
+    paths.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
+        largeDataPageSize);
+    BGL_FORALL_VERTICES(v, dynamicAssemblyGraph, DynamicAssemblyGraph) {
+        paths.appendVector(dynamicAssemblyGraph[v].path);
+        m.insert(make_pair(v, segmentId++));
+    }
+
+    // Create a gfa Link for each edge of the DynamicAssemblyGraph.
+    links.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Links"),
+        largeDataPageSize);
+    BGL_FORALL_EDGES(e, dynamicAssemblyGraph, DynamicAssemblyGraph) {
+        const DynamicAssemblyGraph::vertex_descriptor v0 = source(e, dynamicAssemblyGraph);
+        const DynamicAssemblyGraph::vertex_descriptor v1 = target(e, dynamicAssemblyGraph);
+        const uint64_t segmentId0 = m[v0];
+        const uint64_t segmentId1 = m[v1];
+        links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage));
+    }
+
+
+    cout << "The mode 3 assembly graph has " << paths.size() << " segments and " <<
+        links.size() << " links." << endl;
+}

@@ -14,12 +14,17 @@ void Assembler::mode3Assembly(
         threadCount = std::thread::hardware_concurrency();
     }
 
-    DynamicAssemblyGraph g(
+    const DynamicAssemblyGraph dynamicAssemblyGraph(
         reads->getFlags(),
         markers,
         markerGraph,
         largeDataFileNamePrefix,
         largeDataPageSize,
         threadCount);
+
+    mode3AssemblyGraph = std::make_shared<mode3::AssemblyGraph>(
+        dynamicAssemblyGraph,
+        largeDataFileNamePrefix,
+        largeDataPageSize);
 
 }
