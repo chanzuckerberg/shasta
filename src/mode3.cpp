@@ -19,12 +19,30 @@ DynamicAssemblyGraph::DynamicAssemblyGraph(
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph,
+    const string& largeDataFileNamePrefix,
+    size_t largeDataPageSize,
     size_t threadCount) :
     MultithreadedObject<DynamicAssemblyGraph>(*this),
-    markerGraph(markerGraph)
+    readFlags(readFlags),
+    markerGraph(markerGraph),
+    largeDataFileNamePrefix(largeDataFileNamePrefix),
+    largeDataPageSize(largeDataPageSize),
+    threadCount(threadCount)
 {
     createVertices(readFlags, markers);
-    computeOrdinalRanges(threadCount);
+    computeMarkerGraphEdgeTable();
+
+    computePseudoPaths();
+    writePseudoPaths("PseudoPaths.csv");
+}
+
+
+
+DynamicAssemblyGraph::~DynamicAssemblyGraph()
+{
+    if(markerGraphEdgeTable.isOpen) {
+        markerGraphEdgeTable.remove();
+    }
 }
 
 
@@ -135,7 +153,7 @@ void DynamicAssemblyGraph::createVertices(
         }
 
         // This path generates a new vertex of the assembly graph.
-        boost::add_vertex(DynamicAssemblyGraphVertex(path), *this);
+        boost::add_vertex(DynamicAssemblyGraphVertex(path, nextVertexId++), *this);
     }
 
 
@@ -150,98 +168,211 @@ void DynamicAssemblyGraph::createVertices(
 
 
 
-DynamicAssemblyGraphVertex::MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
+MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
     MarkerGraph::EdgeId edgeIdArgument, bool isVirtualArgument)
 {
     isVirtual = uint64_t(isVirtualArgument & 1);
     edgeId = edgeIdArgument & 0x7fffffffffffffffULL;
-
 }
 
 
 
-DynamicAssemblyGraphVertex::DynamicAssemblyGraphVertex(const vector<MarkerGraph::EdgeId>& path)
+DynamicAssemblyGraphVertex::DynamicAssemblyGraphVertex(
+    const vector<MarkerGraph::EdgeId>& pathArgument,
+    uint64_t vertexId) :
+    vertexId(vertexId)
 {
-    for(const MarkerGraphEdgeId edgeId: path) {
-        markerGraphEdges.push_back(MarkerGraphEdgeInfo(edgeId, false));
+    for(const MarkerGraph::EdgeId edgeId: pathArgument) {
+        path.push_back(MarkerGraphEdgeInfo(edgeId, false));
     }
 }
 
 
 
-// Compute ordinal ranges for all vertices in the graph.
-void DynamicAssemblyGraph::computeOrdinalRanges(size_t threadCount)
+// For each marker graph edge, store in the marker graph edge table
+// the DynamicAssemblyGraph vertex (segment)
+// and position, if any.
+// This is needed when computing pseudopaths.
+void DynamicAssemblyGraph::computeMarkerGraphEdgeTable()
 {
-    computeOrdinalRangesData.allVertices.clear();
-    BGL_FORALL_VERTICES(v, *this, DynamicAssemblyGraph) {
-        computeOrdinalRangesData.allVertices.push_back(v);
+    G& g = *this;
+
+    // Initialize the marker graph edge table.
+    markerGraphEdgeTable.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-mode3-MarkerGraphEdgeTable"),
+        largeDataPageSize);
+    markerGraphEdgeTable.resize(markerGraph.edges.size());
+    fill(markerGraphEdgeTable.begin(), markerGraphEdgeTable.end(), make_pair(null_vertex(), 0));
+
+    // Store a vector of all vertices.
+    markerGraphEdgeTableData.allVertices.clear();
+    BGL_FORALL_VERTICES(v, g, DynamicAssemblyGraph) {
+        markerGraphEdgeTableData.allVertices.push_back(v);
     }
 
+    // Fill in the marker graph edge table.
     const uint64_t batchSize = 100;
-    setupLoadBalancing(computeOrdinalRangesData.allVertices.size(), batchSize);
-    runThreads(&DynamicAssemblyGraph::computeOrdinalRangesThreadFunction, threadCount);
+    setupLoadBalancing(markerGraphEdgeTableData.allVertices.size(), batchSize);
+    runThreads(&G::computeMarkerGraphEdgeTableThreadFunction, threadCount);
+
+    // Clean up.
+    markerGraphEdgeTableData.allVertices.clear();
+    markerGraphEdgeTableData.allVertices.shrink_to_fit();
 }
 
 
 
-void DynamicAssemblyGraph::computeOrdinalRangesThreadFunction(size_t threadId)
+void DynamicAssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
 {
-    auto& g = *this;
+    G& g = *this;
 
-    // Loop over batches assigned to this thread.
+    // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
-        // Loop over vertices assigned to this batch.
+        // Loop over all vertices assigned to this batch.
         for(uint64_t i=begin; i!=end; ++i) {
-            const vertex_descriptor v = computeOrdinalRangesData.allVertices[i];
+            const vertex_descriptor v = markerGraphEdgeTableData.allVertices[i];
+            const vector<MarkerGraphEdgeInfo>& path = g[v].path;
 
-            g[v].computeOrdinalRanges(markerGraph);
+            // Loop over the path of this vertex (segment).
+            for(uint64_t position=0; position<path.size(); position++) {
+                const MarkerGraphEdgeInfo& info = path[position];
+
+                // Skip virtual edges.
+                if(info.isVirtual) {
+                    continue;
+                }
+
+                // Store the marker graph edge table entry for this edge.
+                const MarkerGraph::EdgeId edgeId = info.edgeId;
+                SHASTA_ASSERT(edgeId < markerGraphEdgeTable.size());
+                markerGraphEdgeTable[edgeId] = make_pair(v, position);
+            }
+        }
+
+    }
+}
+
+
+
+
+void DynamicAssemblyGraph::computePseudoPaths()
+{
+    pseudoPaths.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-mode3-PseudoPaths"),
+        largeDataPageSize);
+
+    uint64_t batchSize = 1000;
+    pseudoPaths.beginPass1(2 * readFlags.size());
+    setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
+    runThreads(&G::computePseudoPathsPass1, threadCount);
+    pseudoPaths.beginPass2();
+    setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
+    runThreads(&G::computePseudoPathsPass2, threadCount);
+    pseudoPaths.endPass2();
+
+    batchSize = 100;
+    setupLoadBalancing(pseudoPaths.size(), batchSize);
+    runThreads(&G::sortPseudoPaths, threadCount);
+}
+
+
+
+void DynamicAssemblyGraph::computePseudoPathsPass1(size_t threadId)
+{
+    computePseudoPathsPass12(1);
+}
+
+
+
+void DynamicAssemblyGraph::computePseudoPathsPass2(size_t threadId)
+{
+    computePseudoPathsPass12(2);
+}
+
+
+
+void DynamicAssemblyGraph::computePseudoPathsPass12(uint64_t pass)
+{
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over marker graph edges assigned to this batch.
+        for(MarkerGraph::EdgeId edgeId=begin; edgeId!=end; ++edgeId) {
+            const auto& p = markerGraphEdgeTable[edgeId];
+
+            // Get the DynamicAssemblyGraph vertex and position, if any.
+            const vertex_descriptor v = p.first;
+            if(v == null_vertex()) {
+                continue;
+            }
+            const uint32_t position = p.second;
+
+            // Loop over the marker intervals of this read.
+            const auto markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+            for(const MarkerInterval& markerInterval: markerIntervals) {
+                const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+
+                if(pass == 1) {
+                    pseudoPaths.incrementCountMultithreaded(orientedReadId.getValue());
+                } else {
+                    PseudoPathEntry pseudoPathEntry;
+                    pseudoPathEntry.v = v;
+                    pseudoPathEntry.position = position;
+                    pseudoPathEntry.ordinals = markerInterval.ordinals;
+                    pseudoPaths.storeMultithreaded(orientedReadId.getValue(), pseudoPathEntry);
+                }
+            }
         }
     }
 }
 
 
 
-// Compute ordinal ranges for a vertex.
-void DynamicAssemblyGraphVertex::computeOrdinalRanges(const MarkerGraph& markerGraph)
+void DynamicAssemblyGraph::sortPseudoPaths(size_t threadId)
 {
-    std::map<OrientedReadId, pair<uint32_t, uint32_t> > m;
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
 
-    // Loop over non-virtual marker graph edges.
-    for(const MarkerGraphEdgeInfo& info: markerGraphEdges) {
-        if(info.isVirtual) {
-            continue;
-        }
-
-        // Loop over marker intervals of this edge.
-        const auto& markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
-        for(const MarkerInterval& markerInterval: markerIntervals) {
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            const uint32_t ordinal0 = markerInterval.ordinals[0];
-            const uint32_t ordinal1 = markerInterval.ordinals[1];
-            SHASTA_ASSERT(ordinal0 < ordinal1);
-
-            // Update the map for this read.
-            auto it = m.find(orientedReadId);
-            if(it == m.end()) {
-                m.insert(make_pair(orientedReadId, make_pair(ordinal0, ordinal1)));
-            } else {
-                auto& p = it->second;
-                p.first = min(p.first, ordinal0);
-                p.second = max(p.second, ordinal1);
-            }
-
+        // Loop over marker graph edges assigned to this batch.
+        for(uint64_t i=begin; i!=end; ++i) {
+            auto pseudoPath = pseudoPaths[i];
+            sort(pseudoPath.begin(), pseudoPath.end());
         }
     }
+}
 
-    // Store in the vertex what we found.
-    ordinalRanges.clear();
-    for(const auto& p: m) {
-        OrdinalRange ordinalRange;
-        ordinalRange.orientedReadId = p.first;
-        ordinalRange.minOrdinal = p.second.first;
-        ordinalRange.maxOrdinal = p.second.second;
-        ordinalRanges.push_back(ordinalRange);
+
+
+
+void DynamicAssemblyGraph::writePseudoPaths(const string& fileName) const
+{
+    ofstream csv(fileName);
+    writePseudoPaths(csv);
+}
+
+
+
+void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
+{
+    const G& g = *this;
+
+    csv << "OrientedReadId,VertexId,Position,Ordinal0,Ordinal1\n";
+
+    for(ReadId readId=0; readId<readFlags.size(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
+
+            for(const auto& pseudoPathEntry: pseudoPath) {
+                csv << orientedReadId << ",";
+                csv << g[pseudoPathEntry.v].vertexId << ",";
+                csv << pseudoPathEntry.position << ",";
+                csv << pseudoPathEntry.ordinals[0] << ",";
+                csv << pseudoPathEntry.ordinals[1] << "\n";
+            }
+        }
     }
 }

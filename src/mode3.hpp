@@ -29,7 +29,8 @@ namespace shasta {
             DynamicAssemblyGraphVertex, DynamicAssemblyGraphEdge>;
 
         class AssemblyGraph;
-
+        class MarkerGraphEdgeInfo;
+        class PseudoPathEntry;
         class VirtualMarkerGraphEdge;
     }
 
@@ -49,43 +50,49 @@ public:
 
 
 
+// An entry of the pseudo-path of an oriented read in the DynamicAssemblyGraph.
+class shasta::mode3::PseudoPathEntry {
+public:
+    DynamicAssemblyGraphBaseClass::vertex_descriptor v;
+    uint32_t position;
+    array<uint32_t, 2> ordinals;
+
+    bool operator<(const PseudoPathEntry& that) const
+    {
+        return ordinals[0] < that.ordinals[0];
+    }
+};
+
+
+
+// A small class that can describe both a real and a virtual
+// marker graph edge.
+// If virtual, the edgeId is an index into the
+// virtualMarkerGraphEdges vector.
+class shasta::mode3::MarkerGraphEdgeInfo {
+public:
+    uint64_t isVirtual : 1;
+    MarkerGraphEdgeId edgeId: 63;
+    MarkerGraphEdgeInfo(MarkerGraphEdgeId, bool isVirtual);
+};
+
+
+
 // Each vertex corresponds to a gfa Segment of the assembly graph -
 // a linear sequence of marker graph edges, possibly containing
 // "virtual marker graph edges".
 class shasta::mode3::DynamicAssemblyGraphVertex {
 public:
 
-    DynamicAssemblyGraphVertex(const vector<MarkerGraphEdgeId>&);
+    DynamicAssemblyGraphVertex(const vector<MarkerGraphEdgeId>&, uint64_t vertexId);
 
-    // A small class that can describe both a real and a virtual
-    // marker graph edge.
-    // If virtual, the edgeId is an index into the
-    // virtualMarkerGraphEdges vector.
-    class MarkerGraphEdgeInfo {
-    public:
-        uint64_t isVirtual : 1;
-        MarkerGraphEdgeId edgeId: 63;
-        MarkerGraphEdgeInfo(MarkerGraphEdgeId, bool isVirtual);
-    };
+    uint64_t vertexId;
 
-    // The marker graph edges (real or virtual) that
-    // make up the gfa Segment corresponding to this vertex.
-    // The target vertex of each marker graph edge (real or virtual)
-    // is always equal to the source vertex of the next marker graph edge.
-    vector<MarkerGraphEdgeInfo> markerGraphEdges;
+    // The marker graph path that
+    // makes up the gfa Segment corresponding to this vertex.
+    // This can contain virtual marker graph edges.
+    vector<MarkerGraphEdgeInfo> path;
 
-    // Store the ordinal range for each oriented read that appears
-    // on these marker graph edges,
-    // store the minimum and maximum ordinal on the oriented
-    // read on these marker graph edges.
-    class OrdinalRange {
-    public:
-        OrientedReadId orientedReadId;
-        uint32_t minOrdinal;
-        uint32_t maxOrdinal;
-    };
-    vector<OrdinalRange> ordinalRanges;
-    void computeOrdinalRanges(const MarkerGraph&);
 };
 
 
@@ -107,27 +114,70 @@ class shasta::mode3::DynamicAssemblyGraph :
     public DynamicAssemblyGraphBaseClass,
     public MultithreadedObject<DynamicAssemblyGraph> {
 public:
+    using G = DynamicAssemblyGraph;
 
     DynamicAssemblyGraph(
         const MemoryMapped::Vector<ReadFlags>&,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&,
+        const string& largeDataFileNamePrefix,
+        size_t largeDataPageSize,
         size_t threadCount);
+    ~DynamicAssemblyGraph();
+
+    // Store some information passed in to the constructor.
+    const MemoryMapped::Vector<ReadFlags>& readFlags;
+    const MarkerGraph& markerGraph;
+    const string& largeDataFileNamePrefix;
+    size_t largeDataPageSize;
+    size_t threadCount;
+
+    uint64_t nextVertexId = 0;
+
+    // Initial creation of vertices of the DynamicAssemblyGraph.
+    // Each vertex (gfa segment) corresponds to a linear sequence
+    // of edges (a path) in the marker graph.
     void createVertices(
         const MemoryMapped::Vector<ReadFlags>&,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers);
 
-    const MarkerGraph& markerGraph;
-
-    // Compute ordinal ranges for all vertices in the graph.
-    void computeOrdinalRanges(size_t threadCount);
-    void computeOrdinalRangesThreadFunction(size_t threadId);
-    class ComputeOrdinalRangesData {
+    // For each marker graph edge, store in the marker graph edge table
+    // the corresponding DynamicAssemblyGraph vertex (segment)
+    // and position in the path, if any.
+    // This is needed when computing pseudopaths.
+    MemoryMapped::Vector< pair<vertex_descriptor, uint32_t> > markerGraphEdgeTable;
+    void computeMarkerGraphEdgeTable();
+    void computeMarkerGraphEdgeTableThreadFunction(size_t threadId);
+    class MarkerGraphEdgeTableData {
     public:
         vector<vertex_descriptor> allVertices;
     };
-    ComputeOrdinalRangesData computeOrdinalRangesData;
+    MarkerGraphEdgeTableData markerGraphEdgeTableData;
 
+
+    // Compute pseudopaths for all oriented reads.
+    // The pseudopath of an oriented read is the
+    // sequence of MarkerIntervals it encounters.
+    // This is indexed by OrientedReadId::getValue();
+    MemoryMapped::VectorOfVectors<PseudoPathEntry, uint64_t> pseudoPaths;
+    void computePseudoPaths();
+    void computePseudoPathsPass1(size_t threadId);
+    void computePseudoPathsPass2(size_t threadId);
+    void computePseudoPathsPass12(uint64_t pass);
+    void sortPseudoPaths(size_t threadId);
+    class ComputePseudoPathsData {
+    public:
+    };
+    ComputePseudoPathsData computePseudoPathsData;
+
+    void writePseudoPaths(const string& fileName) const;
+    void writePseudoPaths(ostream&) const;
+
+
+
+    // The virtual marker graph edges.
+    // These don't exists in the marker graph and we
+    // define them here.
     vector<VirtualMarkerGraphEdge> virtualMarkerGraphEdges;
 };
 

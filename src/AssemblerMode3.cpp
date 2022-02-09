@@ -9,6 +9,17 @@ using namespace mode3;
 void Assembler::mode3Assembly(
     size_t threadCount)
 {
-    DynamicAssemblyGraph g(reads->getFlags(), markers, markerGraph, threadCount);
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    DynamicAssemblyGraph g(
+        reads->getFlags(),
+        markers,
+        markerGraph,
+        largeDataFileNamePrefix,
+        largeDataPageSize,
+        threadCount);
 
 }
