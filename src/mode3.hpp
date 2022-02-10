@@ -30,6 +30,9 @@ namespace shasta {
 
         class AssemblyGraph;
         class Link;
+        class LocalAssemblyGraph;
+        class LocalAssemblyGraphEdge;
+        class LocalAssemblyGraphVertex;
         class MarkerGraphEdgeInfo;
         class PseudoPathEntry;
         class Transition;
@@ -238,6 +241,57 @@ public:
     // The links.
     MemoryMapped::Vector<Link> links;
 
+    // The links for each source or target segments.
+    // Indexed by segment id.
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksBySource;
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksByTarget;
+    void createConnectivity();
+
+
+};
+
+
+
+// Classes used to display in the http server a local portion of the AssemblyGraph.
+class shasta::mode3::LocalAssemblyGraphVertex {
+public:
+    uint64_t segmentId;
+    uint64_t distance;  // From the start vertex.
+    vector<MarkerGraphEdgeInfo> path;
+    LocalAssemblyGraphVertex(
+        uint64_t segmentId,
+        uint64_t distance,
+        const span<const MarkerGraphEdgeInfo> path);
+    LocalAssemblyGraphVertex();
+};
+
+
+
+class shasta::mode3::LocalAssemblyGraphEdge {
+public:
+    uint64_t coverage;
+    LocalAssemblyGraphEdge(uint64_t coverage = 0) : coverage(coverage) {}
+};
+
+
+
+class shasta::mode3::LocalAssemblyGraph :
+    public boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS,
+    LocalAssemblyGraphVertex, LocalAssemblyGraphEdge> {
+public:
+
+    LocalAssemblyGraph(
+        const AssemblyGraph&,
+        uint64_t startSegmentId,
+        uint64_t maxDistance);
+
+    vertex_descriptor addVertex(
+        uint64_t segmentId,
+        uint64_t distance,
+        const span<const MarkerGraphEdgeInfo> path);
+
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
 };
 
 #endif

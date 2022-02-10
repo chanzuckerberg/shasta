@@ -27,4 +27,8 @@ void Assembler::mode3Assembly(
         largeDataFileNamePrefix,
         largeDataPageSize);
 
+    const mode3::LocalAssemblyGraph localAssemblyGraph(
+        *mode3AssemblyGraph, 200, 10);
+    localAssemblyGraph.writeGraphviz("LocalAssemblyGraph.dot");
+
 }
