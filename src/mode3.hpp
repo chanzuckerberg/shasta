@@ -192,7 +192,7 @@ public:
 
 
     // Use transitions in pseudopaths to create edges (gfa links).
-    void createEdges();
+    void createEdges(uint64_t minCoverage);
 
 
     // The virtual marker graph edges.

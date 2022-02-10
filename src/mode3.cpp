@@ -29,13 +29,16 @@ DynamicAssemblyGraph::DynamicAssemblyGraph(
     largeDataPageSize(largeDataPageSize),
     threadCount(threadCount)
 {
+    // Minimum number of transitions (oriented reads) to create a link.
+    const uint64_t minCoverage = 3;
+
     createVertices(markers);
     computeMarkerGraphEdgeTable();
 
     computePseudoPaths();
     writePseudoPaths("PseudoPaths.csv");
 
-    createEdges();
+    createEdges(minCoverage);
 }
 
 
@@ -376,7 +379,7 @@ void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
 
 
 
-void DynamicAssemblyGraph::createEdges()
+void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
 {
     G& g = *this;
 
@@ -428,7 +431,6 @@ void DynamicAssemblyGraph::createEdges()
 
 
     ofstream dot("Transitions.dot");
-    const uint64_t minCoverage = 1;
     dot << "digraph G {\n";
     BGL_FORALL_VERTICES(v, g, G) {
         dot << "\"" << v << "\";\n";
