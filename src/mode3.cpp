@@ -499,6 +499,18 @@ mode3::AssemblyGraph::AssemblyGraph(
 
 
 
+// Constructor from binary data.
+mode3::AssemblyGraph::AssemblyGraph(const string& largeDataFileNamePrefix) :
+    largeDataFileNamePrefix(largeDataFileNamePrefix)
+{
+    paths.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Paths");
+    links.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Links");
+    linksBySource.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-LinksBySource");
+    linksByTarget.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-LinksByTarget");
+}
+
+
+
 void mode3::AssemblyGraph::createConnectivity()
 {
     linksBySource.createNew(

@@ -240,6 +240,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdgesSupport);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreCompressedAssemblyGraph);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraph);
 
 }
 #undef SHASTA_ADD_TO_FUNCTION_TABLE
@@ -447,12 +448,19 @@ void Assembler::writeNavigation(ostream& html) const
         {"Follow a read in the marker graph", "followReadInMarkerGraph"},
         {"Marker connectivity", "exploreMarkerConnectivity"},
         });
-    writeNavigation(html, "Assembly graph", {
-        {"Local assembly graph", "exploreAssemblyGraph"},
-        {"Assembly graph edges", "exploreAssemblyGraphEdge"},
-        {"Assembly graph edges support", "exploreAssemblyGraphEdgesSupport"},
-        {"Compressed assembly graph", "exploreCompressedAssemblyGraph"},
-        });
+    if(assemblerInfo->assemblyMode == 0) {
+        writeNavigation(html, "Assembly graph", {
+            {"Local assembly graph", "exploreAssemblyGraph"},
+            {"Assembly graph edges", "exploreAssemblyGraphEdge"},
+            {"Assembly graph edges support", "exploreAssemblyGraphEdgesSupport"},
+            {"Compressed assembly graph", "exploreCompressedAssemblyGraph"},
+            });
+    }
+    if(assemblerInfo->assemblyMode == 3) {
+        writeNavigation(html, "Assembly graph", {
+            {"Local assembly graph", "exploreMode3AssemblyGraph"},
+            });
+    }
     
     if (!httpServerData.docsDirectory.empty()) {
         writeNavigation(html, "Help", {
@@ -660,40 +668,59 @@ void Assembler::accessAllSoft()
         allDataAreAvailable = false;
     }
 
-    try {
-        accessAssemblyGraphVertices();
-    } catch(const exception& e) {
-        cout << "Assembly graph vertices are not accessible." << endl;
-        allDataAreAvailable = false;
+
+
+    // Data specific to assembly mode 0.
+    if(assemblerInfo->assemblyMode == 0) {
+        try {
+            accessAssemblyGraphVertices();
+        } catch(const exception& e) {
+            cout << "Assembly graph vertices are not accessible." << endl;
+            allDataAreAvailable = false;
+        }
+
+        try {
+            accessAssemblyGraphEdges();
+        } catch(const exception& e) {
+            cout << "Assembly graph edges are not accessible." << endl;
+            allDataAreAvailable = false;
+        }
+
+        try {
+            accessAssemblyGraphEdgeLists();
+        } catch(const exception& e) {
+            cout << "Assembly graph edge lists are not accessible." << endl;
+            allDataAreAvailable = false;
+        }
+
+        try {
+            accessAssemblyGraphSequences();
+        } catch(const exception& e) {
+            cout << "Assembly graph sequences are not accessible." << endl;
+            allDataAreAvailable = false;
+        }
+
+        try {
+            accessCompressedAlignments();
+        } catch(const exception& e) {
+            cout << "Alignments are not accessible." << endl;
+            allDataAreAvailable = false;
+        }
     }
 
-    try {
-        accessAssemblyGraphEdges();
-    } catch(const exception& e) {
-        cout << "Assembly graph edges are not accessible." << endl;
-        allDataAreAvailable = false;
+
+
+    // Data specific to assembly mode 3.
+    if(assemblerInfo->assemblyMode == 3) {
+        try {
+            accessMode3AssemblyGraph();
+        } catch(const exception& e) {
+            cout << "Themode 3 assembly graph is not accessible." << endl;
+            allDataAreAvailable = false;
+        }
     }
 
-    try {
-        accessAssemblyGraphEdgeLists();
-    } catch(const exception& e) {
-        cout << "Assembly graph edge lists are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
 
-    try {
-        accessAssemblyGraphSequences();
-    } catch(const exception& e) {
-        cout << "Assembly graph sequences are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
-
-    try {
-        accessCompressedAlignments();
-    } catch(const exception& e) {
-        cout << "Alignments are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
 
     if(!allDataAreAvailable) {
         cout << "Not all assembly data are accessible." << endl;

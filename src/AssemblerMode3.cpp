@@ -22,13 +22,17 @@ void Assembler::mode3Assembly(
         largeDataPageSize,
         threadCount);
 
-    mode3AssemblyGraph = std::make_shared<mode3::AssemblyGraph>(
+    assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(
         dynamicAssemblyGraph,
         largeDataFileNamePrefix,
         largeDataPageSize);
 
-    const mode3::LocalAssemblyGraph localAssemblyGraph(
-        *mode3AssemblyGraph, 200, 10);
-    localAssemblyGraph.writeGraphviz("LocalAssemblyGraph.dot");
-
 }
+
+
+
+void Assembler::accessMode3AssemblyGraph()
+{
+    assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(largeDataFileNamePrefix);
+}
+

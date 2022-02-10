@@ -226,10 +226,15 @@ public:
 // in memory mapped data structures.
 class shasta::mode3::AssemblyGraph {
 public:
+
+    // Constructor from a DynamicAssemblyGraph.
     AssemblyGraph(
         const DynamicAssemblyGraph&,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize);
+
+    // Constructor from binary data.
+    AssemblyGraph(const string& largeDataFileNamePrefix);
 
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;

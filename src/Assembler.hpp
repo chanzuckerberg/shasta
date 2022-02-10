@@ -2357,6 +2357,10 @@ private:
     void exploreAssemblyGraphEdgesSupport(const vector<string>&, ostream&);
 
 
+    // Http server functionality specific to mode 3 assembly.
+    void exploreMode3AssemblyGraph(const vector<string>&, ostream&);
+
+
 
     // Set up the ConsensusCaller used to compute the "best"
     // base and repeat count at each assembly position.
@@ -2390,7 +2394,8 @@ public:
     // Mode 3 assembly.
     void mode3Assembly(
         size_t threadCount);
-    shared_ptr<mode3::AssemblyGraph> mode3AssemblyGraph;
+    shared_ptr<mode3::AssemblyGraph> assemblyGraph3Pointer;
+    void accessMode3AssemblyGraph();
 
 
 
