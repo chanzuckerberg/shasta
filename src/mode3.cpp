@@ -539,3 +539,34 @@ void mode3::AssemblyGraph::createConnectivity()
 
 
 
+void mode3::AssemblyGraph::writeGfa(const string& fileName) const
+{
+    ofstream gfa(fileName);
+    writeGfa(gfa);
+}
+
+
+
+void mode3::AssemblyGraph::writeGfa(ostream& gfa) const
+{
+    // Write the header.
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Write the segments.
+    for(uint64_t segmentId=0; segmentId<paths.size(); segmentId++) {
+        const auto path = paths[segmentId];
+        gfa <<
+            "S\t" << segmentId << "\t" <<
+            "*\tLN:i:" << path.size() << "\n";
+    }
+
+    // Write the liks.
+    for(const Link& link: links) {
+        gfa << "L\t" <<
+            link.segmentId0 << "\t+\t" <<
+            link.segmentId1 << "\t+\t0M\n";
+    }
+
+}
+
+

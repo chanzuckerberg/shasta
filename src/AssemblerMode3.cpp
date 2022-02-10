@@ -26,6 +26,7 @@ void Assembler::mode3Assembly(
         dynamicAssemblyGraph,
         largeDataFileNamePrefix,
         largeDataPageSize);
+    assemblyGraph3Pointer->writeGfa("AssemblyGraph.gfa");
 
 }
 

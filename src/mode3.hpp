@@ -252,6 +252,9 @@ public:
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksByTarget;
     void createConnectivity();
 
+    void writeGfa(const string& fileName) const;
+    void writeGfa(ostream&) const;
+
 
 };
 
