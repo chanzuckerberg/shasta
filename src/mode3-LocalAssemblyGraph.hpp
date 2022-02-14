@@ -20,6 +20,7 @@ public:
     uint64_t segmentId;
     uint64_t distance;  // From the start vertex.
     vector<MarkerGraphEdgeInfo> path;
+    array<double, 2> position;
     LocalAssemblyGraphVertex(
         uint64_t segmentId,
         uint64_t distance,
@@ -54,6 +55,9 @@ public:
 
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;
+
+    void writeSvg1(const string& fileName, uint64_t sizePixels);
+    void writeSvg1(ostream&, uint64_t sizePixels);
 };
 #endif
 

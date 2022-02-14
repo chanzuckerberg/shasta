@@ -37,7 +37,8 @@ namespace shasta {
         const Graph&,
         const string& layoutMethod,
         double timeout,
-        std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap);
+        std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap,
+        const string& additionalOptions="");
 
 }
 
@@ -47,7 +48,8 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
     const Graph& graph,
     const string& layoutMethod,
     double timeout,
-    std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap)
+    std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap,
+    const string& additionalOptions)
 {
     using vertex_descriptor = typename Graph::vertex_descriptor;
 
@@ -93,7 +95,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
     // Use plain format output described here
     // https://www.graphviz.org/doc/info/output.html#d:plain
     const string plainFileName = dotFileName + ".txt";
-    const string command = "sfdp -T plain " + dotFileName + " -o " + plainFileName;
+    const string command = "sfdp -T plain " + dotFileName + " -o " + plainFileName + " " + additionalOptions;
     bool timeoutTriggered = false;
     bool signalOccurred = false;
     int returnCode = 0;

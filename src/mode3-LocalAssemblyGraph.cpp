@@ -1,5 +1,7 @@
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
+#include "computeLayout.hpp"
+#include "writeGraph.hpp"
 using namespace shasta;
 using namespace mode3;
 
@@ -10,6 +12,7 @@ using namespace mode3;
 // Standard library.
 #include <map>
 #include <queue>
+#include "tuple.hpp"
 
 
 
@@ -159,3 +162,151 @@ void mode3::LocalAssemblyGraph::writeGraphviz(ostream& s) const
 
     s << "}\n";
 }
+
+
+
+// Bandage-style svg output, done using sfdp.
+void mode3::LocalAssemblyGraph::writeSvg1(const string& fileName, uint64_t sizePixels)
+{
+    ofstream svg(fileName);
+    writeSvg1(svg, sizePixels);
+}
+void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
+{
+    const double lengthPerMarker = 1.;
+    const string svgId = "LocalAssemblyGraph";
+    const string internalEdgeColor = "green";
+    const double internalEdgeThickness = 4;
+    const string externalEdgeColor = "black";
+    const double externalEdgeThickness = 2;
+
+    const LocalAssemblyGraph& localAssemblyGraph = *this;
+
+    // We use an auxiliary graph which has 3 or more vertices for
+    // each vertex of the LocalAssemblyGraph.
+    // The number of auxiliary graph vertices
+    // corresponding to each LocalAssemblyGraph vertex
+    // is determined by the path length.
+    using G = boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS>;
+    G g;
+    std::map<vertex_descriptor, vector<G::vertex_descriptor> > vertexMap;
+    BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+
+        // Decide how many auxiliary vertices we want.
+        const uint64_t pathLength = localAssemblyGraph[v].path.size();
+        const uint64_t auxiliaryCount = max(uint64_t(3),
+            uint64_t(std::round(double(pathLength) * lengthPerMarker)));
+
+        // Add the auxiliary vertices.
+        vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
+        for(uint64_t i=0; i<auxiliaryCount; i++) {
+            auxiliaryVertices.push_back(boost::add_vertex(g));
+        }
+
+        // Add the edges between these auxiliary vertices.
+        for(uint64_t i=1; i<auxiliaryCount; i++) {
+            boost::add_edge(auxiliaryVertices[i-1], auxiliaryVertices[i], g);
+        }
+    }
+
+    // Add auxiliary graph edges between vertices corresponding to different
+    // LocalAssemblyGraph vertices.
+    std::map<LocalAssemblyGraph::edge_descriptor, G::edge_descriptor> edgeMap;
+    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+        const vertex_descriptor v0 = source(e, localAssemblyGraph);
+        const vertex_descriptor v1 = target(e, localAssemblyGraph);
+        G::edge_descriptor ee;
+        tie(ee, ignore) = add_edge(
+            vertexMap[v0].back(),
+            vertexMap[v1].front(),
+            g);
+        edgeMap.insert(make_pair(e, ee));
+    }
+
+    // Compute the layout of the auxiliary graph using graphviz.
+    std::map<G::vertex_descriptor, array<double, 2> > positionMap;
+    if(computeLayout(g, "sfdp", 30., positionMap, "-Gsmoothing=avg_dist") != ComputeLayoutReturnCode::Success) {
+        throw runtime_error("Graph layout failed.");
+    }
+
+    // Compute the view box.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::min();
+    BGL_FORALL_VERTICES_T(u, g, G) {
+        const auto& position = positionMap[u];
+
+        // Update the view box to include this vertex.
+        xMin = min(xMin, position[0]);
+        xMax = max(xMax, position[0]);
+        yMin = min(yMin, position[1]);
+        yMax = max(yMax, position[1]);
+    }
+    // Add a bit of extra space.
+    const double dx = 0.05 * (xMax - xMin);
+    const double dy = 0.05 * (yMax - yMin);
+    xMin -= dx;
+    xMax += dx;
+    yMin -= dy;
+    yMax += dy;
+
+
+    // Begin the svg.
+    svg << "<svg id='" << svgId << "' width='" << sizePixels << "' height='" << sizePixels <<
+        "' viewbox='" << xMin << " " << yMin << " " << xMax-xMin << " " << yMax-yMin <<
+        "'>\n";
+
+
+
+    // Write the edges internal to segments.
+    svg << "<g id='" << svgId << "-edges'>\n";
+    BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+        const vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
+
+        for(uint64_t i=1; i<auxiliaryVertices.size(); i++) {
+
+            // Get vertex positions.
+            const G::vertex_descriptor v1 = auxiliaryVertices[i-1];
+            const G::vertex_descriptor v2 = auxiliaryVertices[i];
+            const auto& position1 = positionMap[v1];
+            const auto& position2 = positionMap[v2];
+
+            svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
+                "' x2='" << position2[0] << "' y2='" << position2[1];
+
+            svg << "' stroke='" << internalEdgeColor <<
+                "' stroke-width='" << internalEdgeThickness <<
+                "px' vector-effect='non-scaling-stroke'>";
+
+            svg << "</line>\n";
+        }
+    }
+    svg << "</g>\n";
+
+
+
+    // Write the edges between segments.
+    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+        const vertex_descriptor v1 = source(e, localAssemblyGraph);
+        const vertex_descriptor v2 = target(e, localAssemblyGraph);
+        const G::vertex_descriptor u1 = vertexMap[v1].back();
+        const G::vertex_descriptor u2 = vertexMap[v2].front();
+        const auto& position1 = positionMap[u1];
+        const auto& position2 = positionMap[u2];
+
+        svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
+            "' x2='" << position2[0] << "' y2='" << position2[1];
+
+        svg << "' stroke='" << externalEdgeColor <<
+            "' stroke-width='" << externalEdgeThickness <<
+            "px' vector-effect='non-scaling-stroke'>";
+
+        svg << "</line>\n";
+    }
+
+
+    // End the svg.
+    svg << "</svg>\n";
+}
+
