@@ -1,3 +1,7 @@
+#ifdef SHASTA_HTTP_SERVER
+
+
+
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "computeLayout.hpp"
@@ -410,3 +414,4 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     svg << "</svg>\n";
 }
 
+#endif
