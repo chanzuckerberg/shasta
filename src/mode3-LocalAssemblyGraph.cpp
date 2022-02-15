@@ -269,7 +269,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 
 
-    // Write the links, so they don't overwrite the segments.
+    // Write the links first, so they don't overwrite the segments.
     svg << "<g id='" << svgId << "-links'>\n";
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
 
@@ -311,6 +311,11 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             minimumLinkThickness + linkThicknessFactor * double(localAssemblyGraph[e].coverage));
 
         svg <<
+            "<g><title>"
+            "Link " << localAssemblyGraph[v1].segmentId <<
+            " to " << localAssemblyGraph[v2].segmentId <<
+            ", coverage " << localAssemblyGraph[e].coverage <<
+            "</title>"
             "<path d='M " <<
             p1[0] << " " << p1[1] << " C " <<
             q1[0] << " " << q1[1] << ", " <<
@@ -321,7 +326,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             " stroke-linecap='round'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
-            "/>\n";
+            "/></g>\n";
 
     }
     svg << "</g>\n";
@@ -380,6 +385,10 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         }
 
         svg <<
+            "<g><title>"
+            "Segment " << localAssemblyGraph[v].segmentId <<
+            ", path length " << localAssemblyGraph[v].path.size() <<
+            "</title>"
             "<path d='M " <<
             p1[0] << " " << p1[1] << " Q " <<
             q[0] << " " << q[1] << ", " <<
@@ -391,7 +400,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             " marker-end='url(#" <<
             (isAtMaxDistance ? "arrowHeadAtMaxDistance" : "arrowHead") <<
             ")'"
-            "/>\n";
+            "/></g>\n";
     }
     svg << "</g>\n";
 
