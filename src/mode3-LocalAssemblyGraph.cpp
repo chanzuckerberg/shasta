@@ -34,7 +34,9 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
     std::map<uint64_t, vertex_descriptor> segmentMap;
 
     // Initialize the BFS.
-    q.push(startSegmentId);
+    if(maxDistance > 0) {
+        q.push(startSegmentId);
+    }
     const vertex_descriptor vStart = addVertex(startSegmentId, 0, assemblyGraph.paths[startSegmentId]);
     segmentMap.insert(make_pair(startSegmentId, vStart));
 
@@ -99,6 +101,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
             boost::add_edge(v0, v1, LocalAssemblyGraphEdge(link.coverage), localAssemblyGraph);
         }
     }
+
 }
 
 
@@ -244,8 +247,8 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         yMax = max(yMax, position[1]);
     }
     // Add a bit of extra space.
-    const double dx = 0.05 * (xMax - xMin);
-    const double dy = 0.05 * (yMax - yMin);
+    const double dx = 0.05 * max(xMax-xMin, yMax-yMin);
+    const double dy = 0.05 * max(xMax-xMin, yMax-yMin);
     xMin -= dx;
     xMax += dx;
     yMin -= dy;
@@ -253,14 +256,15 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 
     // Begin the svg.
-    svg << "<svg id='" << svgId << "' width='" << sizePixels << "' height='" << sizePixels <<
-        "' viewbox='" << xMin << " " << yMin << " " << xMax-xMin << " " << yMax-yMin <<
+    svg << "\n<svg id='" << svgId << "' width='" << sizePixels << "' height='" << sizePixels <<
+        "' viewbox='" << xMin << " " << yMin << " " <<
+        max(xMax-xMin, yMax-yMin) << " " <<
+        max(xMax-xMin, yMax-yMin) <<
         "'>\n";
 
 
 
-    // Write the edges between segments first, so they don't overwrite the segments.
-    // Each of these edges corresponds to a Link.
+    // Write the links, so they don't overwrite the segments.
     svg << "<g id='" << svgId << "-links'>\n";
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
 
@@ -298,7 +302,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
         svg <<
             "<path d='M " <<
-            p1[0] << " " << p1[1] << ", C " <<
+            p1[0] << " " << p1[1] << " C " <<
             q1[0] << " " << q1[1] << ", " <<
             q2[0] << " " << q2[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
@@ -314,31 +318,39 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 
 
-    // Write the edges internal to segments.
+    // Write the segments.
     svg << "<g id='" << svgId << "-segments'>\n";
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
 
-        for(uint64_t i=1; i<auxiliaryVertices.size(); i++) {
+        const auto& p1 = positionMap[auxiliaryVertices.front()];
+        const auto& p2 = positionMap[auxiliaryVertices.back()];
 
-            // Get vertex positions.
-            const G::vertex_descriptor v1 = auxiliaryVertices[i-1];
-            const G::vertex_descriptor v2 = auxiliaryVertices[i];
-            const auto& position1 = positionMap[v1];
-            const auto& position2 = positionMap[v2];
-
-            svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
-                "' x2='" << position2[0] << "' y2='" << position2[1] << "'";
-
-            svg <<
-                " stroke='" << internalEdgeColor << "'"
-                " stroke-width='" << internalEdgeThickness << "px'"
-                " stroke-linecap='round'"
-                " vector-effect='non-scaling-stroke'"
-                ">";
-
-            svg << "</line>\n";
+        // Compute the coordinates of a "mid point" to be used
+        // as a control point for the quadratic spline.
+        array<double, 2> q;
+        const uint64_t n = uint64_t(auxiliaryVertices.size());
+        if((n % 2) == 0) {
+            const auto& q1 = positionMap[auxiliaryVertices[n / 2]];
+            const auto& q2 = positionMap[auxiliaryVertices[n / 2  - 1]];
+            for(uint64_t i=0; i<2; i++) {
+                q[i] = 0.5 * (q1[i] + q2[i]);
+            }
+        } else {
+            q = positionMap[(n-1) / 2];
         }
+
+        svg <<
+            "<path d='M " <<
+            p1[0] << " " << p1[1] << " Q " <<
+            q[0] << " " << q[1] << ", " <<
+            p2[0] << " " << p2[1] << "'" <<
+            " stroke='" << internalEdgeColor << "'"
+            " stroke-width='" << internalEdgeThickness << "px'"
+            // " stroke-linecap='round'"
+            " fill='transparent'"
+            " vector-effect='non-scaling-stroke'"
+            "/>\n";
     }
     svg << "</g>\n";
 
