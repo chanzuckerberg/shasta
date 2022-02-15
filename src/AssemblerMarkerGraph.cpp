@@ -1958,7 +1958,7 @@ bool Assembler::extractLocalMarkerGraph(
             graph[e].isSecondary = markerGraph.edges[edgeId].isSecondary;
 
             // Link to assembly graph vertex.
-            if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+            if(assemblyGraphPointer and assemblyGraph.markerToAssemblyTable.isOpen()) {
                 const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
                 copy(locations.begin(), locations.end(),
                     back_inserter(graph[e].assemblyGraphLocations));
