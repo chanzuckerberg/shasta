@@ -21,11 +21,6 @@ ReadLoader::ReadLoader(
     size_t threadCount,
     const string& dataNamePrefix,
     size_t pageSize,
-    bool detectPalindromesOnFastqLoad,
-    double qScoreRelativeMeanDifference,
-    double qScoreMinimumMean,
-    double qScoreMinimumVariance,
-    bool writePalindromesToCsv,
     Reads& reads):
     
     MultithreadedObject(*this),
@@ -36,11 +31,6 @@ ReadLoader::ReadLoader(
     threadCount(threadCount),
     dataNamePrefix(dataNamePrefix),
     pageSize(pageSize),
-    detectPalindromesOnFastqLoad(detectPalindromesOnFastqLoad),
-    qScoreRelativeMeanDifference(qScoreRelativeMeanDifference),
-    qScoreMinimumMean(qScoreMinimumMean),
-    qScoreMinimumVariance(qScoreMinimumVariance),
-    writePalindromesToCsv(writePalindromesToCsv),
     reads(reads)
 {
     performanceLog << timestamp << "Loading reads from " << fileName << endl;
@@ -347,18 +337,6 @@ void ReadLoader::processFastqFile()
         "Total: " << seconds(t4-t0) << " s." << endl;
 
 
-    // Write a csv file with the list of palindromic reads
-    // if shasta is running in "filterReads" mode.
-    // This should not too big as the typical rate of
-    // palindromic reads is around 1e-4.
-    if(writePalindromesToCsv) {
-        ofstream csvOut("PalindromicReads.csv");
-        for (const auto& item: threadPalindromicReadNames) {
-            for (const auto& name: item) {
-                csvOut << name << "\n";
-            }
-        }
-    }
 }
 
 
@@ -374,7 +352,6 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
     LongBaseSequences& thisThreadReads = *threadReads[threadId];
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
         *threadReadRepeatCounts[threadId];
-    vector<string>& thisThreadPalindromicReadNames = threadPalindromicReadNames[threadId];
 
     // Find the total number of reads in the file.
     SHASTA_ASSERT((lineEnds.size() % 4) == 0); // We already checked for that.
@@ -499,26 +476,6 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
             __sync_fetch_and_add(&discardedShortReadReadCount, 1);
             __sync_fetch_and_add(&discardedShortReadBaseCount, read.size());
             continue;
-        }
-
-        // Skip if the q scores have an obvious palindromic characteristic
-        if (detectPalindromesOnFastqLoad){
-            span<char> scores(scoresBegin, scoresEnd);
-            bool isPalindrome = isPalindromic(
-                    scores,
-                    qScoreRelativeMeanDifference,
-                    qScoreMinimumMean,
-                    qScoreMinimumVariance);
-
-            if (isPalindrome) {
-                __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
-                __sync_fetch_and_add(&discardedPalindromicBaseCount, read.size());
-
-                // Update the running list of palindromic read names for this thread
-                thisThreadPalindromicReadNames.push_back(readName);
-
-                continue;
-            }
         }
 
         // Store the read.
@@ -705,7 +662,6 @@ void ReadLoader::allocatePerThreadDataStructures()
     threadReadMetaData.resize(threadCount);
     threadReads.resize(threadCount);
     threadReadRepeatCounts.resize(threadCount); // Not actually used is representation==1
-    threadPalindromicReadNames.resize(threadCount);
 }
 
 

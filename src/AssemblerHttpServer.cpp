@@ -881,14 +881,14 @@ void Assembler::writeHtmlEnd(ostream& html) const
 
 
 
-void Assembler::writeAssemblySummary(ostream& html, bool readsOnly)
+void Assembler::writeAssemblySummary(ostream& html)
 {
     writeHtmlBegin(html);
-    writeAssemblySummaryBody(html, readsOnly);
+    writeAssemblySummaryBody(html);
     writeHtmlEnd(html);
 }
 
-void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
+void Assembler::writeAssemblySummaryBody(ostream& html)
 {
     using std::setprecision;
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
@@ -909,13 +909,11 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
     const uint64_t totalDiscardedReadCount =
         assemblerInfo->discardedInvalidBaseReadCount +
         assemblerInfo->discardedShortReadReadCount +
-        assemblerInfo->discardedBadRepeatCountReadCount +
-        assemblerInfo->discardedPalindromicReadCount;
+        assemblerInfo->discardedBadRepeatCountReadCount;
     const uint64_t totalDiscardedBaseCount =
         assemblerInfo->discardedInvalidBaseBaseCount +
         assemblerInfo->discardedShortReadBaseCount +
-        assemblerInfo->discardedBadRepeatCountBaseCount +
-        assemblerInfo->discardedPalindromicBaseCount;
+        assemblerInfo->discardedBadRepeatCountBaseCount;
 
 
     html <<
@@ -973,9 +971,6 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
         "<tr><td>Reads discarded on input because they contained repeat counts greater than 255"
         "<td class=right>" << assemblerInfo->discardedBadRepeatCountReadCount <<
         "<td class=right>" << assemblerInfo->discardedBadRepeatCountBaseCount <<
-        "<tr><td>Reads discarded on input because they had quality scores indicative of palindromic sequence"
-        "<td class=right>" << assemblerInfo->discardedPalindromicReadCount <<
-        "<td class=right>" << assemblerInfo->discardedPalindromicBaseCount <<
         "<tr><td>Reads discarded on input, total"
         "<td class=right>" <<totalDiscardedReadCount <<
         "<td class=right>" <<totalDiscardedBaseCount <<
@@ -993,9 +988,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
         "<li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
         "as opposed to run-length encoded sequence.</ul>";
 
-    if (readsOnly) {
-        return;
-    }
+
 
     html <<
         "<h3>Marker <i>k</i>-mers</h3>"
@@ -1221,7 +1214,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
 
 
 
-void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
+void Assembler::writeAssemblySummaryJson(ostream& json)
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using std::setprecision;
@@ -1243,12 +1236,10 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
     const uint64_t totalDiscardedReadCount =
         assemblerInfo->discardedInvalidBaseReadCount +
         assemblerInfo->discardedShortReadReadCount +
-        assemblerInfo->discardedPalindromicReadCount +
         assemblerInfo->discardedBadRepeatCountReadCount;
     const uint64_t totalDiscardedBaseCount =
         assemblerInfo->discardedInvalidBaseBaseCount +
         assemblerInfo->discardedShortReadBaseCount +
-        assemblerInfo->discardedPalindromicBaseCount +
         assemblerInfo->discardedBadRepeatCountBaseCount;
 
 
@@ -1304,11 +1295,6 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
         "      \"Reads\": " << assemblerInfo->discardedBadRepeatCountReadCount << ",\n"
         "      \"Bases\": " << assemblerInfo->discardedBadRepeatCountBaseCount << "\n"
         "    },\n"
-        "    \"Reads discarded on input because they they had quality scores indicative of palindromic sequence\":\n"
-        "    {\n"
-        "      \"Reads\": " << assemblerInfo->discardedPalindromicReadCount << ",\n"
-        "      \"Bases\": " << assemblerInfo->discardedPalindromicBaseCount << "\n"
-        "    },\n"
         "    \"Reads discarded on input, total\":\n"
         "    {\n"
         "      \"Reads\": " << totalDiscardedReadCount << ",\n"
@@ -1327,9 +1313,6 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
         "    }\n"
         "  },\n";
 
-    if (readsOnly) {
-        return;
-    }
 
     json <<
         "  \"Marker k-mers\":\n"

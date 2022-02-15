@@ -129,10 +129,6 @@ public:
     uint64_t discardedBadRepeatCountReadCount = 0;
     uint64_t discardedBadRepeatCountBaseCount = 0;
 
-    // The number of reads and raw bases discarded because the read
-    // contained repeat counts greater than 255.
-    uint64_t discardedPalindromicReadCount = 0;
-    uint64_t discardedPalindromicBaseCount = 0;
 
 
     // Statistics for the reads kept in the assembly
@@ -222,11 +218,6 @@ public:
         const string& fileName,
         uint64_t minReadLength,
         bool noCache,
-        bool detectPalindromesOnFastqLoad,
-        double qScoreRelativeMeanDifference,
-        double qScoreMinimumMean,
-        double qScoreMinimumVariance,
-        bool writePalindromicReadsToCsv,
         size_t threadCount);
 
     // Create a histogram of read lengths.
@@ -645,7 +636,6 @@ public:
         double alignedFractionThreshold,
         double nearDiagonalFractionThreshold,
         uint32_t deltaThreshold,
-        bool writeToCsv,
         size_t threadCount);
 private:
     void flagPalindromicReadsThreadFunction(size_t threadId);
@@ -2141,9 +2131,9 @@ public:
     // of processing requests.
     void writeHtmlBegin(ostream&) const;
     void writeHtmlEnd(ostream&) const;
-    void writeAssemblySummary(ostream&, bool readsOnly=false);
-    void writeAssemblySummaryBody(ostream&, bool readsOnly=false);
-    void writeAssemblySummaryJson(ostream&, bool readsOnly=false);
+    void writeAssemblySummary(ostream&);
+    void writeAssemblySummaryBody(ostream&);
+    void writeAssemblySummaryJson(ostream&);
     void writeAssemblyIndex(ostream&) const;
     static void writeStyle(ostream& html);
 

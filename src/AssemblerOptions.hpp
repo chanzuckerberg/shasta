@@ -115,10 +115,6 @@ public:
     double alignedFractionThreshold;
     double nearDiagonalFractionThreshold;
     int deltaThreshold;
-    bool detectOnFastqLoad;
-    double qScoreRelativeMeanDifference;
-    double qScoreMinimumMean;
-    double qScoreMinimumVariance;
     void write(ostream&) const;
 };
 

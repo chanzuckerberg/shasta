@@ -73,7 +73,6 @@ namespace shasta {
             "cleanupBinaryData",
             "createBashCompletionScript",
             "explore",
-            "filterReads",
             "listCommands",
             "listConfiguration",
             "listConfigurations",
@@ -166,11 +165,9 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
     // Execute the requested command.
-    if(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
-        assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
+    if(assemblerOptions.commandLineOnlyOptions.command == "assemble") {
         assemble(assemblerOptions, argumentCount, arguments);
         return;
-
     } else if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
         cleanupBinaryData(assemblerOptions);
         return;
@@ -181,7 +178,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
 #ifdef SHASTA_HTTP_SERVER
         explore(assemblerOptions);
 #else
-        throw runtime_error("Shasta was not built with HTTP server support.");
+        throw runtime_error("This Shasta build does not include HTTP server support.");
 #endif
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "createBashCompletionScript") {
@@ -211,8 +208,7 @@ void shasta::main::assemble(
     const AssemblerOptions& assemblerOptions,
     int argumentCount, const char** arguments)
 {
-    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
-        assemblerOptions.commandLineOnlyOptions.command == "filterReads");
+    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
 
 
     // Various checks for option validity.
@@ -553,37 +549,16 @@ void shasta::main::assemble(
     performanceLog << timestamp << "Begin loading reads from " << inputFileNames.size() << " files." << endl;
     const auto t0 = steady_clock::now();
     for(const string& inputFileName: inputFileNames) {
-        // Only dump the palindromes to a separate csv if running in filter mode.
-        // Otherwise ReadSummary.csv already contains the palindromic reads that were identified
-        // by self alignment (but not the palindromes identified by Q score)
-        bool writeToCsv = (assemblerOptions.commandLineOnlyOptions.command == "filterReads");
 
         assembler.addReads(
             inputFileName,
             assemblerOptions.readsOptions.minReadLength,
             assemblerOptions.readsOptions.noCache,
-            assemblerOptions.readsOptions.palindromicReads.detectOnFastqLoad,
-            assemblerOptions.readsOptions.palindromicReads.qScoreRelativeMeanDifference,
-            assemblerOptions.readsOptions.palindromicReads.qScoreMinimumMean,
-            assemblerOptions.readsOptions.palindromicReads.qScoreMinimumVariance,
-            writeToCsv,
             threadCount);
     }
 
     if(assembler.getReads().readCount() == 0) {
-        // There could be no reads remaining at this point, but it does not constitute an error
-        // if running in filter mode
-        if(assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
-            // Write the assembly summary.
-            ofstream html("AssemblySummary.html");
-            assembler.writeAssemblySummary(html, true);
-            ofstream json("AssemblySummary.json");
-            assembler.writeAssemblySummaryJson(json, true);
-
-            return;
-        } else{
-            throw runtime_error("There are no input reads.");
-        }
+        throw runtime_error("There are no input reads.");
     }
     
 
@@ -684,10 +659,6 @@ void shasta::main::assemble(
     assembler.findMarkers(0);
 
     if(!assemblerOptions.readsOptions.palindromicReads.skipFlagging) {
-        // Only dump the palindromes to a separate csv if running in filter mode.
-        // Otherwise ReadSummary.csv already contains the palindromic reads that were identified
-        // by self alignment (but not the palindromes identified by Q score)
-        bool writeToCsv = (assemblerOptions.commandLineOnlyOptions.command == "filterReads");
 
         // Flag palindromic reads.
         // These will be excluded from further processing.
@@ -698,29 +669,10 @@ void shasta::main::assemble(
             assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
             assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
             assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
-            writeToCsv,
             threadCount);
     }
 
 
-    if(assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
-        ofstream csv("PassingReads.csv");
-        csv << "ReadId,ReadName\n";
-
-        const auto& reads = assembler.getReads();
-
-        for (ReadId readId=0; readId<reads.readCount(); readId++) {
-            csv << readId << ',' << reads.getReadName(readId) << '\n';
-        }
-
-        // Write the assembly summary.
-        ofstream html("AssemblySummary.html");
-        assembler.writeAssemblySummary(html, true);
-        ofstream json("AssemblySummary.json");
-        assembler.writeAssemblySummaryJson(json, true);
-
-        return;
-    }
 
     // Find alignment candidates.
     if(assemblerOptions.minHashOptions.allPairs) {

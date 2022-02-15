@@ -32,11 +32,6 @@ public:
         size_t threadCount,
         const string& dataNamePrefix,
         size_t pageSize,
-        bool detectPalindromesOnFastqLoad,
-        double qScoreRelativeMeanDifference,
-        double qScoreMinimumMean,
-        double qScoreMinimumVariance,
-        bool writePalindromesToCsv,
         Reads& reads);
 
     ~ReadLoader();
@@ -87,17 +82,6 @@ private:
     const string& dataNamePrefix;
     const size_t pageSize;
 
-    // Boolean switch to use quality scores to skip reads that have an indication of palindromic sequence
-    bool detectPalindromesOnFastqLoad;
-
-    // Each of the 3 thresholds necessary for calling isPalindromic()
-    double qScoreRelativeMeanDifference;
-    double qScoreMinimumMean;
-    double qScoreMinimumVariance;
-
-    // This is true if shasta was run with command "filterReads"
-    bool writePalindromesToCsv;
-
     // The data structure that the reads will be added to.
     Reads& reads;
 
@@ -122,7 +106,6 @@ private:
     vector< unique_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadMetaData;
     vector< unique_ptr<LongBaseSequences> > threadReads;
     vector< unique_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
-    vector< vector<string> > threadPalindromicReadNames;
     void allocatePerThreadDataStructures();
     void allocatePerThreadDataStructures(size_t threadId);
 
