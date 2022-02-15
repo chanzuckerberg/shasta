@@ -32,8 +32,12 @@ public:
 
 class shasta::mode3::LocalAssemblyGraphEdge {
 public:
+    uint64_t linkId;
     uint64_t coverage;
-    LocalAssemblyGraphEdge(uint64_t coverage = 0) : coverage(coverage) {}
+    LocalAssemblyGraphEdge(uint64_t linkId=0, uint64_t coverage = 0) :
+        linkId(linkId),
+        coverage(coverage)
+        {}
 };
 
 

@@ -144,9 +144,15 @@ void Assembler::exploreMode3AssemblyGraphSegment(
 
         html << "<tr>"
             "<td class=centered>" << position <<
-            "<td class=centered>" << edgeId <<
-            "<td class=centered>" << vertexId0 <<
-            "<td class=centered>" << vertexId1 <<
+            "<td class=centered>" <<
+            "<a href='exploreMarkerGraphEdge?edgeId=" << edgeId <<
+            "'>" << edgeId << "</a>"
+            "<td class=centered>" <<
+            "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId0 <<
+            "'>" << vertexId0 << "</a>"
+            "<td class=centered>" <<
+            "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId1 <<
+            "'>" << vertexId1 << "</a>"
             "\n";
 
 

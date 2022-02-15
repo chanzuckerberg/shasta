@@ -103,7 +103,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
                 continue;
             }
             const vertex_descriptor v1 = it1->second;
-            boost::add_edge(v0, v1, LocalAssemblyGraphEdge(link.coverage), localAssemblyGraph);
+            boost::add_edge(v0, v1, LocalAssemblyGraphEdge(linkId, link.coverage), localAssemblyGraph);
         }
     }
 
@@ -316,8 +316,9 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
         svg <<
             "<g><title>"
-            "Link " << localAssemblyGraph[v1].segmentId <<
-            " to " << localAssemblyGraph[v2].segmentId <<
+            "Link " << localAssemblyGraph[e].linkId <<
+            " from segment " << localAssemblyGraph[v1].segmentId <<
+            " to segment " << localAssemblyGraph[v2].segmentId <<
             ", coverage " << localAssemblyGraph[e].coverage <<
             "</title>"
             "<path d='M " <<
