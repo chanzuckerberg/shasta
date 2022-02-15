@@ -177,12 +177,16 @@ void mode3::LocalAssemblyGraph::writeSvg1(const string& fileName, uint64_t sizeP
 }
 void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 {
+    // Put all hardwired constants here.
+    // Some are going to be passed in as arguments.
     const double lengthPerMarker = 2.;
     const string svgId = "LocalAssemblyGraph";
-    const string internalEdgeColor = "green";
-    const double internalEdgeThickness = 10;
-    const string externalEdgeColor = "black";
-    const double externalEdgeThickness = 3;
+    const string segmentColor = "green";
+    const string segmentAtMaximumDistanceColor = "cyan";
+    const double segmentThickness = 10;
+    const string linkColor = "black";
+    const double minimumLinkThickness = 1.;
+    const double linkThicknessFactor = 0.1;
 
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
@@ -301,14 +305,19 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             q2[i] = p2[i] + (p2[i] - pp2[i]);
         }
 
+        // Thickness increases with coverage but cannot be more than
+        // segment thickness.
+        const double linkThickness = min(segmentThickness,
+            minimumLinkThickness + linkThicknessFactor * double(localAssemblyGraph[e].coverage));
+
         svg <<
             "<path d='M " <<
             p1[0] << " " << p1[1] << " C " <<
             q1[0] << " " << q1[1] << ", " <<
             q2[0] << " " << q2[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << externalEdgeColor << "'"
-            " stroke-width='" << externalEdgeThickness << "px'"
+            " stroke='" << linkColor << "'"
+            " stroke-width='" << linkThickness << "px'"
             " stroke-linecap='round'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
@@ -327,7 +336,9 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "markerUnits='strokeWidth'\n"
         "markerWidth='1' markerHeight='1'\n"
         "orient='auto'>\n"
-        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='green'/>\n"
+        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
+        segmentColor <<
+        "'/>\n"
         "</marker>\n"
         "</defs>\n";
     svg <<
@@ -337,7 +348,9 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "markerUnits='strokeWidth'\n"
         "markerWidth='1' markerHeight='1'\n"
         "orient='auto'>\n"
-        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='cyan'/>\n"
+        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
+        segmentAtMaximumDistanceColor <<
+        "'/>\n"
         "</marker>\n"
         "</defs>\n";
 
@@ -371,8 +384,8 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             p1[0] << " " << p1[1] << " Q " <<
             q[0] << " " << q[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << (isAtMaxDistance ? "cyan" : internalEdgeColor) << "'"
-            " stroke-width='" << internalEdgeThickness << "px'"
+            " stroke='" << (isAtMaxDistance ? segmentAtMaximumDistanceColor : segmentColor) << "'"
+            " stroke-width='" << segmentThickness << "px'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
             " marker-end='url(#" <<
