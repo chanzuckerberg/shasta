@@ -173,16 +173,16 @@ void mode3::LocalAssemblyGraph::writeSvg1(const string& fileName, uint64_t sizeP
 }
 void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 {
-    const double lengthPerMarker = 1.;
+    const double lengthPerMarker = 2.;
     const string svgId = "LocalAssemblyGraph";
     const string internalEdgeColor = "green";
-    const double internalEdgeThickness = 4;
+    const double internalEdgeThickness = 10;
     const string externalEdgeColor = "black";
-    const double externalEdgeThickness = 2;
+    const double externalEdgeThickness = 3;
 
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
-    // We use an auxiliary graph which has 3 or more vertices for
+    // We use an auxiliary graph which has 2 or more vertices for
     // each vertex of the LocalAssemblyGraph.
     // The number of auxiliary graph vertices
     // corresponding to each LocalAssemblyGraph vertex
@@ -194,7 +194,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
         // Decide how many auxiliary vertices we want.
         const uint64_t pathLength = localAssemblyGraph[v].path.size();
-        const uint64_t auxiliaryCount = max(uint64_t(3),
+        const uint64_t auxiliaryCount = max(uint64_t(2),
             uint64_t(std::round(double(pathLength) * lengthPerMarker)));
 
         // Add the auxiliary vertices.
@@ -259,8 +259,63 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 
 
+    // Write the edges between segments first, so they don't overwrite the segments.
+    // Each of these edges corresponds to a Link.
+    svg << "<g id='" << svgId << "-links'>\n";
+    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+
+        // Access the LocalAssemblyGraph vertices corresponding to
+        // the two segments of this Link.
+        const vertex_descriptor v1 = source(e, localAssemblyGraph);
+        const vertex_descriptor v2 = target(e, localAssemblyGraph);
+
+        // Get the vectors of auxiliary graph vertices for each of them.
+        // These have size at least 2.
+        const vector<G::vertex_descriptor>& V1 = vertexMap[v1];
+        const vector<G::vertex_descriptor>& V2 = vertexMap[v2];
+
+        // Access the terminal vertices.
+        // These will be the start  and end points of the cubic spline.
+        const G::vertex_descriptor u1 = V1.back();
+        const G::vertex_descriptor u2 = V2.front();
+        const auto& p1 = positionMap[u1];
+        const auto& p2 = positionMap[u2];
+
+        // Access the vertices adjacent to the terminal ones.
+        // These will be used to construct the control points of
+        // the cubic spline, by reflection.
+        const G::vertex_descriptor uu1 = V1[V1.size() -2];
+        const G::vertex_descriptor uu2 = V2[1];
+        const auto& pp1 = positionMap[uu1];
+        const auto& pp2 = positionMap[uu2];
+
+        // Create the control points for the spline.
+        array<double, 2> q1, q2;
+        for(uint64_t i=0; i<2; i++) {
+            q1[i] = p1[i] + (p1[i] - pp1[i]);
+            q2[i] = p2[i] + (p2[i] - pp2[i]);
+        }
+
+        svg <<
+            "<path d='M " <<
+            p1[0] << " " << p1[1] << ", C " <<
+            q1[0] << " " << q1[1] << ", " <<
+            q2[0] << " " << q2[1] << ", " <<
+            p2[0] << " " << p2[1] << "'" <<
+            " stroke='" << externalEdgeColor << "'"
+            " stroke-width='" << externalEdgeThickness << "px'"
+            " stroke-linecap='round'"
+            " fill='transparent'"
+            " vector-effect='non-scaling-stroke'"
+            "/>\n";
+
+    }
+    svg << "</g>\n";
+
+
+
     // Write the edges internal to segments.
-    svg << "<g id='" << svgId << "-edges'>\n";
+    svg << "<g id='" << svgId << "-segments'>\n";
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
 
@@ -273,37 +328,20 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             const auto& position2 = positionMap[v2];
 
             svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
-                "' x2='" << position2[0] << "' y2='" << position2[1];
+                "' x2='" << position2[0] << "' y2='" << position2[1] << "'";
 
-            svg << "' stroke='" << internalEdgeColor <<
-                "' stroke-width='" << internalEdgeThickness <<
-                "px' vector-effect='non-scaling-stroke'>";
+            svg <<
+                " stroke='" << internalEdgeColor << "'"
+                " stroke-width='" << internalEdgeThickness << "px'"
+                " stroke-linecap='round'"
+                " vector-effect='non-scaling-stroke'"
+                ">";
 
             svg << "</line>\n";
         }
     }
     svg << "</g>\n";
 
-
-
-    // Write the edges between segments.
-    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
-        const vertex_descriptor v1 = source(e, localAssemblyGraph);
-        const vertex_descriptor v2 = target(e, localAssemblyGraph);
-        const G::vertex_descriptor u1 = vertexMap[v1].back();
-        const G::vertex_descriptor u2 = vertexMap[v2].front();
-        const auto& position1 = positionMap[u1];
-        const auto& position2 = positionMap[u2];
-
-        svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
-            "' x2='" << position2[0] << "' y2='" << position2[1];
-
-        svg << "' stroke='" << externalEdgeColor <<
-            "' stroke-width='" << externalEdgeThickness <<
-            "px' vector-effect='non-scaling-stroke'>";
-
-        svg << "</line>\n";
-    }
 
 
     // End the svg.
