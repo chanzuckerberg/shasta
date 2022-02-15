@@ -318,6 +318,20 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 
 
+    // Define the arrowhead to be used for segments.
+    svg <<
+        "<defs>\n"
+        "<marker id='arrowHead' viewBox='0 0 1 1'\n"
+        "refX='0.5' refY='0.5'\n"
+        "markerUnits='strokeWidth'\n"
+        "markerWidth='1' markerHeight='1'\n"
+        "orient='auto'>\n"
+        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='green'/>\n"
+        "</marker>\n"
+        "</defs>\n";
+
+
+
     // Write the segments.
     svg << "<g id='" << svgId << "-segments'>\n";
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
@@ -347,9 +361,9 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             p2[0] << " " << p2[1] << "'" <<
             " stroke='" << internalEdgeColor << "'"
             " stroke-width='" << internalEdgeThickness << "px'"
-            // " stroke-linecap='round'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
+            " marker-end='url(#arrowHead)'"
             "/>\n";
     }
     svg << "</g>\n";
