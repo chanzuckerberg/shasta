@@ -47,6 +47,7 @@ public:
         const AssemblyGraph&,
         uint64_t startSegmentId,
         uint64_t maxDistance);
+    uint64_t maxDistance;
 
     vertex_descriptor addVertex(
         uint64_t segmentId,

@@ -22,7 +22,8 @@ using namespace mode3;
 mode3::LocalAssemblyGraph::LocalAssemblyGraph(
     const AssemblyGraph& assemblyGraph,
     uint64_t startSegmentId,
-    uint64_t maxDistance)
+    uint64_t maxDistance) :
+    maxDistance(maxDistance)
 {
     LocalAssemblyGraph& localAssemblyGraph= *this;
 
@@ -329,6 +330,16 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='green'/>\n"
         "</marker>\n"
         "</defs>\n";
+    svg <<
+        "<defs>\n"
+        "<marker id='arrowHeadAtMaxDistance' viewBox='0 0 1 1'\n"
+        "refX='0.5' refY='0.5'\n"
+        "markerUnits='strokeWidth'\n"
+        "markerWidth='1' markerHeight='1'\n"
+        "orient='auto'>\n"
+        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='cyan'/>\n"
+        "</marker>\n"
+        "</defs>\n";
 
 
 
@@ -336,6 +347,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     svg << "<g id='" << svgId << "-segments'>\n";
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
+        const bool isAtMaxDistance = (localAssemblyGraph[v].distance == maxDistance);
 
         const auto& p1 = positionMap[auxiliaryVertices.front()];
         const auto& p2 = positionMap[auxiliaryVertices.back()];
@@ -359,11 +371,13 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             p1[0] << " " << p1[1] << " Q " <<
             q[0] << " " << q[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << internalEdgeColor << "'"
+            " stroke='" << (isAtMaxDistance ? "cyan" : internalEdgeColor) << "'"
             " stroke-width='" << internalEdgeThickness << "px'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
-            " marker-end='url(#arrowHead)'"
+            " marker-end='url(#" <<
+            (isAtMaxDistance ? "arrowHeadAtMaxDistance" : "arrowHead") <<
+            ")'"
             "/>\n";
     }
     svg << "</g>\n";
