@@ -24,7 +24,6 @@ which can be one of the following:
 <li><code>cleanupBinaryData</code>
 <li><code>createBashCompletionScript</code>
 <li><code>explore</code>
-<li><code>filterReads</code>
 <li><code>listCommands</code>
 <li><code>listConfiguration</code>
 <li><code>listConfigurations</code>
@@ -94,23 +93,6 @@ http server. You can use a browser to connect to it
 and visualize detailed information about your assembly, and this requires the binary data for the assembly to be available.
 
 See <a href="InspectingResults.html">here</a> for more details.
-
-
-
-<h3>Command <code>filterReads</code></h3>
-<p>This command is experimental and is useful mainly for Shasta development.
-It is intended to allow the user to perform read processing 
-separately from running an assembly.
-Invoking <code>filterReads</code> will run Shasta, loading the reads, 
-applying thresholds, and removing palindromes as is typically 
-done during assembly. 
-Shasta writes the list of passing reads to a csv file and terminates once all reads are processed. 
-Therefore, the command line arguments with a <code>--Reads</code> prefix all apply to the <code>filterReads</code> command.
-This writes the names of all reads marked palindromic to 
-<code>PalindromicReads.csv</code>
-and a list of all remaining reads longer than 
-<code>--Reads.minReadLength</code>
-to <code>PassingReads.csv</code>.
 
 
 
