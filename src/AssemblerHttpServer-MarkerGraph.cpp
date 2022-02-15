@@ -870,8 +870,13 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         // Get the repeat count for this marker at each of the k positions.
         for(size_t i=0; i<k; i++) {
             Base base;
-            tie(base, repeatCounts[j][i]) =
-                reads->getOrientedReadBaseAndRepeatCount(orientedReadIds[j], uint32_t(marker.position+i));
+            if(assemblerInfo->readRepresentation == 1) {
+                tie(base, repeatCounts[j][i]) =
+                    reads->getOrientedReadBaseAndRepeatCount(orientedReadIds[j], uint32_t(marker.position+i));
+            } else {
+                base = reads->getOrientedReadBase(orientedReadIds[j], uint32_t(marker.position+i));
+                repeatCounts[j][i] = 1;
+            }
             SHASTA_ASSERT(base == kmer[i]);
         }
     }
