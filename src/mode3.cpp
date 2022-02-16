@@ -470,7 +470,7 @@ mode3::AssemblyGraph::AssemblyGraph(
     largeDataPageSize(largeDataPageSize)
 {
 
-    // Create a gfa segment for each vertex of the DynamicAssemblyGraph.
+    // Create a segment for each vertex of the DynamicAssemblyGraph.
     std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
     uint64_t segmentId = 0;
     paths.createNew(
@@ -481,9 +481,14 @@ mode3::AssemblyGraph::AssemblyGraph(
         m.insert(make_pair(v, segmentId++));
     }
 
-    // Create a gfa Link for each edge of the DynamicAssemblyGraph.
+
+
+    // Create a link for each edge of the DynamicAssemblyGraph.
     links.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Links"),
+        largeDataPageSize);
+    transitions.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Transitions"),
         largeDataPageSize);
     BGL_FORALL_EDGES(e, dynamicAssemblyGraph, DynamicAssemblyGraph) {
         const DynamicAssemblyGraph::vertex_descriptor v0 = source(e, dynamicAssemblyGraph);
@@ -491,6 +496,7 @@ mode3::AssemblyGraph::AssemblyGraph(
         const uint64_t segmentId0 = m[v0];
         const uint64_t segmentId1 = m[v1];
         links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
+        transitions.appendVector(dynamicAssemblyGraph[e].transitions);
     }
     createConnectivity();
 
@@ -506,6 +512,7 @@ mode3::AssemblyGraph::AssemblyGraph(const string& largeDataFileNamePrefix) :
 {
     paths.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Paths");
     links.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Links");
+    transitions.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Transitions");
     linksBySource.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-LinksBySource");
     linksByTarget.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-LinksByTarget");
 }

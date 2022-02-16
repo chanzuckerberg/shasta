@@ -76,6 +76,7 @@ public:
 class shasta::mode3::Transition : public array<PseudoPathEntry, 2> {
 public:
     Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
+    Transition() {}
 };
 
 
@@ -214,15 +215,13 @@ class shasta::mode3::Link {
 public:
     uint64_t segmentId0;
     uint64_t segmentId1;
-    uint64_t coverage;
 
     Link(
         uint64_t segmentId0 = 0,
         uint64_t segmentId1 = 0,
         uint64_t coverage = 0) :
         segmentId0(segmentId0),
-        segmentId1(segmentId1),
-        coverage(coverage) {}
+        segmentId1(segmentId1) {}
 };
 
 
@@ -251,6 +250,14 @@ public:
 
     // The links.
     MemoryMapped::Vector<Link> links;
+
+    // The transitions for each link.
+    // Indexed by linkId.
+    MemoryMapped::VectorOfVectors< pair<OrientedReadId, Transition>, uint64_t> transitions;
+    uint64_t linkCoverage(uint64_t linkId) const
+    {
+        return transitions.size(linkId);
+    }
 
     // The links for each source or target segments.
     // Indexed by segment id.

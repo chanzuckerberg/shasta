@@ -163,12 +163,11 @@ void mode3::LocalAssemblyGraph::writeGraphviz(ostream& s) const
 
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
         const uint64_t linkId = localAssemblyGraph[e].linkId;
-        const Link& link = assemblyGraph.links[linkId];
         const vertex_descriptor v0 = source(e, localAssemblyGraph);
         const vertex_descriptor v1 = target(e, localAssemblyGraph);
         s << localAssemblyGraph[v0].segmentId << "->";
         s << localAssemblyGraph[v1].segmentId <<
-            "[penwidth=" << 0.2 * double(link.coverage) << "];\n";
+            "[penwidth=" << 0.2 * double(assemblyGraph.linkCoverage(linkId)) << "];\n";
     }
 
     s << "}\n";
@@ -188,12 +187,14 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     // Some are going to be passed in as arguments.
     const double lengthPerMarker = 2.;
     const string svgId = "LocalAssemblyGraph";
-    const string segmentColor = "green";
-    const string segmentAtMaximumDistanceColor = "cyan";
+    const string segmentColor = "Green";
+    const string segmentAtZeroDistanceColor = "LightGreen";
+    const string segmentAtMaxDistanceColor = "Cyan";
     const double segmentThickness = 10;
     const string linkColor = "black";
     const double minimumLinkThickness = 1.;
     const double linkThicknessFactor = 0.1;
+    const uint64_t nonConsecutiveLinkVertexCount = 4;
 
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
@@ -242,16 +243,15 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         } else {
             // if the paths are not consecutive, add a few intermediate
             // auxiliary vertices/edges.
-            const uint64_t n = 4;
             vector<G::vertex_descriptor> auxiliaryVertices;
-            for(uint64_t i=0; i<n; i++) {
+            for(uint64_t i=0; i<nonConsecutiveLinkVertexCount; i++) {
                 auxiliaryVertices.push_back(boost::add_vertex(g));
             }
             add_edge(
                 vertexMap[v1].back(),
                 auxiliaryVertices.front(),
                 g);
-            for(uint64_t i=1; i<n; i++) {
+            for(uint64_t i=1; i<nonConsecutiveLinkVertexCount; i++) {
                 add_edge(auxiliaryVertices[i-1], auxiliaryVertices[i], g);
             }
             add_edge(
@@ -305,7 +305,6 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     svg << "<g id='" << svgId << "-links'>\n";
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
         const uint64_t linkId = localAssemblyGraph[e].linkId;
-        const Link& link = assemblyGraph.links[linkId];
 
         // Access the LocalAssemblyGraph vertices corresponding to
         // the two segments of this Link and extract some information
@@ -348,14 +347,14 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         // Thickness increases with coverage but cannot be more than
         // segment thickness.
         const double linkThickness = min(segmentThickness,
-            minimumLinkThickness + linkThicknessFactor * double(link.coverage));
+            minimumLinkThickness + linkThicknessFactor * double(assemblyGraph.linkCoverage(linkId)));
 
         svg <<
             "<g><title>"
             "Link " << linkId <<
             " from segment " << segmentId1 <<
             " to segment " << segmentId2 <<
-            ", coverage " << link.coverage <<
+            ", coverage " << assemblyGraph.linkCoverage(linkId) <<
             "</title>"
             "<path d='M " <<
             p1[0] << " " << p1[1] << " C " <<
@@ -395,7 +394,19 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "markerWidth='1' markerHeight='1'\n"
         "orient='auto'>\n"
         "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        segmentAtMaximumDistanceColor <<
+        segmentAtMaxDistanceColor <<
+        "'/>\n"
+        "</marker>\n"
+        "</defs>\n";
+    svg <<
+        "<defs>\n"
+        "<marker id='arrowHeadAtZeroDistance' viewBox='0 0 1 1'\n"
+        "refX='0.5' refY='0.5'\n"
+        "markerUnits='strokeWidth'\n"
+        "markerWidth='1' markerHeight='1'\n"
+        "orient='auto'>\n"
+        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
+        segmentAtZeroDistanceColor <<
         "'/>\n"
         "</marker>\n"
         "</defs>\n";
@@ -407,7 +418,6 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
         const uint64_t distance = localAssemblyGraph[v].distance;
-        const bool isAtMaxDistance = (distance == maxDistance);
 
         const auto& p1 = positionMap[auxiliaryVertices.front()];
         const auto& p2 = positionMap[auxiliaryVertices.back()];
@@ -429,11 +439,19 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
         string color = segmentColor;
         if(distance == 0) {
-            color = "LightGreen";
+            color = segmentAtZeroDistanceColor;
         } else if(distance == maxDistance) {
-            color = "Cyan";
+            color = segmentAtMaxDistanceColor;
         }
 
+        string markerName;
+        if(distance == 0) {
+            markerName = "arrowHeadAtZeroDistance";
+        } else if(distance == maxDistance){
+            markerName = "arrowHeadAtMaxDistance";
+        } else {
+            markerName = "arrowHead";
+        }
 
         svg <<
             "<g><title>"
@@ -450,7 +468,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
             " marker-end='url(#" <<
-            (isAtMaxDistance ? "arrowHeadAtMaxDistance" : "arrowHead") <<
+            markerName <<
             ")'"
             "/></g>\n";
     }
