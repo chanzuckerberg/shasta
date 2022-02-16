@@ -720,7 +720,7 @@ void Assembler::accessAllSoft()
         try {
             accessMode3AssemblyGraph();
         } catch(const exception& e) {
-            cout << "Themode 3 assembly graph is not accessible." << endl;
+            cout << "The mode 3 assembly graph is not accessible." << endl;
             allDataAreAvailable = false;
         }
     }
