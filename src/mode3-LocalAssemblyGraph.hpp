@@ -19,12 +19,10 @@ class shasta::mode3::LocalAssemblyGraphVertex {
 public:
     uint64_t segmentId;
     uint64_t distance;  // From the start vertex.
-    vector<MarkerGraphEdgeInfo> path;
     array<double, 2> position;
     LocalAssemblyGraphVertex(
         uint64_t segmentId,
-        uint64_t distance,
-        const span<const MarkerGraphEdgeInfo> path);
+        uint64_t distance);
     LocalAssemblyGraphVertex();
 };
 
@@ -33,10 +31,8 @@ public:
 class shasta::mode3::LocalAssemblyGraphEdge {
 public:
     uint64_t linkId;
-    uint64_t coverage;
-    LocalAssemblyGraphEdge(uint64_t linkId=0, uint64_t coverage = 0) :
-        linkId(linkId),
-        coverage(coverage)
+    LocalAssemblyGraphEdge(uint64_t linkId=0) :
+        linkId(linkId)
         {}
 };
 
@@ -48,21 +44,28 @@ class shasta::mode3::LocalAssemblyGraph :
 public:
 
     LocalAssemblyGraph(
+        const MarkerGraph&,
         const AssemblyGraph&,
         uint64_t startSegmentId,
         uint64_t maxDistance);
+
+    const MarkerGraph& markerGraph;
+    const AssemblyGraph& assemblyGraph;
     uint64_t maxDistance;
 
     vertex_descriptor addVertex(
         uint64_t segmentId,
-        uint64_t distance,
-        const span<const MarkerGraphEdgeInfo> path);
+        uint64_t distance);
 
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;
 
     void writeSvg1(const string& fileName, uint64_t sizePixels);
     void writeSvg1(ostream&, uint64_t sizePixels);
+
+    bool haveConsecutivePaths(
+        vertex_descriptor v1,
+        vertex_descriptor v2) const;
 };
 #endif
 

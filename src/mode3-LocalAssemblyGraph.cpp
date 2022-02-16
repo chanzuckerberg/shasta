@@ -5,6 +5,7 @@
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "computeLayout.hpp"
+#include "MarkerGraph.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
 using namespace mode3;
@@ -24,9 +25,12 @@ using namespace mode3;
 // that starts at the specified vertex and moves away
 // (in both directions) up to the specified distance
 mode3::LocalAssemblyGraph::LocalAssemblyGraph(
+    const MarkerGraph& markerGraph,
     const AssemblyGraph& assemblyGraph,
     uint64_t startSegmentId,
     uint64_t maxDistance) :
+    markerGraph(markerGraph),
+    assemblyGraph(assemblyGraph),
     maxDistance(maxDistance)
 {
     LocalAssemblyGraph& localAssemblyGraph= *this;
@@ -42,7 +46,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
     if(maxDistance > 0) {
         q.push(startSegmentId);
     }
-    const vertex_descriptor vStart = addVertex(startSegmentId, 0, assemblyGraph.paths[startSegmentId]);
+    const vertex_descriptor vStart = addVertex(startSegmentId, 0);
     segmentMap.insert(make_pair(startSegmentId, vStart));
 
 
@@ -65,7 +69,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
                 // We already encountered this segment.
                 continue;
             }
-            const vertex_descriptor v1 = addVertex(segmentId1, distance1, assemblyGraph.paths[segmentId1]);
+            const vertex_descriptor v1 = addVertex(segmentId1, distance1);
             segmentMap.insert(make_pair(segmentId1, v1));
             if(distance1 < maxDistance) {
                 q.push(segmentId1);
@@ -80,7 +84,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
                 // We already encountered this segment.
                 continue;
             }
-            const vertex_descriptor v1 = addVertex(segmentId1, distance1, assemblyGraph.paths[segmentId1]);
+            const vertex_descriptor v1 = addVertex(segmentId1, distance1);
             segmentMap.insert(make_pair(segmentId1, v1));
             if(distance1 < maxDistance) {
                 q.push(segmentId1);
@@ -103,7 +107,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
                 continue;
             }
             const vertex_descriptor v1 = it1->second;
-            boost::add_edge(v0, v1, LocalAssemblyGraphEdge(linkId, link.coverage), localAssemblyGraph);
+            boost::add_edge(v0, v1, LocalAssemblyGraphEdge(linkId), localAssemblyGraph);
         }
     }
 
@@ -113,12 +117,10 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
 
 mode3::LocalAssemblyGraphVertex::LocalAssemblyGraphVertex(
     uint64_t segmentId,
-    uint64_t distance,
-    const span<const MarkerGraphEdgeInfo> pathArgument) :
+    uint64_t distance) :
     segmentId(segmentId),
     distance(distance)
 {
-    copy(pathArgument.begin(), pathArgument.end(), back_inserter(path));
 }
 
 
@@ -133,10 +135,9 @@ mode3::LocalAssemblyGraphVertex::LocalAssemblyGraphVertex() :
 
 mode3::LocalAssemblyGraph::vertex_descriptor mode3::LocalAssemblyGraph::addVertex(
     uint64_t segmentId,
-    uint64_t distance,
-    const span<const MarkerGraphEdgeInfo> path)
+    uint64_t distance)
 {
-    return add_vertex(LocalAssemblyGraphVertex(segmentId, distance, path), *this);
+    return add_vertex(LocalAssemblyGraphVertex(segmentId, distance), *this);
 }
 
 
@@ -161,11 +162,13 @@ void mode3::LocalAssemblyGraph::writeGraphviz(ostream& s) const
     }
 
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+        const uint64_t linkId = localAssemblyGraph[e].linkId;
+        const Link& link = assemblyGraph.links[linkId];
         const vertex_descriptor v0 = source(e, localAssemblyGraph);
         const vertex_descriptor v1 = target(e, localAssemblyGraph);
         s << localAssemblyGraph[v0].segmentId << "->";
         s << localAssemblyGraph[v1].segmentId <<
-            "[penwidth=" << 0.2 * double(localAssemblyGraph[e].coverage) << "];\n";
+            "[penwidth=" << 0.2 * double(link.coverage) << "];\n";
     }
 
     s << "}\n";
@@ -203,9 +206,10 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     G g;
     std::map<vertex_descriptor, vector<G::vertex_descriptor> > vertexMap;
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+        const uint64_t segmentId = localAssemblyGraph[v].segmentId;
 
         // Decide how many auxiliary vertices we want.
-        const uint64_t pathLength = localAssemblyGraph[v].path.size();
+        const uint64_t pathLength = assemblyGraph.paths.size(segmentId);
         const uint64_t auxiliaryCount = max(uint64_t(2),
             uint64_t(std::round(double(pathLength) * lengthPerMarker)));
 
@@ -221,6 +225,8 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         }
     }
 
+
+
     // Add auxiliary graph edges between vertices corresponding to different
     // LocalAssemblyGraph vertices.
     std::map<LocalAssemblyGraph::edge_descriptor, G::edge_descriptor> edgeMap;
@@ -234,6 +240,8 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             g);
         edgeMap.insert(make_pair(e, ee));
     }
+
+
 
     // Compute the layout of the auxiliary graph using graphviz.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
@@ -276,11 +284,19 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     // Write the links first, so they don't overwrite the segments.
     svg << "<g id='" << svgId << "-links'>\n";
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+        const uint64_t linkId = localAssemblyGraph[e].linkId;
+        const Link& link = assemblyGraph.links[linkId];
 
         // Access the LocalAssemblyGraph vertices corresponding to
-        // the two segments of this Link.
+        // the two segments of this Link and extract some information
+        // from them.
         const vertex_descriptor v1 = source(e, localAssemblyGraph);
         const vertex_descriptor v2 = target(e, localAssemblyGraph);
+        const LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
+        const LocalAssemblyGraphVertex& vertex2 = localAssemblyGraph[v2];
+        const uint64_t segmentId1 = vertex1.segmentId;
+        const uint64_t segmentId2 = vertex2.segmentId;
+        const bool areConsecutivePaths = haveConsecutivePaths(v1, v2);
 
         // Get the vectors of auxiliary graph vertices for each of them.
         // These have size at least 2.
@@ -312,21 +328,21 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         // Thickness increases with coverage but cannot be more than
         // segment thickness.
         const double linkThickness = min(segmentThickness,
-            minimumLinkThickness + linkThicknessFactor * double(localAssemblyGraph[e].coverage));
+            minimumLinkThickness + linkThicknessFactor * double(link.coverage));
 
         svg <<
             "<g><title>"
-            "Link " << localAssemblyGraph[e].linkId <<
-            " from segment " << localAssemblyGraph[v1].segmentId <<
-            " to segment " << localAssemblyGraph[v2].segmentId <<
-            ", coverage " << localAssemblyGraph[e].coverage <<
+            "Link " << linkId <<
+            " from segment " << segmentId1 <<
+            " to segment " << segmentId2 <<
+            ", coverage " << link.coverage <<
             "</title>"
             "<path d='M " <<
             p1[0] << " " << p1[1] << " C " <<
             q1[0] << " " << q1[1] << ", " <<
             q2[0] << " " << q2[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << linkColor << "'"
+            " stroke='" << (areConsecutivePaths ? linkColor : "orange") << "'"
             " stroke-width='" << linkThickness << "px'"
             " stroke-linecap='round'"
             " fill='transparent'"
@@ -370,7 +386,8 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     svg << "<g id='" << svgId << "-segments'>\n";
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
-        const bool isAtMaxDistance = (localAssemblyGraph[v].distance == maxDistance);
+        const uint64_t distance = localAssemblyGraph[v].distance;
+        const bool isAtMaxDistance = (distance == maxDistance);
 
         const auto& p1 = positionMap[auxiliaryVertices.front()];
         const auto& p2 = positionMap[auxiliaryVertices.back()];
@@ -389,16 +406,26 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             q = positionMap[(n-1) / 2];
         }
 
+        const uint64_t segmentId = localAssemblyGraph[v].segmentId;
+        string color = segmentColor;
+        if(distance == 0) {
+            color = "LightGreen";
+        } else if(distance == maxDistance) {
+            color = "Cyan";
+        }
+
+
         svg <<
             "<g><title>"
-            "Segment " << localAssemblyGraph[v].segmentId <<
-            ", path length " << localAssemblyGraph[v].path.size() <<
+            "Segment " << segmentId <<
+            ", path length " << assemblyGraph.paths.size(segmentId) <<
+            ", distance " << distance <<
             "</title>"
             "<path d='M " <<
             p1[0] << " " << p1[1] << " Q " <<
             q[0] << " " << q[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << (isAtMaxDistance ? segmentAtMaximumDistanceColor : segmentColor) << "'"
+            " stroke='" << color << "'"
             " stroke-width='" << segmentThickness << "px'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
@@ -413,6 +440,39 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
     // End the svg.
     svg << "</svg>\n";
+}
+
+
+
+// Find out if the paths of two segments are consecutive.
+bool LocalAssemblyGraph::haveConsecutivePaths(
+    vertex_descriptor v1,
+    vertex_descriptor v2
+) const
+{
+    const LocalAssemblyGraph& localAssemblyGraph = *this;
+
+    const LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
+    const LocalAssemblyGraphVertex& vertex2 = localAssemblyGraph[v2];
+
+    const uint64_t segmentId1 = vertex1.segmentId;
+    const uint64_t segmentId2 = vertex2.segmentId;
+
+    const auto path1 = assemblyGraph.paths[segmentId1];
+    const auto path2 = assemblyGraph.paths[segmentId2];
+
+    const MarkerGraphEdgeInfo& info1 = path1.back();
+    const MarkerGraphEdgeInfo& info2 = path2.front();
+    SHASTA_ASSERT(not info1.isVirtual);
+    SHASTA_ASSERT(not info2.isVirtual);
+
+    const MarkerGraph::EdgeId edgeId1 = info1.edgeId;
+    const MarkerGraph::EdgeId edgeId2 = info2.edgeId;
+
+    const MarkerGraph::Edge& edge1 = markerGraph.edges[edgeId1];
+    const MarkerGraph::Edge& edge2 = markerGraph.edges[edgeId2];
+
+    return edge1.target == edge2.source;
 }
 
 #endif

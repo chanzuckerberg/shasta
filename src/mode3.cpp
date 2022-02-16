@@ -30,7 +30,7 @@ DynamicAssemblyGraph::DynamicAssemblyGraph(
     threadCount(threadCount)
 {
     // Minimum number of transitions (oriented reads) to create a link.
-    const uint64_t minCoverage = 6;
+    const uint64_t minCoverage = 2;
 
     createVertices(markers);
     computeMarkerGraphEdgeTable();

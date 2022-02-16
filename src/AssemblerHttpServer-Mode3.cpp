@@ -65,7 +65,9 @@ void Assembler::exploreMode3AssemblyGraph(
 
     // Create the local assembly graph and write it to html in svg format.
     mode3::LocalAssemblyGraph localAssemblyGraph(
-        *assemblyGraph3Pointer, startSegmentId, maxDistance);
+        markerGraph,
+        *assemblyGraph3Pointer,
+        startSegmentId, maxDistance);
     // localAssemblyGraph.writeGraphviz("LocalAssemblyGraph.dot");
     localAssemblyGraph.writeSvg1(html, sizePixels);
 

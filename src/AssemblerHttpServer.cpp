@@ -672,6 +672,13 @@ void Assembler::accessAllSoft()
         allDataAreAvailable = false;
     }
 
+    try {
+        accessCompressedAlignments();
+    } catch(const exception& e) {
+        cout << "Alignments are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
 
 
     // Data specific to assembly mode 0.
@@ -704,12 +711,6 @@ void Assembler::accessAllSoft()
             allDataAreAvailable = false;
         }
 
-        try {
-            accessCompressedAlignments();
-        } catch(const exception& e) {
-            cout << "Alignments are not accessible." << endl;
-            allDataAreAvailable = false;
-        }
     }
 
 
