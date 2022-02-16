@@ -114,11 +114,17 @@ public:
 class shasta::mode3::DynamicAssemblyGraphEdge {
 public:
 
-    DynamicAssemblyGraphEdge(uint64_t coverage):
-        coverage(coverage) {}
+    DynamicAssemblyGraphEdge(
+        const vector< pair<OrientedReadId, Transition> >& transitions):
+            transitions(transitions) {}
 
-    // The number of transitions that support this edge.
-    uint64_t coverage;
+    // The transitions that support this edge.
+    vector< pair<OrientedReadId, Transition> > transitions;
+
+    uint64_t coverage() const
+    {
+        return transitions.size();
+    }
 };
 
 

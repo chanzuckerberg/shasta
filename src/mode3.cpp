@@ -449,9 +449,9 @@ void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
     for(const auto& p: m) {
         const vertex_descriptor v0 = p.first.first;
         const vertex_descriptor v1 = p.first.second;
-        const uint64_t coverage = p.second.size();
-        if(coverage >= minCoverage) {
-            add_edge(v0, v1, DynamicAssemblyGraphEdge(coverage), g);
+        const auto& transitions = p.second;
+        if(transitions.size() >= minCoverage) {
+            add_edge(v0, v1, DynamicAssemblyGraphEdge(transitions), g);
         }
     }
 
@@ -490,7 +490,7 @@ mode3::AssemblyGraph::AssemblyGraph(
         const DynamicAssemblyGraph::vertex_descriptor v1 = target(e, dynamicAssemblyGraph);
         const uint64_t segmentId0 = m[v0];
         const uint64_t segmentId1 = m[v1];
-        links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage));
+        links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
     }
     createConnectivity();
 
