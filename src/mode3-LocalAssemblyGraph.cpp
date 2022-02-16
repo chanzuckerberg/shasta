@@ -229,16 +229,36 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
     // Add auxiliary graph edges between vertices corresponding to different
     // LocalAssemblyGraph vertices.
-    std::map<LocalAssemblyGraph::edge_descriptor, G::edge_descriptor> edgeMap;
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
-        const vertex_descriptor v0 = source(e, localAssemblyGraph);
-        const vertex_descriptor v1 = target(e, localAssemblyGraph);
-        G::edge_descriptor ee;
-        tie(ee, ignore) = add_edge(
-            vertexMap[v0].back(),
-            vertexMap[v1].front(),
-            g);
-        edgeMap.insert(make_pair(e, ee));
+        const vertex_descriptor v1 = source(e, localAssemblyGraph);
+        const vertex_descriptor v2 = target(e, localAssemblyGraph);
+
+        if(haveConsecutivePaths(v1, v2)) {
+            // If the paths are consecutive, just add one edge.
+            add_edge(
+                vertexMap[v1].back(),
+                vertexMap[v2].front(),
+                g);
+        } else {
+            // if the paths are not consecutive, add a few intermediate
+            // auxiliary vertices/edges.
+            const uint64_t n = 4;
+            vector<G::vertex_descriptor> auxiliaryVertices;
+            for(uint64_t i=0; i<n; i++) {
+                auxiliaryVertices.push_back(boost::add_vertex(g));
+            }
+            add_edge(
+                vertexMap[v1].back(),
+                auxiliaryVertices.front(),
+                g);
+            for(uint64_t i=1; i<n; i++) {
+                add_edge(auxiliaryVertices[i-1], auxiliaryVertices[i], g);
+            }
+            add_edge(
+                auxiliaryVertices.back(),
+                vertexMap[v2].front(),
+                g);
+        }
     }
 
 
