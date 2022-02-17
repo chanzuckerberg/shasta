@@ -39,9 +39,25 @@ To port the Shasta build to a different platform.
 
 <h3>Build platforms</h3>
 <p>
-We currently support building from source for Ubuntu (20.04 LTS) and macOS (10.15).
+We currently support building from source on the following platforms:
+<ul>
+<li>Ubuntu 20.04 for Intel/AMD processors.
+The Shasta static executable created by this build runs on most current
+64-bit Linux platforms.
+<li>Ubuntu 20.04 for ARM processors 
+(for example, AWS Graviton/Graviton2/Graviton3 processors,
+Raspberry Pi).
+<li>macOS 11 for Intel processors.
+<li>macOS 11 for ARM processors (Apple M1, M2 processors).
+</ul>
+
+<p>
+For Ubuntu, we plan to switch to 22.04 soon after it is released.
+Soon after that, Shasta will no longer build on Ubuntu 20.04.
+
+<p>
 Porting the build process to other Linux platforms is possible.
-If you are interested in porting to a different Linux
+If you are interested in porting to a different 
 platform, please file an Issue on GitHub.
 Even better, submit a Pull Request with the necessary changes.
 
