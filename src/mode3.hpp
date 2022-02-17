@@ -46,7 +46,7 @@ namespace shasta {
 
 
 
-// A VirtualMarkerGraphEdge described a marker graph edge
+// A VirtualMarkerGraphEdge describes a marker graph edge
 // that actually does not exist in the marker graph.
 class shasta::mode3::VirtualMarkerGraphEdge {
 public:
@@ -111,7 +111,7 @@ public:
 
 
 
-// Each edge corresponds to a gfa Link in the assembly graph.
+// Each edge corresponds to a Link in the assembly graph.
 class shasta::mode3::DynamicAssemblyGraphEdge {
 public:
 
@@ -134,8 +134,8 @@ public:
 // of the Mode 3 assembly graph. It is implemented using
 // the Boost Graph library.
 // Note that the roles of vertices and edges are swapped
-// relative to what happens in the shasta::AssemnblyGraph,
-// where eahc gfa segment corresponds to an edge.
+// relative to what happens in the shasta::AssemblyGraph,
+// where each Segment corresponds to an edge.
 class shasta::mode3::DynamicAssemblyGraph :
     public DynamicAssemblyGraphBaseClass,
     public MultithreadedObject<DynamicAssemblyGraph> {
@@ -206,6 +206,11 @@ public:
     // These don't exists in the marker graph and we
     // define them here.
     vector<VirtualMarkerGraphEdge> virtualMarkerGraphEdges;
+
+
+    // Find out if the two segments joined by a Link
+    // have consecutive marker graph paths.
+    bool linkJoinsConsecutivePaths(edge_descriptor) const;
 };
 
 

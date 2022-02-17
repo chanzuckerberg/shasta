@@ -90,6 +90,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
 
     // Write the form.
     html <<
+        "<h3>Display details of an assembly graph segment</h3>"
         "<form>"
         "<table>"
 
@@ -171,6 +172,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
     ostream& html)
 {
     SHASTA_ASSERT(assemblyGraph3Pointer);
+    const mode3::AssemblyGraph& assemblyGraph3 = *assemblyGraph3Pointer;
 
     // Get the link id from the request.
     uint64_t linkId;
@@ -180,6 +182,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
 
     // Write the form.
     html <<
+        "<h3>Display details of an assembly graph link</h3>"
         "<form>"
         "<table>"
 
@@ -198,8 +201,88 @@ void Assembler::exploreMode3AssemblyGraphLink(
         return;
     }
 
+    const Link& link = assemblyGraph3.links[linkId];
+    const auto transitions = assemblyGraph3.transitions[linkId];
+    const uint64_t segmentId0 = link.segmentId0;
+    const uint64_t segmentId1 = link.segmentId1;
+    const auto path0 = assemblyGraph3.paths[segmentId0];
+    const auto path1 = assemblyGraph3.paths[segmentId1];
+    const uint64_t pathLength0 = path0.size();
+    const uint64_t pathLength1 = path1.size();
+    const MarkerGraph::VertexId vertexId0 = markerGraph.edges[path0.back().edgeId].target;
+    const MarkerGraph::VertexId vertexId1 = markerGraph.edges[path1.front().edgeId].source;
 
-    html << "<h1>Assembly graph link " << linkId << "</h1>";
+    html <<
+        "<h1>Assembly graph link " << linkId << "</h1>"
+        "<p><table>"
+        "<tr><th>Segment<th>Id<th>Path<br>length"
+        "<tr><th class = left>Source segment<td class=centered>" << segmentId0 << "<td class=centered>" << pathLength0 <<
+        "<tr><th class = left>Target segment<td class=centered>" << segmentId1 << "<td class=centered>" << pathLength1 <<
+        "</table>";
+
+    if(vertexId0 == vertexId1) {
+        html << "<p>The paths of these segments are consecutive.";
+    } else {
+        html << "<p>The paths of these segments are not consecutive.";
+    }
+
+
+    html <<
+        "<p><table>"
+        "<tr><th class = left tooltip='Number of supporting transitions'>Coverage<td class=centered>" <<
+        transitions.size() <<
+        "</table>";
+
+
+    html <<
+        "<h2>Transitions</h2>"
+        "<p><table><tr>"
+        "<th class=centered>Oriented<br>read<br>id"
+        "<th class=centered>Last<br>position<br>on segment<br>" << link.segmentId0 <<
+        "<th class=centered>Last<br>ordinal<br>on segment<br>" << link.segmentId0 <<
+        "<th class=centered>First<br>position<br>on segment<br>" << link.segmentId1 <<
+        "<th class=centered>First<br>ordinal<br>on segment<br>" << link.segmentId1 <<
+        "<th class=centered>Link<br>separation";
+
+
+    double averageSeparation = 0.;
+    for(const auto& p: transitions) {
+        const OrientedReadId orientedReadId = p.first;
+        const Transition& transition = p.second;
+        const auto& pseudoPathEntry0 = transition[0];
+        const auto& pseudoPathEntry1 = transition[1];
+
+        SHASTA_ASSERT(pseudoPathEntry1.ordinals[0] >= pseudoPathEntry0.ordinals[1]);
+
+        const int64_t linkSeparation =
+            int64_t(pseudoPathEntry1.ordinals[0] - pseudoPathEntry0.ordinals[1]) -
+            int64_t(pathLength0 - 1 - pseudoPathEntry0.position) -
+            int64_t(pseudoPathEntry1.position);
+        averageSeparation += double(linkSeparation);
+
+
+        html <<
+            "<tr><td class=centered>" << orientedReadId <<
+
+            "<td class=centered>" << pseudoPathEntry0.position <<
+            "<td class=centered>" << pseudoPathEntry0.ordinals[1] <<
+
+            "<td class=centered>" << pseudoPathEntry1.position <<
+            "<td class=centered>" << pseudoPathEntry1.ordinals[0] <<
+
+            "<td class=centered>" << linkSeparation;
+    }
+    html << "</table>";
+
+    averageSeparation /= double(transitions.size());
+    const auto oldPrecision = html.precision(1);
+    const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
+    html << "<p><table><tr><th>Average link separation<td class=centered>" <<
+        averageSeparation << "</table>";
+    html.precision(oldPrecision);
+    html.flags(oldFlags);
+
+
 
 }
 
