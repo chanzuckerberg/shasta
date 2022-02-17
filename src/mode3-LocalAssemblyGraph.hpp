@@ -60,8 +60,33 @@ public:
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;
 
-    void writeSvg1(const string& fileName, uint64_t sizePixels);
-    void writeSvg1(ostream&, uint64_t sizePixels);
+
+
+    // Svg output.
+    class SvgOptions {
+    public:
+
+        uint64_t sizePixels = 800;
+        double segmentLengthScalingFactor = 2.;
+        double segmentThickness = 10;
+        string segmentColor = "Green";
+        string segmentAtZeroDistanceColor = "LightGreen";
+        string segmentAtMaxDistanceColor = "Cyan";
+        double nonConsecutiveLinkLengthScalingFactor = 2.;
+        double minimumLinkThickness = 1.;
+        double linkThicknessScalingFactor = 0.1;
+        string linkColor = "black";
+
+        // Construct the options from an html request.
+        SvgOptions(const vector<string>& request);
+
+        // Add rows to the html request form.
+        void addFormRows(ostream& html);
+    };
+    void writeSvg1(const string& fileName, const SvgOptions&) const;
+    void writeSvg1(ostream&, const SvgOptions&) const;
+
+
 
     bool haveConsecutivePaths(
         vertex_descriptor v1,

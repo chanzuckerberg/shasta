@@ -5,6 +5,7 @@
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "computeLayout.hpp"
+#include "HttpServer.hpp"
 #include "MarkerGraph.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
@@ -176,26 +177,20 @@ void mode3::LocalAssemblyGraph::writeGraphviz(ostream& s) const
 
 
 // Bandage-style svg output, done using sfdp.
-void mode3::LocalAssemblyGraph::writeSvg1(const string& fileName, uint64_t sizePixels)
+void mode3::LocalAssemblyGraph::writeSvg1(
+    const string& fileName,
+    const SvgOptions& options) const
 {
     ofstream svg(fileName);
-    writeSvg1(svg, sizePixels);
+    writeSvg1(svg, options);
 }
-void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
+void mode3::LocalAssemblyGraph::writeSvg1(
+    ostream& svg,
+    const SvgOptions& options) const
 {
-    // Put all hardwired constants here.
-    // Some are going to be passed in as arguments.
-    const double lengthPerMarker = 2.;
-    const string svgId = "LocalAssemblyGraph";
-    const string segmentColor = "Green";
-    const string segmentAtZeroDistanceColor = "LightGreen";
-    const string segmentAtMaxDistanceColor = "Cyan";
-    const double segmentThickness = 10;
-    const string linkColor = "black";
-    const double minimumLinkThickness = 1.;
-    const double linkThicknessFactor = 0.1;
-
     const LocalAssemblyGraph& localAssemblyGraph = *this;
+    const string svgId = "LocalAssemblyGraph";
+
 
     // We use an auxiliary graph which has 2 or more vertices for
     // each vertex of the LocalAssemblyGraph.
@@ -211,7 +206,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         // Decide how many auxiliary vertices we want.
         const uint64_t pathLength = assemblyGraph.paths.size(segmentId);
         const uint64_t auxiliaryCount = max(uint64_t(2),
-            uint64_t(std::round(double(pathLength) * lengthPerMarker)));
+            uint64_t(std::round(double(pathLength) * options.segmentLengthScalingFactor)));
 
         // Add the auxiliary vertices.
         vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
@@ -244,7 +239,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             // auxiliary vertices/edges.
             const double linkSeparation = this->linkSeparation(e);
             const uint64_t auxiliaryCount = max(uint64_t(1),
-                1 + uint64_t(std::round(linkSeparation * lengthPerMarker)));
+                1 + uint64_t(std::round(linkSeparation *  options.nonConsecutiveLinkLengthScalingFactor)));
             vector<G::vertex_descriptor> auxiliaryVertices;
             for(uint64_t i=0; i<auxiliaryCount; i++) {
                 auxiliaryVertices.push_back(boost::add_vertex(g));
@@ -295,7 +290,9 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 
     // Begin the svg.
-    svg << "\n<svg id='" << svgId << "' width='" << sizePixels << "' height='" << sizePixels <<
+    svg << "\n<svg id='" << svgId <<
+        "' width='" <<  options.sizePixels <<
+        "' height='" << options.sizePixels <<
         "' viewbox='" << xMin << " " << yMin << " " <<
         max(xMax-xMin, yMax-yMin) << " " <<
         max(xMax-xMin, yMax-yMin) <<
@@ -348,8 +345,8 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
         // Thickness increases with coverage but cannot be more than
         // segment thickness.
-        const double linkThickness = min(segmentThickness,
-            minimumLinkThickness + linkThicknessFactor * double(assemblyGraph.linkCoverage(linkId)));
+        const double linkThickness = min( options.segmentThickness,
+            options.minimumLinkThickness +  options.linkThicknessScalingFactor * double(assemblyGraph.linkCoverage(linkId)));
 
         svg <<
             "<g><title>"
@@ -363,7 +360,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             q1[0] << " " << q1[1] << ", " <<
             q2[0] << " " << q2[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << (areConsecutivePaths ? linkColor : "orange") << "'"
+            " stroke='" << (areConsecutivePaths ?  options.linkColor : "orange") << "'"
             " stroke-width='" << linkThickness << "px'"
             " stroke-linecap='round'"
             " fill='transparent'"
@@ -384,7 +381,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "markerWidth='1' markerHeight='1'\n"
         "orient='auto'>\n"
         "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        segmentColor <<
+        options.segmentColor <<
         "'/>\n"
         "</marker>\n"
         "</defs>\n";
@@ -396,7 +393,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "markerWidth='1' markerHeight='1'\n"
         "orient='auto'>\n"
         "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        segmentAtMaxDistanceColor <<
+        options.segmentAtMaxDistanceColor <<
         "'/>\n"
         "</marker>\n"
         "</defs>\n";
@@ -408,7 +405,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         "markerWidth='1' markerHeight='1'\n"
         "orient='auto'>\n"
         "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        segmentAtZeroDistanceColor <<
+        options.segmentAtZeroDistanceColor <<
         "'/>\n"
         "</marker>\n"
         "</defs>\n";
@@ -439,11 +436,11 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
         }
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
-        string color = segmentColor;
+        string color = options.segmentColor;
         if(distance == 0) {
-            color = segmentAtZeroDistanceColor;
+            color = options.segmentAtZeroDistanceColor;
         } else if(distance == maxDistance) {
-            color = segmentAtMaxDistanceColor;
+            color = options.segmentAtMaxDistanceColor;
         }
 
         string markerName;
@@ -466,7 +463,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
             q[0] << " " << q[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
             " stroke='" << color << "'"
-            " stroke-width='" << segmentThickness << "px'"
+            " stroke-width='" <<  options.segmentThickness << "px'"
             " fill='transparent'"
             " vector-effect='non-scaling-stroke'"
             " marker-end='url(#" <<
@@ -536,6 +533,63 @@ double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 
 }
 
+
+
+// Construct the svg options from an html request.
+LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
+{
+    HttpServer::getParameterValue(request, "sizePixels", sizePixels);
+    HttpServer::getParameterValue(request, "segmentLengthScalingFactor", segmentLengthScalingFactor);
+    HttpServer::getParameterValue(request, "segmentThickness", segmentThickness);
+    HttpServer::getParameterValue(request, "nonConsecutiveLinkLengthScalingFactor", nonConsecutiveLinkLengthScalingFactor);
+    HttpServer::getParameterValue(request, "minimumLinkThickness", minimumLinkThickness);
+    HttpServer::getParameterValue(request, "linkThicknessScalingFactor", linkThicknessScalingFactor);
+}
+
+
+
+// Add rows to the html request form.
+void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
+{
+    html <<
+        "<tr>"
+        "<td>Graphics size in pixels"
+        "<td><input type=text name=sizePixels size=8 style='text-align:center'"
+        " value='" << sizePixels <<
+        "'>"
+
+        "<tr>"
+        "<td>Scaling factor for segment length"
+        "<td><input type=text name=segmentLengthScalingFactor size=8 style='text-align:center'"
+        " value='" << segmentLengthScalingFactor <<
+        "'>"
+
+        "<tr>"
+        "<td>Segment thickness in pixels"
+        "<td><input type=text name=segmentThickness size=8 style='text-align:center'"
+        " value='" << segmentThickness <<
+        "'>"
+
+        "<tr>"
+        "<td>Scaling factor for non-consecutive links length"
+        "<td><input type=text name=nonConsecutiveLinkLengthScalingFactor size=8 style='text-align:center'"
+        " value='" << nonConsecutiveLinkLengthScalingFactor <<
+        "'>"
+
+        "<tr>"
+        "<td>Minimum link thickness"
+        "<td><input type=text name=minimumLinkThickness size=8 style='text-align:center'"
+        " value='" << minimumLinkThickness <<
+        "'>"
+
+        "<tr>"
+        "<td>Link thickness scaling factor"
+        "<td><input type=text name=linkThicknessScalingFactor size=8 style='text-align:center'"
+        " value='" << linkThicknessScalingFactor <<
+        "'>"
+        ;
+
+}
 
 
 #endif

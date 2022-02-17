@@ -14,14 +14,13 @@ void Assembler::exploreMode3AssemblyGraph(
     SHASTA_ASSERT(assemblyGraph3Pointer);
 
     // Get the parameters for the request.
+    mode3::LocalAssemblyGraph::SvgOptions options(request);
+
     uint64_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
     uint64_t startSegmentId;
     const bool startSegmentIdIsPresent = getParameterValue(request, "startSegmentId", startSegmentId);
-
-    uint32_t sizePixels = 600;
-    getParameterValue(request, "sizePixels", sizePixels);
 
 
 
@@ -40,18 +39,14 @@ void Assembler::exploreMode3AssemblyGraph(
         "<td>Maximum distance"
         "<td><input type=text name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
-        "'>"
+        "'>";
 
-        "<tr>"
-        "<td>Graphics size in pixels"
-        "<td><input type=text name=sizePixels size=8 style='text-align:center'"
-        " value='" << sizePixels <<
-        "'>"
+    options.addFormRows(html);
 
+    html <<
         "</table>"
         "<br><input type=submit value='Display'>"
         "</form>";
-
 
 
 
@@ -68,8 +63,7 @@ void Assembler::exploreMode3AssemblyGraph(
         markerGraph,
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
-    // localAssemblyGraph.writeGraphviz("LocalAssemblyGraph.dot");
-    localAssemblyGraph.writeSvg1(html, sizePixels);
+    localAssemblyGraph.writeSvg1(html, options);
 
 }
 

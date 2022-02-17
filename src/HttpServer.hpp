@@ -105,8 +105,8 @@ protected:
         ostream& html);
 
 
-
-    // This function can be used by the derived class to get the value of a parameter.
+public:
+    // This function can be used to get the value of a parameter.
     // If the parameter is missing, returns false and the value is not touched.
     template<class T> static bool getParameterValue(const vector<string>& request, const string& name, T& value)
     {
@@ -128,6 +128,7 @@ protected:
     // when called with argument "a" returns a set containing "xyz" and "uv".
     static void getParameterValues(const vector<string>& request, const string& name, vector<string>& values);
     static void getParameterValues(const vector<string>& request, const string& name, std::set<string>& values);
+protected:
 
     static ostream& writeJQuery(ostream& html);
     static ostream& writeTableSorter(ostream& html);
