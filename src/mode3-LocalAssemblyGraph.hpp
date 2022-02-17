@@ -66,6 +66,10 @@ public:
     bool haveConsecutivePaths(
         vertex_descriptor v1,
         vertex_descriptor v2) const;
+
+    // Return the average link separation for the Link
+    // described by an edge.
+    double linkSeparation(edge_descriptor) const;
 };
 #endif
 

@@ -37,12 +37,15 @@ namespace shasta {
         class PseudoPathEntry;
         class Transition;
         class VirtualMarkerGraphEdge;
+
+        template<class Container> double linkSeparation(
+            const Container& transitions,
+            uint64_t pathLength0);
     }
 
     class CompressedMarker;
     class MarkerGraph;
     class ReadFlags;
-}
 
 
 
@@ -211,6 +214,10 @@ public:
     // Find out if the two segments joined by a Link
     // have consecutive marker graph paths.
     bool linkJoinsConsecutivePaths(edge_descriptor) const;
+
+    // Return the average link separation for the Link
+    // described by an edge.
+    double linkSeparation(edge_descriptor) const;
 };
 
 
@@ -277,6 +284,33 @@ public:
 };
 
 
+
+// Generic function to compute link separation.
+// Compute link separation given a set of Transitions
+template<class Container> double shasta::mode3::linkSeparation(
+    const Container& transitions,
+    uint64_t pathLength0)
+{
+    double averageLinkSeparation = 0.;
+
+    for(const pair<OrientedReadId, Transition>& p: transitions) {
+        const Transition& transition = p.second;
+        const auto& pseudoPathEntry0 = transition[0];
+        const auto& pseudoPathEntry1 = transition[1];
+
+        SHASTA_ASSERT(pseudoPathEntry1.ordinals[0] >= pseudoPathEntry0.ordinals[1]);
+
+        const int64_t linkSeparation =
+            int64_t(pseudoPathEntry1.ordinals[0] - pseudoPathEntry0.ordinals[1]) -
+            int64_t(pathLength0 - 1 - pseudoPathEntry0.position) -
+            int64_t(pseudoPathEntry1.position);
+        averageLinkSeparation += double(linkSeparation);
+    }
+    averageLinkSeparation /= double(transitions.size());
+
+    return averageLinkSeparation;
+}
+}
 
 #endif
 

@@ -212,6 +212,8 @@ void Assembler::exploreMode3AssemblyGraphLink(
     const MarkerGraph::VertexId vertexId0 = markerGraph.edges[path0.back().edgeId].target;
     const MarkerGraph::VertexId vertexId1 = markerGraph.edges[path1.front().edgeId].source;
 
+    const double linkSeparation = mode3::linkSeparation(transitions, pathLength0);
+
     html <<
         "<h1>Assembly graph link " << linkId << "</h1>"
         "<p><table>"
@@ -227,11 +229,17 @@ void Assembler::exploreMode3AssemblyGraphLink(
     }
 
 
+    const auto oldPrecision = html.precision(1);
+    const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
     html <<
         "<p><table>"
         "<tr><th class = left tooltip='Number of supporting transitions'>Coverage<td class=centered>" <<
         transitions.size() <<
+        "<tr><th class = left>Average link separation<td class=centered>" <<
+        linkSeparation <<
         "</table>";
+    html.precision(oldPrecision);
+    html.flags(oldFlags);
 
 
     html <<
@@ -245,7 +253,6 @@ void Assembler::exploreMode3AssemblyGraphLink(
         "<th class=centered>Link<br>separation";
 
 
-    double averageSeparation = 0.;
     for(const auto& p: transitions) {
         const OrientedReadId orientedReadId = p.first;
         const Transition& transition = p.second;
@@ -258,8 +265,6 @@ void Assembler::exploreMode3AssemblyGraphLink(
             int64_t(pseudoPathEntry1.ordinals[0] - pseudoPathEntry0.ordinals[1]) -
             int64_t(pathLength0 - 1 - pseudoPathEntry0.position) -
             int64_t(pseudoPathEntry1.position);
-        averageSeparation += double(linkSeparation);
-
 
         html <<
             "<tr><td class=centered>" << orientedReadId <<
@@ -274,13 +279,6 @@ void Assembler::exploreMode3AssemblyGraphLink(
     }
     html << "</table>";
 
-    averageSeparation /= double(transitions.size());
-    const auto oldPrecision = html.precision(1);
-    const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
-    html << "<p><table><tr><th>Average link separation<td class=centered>" <<
-        averageSeparation << "</table>";
-    html.precision(oldPrecision);
-    html.flags(oldFlags);
 
 
 

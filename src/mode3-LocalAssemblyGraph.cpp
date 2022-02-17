@@ -484,33 +484,56 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
 
 // Find out if the paths of two segments are consecutive.
 bool LocalAssemblyGraph::haveConsecutivePaths(
-    vertex_descriptor v1,
-    vertex_descriptor v2
+    vertex_descriptor v0,
+    vertex_descriptor v1
 ) const
 {
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
+    const LocalAssemblyGraphVertex& vertex0 = localAssemblyGraph[v0];
     const LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
-    const LocalAssemblyGraphVertex& vertex2 = localAssemblyGraph[v2];
 
+    const uint64_t segmentId0 = vertex0.segmentId;
     const uint64_t segmentId1 = vertex1.segmentId;
-    const uint64_t segmentId2 = vertex2.segmentId;
 
+    const auto path0 = assemblyGraph.paths[segmentId0];
     const auto path1 = assemblyGraph.paths[segmentId1];
-    const auto path2 = assemblyGraph.paths[segmentId2];
 
-    const MarkerGraphEdgeInfo& info1 = path1.back();
-    const MarkerGraphEdgeInfo& info2 = path2.front();
+    const MarkerGraphEdgeInfo& info0 = path0.back();
+    const MarkerGraphEdgeInfo& info1 = path1.front();
+    SHASTA_ASSERT(not info0.isVirtual);
     SHASTA_ASSERT(not info1.isVirtual);
-    SHASTA_ASSERT(not info2.isVirtual);
 
+    const MarkerGraph::EdgeId edgeId0 = info0.edgeId;
     const MarkerGraph::EdgeId edgeId1 = info1.edgeId;
-    const MarkerGraph::EdgeId edgeId2 = info2.edgeId;
 
+    const MarkerGraph::Edge& edge0 = markerGraph.edges[edgeId0];
     const MarkerGraph::Edge& edge1 = markerGraph.edges[edgeId1];
-    const MarkerGraph::Edge& edge2 = markerGraph.edges[edgeId2];
 
-    return edge1.target == edge2.source;
+    return edge0.target == edge1.source;
 }
+
+
+
+// Return the average link separation for the Link
+// described by an edge.
+double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
+{
+    const LocalAssemblyGraph& localAssemblyGraph = *this;
+
+    // Get the path length of the first segment.
+    const vertex_descriptor v0 = source(e, localAssemblyGraph);
+    const LocalAssemblyGraphVertex& vertex0 = localAssemblyGraph[v0];
+    const uint64_t segmentId0 = vertex0.segmentId;
+    const auto path0 = assemblyGraph.paths[segmentId0];
+    const uint64_t pathLength0 = path0.size();
+
+    // Now we can compute the link separation.
+    const uint64_t linkId = localAssemblyGraph[e].linkId;
+    return mode3::linkSeparation(assemblyGraph.transitions[linkId], pathLength0);
+
+}
+
+
 
 #endif

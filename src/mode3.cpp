@@ -459,6 +459,52 @@ void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
 
 
 
+// Find out if the two segments joined by a Link
+// have consecutive marker graph paths.
+bool DynamicAssemblyGraph::linkJoinsConsecutivePaths(edge_descriptor e) const
+{
+    const G& g = *this;
+
+    // Access the vertices corresponding to the two segments
+    // joined by this link.
+    const vertex_descriptor v0 = source(e, g);
+    const vertex_descriptor v1 = target(e, g);
+
+    // Get their paths.
+    const auto& path0 = g[v0].path;
+    const auto& path1 = g[v1].path;
+
+    // Get the last marker graph edge of path0 and
+    // the first marker graph edge of path1.
+    const MarkerGraphEdgeInfo& info0 = path0.back();
+    const MarkerGraphEdgeInfo& info1 = path1.front();
+    SHASTA_ASSERT(not info0.isVirtual);
+    SHASTA_ASSERT(not info1.isVirtual);
+    const MarkerGraph::EdgeId edgeId0 = info0.edgeId;
+    const MarkerGraph::EdgeId edgeId1 = info1.edgeId;
+    const MarkerGraph::Edge& edge0 = markerGraph.edges[edgeId0];
+    const MarkerGraph::Edge& edge1 = markerGraph.edges[edgeId1];
+
+    return edge0.target == edge1.source;
+}
+
+
+
+// Return the average link separation for the Link
+// described by an edge.
+double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
+{
+    const G& g = *this;
+
+    // We need the path length of the source of this link.
+    const vertex_descriptor v0 = source(e, g);
+    const uint64_t pathLength0 = g[v0].path.size();
+
+    return mode3::linkSeparation(g[e].transitions, pathLength0);
+}
+
+
+
 // The mode3::AssemblyGraph stores a permanent and immutable copy
 // of the DynamicAssemblyGraph in memory mapped data structures,
 // so it can be accessed inthe http server and in the Python API.
