@@ -194,7 +194,6 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
     const string linkColor = "black";
     const double minimumLinkThickness = 1.;
     const double linkThicknessFactor = 0.1;
-    const uint64_t nonConsecutiveLinkVertexCount = 4;
 
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
@@ -241,17 +240,20 @@ void mode3::LocalAssemblyGraph::writeSvg1(ostream& svg, uint64_t sizePixels)
                 vertexMap[v2].front(),
                 g);
         } else {
-            // if the paths are not consecutive, add a few intermediate
+            // If the paths are not consecutive, add a few intermediate
             // auxiliary vertices/edges.
+            const double linkSeparation = this->linkSeparation(e);
+            const uint64_t auxiliaryCount = max(uint64_t(1),
+                1 + uint64_t(std::round(linkSeparation * lengthPerMarker)));
             vector<G::vertex_descriptor> auxiliaryVertices;
-            for(uint64_t i=0; i<nonConsecutiveLinkVertexCount; i++) {
+            for(uint64_t i=0; i<auxiliaryCount; i++) {
                 auxiliaryVertices.push_back(boost::add_vertex(g));
             }
             add_edge(
                 vertexMap[v1].back(),
                 auxiliaryVertices.front(),
                 g);
-            for(uint64_t i=1; i<nonConsecutiveLinkVertexCount; i++) {
+            for(uint64_t i=1; i<auxiliaryCount; i++) {
                 add_edge(auxiliaryVertices[i-1], auxiliaryVertices[i], g);
             }
             add_edge(
