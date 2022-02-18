@@ -57,9 +57,6 @@ public:
         uint64_t segmentId,
         uint64_t distance);
 
-    void writeGraphviz(const string& fileName) const;
-    void writeGraphviz(ostream&) const;
-
 
 
     // Svg output.
@@ -67,12 +64,12 @@ public:
     public:
 
         uint64_t sizePixels = 800;
-        double segmentLengthScalingFactor = 2.;
+        double segmentLengthScalingFactor = 0.5;
         double segmentThickness = 10;
         string segmentColor = "Green";
         string segmentAtZeroDistanceColor = "LightGreen";
         string segmentAtMaxDistanceColor = "Cyan";
-        double nonConsecutiveLinkLengthScalingFactor = 2.;
+        double nonConsecutiveLinkLengthScalingFactor = 0.5;
         double minimumLinkThickness = 1.;
         double linkThicknessScalingFactor = 0.1;
         string linkColor = "black";
@@ -85,6 +82,15 @@ public:
     };
     void writeSvg1(const string& fileName, const SvgOptions&) const;
     void writeSvg1(ostream&, const SvgOptions&) const;
+    void writeSvg2(const string& fileName, const SvgOptions&) const;
+    void writeSvg2(ostream&, const SvgOptions&) const;
+
+    // Layout computation for writeSvg2.
+    using AuxiliaryGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
+    static void computeLayout(
+        const AuxiliaryGraph&,
+        const std::map<AuxiliaryGraph::edge_descriptor, double>& edgeLength,
+        std::map<AuxiliaryGraph::vertex_descriptor, array<double, 2> >& positionMap);
 
 
 
