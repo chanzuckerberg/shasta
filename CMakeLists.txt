@@ -50,7 +50,7 @@ else(MACOS)
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)
-    option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." ON)
+    option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." OFF)
     option(BUILD_WITH_HTTP_SERVER "Build with embedded HTTP server for debugging." ON)
 endif(MACOS)
 
