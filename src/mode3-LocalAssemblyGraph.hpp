@@ -60,16 +60,23 @@ public:
 
 
     // Svg output.
+    // There are two flavors:
+    // - The writeSvg1 functions use sfdp, which does not honor the specified edge length.
+    //   So, we add additional vertices to achieve approximate display lengths of
+    //   segment and links.
+    // - The writeSvg2 functions use neato, which honors the specified edge lengths.
+    //   So we only need to generate 3 vertices for each segments.
+    // The writeSvg1 functions generally achieve better layouts.
     class SvgOptions {
     public:
 
         uint64_t sizePixels = 800;
-        double segmentLengthScalingFactor = 0.5;
-        double segmentThickness = 10;
+        double segmentLengthScalingFactor = 2.;
+        double segmentThickness = 6.;
         string segmentColor = "Green";
         string segmentAtZeroDistanceColor = "LightGreen";
         string segmentAtMaxDistanceColor = "Cyan";
-        double nonConsecutiveLinkLengthScalingFactor = 0.5;
+        double nonConsecutiveLinkLengthScalingFactor = 2.;
         double minimumLinkThickness = 1.;
         double linkThicknessScalingFactor = 0.1;
         string linkColor = "black";
@@ -101,6 +108,10 @@ public:
     // Return the average link separation for the Link
     // described by an edge.
     double linkSeparation(edge_descriptor) const;
+
+    // Write the local assembly graph in gfa format.
+    void writeGfa(const string& fileName) const;
+    void writeGfa(ostream&) const;
 };
 #endif
 

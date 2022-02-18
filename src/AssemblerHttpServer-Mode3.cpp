@@ -64,6 +64,7 @@ void Assembler::exploreMode3AssemblyGraph(
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
     localAssemblyGraph.writeSvg1(html, options);
+    localAssemblyGraph.writeGfa("LocalAssemblyGraph.gfa");
 
 }
 

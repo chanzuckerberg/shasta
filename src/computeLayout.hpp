@@ -19,6 +19,7 @@
 // Standard library.
 #include "array.hpp"
 #include "fstream.hpp"
+#include "iostream.hpp"
 #include <map>
 #include "utility.hpp"
 
@@ -38,18 +39,20 @@ namespace shasta {
         const string& layoutMethod,
         double timeout,
         std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap,
-        const string& additionalOptions="");
+        const string& additionalOptions="",
+        const std::map<typename Graph::edge_descriptor, double>* edgeLengthMap = 0);
 
 }
 
 
-
+// The edge length map is only effective with neato and sfdp layouts.
 template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
     const Graph& graph,
     const string& layoutMethod,
     double timeout,
     std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap,
-    const string& additionalOptions)
+    const string& additionalOptions,
+    const std::map<typename Graph::edge_descriptor, double>* edgeLengthMap)
 {
     using vertex_descriptor = typename Graph::vertex_descriptor;
 
@@ -80,10 +83,17 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
     }
 
     // Write the edges.
-    BGL_FORALL_EDGES_T(v, graph, Graph) {
-        const vertex_descriptor v0 = source(v, graph);
-        const vertex_descriptor v1 = target(v, graph);
-        dotFile << vertexIndexMap[v0] << "--" << vertexIndexMap[v1] << ";\n";
+    BGL_FORALL_EDGES_T(e, graph, Graph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        dotFile << vertexIndexMap[v0] << "--" << vertexIndexMap[v1];
+        if(edgeLengthMap) {
+            const auto it = edgeLengthMap->find(e);
+            if(it != edgeLengthMap->end()) {
+                dotFile << " [len=" << it->second << "]";
+            }
+        }
+        dotFile<< ";\n";
     }
 
     dotFile << "}\n";
@@ -91,16 +101,17 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
 
 
 
-    // Now use sfdp to compute the layout.
+    // Now use graphviz to compute the layout.
     // Use plain format output described here
     // https://www.graphviz.org/doc/info/output.html#d:plain
     const string plainFileName = dotFileName + ".txt";
-    const string command = "sfdp -T plain " + dotFileName + " -o " + plainFileName + " " + additionalOptions;
+    const string command = layoutMethod + " -T plain " + dotFileName + " -o " + plainFileName + " " + additionalOptions;
     bool timeoutTriggered = false;
     bool signalOccurred = false;
     int returnCode = 0;
     runCommandWithTimeout(command, timeout, timeoutTriggered, signalOccurred, returnCode);
-    filesystem::remove(dotFileName);
+    cout << "Dot file " << dotFileName << endl;
+    // filesystem::remove(dotFileName);
     if(signalOccurred) {
         return ComputeLayoutReturnCode::Signal;
     }
@@ -151,7 +162,8 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
         positionMap.insert(make_pair(v, x));
     }
     plainFile.close();
-    filesystem::remove(plainFileName);
+    cout << plainFileName << endl;
+    // filesystem::remove(plainFileName);
 
     return ComputeLayoutReturnCode::Success;
 

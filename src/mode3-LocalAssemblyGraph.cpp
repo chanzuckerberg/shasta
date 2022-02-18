@@ -232,7 +232,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(
 
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
-    if(shasta::computeLayout(g, "sfdp", 30., positionMap, "-Gsmoothing=avg_dist") !=
+    if(shasta::computeLayout(g, "sfdp", 120., positionMap, "-Gsmoothing=avg_dist") !=
         ComputeLayoutReturnCode::Success) {
         throw runtime_error("Graph layout failed.");
     }
@@ -405,7 +405,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(
                 q[i] = 0.5 * (q1[i] + q2[i]);
             }
         } else {
-            q = positionMap[(n-1) / 2];
+            q = positionMap[auxiliaryVertices[(n-1) / 2]];
         }
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
@@ -487,6 +487,8 @@ void mode3::LocalAssemblyGraph::writeSvg2(
             auxiliaryVertices.push_back(boost::add_vertex(g));
         }
 
+        cout << segmentId << " " << options.segmentLengthScalingFactor * double(pathLength) << endl;
+
         // Add the edges between these auxiliary vertices.
         for(uint64_t i=1; i<auxiliaryCount; i++) {
             G::edge_descriptor e;
@@ -508,7 +510,7 @@ void mode3::LocalAssemblyGraph::writeSvg2(
             edgeLength = options.nonConsecutiveLinkLengthScalingFactor;
         } else {
             const double linkSeparation = this->linkSeparation(e);
-            edgeLength = linkSeparation *  options.nonConsecutiveLinkLengthScalingFactor;
+            edgeLength = max(linkSeparation, 1.) *  options.nonConsecutiveLinkLengthScalingFactor;
         }
         G::edge_descriptor eAuxiliary;
         tie(eAuxiliary, ignore) = add_edge(
@@ -516,14 +518,22 @@ void mode3::LocalAssemblyGraph::writeSvg2(
             vertexMap[v2].front(),
             g);
         edgeLengthMap.insert(make_pair(eAuxiliary, edgeLength));
+        cout << localAssemblyGraph[v1].segmentId << "->" <<
+            localAssemblyGraph[v2].segmentId << " " << edgeLength << endl;
     }
 
 
-
+#if 0
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
     computeLayout(g, edgeLengthMap, positionMap);
-
+#endif
+    // Compute the layout of the auxiliary graph.
+    std::map<G::vertex_descriptor, array<double, 2> > positionMap;
+    if(shasta::computeLayout(g, "neato", 30., positionMap, "-Gsmoothing=avg_dist", &edgeLengthMap) !=
+        ComputeLayoutReturnCode::Success) {
+        throw runtime_error("Graph layout failed.");
+    }
 
 
     // Compute the view box.
@@ -692,7 +702,7 @@ void mode3::LocalAssemblyGraph::writeSvg2(
                 q[i] = 0.5 * (q1[i] + q2[i]);
             }
         } else {
-            q = positionMap[(n-1) / 2];
+            q = positionMap[auxiliaryVertices[(n-1) / 2]];
         }
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
@@ -861,7 +871,7 @@ public:
         double d,
         const G&) const
     {
-     return 10. * (d - 0.02) *  (d - 0.02) / k;
+     return 1.e4 * (d - 0.02);
     }
 };
 
@@ -875,7 +885,7 @@ public:
         double d,
         const G&) const
     {
-        return k * k / d;
+        return 0; // k * k / d;
     }
 };
 
@@ -914,6 +924,43 @@ void LocalAssemblyGraph::computeLayout(
     }
 
 }
+
+
+
+// Write the local assembly graph in gfa format.
+void LocalAssemblyGraph::writeGfa(const string& fileName) const
+{
+    ofstream gfa(fileName);
+    writeGfa(gfa);
+}
+void LocalAssemblyGraph::writeGfa(ostream& gfa) const
+{
+    const LocalAssemblyGraph& localAssemblyGraph = *this;
+
+    // Write the header.
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Write the segments.
+    BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+        const uint64_t segmentId = localAssemblyGraph[v].segmentId;
+        const auto path = assemblyGraph.paths[segmentId];
+        gfa <<
+            "S\t" << segmentId << "\t" <<
+            "*\tLN:i:" << path.size() << "\n";
+    }
+
+
+    // Write the links.
+    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+        const uint64_t linkId = localAssemblyGraph[e].linkId;
+        const Link& link = assemblyGraph.links[linkId];
+        gfa << "L\t" <<
+            link.segmentId0 << "\t+\t" <<
+            link.segmentId1 << "\t+\t0M\n";
+    }
+
+}
+
 
 
 #endif
