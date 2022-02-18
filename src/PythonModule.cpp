@@ -467,10 +467,6 @@ PYBIND11_MODULE(shasta, shastaModule)
             arg("threadCount") = 0)
         .def("computeMarkerGraphCoverageHistogram",
             &Assembler::computeMarkerGraphCoverageHistogram)
-        .def("refineMarkerGraph",
-            &Assembler::refineMarkerGraph,
-            arg("refineThreshold"),
-            arg("threadCount") = 0)
         .def("writeBadMarkerGraphVertices",
             &Assembler::writeBadMarkerGraphVertices)
         .def("cleanupDuplicateMarkers",

@@ -1512,15 +1512,6 @@ public:
     // Prune leaves from the strong subgraph of the global marker graph.
     void pruneMarkerGraphStrongSubgraph(size_t iterationCount);
 
-    // Refine the marker graph by removing vertices in tangle regions,
-    // then recreating edges. This must be called after
-    // transitive reduction. After this is called, the only
-    // two MarkerGraph field filled in are vertices and vertexTable.
-    // Everything else has to be recreated.
-    void refineMarkerGraph(
-        uint64_t refineThreshold,
-        size_t threadCount);
-
 private:
 
 

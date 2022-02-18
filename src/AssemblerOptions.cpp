@@ -686,12 +686,6 @@ void AssemblerOptions::addConfigurableOptions()
         "corresponding marker graph edges. A cross edge is defined as an edge v0->v1 "
         "with out-degree(v0)>1, in-degree(v1)>1.")
 
-        ("MarkerGraph.refineThreshold",
-        value<uint64_t>(&markerGraphOptions.refineThreshold)->
-        default_value(0),
-        "Experimental. Length threshold, in markers, for the marker graph refinement step, "
-        "or 0 to turn off the refinement step.")
-
         ("MarkerGraph.reverseTransitiveReduction",
         bool_switch(&markerGraphOptions.reverseTransitiveReduction)->
         default_value(false),
@@ -1070,7 +1064,6 @@ void MarkerGraphOptions::write(ostream& s) const
     s << "pruneIterationCount = " << pruneIterationCount << "\n";
     s << "simplifyMaxLength = " << simplifyMaxLength << "\n";
     s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
-    s << "refineThreshold = " << refineThreshold << "\n";
     s << "reverseTransitiveReduction = " <<
         convertBoolToPythonString(reverseTransitiveReduction) << "\n";
     s << "peakFinder.minAreaFraction = " << peakFinderMinAreaFraction << "\n";

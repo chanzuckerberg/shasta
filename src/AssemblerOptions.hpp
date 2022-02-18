@@ -247,7 +247,6 @@ public:
     int pruneIterationCount;
     string simplifyMaxLength;
     double crossEdgeCoverageThreshold;
-    uint64_t refineThreshold;
     vector<size_t> simplifyMaxLengthVector;
     bool reverseTransitiveReduction;
     double peakFinderMinAreaFraction;
