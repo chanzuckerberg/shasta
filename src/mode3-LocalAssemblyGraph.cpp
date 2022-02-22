@@ -479,7 +479,7 @@ void mode3::LocalAssemblyGraph::writeSvg2(
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
 
         const uint64_t pathLength = assemblyGraph.paths.size(segmentId);
-        const uint64_t auxiliaryCount = 3;
+        const uint64_t auxiliaryCount = 2;
 
         // Add the auxiliary vertices.
         vector<G::vertex_descriptor>& auxiliaryVertices = vertexMap[v];
@@ -528,9 +528,17 @@ void mode3::LocalAssemblyGraph::writeSvg2(
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
     computeLayout(g, edgeLengthMap, positionMap);
 #endif
+#if 0
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
     if(shasta::computeLayoutGraphviz(g, "neato", 30., positionMap, "-Gsmoothing=avg_dist", &edgeLengthMap) !=
+        ComputeLayoutReturnCode::Success) {
+        throw runtime_error("Graph layout failed.");
+    }
+#endif
+    // Compute the layout of the auxiliary graph.
+    std::map<G::vertex_descriptor, array<double, 2> > positionMap;
+    if(shasta::computeLayoutCustom(g, edgeLengthMap, positionMap, 30.) !=
         ComputeLayoutReturnCode::Success) {
         throw runtime_error("Graph layout failed.");
     }
@@ -625,11 +633,14 @@ void mode3::LocalAssemblyGraph::writeSvg2(
             " to segment " << segmentId2 <<
             ", coverage " << assemblyGraph.linkCoverage(linkId) <<
             "</title>"
+            /*
             "<path d='M " <<
             p1[0] << " " << p1[1] << " C " <<
             q1[0] << " " << q1[1] << ", " <<
             q2[0] << " " << q2[1] << ", " <<
             p2[0] << " " << p2[1] << "'" <<
+            */
+            "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
             " stroke='" << (areConsecutivePaths ?  options.linkColor : "orange") << "'"
             " stroke-width='" << linkThickness << "px'"
             " stroke-linecap='round'"
@@ -728,9 +739,14 @@ void mode3::LocalAssemblyGraph::writeSvg2(
             ", path length " << assemblyGraph.paths.size(segmentId) <<
             ", distance " << distance <<
             "</title>"
+            /*
             "<path d='M " <<
             p1[0] << " " << p1[1] << " Q " <<
             q[0] << " " << q[1] << ", " <<
+            p2[0] << " " << p2[1] << "'" <<
+            */
+            "<path d='M " <<
+            p1[0] << " " << p1[1] << " L " <<
             p2[0] << " " << p2[1] << "'" <<
             " stroke='" << color << "'"
             " stroke-width='" <<  options.segmentThickness << "px'"
