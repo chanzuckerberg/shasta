@@ -232,7 +232,7 @@ void mode3::LocalAssemblyGraph::writeSvg1(
 
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
-    if(shasta::computeLayout(g, "sfdp", 120., positionMap, "-Gsmoothing=avg_dist") !=
+    if(shasta::computeLayoutGraphviz(g, "sfdp", 120., positionMap, "-Gsmoothing=avg_dist") !=
         ComputeLayoutReturnCode::Success) {
         throw runtime_error("Graph layout failed.");
     }
@@ -530,7 +530,7 @@ void mode3::LocalAssemblyGraph::writeSvg2(
 #endif
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
-    if(shasta::computeLayout(g, "neato", 30., positionMap, "-Gsmoothing=avg_dist", &edgeLengthMap) !=
+    if(shasta::computeLayoutGraphviz(g, "neato", 30., positionMap, "-Gsmoothing=avg_dist", &edgeLengthMap) !=
         ComputeLayoutReturnCode::Success) {
         throw runtime_error("Graph layout failed.");
     }

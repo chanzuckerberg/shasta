@@ -33,8 +33,8 @@ namespace shasta {
         Signal
     };
 
-    // Use Graphviz to compute the sfdp layout of a Boost graph.
-    template<class Graph> ComputeLayoutReturnCode computeLayout(
+    // Use Graphviz to compute the layout of a Boost graph.
+    template<class Graph> ComputeLayoutReturnCode computeLayoutGraphviz(
         const Graph&,
         const string& layoutMethod,
         double timeout,
@@ -45,8 +45,8 @@ namespace shasta {
 }
 
 
-// The edge length map is only effective with neato and sfdp layouts.
-template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
+// The edge length map is only effective with neato and fdp layouts.
+template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraphviz(
     const Graph& graph,
     const string& layoutMethod,
     double timeout,

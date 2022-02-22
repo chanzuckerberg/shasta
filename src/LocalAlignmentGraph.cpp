@@ -152,7 +152,7 @@ ComputeLayoutReturnCode LocalAlignmentGraph::computeLayout(
     // Compute the layout.
     std::map<vertex_descriptor, array<double, 2> > positionMap;
     const ComputeLayoutReturnCode returnCode =
-        shasta::computeLayout(graph, layoutMethod, timeout, positionMap);
+        shasta::computeLayoutGraphviz(graph, layoutMethod, timeout, positionMap);
     if(returnCode != ComputeLayoutReturnCode::Success) {
         return returnCode;
     }
