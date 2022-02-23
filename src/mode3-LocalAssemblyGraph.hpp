@@ -60,19 +60,18 @@ public:
 
 
     // Svg output.
-    // There are two flavors:
-    // - The writeSvg1 functions use sfdp, which does not honor the specified edge length.
-    //   So, we add additional vertices to achieve approximate display lengths of
-    //   segment and links.
-    // - The writeSvg2 functions use neato, which honors the specified edge lengths.
-    //   So we only need to generate 3 vertices for each segments.
-    // The writeSvg1 functions generally achieve better layouts.
     class SvgOptions {
     public:
 
         uint64_t sizePixels = 800;
         string layoutMethod = "custom";
-        double segmentLengthScalingFactor = 2.;
+
+        // The display length of a segment is computed as
+        // minimumSegmentLength + (n-1) * additionalSegmentLengthPerMarker
+        // where n is the path length of the segment, in markers.
+        double minimumSegmentLength = 1.;
+        double additionalSegmentLengthPerMarker = 1.;
+
         double segmentThickness = 6.;
         string segmentColor = "Green";
         string segmentAtZeroDistanceColor = "LightGreen";
@@ -88,17 +87,8 @@ public:
         // Add rows to the html request form.
         void addFormRows(ostream& html);
     };
-    void writeSvg1(const string& fileName, const SvgOptions&) const;
-    void writeSvg1(ostream&, const SvgOptions&) const;
-    void writeSvg2(const string& fileName, const SvgOptions&) const;
-    void writeSvg2(ostream&, const SvgOptions&) const;
-
-    // Layout computation for writeSvg2.
-    using AuxiliaryGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
-    static void computeLayout(
-        const AuxiliaryGraph&,
-        const std::map<AuxiliaryGraph::edge_descriptor, double>& edgeLength,
-        std::map<AuxiliaryGraph::vertex_descriptor, array<double, 2> >& positionMap);
+    void writeSvg(const string& fileName, const SvgOptions&) const;
+    void writeSvg(ostream&, const SvgOptions&) const;
 
 
 

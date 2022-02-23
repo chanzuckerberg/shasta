@@ -26,18 +26,19 @@ void Assembler::exploreMode3AssemblyGraph(
 
     // Write the form.
     html <<
+        "<h2>Display the local assembly graph near a given segment</h2>"
         "<form>"
         "<table>"
 
         "<tr>"
         "<td>Start segment"
-        "<td><input type=text required name=startSegmentId size=8 style='text-align:center'"
+        "<td class=centered><input type=text required name=startSegmentId size=8 style='text-align:center'"
         " value='" << (startSegmentIdIsPresent ? to_string(startSegmentId) : "") <<
         "'>"
 
         "<tr>"
-        "<td>Maximum distance"
-        "<td><input type=text name=maxDistance size=8 style='text-align:center'"
+        "<td>Maximum distance in the assembly graph (edges)"
+        "<td class=centered><input type=text name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
         "'>";
 
@@ -63,7 +64,10 @@ void Assembler::exploreMode3AssemblyGraph(
         markerGraph,
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
-    localAssemblyGraph.writeSvg2(html, options);
+    localAssemblyGraph.writeSvg(html, options);
+
+    // To facilitate debugging and testing, also write a gfa file
+    // that represents the LocalAssemblyGraph.
     localAssemblyGraph.writeGfa("LocalAssemblyGraph.gfa");
 
 }
