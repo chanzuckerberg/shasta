@@ -523,25 +523,23 @@ void mode3::LocalAssemblyGraph::writeSvg2(
     }
 
 
-#if 0
+
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
-    computeLayout(g, edgeLengthMap, positionMap);
-#endif
-#if 0
-    // Compute the layout of the auxiliary graph.
-    std::map<G::vertex_descriptor, array<double, 2> > positionMap;
-    if(shasta::computeLayoutGraphviz(g, "neato", 30., positionMap, "-Gsmoothing=avg_dist", &edgeLengthMap) !=
-        ComputeLayoutReturnCode::Success) {
-        throw runtime_error("Graph layout failed.");
+    if(options.layoutMethod == "neato") {
+        if(shasta::computeLayoutGraphviz(g, "neato", 30., positionMap, "", &edgeLengthMap) !=
+            ComputeLayoutReturnCode::Success) {
+            throw runtime_error("Graph layout failed.");
+        }
+    } else if(options.layoutMethod == "custom") {
+        if(shasta::computeLayoutCustom(g, edgeLengthMap, positionMap, 30.) !=
+            ComputeLayoutReturnCode::Success) {
+            throw runtime_error("Graph layout failed.");
+        }
+    } else {
+        throw runtime_error("Invalid layout method specified: " + options.layoutMethod);
     }
-#endif
-    // Compute the layout of the auxiliary graph.
-    std::map<G::vertex_descriptor, array<double, 2> > positionMap;
-    if(shasta::computeLayoutCustom(g, edgeLengthMap, positionMap, 30.) !=
-        ComputeLayoutReturnCode::Success) {
-        throw runtime_error("Graph layout failed.");
-    }
+
 
 
     // Compute the view box.
@@ -825,6 +823,7 @@ double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
 {
     HttpServer::getParameterValue(request, "sizePixels", sizePixels);
+    HttpServer::getParameterValue(request, "layoutMethod", layoutMethod);
     HttpServer::getParameterValue(request, "segmentLengthScalingFactor", segmentLengthScalingFactor);
     HttpServer::getParameterValue(request, "segmentThickness", segmentThickness);
     HttpServer::getParameterValue(request, "nonConsecutiveLinkLengthScalingFactor", nonConsecutiveLinkLengthScalingFactor);
@@ -843,6 +842,16 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<td><input type=text name=sizePixels size=8 style='text-align:center'"
         " value='" << sizePixels <<
         "'>"
+
+        "<tr>"
+        "<td>Graph layout method"
+        "<td>"
+        "<input type=radio name=layoutMethod value=neato"
+        << (layoutMethod=="neato" ? " checked=checked" : "") <<
+        ">neato<br>"
+        "<input type=radio name=layoutMethod value=custom"
+        << (layoutMethod=="custom" ? " checked=checked" : "") <<
+        ">custom<br>"
 
         "<tr>"
         "<td>Scaling factor for segment length"

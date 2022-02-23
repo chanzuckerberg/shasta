@@ -71,6 +71,7 @@ public:
     public:
 
         uint64_t sizePixels = 800;
+        string layoutMethod = "custom";
         double segmentLengthScalingFactor = 2.;
         double segmentThickness = 6.;
         string segmentColor = "Green";
