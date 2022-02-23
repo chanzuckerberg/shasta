@@ -51,7 +51,6 @@ v x y
 // Standard library.
 #include "array.hpp"
 #include "fstream.hpp"
-#include "iostream.hpp"
 #include <map>
 #include "utility.hpp"
 
@@ -150,8 +149,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraph
     bool signalOccurred = false;
     int returnCode = 0;
     runCommandWithTimeout(command, timeout, timeoutTriggered, signalOccurred, returnCode);
-    cout << "Dot file " << dotFileName << endl;
-    // filesystem::remove(dotFileName);
+    filesystem::remove(dotFileName);
     if(signalOccurred) {
         return ComputeLayoutReturnCode::Signal;
     }
@@ -202,8 +200,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraph
         positionMap.insert(make_pair(v, x));
     }
     plainFile.close();
-    cout << plainFileName << endl;
-    // filesystem::remove(plainFileName);
+    filesystem::remove(plainFileName);
 
     return ComputeLayoutReturnCode::Success;
 
@@ -255,7 +252,6 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutCusto
     // Invoke the custom graph layout program.
     const string outputFileName = tmpDirectory() + uuid + "-output.txt";
     const string command = "customLayout -i " + inputFileName + " -o " + outputFileName ;
-    cout << "Running command: " << command << endl;
     bool timeoutTriggered = false;
     bool signalOccurred = false;
     int returnCode = 0;
@@ -269,7 +265,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutCusto
     if(returnCode!=0 ) {
         return ComputeLayoutReturnCode::Error;
     }
-    // filesystem::remove(inputFileName);
+    filesystem::remove(inputFileName);
 
 
 
@@ -286,7 +282,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutCusto
 
     }
     outputFile.clear();
-    // filesystem::remove(outputFileName);
+    filesystem::remove(outputFileName);
 
 
 
