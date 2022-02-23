@@ -59,27 +59,50 @@ public:
 
 
 
-    // Svg output.
-    class SvgOptions {
+     class SvgOptions {
     public:
 
         uint64_t sizePixels = 800;
         string layoutMethod = "custom";
 
+
+
+        // Segment length and thickness.
+
         // The display length of a segment is computed as
         // minimumSegmentLength + (n-1) * additionalSegmentLengthPerMarker
         // where n is the path length of the segment, in markers.
         double minimumSegmentLength = 1.;
-        double additionalSegmentLengthPerMarker = 1.;
+        double additionalSegmentLengthPerMarker = 0.2;
 
-        double segmentThickness = 6.;
+        double segmentThickness = 0.3;
+
+
+
+        // Link length and thickness.
+
+        // The display length of a link is computed as follows:
+        // - For a link between segments that are consecutive in the marker graph:
+        //   linkLength = minimumLinkLength
+        // - For a link between segments that are not consecutive in the marker graph:
+        //   linkLength = minimumLinkLength + linkSeparation * additionalLinkLengthPerMarker
+        //   (with the linkSeperation replaced with zero if it is negative).
+        double minimumLinkLength = 1;
+        double additionalLinkLengthPerMarker = 0.2;
+
+        // The display thickness of a link is computed as
+        // minimumLinkThickness + (n-1) * additionalSegmentLengthPerMarker
+        // where n is the path length of the segment, in markers.
+        double minimumLinkThickness = 0.02;
+        double additionalLinkThicknessPerRead = 0.005;
+
+
+
+        // Colors.
         string segmentColor = "Green";
         string segmentAtZeroDistanceColor = "LightGreen";
         string segmentAtMaxDistanceColor = "Cyan";
-        double nonConsecutiveLinkLengthScalingFactor = 2.;
-        double minimumLinkThickness = 1.;
-        double linkThicknessScalingFactor = 0.1;
-        string linkColor = "black";
+        string linkColor = "Black";
 
         // Construct the options from an html request.
         SvgOptions(const vector<string>& request);

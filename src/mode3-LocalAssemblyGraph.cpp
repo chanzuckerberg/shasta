@@ -199,10 +199,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
         double edgeLength;
         if(haveConsecutivePaths(v1, v2)) {
-            edgeLength = options.nonConsecutiveLinkLengthScalingFactor;
+            edgeLength = options.minimumLinkLength;
         } else {
-            const double linkSeparation = this->linkSeparation(e);
-            edgeLength = max(linkSeparation, 1.) *  options.nonConsecutiveLinkLengthScalingFactor;
+            const double linkSeparation = max(this->linkSeparation(e), 0.);
+            edgeLength = options.minimumLinkLength + linkSeparation * options.additionalLinkLengthPerMarker;
         }
         G::edge_descriptor eAuxiliary;
         tie(eAuxiliary, ignore) = add_edge(
@@ -293,10 +293,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
         const auto& p1 = positionMap[u1];
         const auto& p2 = positionMap[u2];
 
-        // Thickness increases with coverage but cannot be more than
-        // segment thickness.
-        const double linkThickness = min( options.segmentThickness,
-            options.minimumLinkThickness +  options.linkThicknessScalingFactor * double(assemblyGraph.linkCoverage(linkId)));
+        const double linkThickness =
+            min(options.segmentThickness,
+            options.minimumLinkThickness +  options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1));
 
         svg <<
             "<g><title>"
@@ -307,10 +306,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             "</title>"
             "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
             " stroke='" << (areConsecutivePaths ?  options.linkColor : "orange") << "'"
-            " stroke-width='" << linkThickness << "px'"
+            " stroke-width='" << linkThickness << "'"
             " stroke-linecap='round'"
             " fill='transparent'"
-            " vector-effect='non-scaling-stroke'"
+            // " vector-effect='non-scaling-stroke'"
             "/></g>\n";
 
     }
@@ -394,9 +393,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             p1[0] << " " << p1[1] << " L " <<
             p2[0] << " " << p2[1] << "'" <<
             " stroke='" << color << "'"
-            " stroke-width='" <<  options.segmentThickness << "px'"
+            " stroke-width='" <<  options.segmentThickness << "'"
             " fill='transparent'"
-            " vector-effect='non-scaling-stroke'"
+            // " vector-effect='non-scaling-stroke'"
             " marker-end='url(#" <<
             markerName <<
             ")'"
@@ -471,12 +470,17 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
 {
     HttpServer::getParameterValue(request, "sizePixels", sizePixels);
     HttpServer::getParameterValue(request, "layoutMethod", layoutMethod);
+
+    // Segment length and thickness.
     HttpServer::getParameterValue(request, "minimumSegmentLength", minimumSegmentLength);
     HttpServer::getParameterValue(request, "additionalSegmentLengthPerMarker", additionalSegmentLengthPerMarker);
     HttpServer::getParameterValue(request, "segmentThickness", segmentThickness);
-    HttpServer::getParameterValue(request, "nonConsecutiveLinkLengthScalingFactor", nonConsecutiveLinkLengthScalingFactor);
+
+    // Link length and thickness.
+    HttpServer::getParameterValue(request, "minimumLinkLength", minimumLinkLength);
+    HttpServer::getParameterValue(request, "additionalLinkLengthPerMarker", additionalLinkLengthPerMarker);
     HttpServer::getParameterValue(request, "minimumLinkThickness", minimumLinkThickness);
-    HttpServer::getParameterValue(request, "linkThicknessScalingFactor", linkThicknessScalingFactor);
+    HttpServer::getParameterValue(request, "additionalLinkThicknessPerRead", additionalLinkThicknessPerRead);
 }
 
 
@@ -502,42 +506,53 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         ">custom<br>"
 
         "<tr>"
-        "<td>Segment display length"
+        "<td>Segments"
         "<td class=centered>"
         "<table>"
-        "<tr><td>"
-        "Minimum length "
+        "<tr><td class=left>"
+        "Minimum display length "
         "<td><input type=text name=minimumSegmentLength size=8 style='text-align:center'"
         " value='" << minimumSegmentLength << "'>"
-        "<tr><td>"
-        "Additional length per marker"
+        "<tr><td class=left>"
+        "Additional display length per marker"
         "<td><input type=text name=additionalSegmentLengthPerMarker size=8 style='text-align:center'"
         " value='" << additionalSegmentLengthPerMarker << "'>"
-        "</table>"
-
         "<tr>"
-        "<td>Segment thickness in pixels"
+        "<td class=left>Thickness"
         "<td class=centered><input type=text name=segmentThickness size=8 style='text-align:center'"
         " value='" << segmentThickness <<
         "'>"
+        "</table>"
+
+
 
         "<tr>"
-        "<td>Scaling factor for non-consecutive links length"
-        "<td class=centered><input type=text name=nonConsecutiveLinkLengthScalingFactor size=8 style='text-align:center'"
-        " value='" << nonConsecutiveLinkLengthScalingFactor <<
-        "'>"
-
+        "<td>Links"
+        "<td class=centered>"
+        "<table>"
+        "<tr><td class=left>"
+        "Minimum display length "
+        "<td><input type=text name=minimumLinkLength size=8 style='text-align:center'"
+        " value='" << minimumLinkLength << "'>"
+        "<tr><td class=left>"
+        "Additional display length per marker"
+        "<td><input type=text name=additionalLinkLengthPerMarker size=8 style='text-align:center'"
+        " value='" << additionalLinkLengthPerMarker << "'>"
         "<tr>"
-        "<td>Minimum link thickness"
+        "<td class=left>Minimum thickness"
         "<td class=centered><input type=text name=minimumLinkThickness size=8 style='text-align:center'"
         " value='" << minimumLinkThickness <<
         "'>"
-
         "<tr>"
-        "<td>Link thickness scaling factor"
-        "<td class=centered><input type=text name=linkThicknessScalingFactor size=8 style='text-align:center'"
-        " value='" << linkThicknessScalingFactor <<
+        "<td class=left>Additional thickness per read"
+        "<td class=centered><input type=text name=additionalLinkThicknessPerRead size=8 style='text-align:center'"
+        " value='" << additionalLinkThicknessPerRead <<
         "'>"
+        "</table>"
+
+        "</table>"
+
+
         ;
 
 }

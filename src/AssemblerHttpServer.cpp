@@ -769,6 +769,9 @@ void Assembler::writeStyle(ostream& html)
     td.centered {
         text-align: center;
     }
+    td.left {
+        text-align: left;
+    }
     td.right {
         text-align: right;
     }
