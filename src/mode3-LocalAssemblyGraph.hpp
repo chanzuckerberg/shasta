@@ -85,7 +85,7 @@ public:
         // - For a link between segments that are consecutive in the marker graph:
         //   linkLength = minimumLinkLength
         // - For a link between segments that are not consecutive in the marker graph:
-        //   linkLength = minimumLinkLength + linkSeparation * additionalLinkLengthPerMarker
+        //   linkLength = 3 * minimumLinkLength + linkSeparation * additionalLinkLengthPerMarker
         //   (with the linkSeperation replaced with zero if it is negative).
         double minimumLinkLength = 1;
         double additionalLinkLengthPerMarker = 0.2;
@@ -103,6 +103,7 @@ public:
         string segmentAtZeroDistanceColor = "LightGreen";
         string segmentAtMaxDistanceColor = "Cyan";
         string linkColor = "Black";
+        string nonConsecutiveLinkColor = "Gray";
 
         // Construct the options from an html request.
         SvgOptions(const vector<string>& request);

@@ -202,7 +202,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             edgeLength = options.minimumLinkLength;
         } else {
             const double linkSeparation = max(this->linkSeparation(e), 0.);
-            edgeLength = options.minimumLinkLength + linkSeparation * options.additionalLinkLengthPerMarker;
+            edgeLength = 3. * options.minimumLinkLength + linkSeparation * options.additionalLinkLengthPerMarker;
         }
         G::edge_descriptor eAuxiliary;
         tie(eAuxiliary, ignore) = add_edge(
@@ -305,7 +305,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", coverage " << assemblyGraph.linkCoverage(linkId) <<
             "</title>"
             "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
-            " stroke='" << (areConsecutivePaths ?  options.linkColor : "orange") << "'"
+            " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'"
             " stroke-width='" << linkThickness << "'"
             " stroke-linecap='round'"
             " fill='transparent'"
