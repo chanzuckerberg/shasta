@@ -327,34 +327,6 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
 
 
-    // Define the arrowhead to be used for segments.
-    svg <<
-        "<defs>\n"
-        "<marker id='arrowHead' viewBox='0 0 1 1'\n"
-        "refX='0.5' refY='0.5'\n"
-        "markerUnits='strokeWidth'\n"
-        "markerWidth='1' markerHeight='1'\n"
-        "orient='auto'>\n"
-        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        options.segmentColor <<
-        "'/>\n"
-        "</marker>\n"
-        "</defs>\n";
-    svg <<
-        "<defs>\n"
-        "<marker id='arrowHeadAtMaxDistance' viewBox='0 0 1 1'\n"
-        "refX='0.5' refY='0.5'\n"
-        "markerUnits='strokeWidth'\n"
-        "markerWidth='1' markerHeight='1'\n"
-        "orient='auto'>\n"
-        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        options.segmentAtMaxDistanceColor <<
-        "'/>\n"
-        "</marker>\n"
-        "</defs>\n";
-
-
-
     // Write the segments.
     svg << "<g id='" << svgId << "-segments'>\n";
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
@@ -370,13 +342,23 @@ void mode3::LocalAssemblyGraph::writeSvg(
             color = options.segmentAtMaxDistanceColor;
         }
 
-        string markerName;
-        if(distance == maxDistance){
-            markerName = "arrowHeadAtMaxDistance";
-        } else {
-            markerName = "arrowHead";
-        }
+        // Create a marker to show the arrow for this segment.
+        const string arrowMarkerName = "arrow" + to_string(segmentId);
+        svg <<
+            "<defs>\n"
+            "<marker id='" << arrowMarkerName <<
+            "' viewBox='0 0 1 1'\n"
+            "refX='0.5' refY='0.5'\n"
+            "markerUnits='strokeWidth'\n"
+            "markerWidth='1' markerHeight='1'\n"
+            "orient='auto'>\n"
+            "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
+            color <<
+            "'/>\n"
+            "</marker>\n"
+            "</defs>\n";
 
+        // Add this segment to the svg.
         svg <<
             "<g><title>"
             "Segment " << segmentId <<
@@ -391,7 +373,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " fill='transparent'"
             // " vector-effect='non-scaling-stroke'"
             " marker-end='url(#" <<
-            markerName <<
+            arrowMarkerName <<
             ")'"
             "/></g>\n";
     }
