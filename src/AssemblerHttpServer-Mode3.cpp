@@ -58,6 +58,28 @@ void Assembler::exploreMode3AssemblyGraph(
 
     html << "<h1>Local assembly graph near segment " << startSegmentId << "</h1></p>";
 
+    // Allow manually highlighting selected vertices.
+    html << R"stringDelimiter(
+        <script>
+        function highlightSegment()
+        {
+            // Get the segment id from the input field.
+            inputField = document.getElementById("highlightInputField");
+            segmentId = inputField.value;
+            inputField.value = "";
+
+            // Make it dashed.
+            var element = document.getElementById("Segment-" + segmentId);
+            var thickness = element.getAttribute("stroke-width");
+            element.style.strokeDasharray = 0.2 * thickness;
+        }
+        </script>
+        <p>
+        <input id=highlightInputField type=text onchange="highlightSegment()" size=10>
+        Enter a segment id to highlight, then press Enter.
+        To highlight multiple segments, enter them one at a time in the same way.
+        <p>
+        )stringDelimiter";
 
     // Create the local assembly graph and write it to html in svg format.
     mode3::LocalAssemblyGraph localAssemblyGraph(
@@ -65,6 +87,8 @@ void Assembler::exploreMode3AssemblyGraph(
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
     localAssemblyGraph.writeSvg(html, options);
+
+
 
     // To facilitate debugging and testing, also write a gfa file
     // that represents the LocalAssemblyGraph.

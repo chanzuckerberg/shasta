@@ -366,7 +366,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", path length " << assemblyGraph.paths.size(segmentId) <<
             ", distance " << distance <<
             "</title>"
-            "<path d='M " <<
+            "<path id='Segment-" << segmentId << "' d='M " <<
             p1[0] << " " << p1[1] << " L " <<
             p2[0] << " " << p2[1] << "'" <<
             " stroke='" << color << "'"
