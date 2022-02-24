@@ -254,11 +254,14 @@ void mode3::LocalAssemblyGraph::writeSvg(
     yMin -= dy;
     yMax += dy;
 
+    // Figure out the required size of the svg.
+    const uint64_t svgSizeX = uint64_t(std::round(options.pixelsPerUnitLength * (xMax - xMin)));
+    const uint64_t svgSizeY = uint64_t(std::round(options.pixelsPerUnitLength * (yMax - yMin)));
 
     // Begin the svg.
     svg << "\n<svg id='" << svgId <<
-        "' width='" <<  options.sizePixels <<
-        "' height='" << options.sizePixels <<
+        "' width='" <<  svgSizeX <<
+        "' height='" << svgSizeY <<
         "' viewbox='" << xMin << " " << yMin << " " <<
         max(xMax-xMin, yMax-yMin) << " " <<
         max(xMax-xMin, yMax-yMin) <<
@@ -459,7 +462,7 @@ double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 // Construct the svg options from an html request.
 LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
 {
-    HttpServer::getParameterValue(request, "sizePixels", sizePixels);
+    HttpServer::getParameterValue(request, "pixelsPerUnitLength", pixelsPerUnitLength);
     HttpServer::getParameterValue(request, "layoutMethod", layoutMethod);
 
     // Segment length and thickness.
@@ -481,9 +484,9 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
 {
     html <<
         "<tr>"
-        "<td>Graphics size in pixels"
-        "<td class=centered><input type=text name=sizePixels size=8 style='text-align:center'"
-        " value='" << sizePixels <<
+        "<td>Graphics scaling factor"
+        "<td class=centered><input type=text name=pixelsPerUnitLength size=8 style='text-align:center'"
+        " value='" << pixelsPerUnitLength <<
         "'>"
 
         "<tr>"

@@ -62,7 +62,7 @@ public:
      class SvgOptions {
     public:
 
-        uint64_t sizePixels = 800;
+        double pixelsPerUnitLength = 20.;
         string layoutMethod = "custom";
 
 
