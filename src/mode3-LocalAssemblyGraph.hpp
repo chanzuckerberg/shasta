@@ -100,8 +100,7 @@ public:
 
         // Colors.
         string segmentColor = "Green";
-        string segmentAtZeroDistanceColor = "LightGreen";
-        string segmentAtMaxDistanceColor = "Cyan";
+        string segmentAtMaxDistanceColor = "LightGray";
         string linkColor = "Black";
 
         // Construct the options from an html request.

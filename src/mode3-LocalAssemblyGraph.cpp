@@ -349,18 +349,6 @@ void mode3::LocalAssemblyGraph::writeSvg(
         "'/>\n"
         "</marker>\n"
         "</defs>\n";
-    svg <<
-        "<defs>\n"
-        "<marker id='arrowHeadAtZeroDistance' viewBox='0 0 1 1'\n"
-        "refX='0.5' refY='0.5'\n"
-        "markerUnits='strokeWidth'\n"
-        "markerWidth='1' markerHeight='1'\n"
-        "orient='auto'>\n"
-        "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-        options.segmentAtZeroDistanceColor <<
-        "'/>\n"
-        "</marker>\n"
-        "</defs>\n";
 
 
 
@@ -375,16 +363,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
         string color = options.segmentColor;
-        if(distance == 0) {
-            color = options.segmentAtZeroDistanceColor;
-        } else if(distance == maxDistance) {
+        if(distance == maxDistance) {
             color = options.segmentAtMaxDistanceColor;
         }
 
         string markerName;
-        if(distance == 0) {
-            markerName = "arrowHeadAtZeroDistance";
-        } else if(distance == maxDistance){
+        if(distance == maxDistance){
             markerName = "arrowHeadAtMaxDistance";
         } else {
             markerName = "arrowHead";
