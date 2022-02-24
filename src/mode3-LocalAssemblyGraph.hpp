@@ -93,7 +93,7 @@ public:
         // The display thickness of a link is computed as
         // minimumLinkThickness + (n-1) * additionalSegmentLengthPerMarker
         // where n is the path length of the segment, in markers.
-        double minimumLinkThickness = 0.02;
+        double minimumLinkThickness = 0.05;
         double additionalLinkThicknessPerRead = 0.005;
 
 
@@ -103,7 +103,6 @@ public:
         string segmentAtZeroDistanceColor = "LightGreen";
         string segmentAtMaxDistanceColor = "Cyan";
         string linkColor = "Black";
-        string nonConsecutiveLinkColor = "Gray";
 
         // Construct the options from an html request.
         SvgOptions(const vector<string>& request);

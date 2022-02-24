@@ -297,6 +297,11 @@ void mode3::LocalAssemblyGraph::writeSvg(
             min(options.segmentThickness,
             options.minimumLinkThickness +  options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1));
 
+        const string dash =
+            areConsecutivePaths ? "" :
+            " stroke-dasharray='0 " + to_string(1.5 * linkThickness) + "'";
+
+
         svg <<
             "<g><title>"
             "Link " << linkId <<
@@ -305,7 +310,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", coverage " << assemblyGraph.linkCoverage(linkId) <<
             "</title>"
             "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
-            " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'"
+            // " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'" <<
+            " stroke='" << options.linkColor << "'" <<
+            dash <<
             " stroke-width='" << linkThickness << "'"
             " stroke-linecap='round'"
             " fill='transparent'"
