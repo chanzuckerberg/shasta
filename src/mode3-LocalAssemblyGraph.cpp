@@ -7,6 +7,7 @@
 #include "computeLayout.hpp"
 #include "HttpServer.hpp"
 #include "MarkerGraph.hpp"
+#include "MurmurHash2.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
 using namespace mode3;
@@ -337,10 +338,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
         const auto& p2 = positionMap[auxiliaryVertices.back()];
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
-        string color = options.segmentColor;
-        if(distance == maxDistance) {
-            color = options.segmentAtMaxDistanceColor;
-        }
+        const string color =
+            (distance == maxDistance) ?
+            options.segmentAtMaxDistanceColor :
+            segmentColor(segmentId);
 
         // Create a marker to show the arrow for this segment.
         const string arrowMarkerName = "arrow" + to_string(segmentId);
@@ -383,6 +384,15 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
     // End the svg.
     svg << "</svg>\n";
+}
+
+
+
+// Return the svg color for a segment.
+string LocalAssemblyGraph::segmentColor(uint64_t segmentId)
+{
+    const uint32_t hue = MurmurHash2(&segmentId, sizeof(segmentId), 231) % 360;
+    return "hsl(" + to_string(hue) + ",50%,50%)";
 }
 
 

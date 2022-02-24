@@ -59,7 +59,7 @@ public:
 
 
 
-     class SvgOptions {
+    class SvgOptions {
     public:
 
         double pixelsPerUnitLength = 20.;
@@ -99,7 +99,6 @@ public:
 
 
         // Colors.
-        string segmentColor = "Green";
         string segmentAtMaxDistanceColor = "LightGray";
         string linkColor = "Black";
 
@@ -111,6 +110,9 @@ public:
     };
     void writeSvg(const string& fileName, const SvgOptions&) const;
     void writeSvg(ostream&, const SvgOptions&) const;
+
+    // Return the svg color for a segment.
+    static string segmentColor(uint64_t segmentId);
 
 
 
