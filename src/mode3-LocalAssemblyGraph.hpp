@@ -3,12 +3,19 @@
 
 #include "mode3.hpp"
 
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/algorithms/distance.hpp>
+#include <boost/geometry/arithmetic/arithmetic.hpp>
+
+
 namespace shasta {
     namespace mode3 {
 
         class LocalAssemblyGraph;
         class LocalAssemblyGraphEdge;
         class LocalAssemblyGraphVertex;
+
+        using Point = boost::geometry::model::d2::point_xy<double>;
     }
 
 }
@@ -26,11 +33,11 @@ public:
 
     // The positions of the auxiliary graph vertices corresponding
     // to this segment.
-    vector< array<double, 2> > position;
+    vector<Point> position;
 
-    // Control points used ot display the segment as a cublic spline.
-    array<double, 2> q1;
-    array<double, 2> q2;
+    // Control points used to display the segment as a cubic spline.
+    Point q1;
+    Point q2;
 };
 
 

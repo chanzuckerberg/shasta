@@ -13,6 +13,7 @@ using namespace shasta;
 using namespace mode3;
 
 // Boost libraries.
+#include <boost/geometry/algorithms/make.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/fruchterman_reingold.hpp>
@@ -163,47 +164,52 @@ void mode3::LocalAssemblyGraph::writeSvg(
 {
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
+    using boost::geometry::add_point;
+    using boost::geometry::expand;
+    using boost::geometry::make_inverse;
+    using boost::geometry::multiply_value;
+    using boost::geometry::subtract_point;
+    using Box = boost::geometry::model::box<Point>;
+
     // Compute the view box.
-    double xMin = std::numeric_limits<double>::max();
-    double xMax = std::numeric_limits<double>::min();
-    double yMin = std::numeric_limits<double>::max();
-    double yMax = std::numeric_limits<double>::min();
+    Box box = make_inverse<Box>();
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const LocalAssemblyGraphVertex& vertex = localAssemblyGraph[v];
         SHASTA_ASSERT(vertex.position.size() >= 2);
-        const array<double, 2>& p1 = vertex.position.front();
-        const array<double, 2>& p2 = vertex.position.back();
+        const Point& p1 = vertex.position.front();
+        const Point& p2 = vertex.position.back();
 
-        // Update the view box to include these end points.
-        xMin = min(xMin, p1[0]);
-        xMax = max(xMax, p1[0]);
-        yMin = min(yMin, p1[1]);
-        yMax = max(yMax, p1[1]);
-        xMin = min(xMin, p2[0]);
-        xMax = max(xMax, p2[0]);
-        yMin = min(yMin, p2[1]);
-        yMax = max(yMax, p2[1]);
+        expand(box, p1);
+        expand(box, p2);
     }
+    Point minCorner = box.min_corner();
+    Point maxCorner = box.max_corner();
+
     // Add a bit of extra space.
-    const double dx = 0.05 * max(xMax-xMin, yMax-yMin);
-    const double dy = 0.05 * max(xMax-xMin, yMax-yMin);
-    xMin -= dx;
-    xMax += dx;
-    yMin -= dy;
-    yMax += dy;
+    Point delta = maxCorner;
+    subtract_point(delta, minCorner);
+    multiply_value(delta, 0.05);
+    subtract_point(minCorner, delta);
+    add_point(maxCorner, delta);
+
+
 
     // Figure out the required size of the svg.
-    const uint64_t svgSizeX = uint64_t(std::round(options.pixelsPerUnitLength * (xMax - xMin)));
-    const uint64_t svgSizeY = uint64_t(std::round(options.pixelsPerUnitLength * (yMax - yMin)));
+    Point diagonal = maxCorner;
+    subtract_point(diagonal, minCorner);
+    Point scaledDiagonal = diagonal;
+    multiply_value(scaledDiagonal, options.pixelsPerUnitLength);
+    const uint64_t svgSizeX = uint64_t(std::round(scaledDiagonal.x()));
+    const uint64_t svgSizeY = uint64_t(std::round(scaledDiagonal.y()));
 
     // Begin the svg.
     const string svgId = "LocalAssemblyGraph";
     svg << "\n<svg id='" << svgId <<
         "' width='" <<  svgSizeX <<
         "' height='" << svgSizeY <<
-        "' viewbox='" << xMin << " " << yMin << " " <<
-        max(xMax-xMin, yMax-yMin) << " " <<
-        max(xMax-xMin, yMax-yMin) <<
+        "' viewbox='" << minCorner.x() << " " << minCorner.y() << " " <<
+        diagonal.x() << " " <<
+        diagonal.y() <<
         "'>\n";
 
 
@@ -227,8 +233,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
         // Get the positions of the ends of this link.
         SHASTA_ASSERT(vertex1.position.size() >= 2);
         SHASTA_ASSERT(vertex2.position.size() >= 2);
-        const array<double, 2>& p1 = vertex1.position.back();
-        const array<double, 2>& p2 = vertex2.position.front();
+        const Point& p1 = vertex1.position.back();
+        const Point& p2 = vertex2.position.front();
 
         const double linkThickness =
             min(options.segmentThickness,
@@ -246,7 +252,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " to segment " << segmentId2 <<
             ", coverage " << assemblyGraph.linkCoverage(linkId) <<
             "</title>"
-            "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
+            "<path d='M " << p1.x() << " " << p1.y() << " L " << p2.x() << " " << p2.y() << "'"
             // " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'" <<
             " stroke='" << options.linkColor << "'" <<
             dash <<
@@ -269,10 +275,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
         // Get the positions of the ends of this segment.
         SHASTA_ASSERT(vertex.position.size() >= 2);
-        const array<double, 2>& p1 = vertex.position.front();
-        const array<double, 2>& p2 = vertex.position.back();
-        const array<double, 2>& q1 = vertex.q1;
-        const array<double, 2>& q2 = vertex.q2;
+        const Point& p1 = vertex.position.front();
+        const Point& p2 = vertex.position.back();
+        const Point& q1 = vertex.q1;
+        const Point& q2 = vertex.q2;
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
         const string color =
@@ -297,6 +303,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             "</defs>\n";
 
         // Add this segment to the svg.
+        // Draw it as a cubic.
         svg <<
             "<g><title>"
             "Segment " << segmentId <<
@@ -304,20 +311,14 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", distance " << distance <<
             "</title>"
             "<path id='Segment-" << segmentId <<
-            // Straight line.
-            // "' d='M " <<
-            // p1[0] << " " << p1[1] << " L " <<
-            // p2[0] << " " << p2[1] << "'" <<
-            // Cubic using the control points.
             "' d='M " <<
-            p1[0] << " " << p1[1] << " C " <<
-            q1[0] << " " << q1[1] << ", " <<
-            q2[0] << " " << q2[1] << ", " <<
-            p2[0] << " " << p2[1] << "'" <<
+            p1.x() << " " << p1.y() << " C " <<
+            q1.x() << " " << q1.y() << ", " <<
+            q2.x() << " " << q2.y() << ", " <<
+            p2.x() << " " << p2.y() << "'" <<
             " stroke='" << color << "'"
             " stroke-width='" <<  options.segmentThickness << "'"
             " fill='transparent'"
-            // " vector-effect='non-scaling-stroke'"
             " marker-end='url(#" <<
             arrowMarkerName <<
             ")'"
@@ -421,7 +422,8 @@ void mode3::LocalAssemblyGraph::computeLayout(
         for(const G::vertex_descriptor u: auxiliaryVertices) {
             auto jt = positionMap.find(u);
             SHASTA_ASSERT(jt != positionMap.end());
-            vertex.position.push_back(jt->second);
+            const array<double, 2>& p = jt->second;
+            vertex.position.push_back(Point(p[0], p[1]));
         }
     }
 }
@@ -444,12 +446,12 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     LocalAssemblyGraph& localAssemblyGraph = *this;
     LocalAssemblyGraphVertex& vertex0 = localAssemblyGraph[v0];
     SHASTA_ASSERT(vertex0.position.size() >= 2);
-    const array<double, 2> vertex0Start = vertex0.position.front();
-    const array<double, 2> vertex0End = vertex0.position.back();
+    const Point& vertex0Start = vertex0.position.front();
+    const Point& vertex0End = vertex0.position.back();
 
     // Compute the "length" of this segment.
-    const double dx0 = vertex0End[0] - vertex0Start[0];
-    const double dy0 = vertex0End[1] - vertex0Start[1];
+    const double dx0 = vertex0End.x() - vertex0Start.x();
+    const double dy0 = vertex0End.y() - vertex0Start.y();
     const double d0 = sqrt(dx0 * dx0 + dy0 *dy0);
 
     // The distance of the control points from the ends of the segment.
@@ -465,10 +467,10 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
         const vertex_descriptor v1 = source(e, localAssemblyGraph);
         LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
         SHASTA_ASSERT(vertex1.position.size() >= 2);
-        const array<double, 2> vertex1Start = vertex1.position.front();
+        const Point& vertex1Start = vertex1.position.front();
 
-        const double dx = vertex1Start[0] - vertex0End[0];
-        const double dy = vertex1Start[1] - vertex0End[1];
+        const double dx = vertex1Start.x() - vertex0End.x();
+        const double dy = vertex1Start.y() - vertex0End.y();
         const double d = sqrt(dx * dx + dy * dy);
         if(d == 0.) {
             continue;
@@ -481,12 +483,18 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     }
     // Compute the average,normalized direction.
     double dLength = sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+    if(dLength == 0.) {
+        direction[0] = vertex0Start.x() - vertex0End.x();
+        direction[1] = vertex0Start.y() - vertex0End.y();
+        dLength = sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+    }
     direction[0] /= dLength;
     direction[1] /= dLength;
 
     // The first control point is in the opposite direction.
-    vertex0.q1[0] = vertex0Start[0] - dq * direction[0];
-    vertex0.q1[1] = vertex0Start[1] - dq * direction[1];
+    vertex0.q1.x(vertex0Start.x() - dq * direction[0]);
+    vertex0.q1.y(vertex0Start.y() - dq * direction[1]);
+    cout << "q1 " << vertex0.q1.x() << " " << vertex0.q1.y() << endl;
 
 
 
@@ -498,10 +506,10 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
         const vertex_descriptor v1 = target(e, localAssemblyGraph);
         LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
         SHASTA_ASSERT(vertex1.position.size() >= 2);
-        const array<double, 2> vertex1Start = vertex1.position.front();
+        const Point& vertex1Start = vertex1.position.front();
 
-        const double dx = vertex1Start[0] - vertex0End[0];
-        const double dy = vertex1Start[1] - vertex0End[1];
+        const double dx = vertex1Start.x() - vertex0End.x();
+        const double dy = vertex1Start.y() - vertex0End.y();
         const double d = sqrt(dx * dx + dy * dy);
         if(d == 0.) {
             continue;
@@ -514,12 +522,17 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     }
     // Compute the average,normalized direction.
     dLength = sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+    if(dLength == 0.) {
+        direction[0] = vertex0End.x() - vertex0Start.x();
+        direction[1] = vertex0End.y() - vertex0Start.y();
+        dLength = sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+    }
     direction[0] /= dLength;
     direction[1] /= dLength;
 
     // The second control point is in the oppotite direction.
-    vertex0.q2[0] = vertex0End[0] - dq * direction[0];
-    vertex0.q2[1] = vertex0End[1] - dq * direction[1];
+    vertex0.q2.x(vertex0End.x() - dq * direction[0]);
+    vertex0.q2.y(vertex0End.y() - dq * direction[1]);
 }
 
 
