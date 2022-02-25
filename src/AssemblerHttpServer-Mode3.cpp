@@ -58,6 +58,17 @@ void Assembler::exploreMode3AssemblyGraph(
 
     html << "<h1>Local assembly graph near segment " << startSegmentId << "</h1></p>";
 
+    // Create the local assembly graph.
+    mode3::LocalAssemblyGraph localAssemblyGraph(
+        markerGraph,
+        *assemblyGraph3Pointer,
+        startSegmentId, maxDistance);
+    localAssemblyGraph.computeLayout(options);
+    localAssemblyGraph.computeControlPoints();
+    html << "<p>The local assembly graph has " <<
+        num_vertices(localAssemblyGraph) << " segments and " <<
+        num_edges(localAssemblyGraph) << " links.";
+
     // Allow manually highlighting selected vertices.
     html << R"stringDelimiter(
         <script>
@@ -82,13 +93,7 @@ void Assembler::exploreMode3AssemblyGraph(
         <p>
         )stringDelimiter";
 
-    // Create the local assembly graph and write it to html in svg format.
-    mode3::LocalAssemblyGraph localAssemblyGraph(
-        markerGraph,
-        *assemblyGraph3Pointer,
-        startSegmentId, maxDistance);
-    localAssemblyGraph.computeLayout(options);
-    localAssemblyGraph.computeControlPoints();
+    // Display the local assembly graph.
     localAssemblyGraph.writeSvg(html, options);
 
 

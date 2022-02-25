@@ -494,7 +494,6 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     // The first control point is in the opposite direction.
     vertex0.q1.x(vertex0Start.x() - dq * direction[0]);
     vertex0.q1.y(vertex0Start.y() - dq * direction[1]);
-    cout << "q1 " << vertex0.q1.x() << " " << vertex0.q1.y() << endl;
 
 
 
