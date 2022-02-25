@@ -19,11 +19,14 @@ class shasta::mode3::LocalAssemblyGraphVertex {
 public:
     uint64_t segmentId;
     uint64_t distance;  // From the start vertex.
-    array<double, 2> position;
     LocalAssemblyGraphVertex(
         uint64_t segmentId,
         uint64_t distance);
     LocalAssemblyGraphVertex();
+
+    // The positions of the auxiliary graph vertices corresponding
+    // to this segment.
+    vector< array<double, 2> > position;
 };
 
 
@@ -110,6 +113,7 @@ public:
     };
     void writeSvg(const string& fileName, const SvgOptions&) const;
     void writeSvg(ostream&, const SvgOptions&) const;
+    void computeLayout(const SvgOptions&);
 
     // Return the svg color for a segment.
     static string segmentColor(uint64_t segmentId);

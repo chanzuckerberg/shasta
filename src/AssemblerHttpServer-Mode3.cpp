@@ -86,6 +86,7 @@ void Assembler::exploreMode3AssemblyGraph(
         markerGraph,
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
+    localAssemblyGraph.computeLayout(options);
     localAssemblyGraph.writeSvg(html, options);
 
 

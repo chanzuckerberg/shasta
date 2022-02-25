@@ -162,7 +162,171 @@ void mode3::LocalAssemblyGraph::writeSvg(
     const SvgOptions& options) const
 {
     const LocalAssemblyGraph& localAssemblyGraph = *this;
+
+    // Compute the view box.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::min();
+    BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+        const LocalAssemblyGraphVertex& vertex = localAssemblyGraph[v];
+        SHASTA_ASSERT(vertex.position.size() >= 2);
+        const array<double, 2>& p1 = vertex.position.front();
+        const array<double, 2>& p2 = vertex.position.back();
+
+        // Update the view box to include these end points.
+        xMin = min(xMin, p1[0]);
+        xMax = max(xMax, p1[0]);
+        yMin = min(yMin, p1[1]);
+        yMax = max(yMax, p1[1]);
+        xMin = min(xMin, p2[0]);
+        xMax = max(xMax, p2[0]);
+        yMin = min(yMin, p2[1]);
+        yMax = max(yMax, p2[1]);
+    }
+    // Add a bit of extra space.
+    const double dx = 0.05 * max(xMax-xMin, yMax-yMin);
+    const double dy = 0.05 * max(xMax-xMin, yMax-yMin);
+    xMin -= dx;
+    xMax += dx;
+    yMin -= dy;
+    yMax += dy;
+
+    // Figure out the required size of the svg.
+    const uint64_t svgSizeX = uint64_t(std::round(options.pixelsPerUnitLength * (xMax - xMin)));
+    const uint64_t svgSizeY = uint64_t(std::round(options.pixelsPerUnitLength * (yMax - yMin)));
+
+    // Begin the svg.
     const string svgId = "LocalAssemblyGraph";
+    svg << "\n<svg id='" << svgId <<
+        "' width='" <<  svgSizeX <<
+        "' height='" << svgSizeY <<
+        "' viewbox='" << xMin << " " << yMin << " " <<
+        max(xMax-xMin, yMax-yMin) << " " <<
+        max(xMax-xMin, yMax-yMin) <<
+        "'>\n";
+
+
+
+    // Write the links first, so they don't overwrite the segments.
+    svg << "<g id='" << svgId << "-links'>\n";
+    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
+        const uint64_t linkId = localAssemblyGraph[e].linkId;
+
+        // Access the LocalAssemblyGraph vertices corresponding to
+        // the two segments of this Link and extract some information
+        // from them.
+        const vertex_descriptor v1 = source(e, localAssemblyGraph);
+        const vertex_descriptor v2 = target(e, localAssemblyGraph);
+        const LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
+        const LocalAssemblyGraphVertex& vertex2 = localAssemblyGraph[v2];
+        const uint64_t segmentId1 = vertex1.segmentId;
+        const uint64_t segmentId2 = vertex2.segmentId;
+        const bool areConsecutivePaths = haveConsecutivePaths(v1, v2);
+
+        // Get the positions of the ends of this link.
+        SHASTA_ASSERT(vertex1.position.size() >= 2);
+        SHASTA_ASSERT(vertex2.position.size() >= 2);
+        const array<double, 2>& p1 = vertex1.position.back();
+        const array<double, 2>& p2 = vertex2.position.front();
+
+        const double linkThickness =
+            min(options.segmentThickness,
+            options.minimumLinkThickness +  options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1));
+
+        const string dash =
+            areConsecutivePaths ? "" :
+            " stroke-dasharray='0 " + to_string(1.5 * linkThickness) + "'";
+
+
+        svg <<
+            "<g><title>"
+            "Link " << linkId <<
+            " from segment " << segmentId1 <<
+            " to segment " << segmentId2 <<
+            ", coverage " << assemblyGraph.linkCoverage(linkId) <<
+            "</title>"
+            "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
+            // " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'" <<
+            " stroke='" << options.linkColor << "'" <<
+            dash <<
+            " stroke-width='" << linkThickness << "'"
+            " stroke-linecap='round'"
+            " fill='transparent'"
+            // " vector-effect='non-scaling-stroke'"
+            "/></g>\n";
+
+    }
+    svg << "</g>\n";
+
+
+
+    // Write the segments.
+    svg << "<g id='" << svgId << "-segments'>\n";
+    BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+        const LocalAssemblyGraphVertex& vertex = localAssemblyGraph[v];
+        const uint64_t distance = localAssemblyGraph[v].distance;
+
+        // Get the positions of the ends of this segment.
+        SHASTA_ASSERT(vertex.position.size() >= 2);
+        const array<double, 2>& p1 = vertex.position.front();
+        const array<double, 2>& p2 = vertex.position.back();
+
+        const uint64_t segmentId = localAssemblyGraph[v].segmentId;
+        const string color =
+            (distance == maxDistance) ?
+            options.segmentAtMaxDistanceColor :
+            segmentColor(segmentId);
+
+        // Create a marker to show the arrow for this segment.
+        const string arrowMarkerName = "arrow" + to_string(segmentId);
+        svg <<
+            "<defs>\n"
+            "<marker id='" << arrowMarkerName <<
+            "' viewBox='0 0 1 1'\n"
+            "refX='0.5' refY='0.5'\n"
+            "markerUnits='strokeWidth'\n"
+            "markerWidth='1' markerHeight='1'\n"
+            "orient='auto'>\n"
+            "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
+            color <<
+            "'/>\n"
+            "</marker>\n"
+            "</defs>\n";
+
+        // Add this segment to the svg.
+        svg <<
+            "<g><title>"
+            "Segment " << segmentId <<
+            ", path length " << assemblyGraph.paths.size(segmentId) <<
+            ", distance " << distance <<
+            "</title>"
+            "<path id='Segment-" << segmentId << "' d='M " <<
+            p1[0] << " " << p1[1] << " L " <<
+            p2[0] << " " << p2[1] << "'" <<
+            " stroke='" << color << "'"
+            " stroke-width='" <<  options.segmentThickness << "'"
+            " fill='transparent'"
+            // " vector-effect='non-scaling-stroke'"
+            " marker-end='url(#" <<
+            arrowMarkerName <<
+            ")'"
+            "/></g>\n";
+    }
+    svg << "</g>\n";
+
+
+
+    // End the svg.
+    svg << "</svg>\n";
+}
+
+
+
+void mode3::LocalAssemblyGraph::computeLayout(
+    const SvgOptions& options)
+{
+    LocalAssemblyGraph& localAssemblyGraph = *this;
 
 
     // Create an auxiliary graph with two vertices for each segment.
@@ -233,157 +397,23 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
 
 
-    // Compute the view box.
-    double xMin = std::numeric_limits<double>::max();
-    double xMax = std::numeric_limits<double>::min();
-    double yMin = std::numeric_limits<double>::max();
-    double yMax = std::numeric_limits<double>::min();
-    BGL_FORALL_VERTICES_T(u, g, G) {
-        const auto& position = positionMap[u];
-
-        // Update the view box to include this vertex.
-        xMin = min(xMin, position[0]);
-        xMax = max(xMax, position[0]);
-        yMin = min(yMin, position[1]);
-        yMax = max(yMax, position[1]);
-    }
-    // Add a bit of extra space.
-    const double dx = 0.05 * max(xMax-xMin, yMax-yMin);
-    const double dy = 0.05 * max(xMax-xMin, yMax-yMin);
-    xMin -= dx;
-    xMax += dx;
-    yMin -= dy;
-    yMax += dy;
-
-    // Figure out the required size of the svg.
-    const uint64_t svgSizeX = uint64_t(std::round(options.pixelsPerUnitLength * (xMax - xMin)));
-    const uint64_t svgSizeY = uint64_t(std::round(options.pixelsPerUnitLength * (yMax - yMin)));
-
-    // Begin the svg.
-    svg << "\n<svg id='" << svgId <<
-        "' width='" <<  svgSizeX <<
-        "' height='" << svgSizeY <<
-        "' viewbox='" << xMin << " " << yMin << " " <<
-        max(xMax-xMin, yMax-yMin) << " " <<
-        max(xMax-xMin, yMax-yMin) <<
-        "'>\n";
-
-
-
-    // Write the links first, so they don't overwrite the segments.
-    svg << "<g id='" << svgId << "-links'>\n";
-    BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
-        const uint64_t linkId = localAssemblyGraph[e].linkId;
-
-        // Access the LocalAssemblyGraph vertices corresponding to
-        // the two segments of this Link and extract some information
-        // from them.
-        const vertex_descriptor v1 = source(e, localAssemblyGraph);
-        const vertex_descriptor v2 = target(e, localAssemblyGraph);
-        const LocalAssemblyGraphVertex& vertex1 = localAssemblyGraph[v1];
-        const LocalAssemblyGraphVertex& vertex2 = localAssemblyGraph[v2];
-        const uint64_t segmentId1 = vertex1.segmentId;
-        const uint64_t segmentId2 = vertex2.segmentId;
-        const bool areConsecutivePaths = haveConsecutivePaths(v1, v2);
-
-        // Get the vectors of auxiliary graph vertices for each of them.
-        // These have size at least 2.
-        const array<G::vertex_descriptor, 2>& V1 = vertexMap[v1];
-        const array<G::vertex_descriptor, 2>& V2 = vertexMap[v2];
-
-        // Access the terminal vertices.
-        const G::vertex_descriptor u1 = V1.back();
-        const G::vertex_descriptor u2 = V2.front();
-        const auto& p1 = positionMap[u1];
-        const auto& p2 = positionMap[u2];
-
-        const double linkThickness =
-            min(options.segmentThickness,
-            options.minimumLinkThickness +  options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1));
-
-        const string dash =
-            areConsecutivePaths ? "" :
-            " stroke-dasharray='0 " + to_string(1.5 * linkThickness) + "'";
-
-
-        svg <<
-            "<g><title>"
-            "Link " << linkId <<
-            " from segment " << segmentId1 <<
-            " to segment " << segmentId2 <<
-            ", coverage " << assemblyGraph.linkCoverage(linkId) <<
-            "</title>"
-            "<path d='M " << p1[0] << " " << p1[1] << " L " << p2[0] << " " << p2[1] << "'"
-            // " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'" <<
-            " stroke='" << options.linkColor << "'" <<
-            dash <<
-            " stroke-width='" << linkThickness << "'"
-            " stroke-linecap='round'"
-            " fill='transparent'"
-            // " vector-effect='non-scaling-stroke'"
-            "/></g>\n";
-
-    }
-    svg << "</g>\n";
-
-
-
-    // Write the segments.
-    svg << "<g id='" << svgId << "-segments'>\n";
+    // Store the layout in the vertices of the localAssemblyGraph.
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
-        const array<G::vertex_descriptor, 2>& auxiliaryVertices = vertexMap[v];
-        const uint64_t distance = localAssemblyGraph[v].distance;
+        LocalAssemblyGraphVertex& vertex = localAssemblyGraph[v];
+        vertex.position.clear();
 
-        const auto& p1 = positionMap[auxiliaryVertices.front()];
-        const auto& p2 = positionMap[auxiliaryVertices.back()];
+        // Locate the auxiliary vertices corresponding to this segment.
+        auto it = vertexMap.find(v);
+        SHASTA_ASSERT(it != vertexMap.end());
+        const array<G::vertex_descriptor, 2>& auxiliaryVertices = it->second;
 
-        const uint64_t segmentId = localAssemblyGraph[v].segmentId;
-        const string color =
-            (distance == maxDistance) ?
-            options.segmentAtMaxDistanceColor :
-            segmentColor(segmentId);
-
-        // Create a marker to show the arrow for this segment.
-        const string arrowMarkerName = "arrow" + to_string(segmentId);
-        svg <<
-            "<defs>\n"
-            "<marker id='" << arrowMarkerName <<
-            "' viewBox='0 0 1 1'\n"
-            "refX='0.5' refY='0.5'\n"
-            "markerUnits='strokeWidth'\n"
-            "markerWidth='1' markerHeight='1'\n"
-            "orient='auto'>\n"
-            "<path d='M 0 0 L 0.5 0 L 1 0.5 L .5 1 L 0 1 z' fill='" <<
-            color <<
-            "'/>\n"
-            "</marker>\n"
-            "</defs>\n";
-
-        // Add this segment to the svg.
-        svg <<
-            "<g><title>"
-            "Segment " << segmentId <<
-            ", path length " << assemblyGraph.paths.size(segmentId) <<
-            ", distance " << distance <<
-            "</title>"
-            "<path id='Segment-" << segmentId << "' d='M " <<
-            p1[0] << " " << p1[1] << " L " <<
-            p2[0] << " " << p2[1] << "'" <<
-            " stroke='" << color << "'"
-            " stroke-width='" <<  options.segmentThickness << "'"
-            " fill='transparent'"
-            // " vector-effect='non-scaling-stroke'"
-            " marker-end='url(#" <<
-            arrowMarkerName <<
-            ")'"
-            "/></g>\n";
+        // Loop over the auxiliary vertices.
+        for(const G::vertex_descriptor u: auxiliaryVertices) {
+            auto jt = positionMap.find(u);
+            SHASTA_ASSERT(jt != positionMap.end());
+            vertex.position.push_back(jt->second);
+        }
     }
-    svg << "</g>\n";
-
-
-
-    // End the svg.
-    svg << "</svg>\n";
 }
 
 
