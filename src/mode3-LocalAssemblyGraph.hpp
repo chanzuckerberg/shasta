@@ -27,6 +27,10 @@ public:
     // The positions of the auxiliary graph vertices corresponding
     // to this segment.
     vector< array<double, 2> > position;
+
+    // Control points used ot display the segment as a cublic spline.
+    array<double, 2> q1;
+    array<double, 2> q2;
 };
 
 
@@ -114,6 +118,8 @@ public:
     void writeSvg(const string& fileName, const SvgOptions&) const;
     void writeSvg(ostream&, const SvgOptions&) const;
     void computeLayout(const SvgOptions&);
+    void computeControlPoints();
+    void computeControlPoints(vertex_descriptor);
 
     // Return the svg color for a segment.
     static string segmentColor(uint64_t segmentId);

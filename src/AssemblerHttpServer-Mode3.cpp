@@ -88,6 +88,7 @@ void Assembler::exploreMode3AssemblyGraph(
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
     localAssemblyGraph.computeLayout(options);
+    localAssemblyGraph.computeControlPoints();
     localAssemblyGraph.writeSvg(html, options);
 
 
