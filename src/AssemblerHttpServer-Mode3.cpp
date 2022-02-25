@@ -68,10 +68,11 @@ void Assembler::exploreMode3AssemblyGraph(
             segmentId = inputField.value;
             inputField.value = "";
 
-            // Make it dashed.
+            // Make it dashed and wider.
             var element = document.getElementById("Segment-" + segmentId);
             var thickness = element.getAttribute("stroke-width");
             element.style.strokeDasharray = 0.2 * thickness;
+            element.setAttribute("stroke-width", 2. * thickness);
         }
         </script>
         <p>
