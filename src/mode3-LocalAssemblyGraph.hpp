@@ -127,7 +127,7 @@ public:
     };
     void writeSvg(const string& fileName, const SvgOptions&) const;
     void writeSvg(ostream&, const SvgOptions&) const;
-    void computeLayout(const SvgOptions&);
+    void computeLayout(const SvgOptions&, double timeout);
     void computeSegmentTangents();
     void computeSegmentTangents(vertex_descriptor);
 

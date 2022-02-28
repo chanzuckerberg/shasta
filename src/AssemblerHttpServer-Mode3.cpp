@@ -22,6 +22,9 @@ void Assembler::exploreMode3AssemblyGraph(
     uint64_t startSegmentId;
     const bool startSegmentIdIsPresent = getParameterValue(request, "startSegmentId", startSegmentId);
 
+    double timeout = 30.;
+    getParameterValue(request, "timeout", timeout);
+
 
 
     // Write the form.
@@ -40,6 +43,12 @@ void Assembler::exploreMode3AssemblyGraph(
         "<td>Maximum distance in the assembly graph (edges)"
         "<td class=centered><input type=text name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
+        "'>"
+
+        "<tr>"
+        "<td>Timeout for graph layout (seconds)"
+        "<td class=centered><input type=text name=timeout size=8 style='text-align:center'"
+        " value='" << timeout <<
         "'>";
 
     options.addFormRows(html);
@@ -63,7 +72,7 @@ void Assembler::exploreMode3AssemblyGraph(
         markerGraph,
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
-    localAssemblyGraph.computeLayout(options);
+    localAssemblyGraph.computeLayout(options, timeout);
     localAssemblyGraph.computeSegmentTangents();
     html << "<p>The local assembly graph has " <<
         num_vertices(localAssemblyGraph) << " segments and " <<

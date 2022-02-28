@@ -360,7 +360,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
 
 void mode3::LocalAssemblyGraph::computeLayout(
-    const SvgOptions& options)
+    const SvgOptions& options,
+    double timeout)
 {
     LocalAssemblyGraph& localAssemblyGraph = *this;
 
@@ -417,18 +418,20 @@ void mode3::LocalAssemblyGraph::computeLayout(
 
     // Compute the layout of the auxiliary graph.
     std::map<G::vertex_descriptor, array<double, 2> > positionMap;
+    ComputeLayoutReturnCode returnCode = ComputeLayoutReturnCode::Success;
     if(options.layoutMethod == "neato") {
-        if(shasta::computeLayoutGraphviz(g, "neato", 30., positionMap, "", &edgeLengthMap) !=
-            ComputeLayoutReturnCode::Success) {
-            throw runtime_error("Graph layout failed.");
-        }
+        returnCode = shasta::computeLayoutGraphviz(g, "neato", timeout, positionMap, "", &edgeLengthMap);
     } else if(options.layoutMethod == "custom") {
-        if(shasta::computeLayoutCustom(g, edgeLengthMap, positionMap, 30.) !=
-            ComputeLayoutReturnCode::Success) {
-            throw runtime_error("Graph layout failed.");
-        }
+        returnCode = shasta::computeLayoutCustom(g, edgeLengthMap, positionMap, timeout);
     } else {
         throw runtime_error("Invalid layout method specified: " + options.layoutMethod);
+    }
+    if(returnCode == ComputeLayoutReturnCode::Timeout) {
+        throw runtime_error("Graph layout took too long. "
+            "Increase the timeout or decrease the maximum distance.");
+    }
+    if(returnCode != ComputeLayoutReturnCode::Success) {
+        throw runtime_error("Graph layout failed.");
     }
 
 
