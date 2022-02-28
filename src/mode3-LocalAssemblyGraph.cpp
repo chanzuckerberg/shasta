@@ -249,8 +249,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
         add_point(q2, p2);
 
         const double linkThickness =
-            min(options.segmentThickness,
-            options.minimumLinkThickness +  options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1));
+            options.minimumLinkThickness +
+            options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1);
 
         const string dash =
             areConsecutivePaths ? "" :
@@ -354,7 +354,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
             q2.x() << " " << q2.y() << ", " <<
             p2.x() << " " << p2.y() << "'" <<
             " stroke='" << color << "'"
-            " stroke-width='" <<  options.segmentThickness << "'"
+            " stroke-width='" <<
+            options.minimumSegmentThickness + averageEdgeCoverage * options.additionalSegmentThicknessPerUnitCoverage << "'"
             " fill='none'"
             " marker-end='url(#" <<
             arrowMarkerName <<
@@ -639,7 +640,8 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     // Segment length and thickness.
     HttpServer::getParameterValue(request, "minimumSegmentLength", minimumSegmentLength);
     HttpServer::getParameterValue(request, "additionalSegmentLengthPerMarker", additionalSegmentLengthPerMarker);
-    HttpServer::getParameterValue(request, "segmentThickness", segmentThickness);
+    HttpServer::getParameterValue(request, "minimumSegmentThickness", minimumSegmentThickness);
+    HttpServer::getParameterValue(request, "additionalSegmentThicknessPerUnitCoverage", additionalSegmentThicknessPerUnitCoverage);
 
     // Link length and thickness.
     HttpServer::getParameterValue(request, "minimumLinkLength", minimumLinkLength);
@@ -683,9 +685,14 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<td><input type=text name=additionalSegmentLengthPerMarker size=8 style='text-align:center'"
         " value='" << additionalSegmentLengthPerMarker << "'>"
         "<tr>"
-        "<td class=left>Thickness"
-        "<td class=centered><input type=text name=segmentThickness size=8 style='text-align:center'"
-        " value='" << segmentThickness <<
+        "<td class=left>Minimum thickness"
+        "<td class=centered><input type=text name=minimumSegmentThickness size=8 style='text-align:center'"
+        " value='" << minimumSegmentThickness <<
+        "'>"
+        "<tr>"
+        "<td class=left>Additional thickness per unit coverage"
+        "<td class=centered><input type=text name=additionalSegmentThicknessPerUnitCoverage size=8 style='text-align:center'"
+        " value='" << additionalSegmentThicknessPerUnitCoverage <<
         "'>"
         "</table>"
 

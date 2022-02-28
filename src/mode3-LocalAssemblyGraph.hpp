@@ -92,7 +92,11 @@ public:
         double minimumSegmentLength = 1.;
         double additionalSegmentLengthPerMarker = 0.2;
 
-        double segmentThickness = 0.3;
+        // The thickness of a segment is computed as
+        // minimumSegmentThickness + coverage * additionalSegmentThicknessPerUnitCoverage
+        // where coverage is average marker graph edge coverage on the segment path.
+        double minimumSegmentThickness = 0.3;
+        double additionalSegmentThicknessPerUnitCoverage = 0.005;
 
 
 
