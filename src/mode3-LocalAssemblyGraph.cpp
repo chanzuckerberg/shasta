@@ -235,6 +235,18 @@ void mode3::LocalAssemblyGraph::writeSvg(
         SHASTA_ASSERT(vertex2.position.size() >= 2);
         const Point& p1 = vertex1.position.back();
         const Point& p2 = vertex2.position.front();
+        const double length = boost::geometry::distance(p1, p2);
+
+        // Get the tangents and compute the control points.
+        const double controlPointDistance = 0.25 * length;
+        const Point& t1 = vertex1.t2;
+        const Point& t2 = vertex2.t1;
+        Point q1 = t1;
+        multiply_value(q1, controlPointDistance);
+        add_point(q1, p1);
+        Point q2 = t2;
+        multiply_value(q2, controlPointDistance);
+        add_point(q2, p2);
 
         const double linkThickness =
             min(options.segmentThickness,
@@ -252,8 +264,11 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " to segment " << segmentId2 <<
             ", coverage " << assemblyGraph.linkCoverage(linkId) <<
             "</title>"
-            "<path d='M " << p1.x() << " " << p1.y() << " L " << p2.x() << " " << p2.y() << "'"
-            // " stroke='" << (areConsecutivePaths ?  options.linkColor : options.nonConsecutiveLinkColor ) << "'" <<
+            "<path d="
+            "'M " << p1.x() << " " << p1.y() <<
+            " C " << q1.x() << " " << q1.y() << ", "
+                  << q2.x() << " " << q2.y() << ","
+                  << p2.x() << " " << p2.y() << "'"
             " stroke='" << options.linkColor << "'" <<
             dash <<
             " stroke-width='" << linkThickness << "'"
@@ -277,8 +292,18 @@ void mode3::LocalAssemblyGraph::writeSvg(
         SHASTA_ASSERT(vertex.position.size() >= 2);
         const Point& p1 = vertex.position.front();
         const Point& p2 = vertex.position.back();
-        const Point& q1 = vertex.q1;
-        const Point& q2 = vertex.q2;
+        const double length = boost::geometry::distance(p1, p2);
+
+        // Get the tangents and compute the control points.
+        const double controlPointDistance = 0.25 * length;
+        const Point& t1 = vertex.t1;
+        const Point& t2 = vertex.t2;
+        Point q1 = t1;
+        multiply_value(q1, -controlPointDistance);
+        add_point(q1, p1);
+        Point q2 = t2;
+        multiply_value(q2, -controlPointDistance);
+        add_point(q2, p2);
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
         const string color =
@@ -430,18 +455,18 @@ void mode3::LocalAssemblyGraph::computeLayout(
 
 
 
-void LocalAssemblyGraph::computeControlPoints()
+void LocalAssemblyGraph::computeSegmentTangents()
 {
     LocalAssemblyGraph& localAssemblyGraph = *this;
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
-        computeControlPoints(v);
+        computeSegmentTangents(v);
     }
 }
 
 
 
 
-void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
+void LocalAssemblyGraph::computeSegmentTangents(vertex_descriptor v0)
 {
     LocalAssemblyGraph& localAssemblyGraph = *this;
     LocalAssemblyGraphVertex& vertex0 = localAssemblyGraph[v0];
@@ -449,18 +474,9 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     const Point& vertex0Start = vertex0.position.front();
     const Point& vertex0End = vertex0.position.back();
 
-    // Compute the "length" of this segment.
-    const double dx0 = vertex0End.x() - vertex0Start.x();
-    const double dy0 = vertex0End.y() - vertex0Start.y();
-    const double d0 = sqrt(dx0 * dx0 + dy0 *dy0);
-
-    // The distance of the control points from the ends of the segment.
-    const double dq = 0.25 * d0;
 
 
-
-    // To compute the first control point, q1,
-    // average the unit vectors of the backward links.
+    // To compute t1, average the unit vectors of the backward links.
     array<double, 2> direction = {0., 0.};
     uint64_t n = 0;
     BGL_FORALL_INEDGES(v0, e, localAssemblyGraph, LocalAssemblyGraph) {
@@ -491,9 +507,8 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     direction[0] /= dLength;
     direction[1] /= dLength;
 
-    // The first control point is in the opposite direction.
-    vertex0.q1.x(vertex0Start.x() - dq * direction[0]);
-    vertex0.q1.y(vertex0Start.y() - dq * direction[1]);
+    vertex0.t1.x(direction[0]);
+    vertex0.t1.y(direction[1]);
 
 
 
@@ -529,9 +544,8 @@ void LocalAssemblyGraph::computeControlPoints(vertex_descriptor v0)
     direction[0] /= dLength;
     direction[1] /= dLength;
 
-    // The second control point is in the oppotite direction.
-    vertex0.q2.x(vertex0End.x() - dq * direction[0]);
-    vertex0.q2.y(vertex0End.y() - dq * direction[1]);
+    vertex0.t2.x(direction[0]);
+    vertex0.t2.y(direction[1]);
 }
 
 

@@ -35,9 +35,12 @@ public:
     // to this segment.
     vector<Point> position;
 
-    // Control points used to display the segment as a cubic spline.
-    Point q1;
-    Point q2;
+    // Unit vectors for the outward pointing tangents at the two ends of the segment.
+    // The are computed as averages of the directions of the
+    // incoming/outgoing links.
+    // They are used to display the segment as a cubic spline.
+    Point t1;
+    Point t2;
 };
 
 
@@ -125,8 +128,8 @@ public:
     void writeSvg(const string& fileName, const SvgOptions&) const;
     void writeSvg(ostream&, const SvgOptions&) const;
     void computeLayout(const SvgOptions&);
-    void computeControlPoints();
-    void computeControlPoints(vertex_descriptor);
+    void computeSegmentTangents();
+    void computeSegmentTangents(vertex_descriptor);
 
     // Return the svg color for a segment.
     static string segmentColor(uint64_t segmentId);

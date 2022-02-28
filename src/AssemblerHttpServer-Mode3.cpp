@@ -64,7 +64,7 @@ void Assembler::exploreMode3AssemblyGraph(
         *assemblyGraph3Pointer,
         startSegmentId, maxDistance);
     localAssemblyGraph.computeLayout(options);
-    localAssemblyGraph.computeControlPoints();
+    localAssemblyGraph.computeSegmentTangents();
     html << "<p>The local assembly graph has " <<
         num_vertices(localAssemblyGraph) << " segments and " <<
         num_edges(localAssemblyGraph) << " links.";
