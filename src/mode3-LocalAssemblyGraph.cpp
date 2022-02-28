@@ -14,6 +14,7 @@ using namespace mode3;
 
 // Boost libraries.
 #include <boost/geometry/algorithms/make.hpp>
+#include <boost/geometry/algorithms/length.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/fruchterman_reingold.hpp>
@@ -348,10 +349,15 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", number of distinct oriented reads " << orientedReadIds.size() <<
             "</title>"
             "<path id='Segment-" << segmentId <<
+#if 0
             "' d='M " <<
             p1.x() << " " << p1.y() << " C " <<
             q1.x() << " " << q1.y() << ", " <<
             q2.x() << " " << q2.y() << ", " <<
+            p2.x() << " " << p2.y() << "'" <<
+#endif
+            "' d='M " <<
+            p1.x() << " " << p1.y() << " L " <<
             p2.x() << " " << p2.y() << "'" <<
             " stroke='" << color << "'"
             " stroke-width='" <<
@@ -492,6 +498,17 @@ void LocalAssemblyGraph::computeSegmentTangents(vertex_descriptor v0)
     const Point& vertex0Start = vertex0.position.front();
     const Point& vertex0End = vertex0.position.back();
 
+    Point t = vertex0End;
+    boost::geometry::subtract_point(t, vertex0Start);
+    const double length = sqrt(t.x() * t.x() + t.y() * t.y());
+    boost::geometry::multiply_value(t, 1. / length);
+    vertex0.t2 = t;
+    boost::geometry::multiply_value(t, -1.);
+    vertex0.t1 = t;
+
+
+#if 0
+    // This is used if we display segments as Bezier cubics.
 
 
     // To compute t1, average the unit vectors of the backward links.
@@ -564,6 +581,7 @@ void LocalAssemblyGraph::computeSegmentTangents(vertex_descriptor v0)
 
     vertex0.t2.x(direction[0]);
     vertex0.t2.y(direction[1]);
+#endif
 }
 
 
