@@ -98,6 +98,15 @@ public:
         double minimumSegmentThickness = 0.3;
         double additionalSegmentThicknessPerUnitCoverage = 0.005;
 
+        // Three choices for segmentColoring:
+        // - random: colors with random hue and fixed saturation, lightness.
+        // - uniform: all segments have the color specified by segmentColor.
+        // - byCommonReads: colored green to red based on common reads with
+        //   the segment specified by referenceSegmentId
+        string segmentColoring = "random";
+        string segmentColor = "Green";  // Only used if segmentColoring is "uniform"
+        uint64_t referenceSegmentId = 0;// Only used if segmentColoring is "byCommonReads"
+
 
 
         // Link length and thickness.
@@ -135,8 +144,8 @@ public:
     void computeSegmentTangents();
     void computeSegmentTangents(vertex_descriptor);
 
-    // Return the svg color for a segment.
-    static string segmentColor(uint64_t segmentId);
+    // Return the random svg color for a segment.
+    static string randomSegmentColor(uint64_t segmentId);
 
 
 

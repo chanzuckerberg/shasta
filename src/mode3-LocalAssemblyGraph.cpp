@@ -165,6 +165,43 @@ void mode3::LocalAssemblyGraph::writeSvg(
 {
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
+
+    // If coloring segments by number of common reads,
+    // compute the number of common oriented reads
+    // between each segment in the LocalAssemblyGraph and
+    // the reference segment.
+    std::map<vertex_descriptor, uint64_t> commonReadCount;
+    uint64_t maxCommonReadCount = 0;
+    if(options.segmentColoring == "byCommonReads") {
+
+        // Find oriented reads in the reference segment.
+        vector<OrientedReadId> referenceSegmentOrientedReadIds;
+        assemblyGraph.findOrientedReadsOnSegment(
+            options.referenceSegmentId, referenceSegmentOrientedReadIds);
+
+        // Loop over segments in the localAssemblyGraph.
+        BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph){
+            vector<OrientedReadId> orientedReadIds;
+            assemblyGraph.findOrientedReadsOnSegment(
+                localAssemblyGraph[v].segmentId, orientedReadIds);
+
+            vector<OrientedReadId> commonOrientedReadIds;
+            set_intersection(
+                referenceSegmentOrientedReadIds.begin(),
+                referenceSegmentOrientedReadIds.end(),
+                orientedReadIds.begin(),
+                orientedReadIds.end(),
+                back_inserter(commonOrientedReadIds)
+                );
+
+            const uint64_t n = commonOrientedReadIds.size();
+            commonReadCount.insert(make_pair(v, n));
+            maxCommonReadCount = max(maxCommonReadCount, n);
+        }
+    }
+
+
+
     using boost::geometry::add_point;
     using boost::geometry::expand;
     using boost::geometry::make_inverse;
@@ -309,10 +346,28 @@ void mode3::LocalAssemblyGraph::writeSvg(
         add_point(q2, p2);
 
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
-        const string color =
-            (distance == maxDistance) ?
-            options.segmentAtMaxDistanceColor :
-            segmentColor(segmentId);
+
+
+
+        // Decide the color for this segment.
+        string color;
+        if(distance == maxDistance) {
+            color = options.segmentAtMaxDistanceColor;
+        } else {
+            if(options.segmentColoring == "random") {
+                color = randomSegmentColor(segmentId);
+            } else if(options.segmentColoring == "uniform") {
+                color = options.segmentColor;
+            } else if(options.segmentColoring == "byCommonReads") {
+                const double fraction = double(commonReadCount[v]) / double(maxCommonReadCount);
+                const uint64_t hue = uint64_t(std::round(fraction * 120.));
+                color = "hsl(" + to_string(hue) + ",100%, 50%)";
+            } else {
+                color = "Black";
+            }
+        }
+
+
 
         // Get the oriented reads and average edge coverage.
         vector<OrientedReadId> orientedReadIds;
@@ -346,7 +401,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", distance from start segment " << distance <<
             ", path length " << assemblyGraph.paths.size(segmentId) <<
             ", average marker graph edge coverage " << averageEdgeCoverage <<
-            ", number of distinct oriented reads " << orientedReadIds.size() <<
+            ", number of distinct oriented reads " << orientedReadIds.size();
+        if(options.segmentColoring == "byCommonReads") {
+            svg << ", number of common oriented reads " << commonReadCount[v] <<
+                " of " << maxCommonReadCount;
+        }
+        svg <<
             "</title>"
             "<path id='Segment-" << segmentId <<
 #if 0
@@ -587,7 +647,7 @@ void LocalAssemblyGraph::computeSegmentTangents(vertex_descriptor v0)
 
 
 // Return the svg color for a segment.
-string LocalAssemblyGraph::segmentColor(uint64_t segmentId)
+string LocalAssemblyGraph::randomSegmentColor(uint64_t segmentId)
 {
     const uint32_t hue = MurmurHash2(&segmentId, sizeof(segmentId), 231) % 360;
     return "hsl(" + to_string(hue) + ",50%,50%)";
@@ -661,6 +721,11 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     HttpServer::getParameterValue(request, "minimumSegmentThickness", minimumSegmentThickness);
     HttpServer::getParameterValue(request, "additionalSegmentThicknessPerUnitCoverage", additionalSegmentThicknessPerUnitCoverage);
 
+    // Segment coloring
+    HttpServer::getParameterValue(request, "segmentColoring", segmentColoring);
+    HttpServer::getParameterValue(request, "segmentColor", segmentColor);
+    HttpServer::getParameterValue(request, "referenceSegmentId", referenceSegmentId);
+
     // Link length and thickness.
     HttpServer::getParameterValue(request, "minimumLinkLength", minimumLinkLength);
     HttpServer::getParameterValue(request, "additionalLinkLengthPerMarker", additionalLinkLengthPerMarker);
@@ -712,8 +777,31 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<td class=centered><input type=text name=additionalSegmentThicknessPerUnitCoverage size=8 style='text-align:center'"
         " value='" << additionalSegmentThicknessPerUnitCoverage <<
         "'>"
+
+        "<tr>"
+        "<td class = left>Color"
+        "<td class=left>"
+        "<input type=radio name=segmentColoring value=random"
+        << (segmentColoring=="random" ? " checked=checked" : "") <<
+        ">Random<br>"
+        "<input type=radio name=segmentColoring value=uniform"
+        << (segmentColoring=="uniform" ? " checked=checked" : "") <<
+        ">"
+        "<input type=text name=segmentColor size=8 style='text-align:center'"
+                " value='" << segmentColor << "'>"
+        "<br>"
+        "<input type=radio name=segmentColoring value=byCommonReads"
+        << (segmentColoring=="byCommonReads" ? " checked=checked" : "") <<
+        ">By number of oriented reads in common with segment "
+        "<input type=text name=referenceSegmentId size=8 style='text-align:center'"
+                " value='" << referenceSegmentId << "'>"
         "</table>"
 
+#if 0
+        string segmentColoring = "random";
+        string segmentColor = "Green";  // Only used if segmentColoring is "uniform"
+        uint64_t referenceSegmentId = 0;// Only used if segmentColoring is "byCommonReads"
+#endif
 
 
         "<tr>"
