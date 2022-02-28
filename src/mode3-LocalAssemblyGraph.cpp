@@ -291,12 +291,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
         svg <<
             "<defs>\n"
             "<marker id='" << arrowMarkerName <<
-            "' viewBox='0 0 0.51 1'\n"
-            "refX='0.01' refY='0.5'\n"
+            "' viewBox='0 0 0.6 1'\n"
+            "refX='0.1' refY='0.5'\n"
             "markerUnits='strokeWidth'\n"
-            "markerWidth='0.51' markerHeight='1'\n"
+            "markerWidth='0.6' markerHeight='1'\n"
             "orient='auto'>\n"
-            "<path d='M 0 0 L 0.01 0 L 0.51 0.5 L 0.01 1 L 0 1 z' "
+            "<path d='M 0 0 L 0.1 0 L 0.6 0.5 L 0.1 1 L 0 1 z' "
             "fill='" << color << "' "
             "/>\n"
             "</marker>\n"
@@ -318,7 +318,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             p2.x() << " " << p2.y() << "'" <<
             " stroke='" << color << "'"
             " stroke-width='" <<  options.segmentThickness << "'"
-            " fill='transparent'"
+            " fill='none'"
             " marker-end='url(#" <<
             arrowMarkerName <<
             ")'"
