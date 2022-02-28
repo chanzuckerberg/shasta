@@ -258,7 +258,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
 
         svg <<
-            "<g><title>"
+            "<g>"
+            "<a href='exploreMode3AssemblyGraphLink?linkId=" << linkId << "'>"
+            "<title>"
             "Link " << linkId <<
             " from segment " << segmentId1 <<
             " to segment " << segmentId2 <<
@@ -275,7 +277,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " stroke-linecap='round'"
             " fill='transparent'"
             // " vector-effect='non-scaling-stroke'"
-            "/></g>\n";
+            "/></a></g>\n";
 
     }
     svg << "</g>\n";
@@ -330,7 +332,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
         // Add this segment to the svg.
         // Draw it as a cubic.
         svg <<
-            "<g><title>"
+            "<g>"
+            "<a href='exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "'>"
+            "<title>"
             "Segment " << segmentId <<
             ", path length " << assemblyGraph.paths.size(segmentId) <<
             ", distance " << distance <<
@@ -347,7 +351,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " marker-end='url(#" <<
             arrowMarkerName <<
             ")'"
-            "/></g>\n";
+            "/></a></g>\n";
     }
     svg << "</g>\n";
 

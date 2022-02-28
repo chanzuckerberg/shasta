@@ -80,7 +80,7 @@ public:
     public:
 
         double pixelsPerUnitLength = 20.;
-        string layoutMethod = "custom";
+        string layoutMethod = "neato";
 
 
 
