@@ -149,7 +149,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         return;
     }
 
-    // Check tha we have a valid segmentId.
+    // Check tha7 we have a valid segmentId.
     if(segmentId >= assemblyGraph3.paths.size()) {
         html << "Invalid segment id. Maximum valid value is " <<
             assemblyGraph3.paths.size() - 1 << ".";
@@ -159,8 +159,21 @@ void Assembler::exploreMode3AssemblyGraphSegment(
     // Access the marker graph path for this segment.
     const auto path = assemblyGraph3.paths[segmentId];
 
-    html << "<h1>Assembly graph segment " << segmentId << "</h1>";
-    html << "<p>Path length is " << path.size() << ".";
+    // Get the oriented reads and average edge coverage.
+    vector<OrientedReadId> orientedReadIds;
+    const double averageEdgeCoverage = assemblyGraph3.findOrientedReadsOnSegment(segmentId, orientedReadIds);
+
+    const auto oldPrecision = html.precision(1);
+    const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
+    html <<
+        "<h1>Assembly graph segment " << segmentId << "</h1>"
+        "<p><table>"
+        "<tr><th class=left>Length of marker graph path<td class=centered>" << path.size() <<
+        "<tr><th class=left>Average marker graph edge coverage on path<td class=centered>" << averageEdgeCoverage <<
+        "<tr><th class=left>Number of distinct oriented reads on path<td class=centered>" << orientedReadIds.size() <<
+        "</table>";
+    html.precision(oldPrecision);
+    html.flags(oldFlags);
 
 
 
@@ -171,6 +184,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         "<tr>"
         "<th>Position"
         "<th>Edge"
+        "<th>Coverage"
         "<th>Source<br>vertex"
         "<th>Target<br>vertex";
 
@@ -190,6 +204,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
             "<td class=centered>" <<
             "<a href='exploreMarkerGraphEdge?edgeId=" << edgeId <<
             "'>" << edgeId << "</a>"
+            "<td class=centered>" << markerGraph.edgeMarkerIntervals.size(edgeId) <<
             "<td class=centered>" <<
             "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId0 <<
             "'>" << vertexId0 << "</a>"

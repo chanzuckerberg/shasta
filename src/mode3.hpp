@@ -248,13 +248,17 @@ public:
     AssemblyGraph(
         const DynamicAssemblyGraph&,
         const string& largeDataFileNamePrefix,
-        size_t largeDataPageSize);
+        size_t largeDataPageSize,
+        const MarkerGraph&);
 
     // Constructor from binary data.
-    AssemblyGraph(const string& largeDataFileNamePrefix);
+    AssemblyGraph(
+        const string& largeDataFileNamePrefix,
+        const MarkerGraph&);
 
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
+    const MarkerGraph& markerGraph;
 
     // The marker graph paths corresponding to each segment.
     // Indexed by segment id.
@@ -280,6 +284,11 @@ public:
     void writeGfa(const string& fileName) const;
     void writeGfa(ostream&) const;
 
+    // Find the distinct oriented reads that appear on the path
+    // of a segment. Also return the average edge coverage for the path.
+    double findOrientedReadsOnSegment(
+        uint64_t segmentId,
+        vector<OrientedReadId>&) const;
 
 };
 

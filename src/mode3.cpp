@@ -511,9 +511,11 @@ double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
 mode3::AssemblyGraph::AssemblyGraph(
     const DynamicAssemblyGraph& dynamicAssemblyGraph,
     const string& largeDataFileNamePrefix,
-    size_t largeDataPageSize) :
+    size_t largeDataPageSize,
+    const MarkerGraph& markerGraph) :
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
+    largeDataPageSize(largeDataPageSize),
+    markerGraph(markerGraph)
 {
 
     // Create a segment for each vertex of the DynamicAssemblyGraph.
@@ -553,8 +555,11 @@ mode3::AssemblyGraph::AssemblyGraph(
 
 
 // Constructor from binary data.
-mode3::AssemblyGraph::AssemblyGraph(const string& largeDataFileNamePrefix) :
-    largeDataFileNamePrefix(largeDataFileNamePrefix)
+mode3::AssemblyGraph::AssemblyGraph(
+    const string& largeDataFileNamePrefix,
+    const MarkerGraph& markerGraph) :
+    largeDataFileNamePrefix(largeDataFileNamePrefix),
+    markerGraph(markerGraph)
 {
     paths.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Paths");
     links.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Links");
@@ -624,4 +629,34 @@ void mode3::AssemblyGraph::writeGfa(ostream& gfa) const
 
 }
 
+
+
+// Find the distinct oriented reads that appear on the path
+// of a segment. Also return the average edge coverage for the path.
+double mode3::AssemblyGraph::findOrientedReadsOnSegment(
+    uint64_t segmentId,
+    vector<OrientedReadId>& orientedReadIdsArgument) const
+{
+    // Loop over the marker graph path corresponding to this segment.
+    const span<const MarkerGraphEdgeInfo> path = paths[segmentId];
+    double coverage = 0.;
+    std::set<OrientedReadId> orientedReadIds;
+    for(const MarkerGraphEdgeInfo& info: path) {
+        SHASTA_ASSERT(not info.isVirtual);
+
+        // Loop over the marker intervals for this marker graph edge.
+        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+        coverage += double(markerIntervals.size());
+        for(const MarkerInterval& markerInterval: markerIntervals) {
+            orientedReadIds.insert(markerInterval.orientedReadId);
+        }
+    }
+
+    // Copy the oriented reads to the vector passed as an argument.
+    orientedReadIdsArgument.clear();
+    orientedReadIdsArgument.insert(orientedReadIdsArgument.end(),
+        orientedReadIds.begin(), orientedReadIds.end());
+
+    return coverage / double(path.size());
+}
 

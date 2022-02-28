@@ -313,6 +313,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             options.segmentAtMaxDistanceColor :
             segmentColor(segmentId);
 
+        // Get the oriented reads and average edge coverage.
+        vector<OrientedReadId> orientedReadIds;
+        const double averageEdgeCoverage = assemblyGraph.findOrientedReadsOnSegment(segmentId, orientedReadIds);
+
         // Create a marker to show the arrow for this segment.
         const string arrowMarkerName = "arrow" + to_string(segmentId);
         svg <<
@@ -331,13 +335,17 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
         // Add this segment to the svg.
         // Draw it as a cubic.
+        const auto oldPrecision = svg.precision(1);
+        const auto oldFlags = svg.setf(std::ios_base::fixed, std::ios_base::floatfield);
         svg <<
             "<g>"
             "<a href='exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "'>"
             "<title>"
             "Segment " << segmentId <<
+            ", distance from start segment " << distance <<
             ", path length " << assemblyGraph.paths.size(segmentId) <<
-            ", distance " << distance <<
+            ", average marker graph edge coverage " << averageEdgeCoverage <<
+            ", number of distinct oriented reads " << orientedReadIds.size() <<
             "</title>"
             "<path id='Segment-" << segmentId <<
             "' d='M " <<
@@ -352,6 +360,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
             arrowMarkerName <<
             ")'"
             "/></a></g>\n";
+        svg.precision(oldPrecision);
+        svg.flags(oldFlags);
     }
     svg << "</g>\n";
 
