@@ -16,14 +16,13 @@ using namespace mode3;
 
 
 DynamicAssemblyGraph::DynamicAssemblyGraph(
-    const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
     size_t threadCount) :
     MultithreadedObject<DynamicAssemblyGraph>(*this),
-    readFlags(readFlags),
+    markers(markers),
     markerGraph(markerGraph),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
@@ -139,26 +138,6 @@ void DynamicAssemblyGraph::createVertices(
             wasFound[edgeId] = true;
         }
 
-
-
-        // Check if this path originated from one of the read graph
-        // components that we want to assemble
-        // (one of each reverse complemented pair).
-        // If not, don't store it.
-        // This way we do a single-stranded assembly.
-        {
-            const MarkerGraph::Edge& edge = markerGraph.edges[path.front()];
-            const MarkerGraphVertexId vertexId = edge.source;
-            const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
-            const MarkerId markerId = markerIds[0];
-            const OrientedReadId orientedReadId = findMarkerId(markerId, markers).first;
-            const ReadId readId = orientedReadId.getReadId();
-            const Strand strand = orientedReadId.getStrand();
-            if(readFlags[readId].strand != strand) {
-                continue;
-            }
-        }
-
         // This path generates a new vertex of the assembly graph.
         boost::add_vertex(DynamicAssemblyGraphVertex(path), *this);
     }
@@ -266,7 +245,7 @@ void DynamicAssemblyGraph::computePseudoPaths()
         largeDataPageSize);
 
     uint64_t batchSize = 1000;
-    pseudoPaths.beginPass1(2 * readFlags.size());
+    pseudoPaths.beginPass1(markers.size());
     setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
     runThreads(&G::computePseudoPathsPass1, threadCount);
     pseudoPaths.beginPass2();
@@ -361,7 +340,7 @@ void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
 {
     csv << "OrientedReadId,Vertex,Position,Ordinal0,Ordinal1\n";
 
-    for(ReadId readId=0; readId<readFlags.size(); readId++) {
+    for(ReadId readId=0; readId<pseudoPaths.size()/2; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
@@ -390,7 +369,7 @@ void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
     std::map< Key, Value> m;
 
 
-    for(ReadId readId=0; readId<readFlags.size(); readId++) {
+    for(ReadId readId=0; readId<pseudoPaths.size()/2; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];

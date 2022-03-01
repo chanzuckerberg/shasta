@@ -15,7 +15,6 @@ void Assembler::mode3Assembly(
     }
 
     const DynamicAssemblyGraph dynamicAssemblyGraph(
-        reads->getFlags(),
         markers,
         markerGraph,
         largeDataFileNamePrefix,

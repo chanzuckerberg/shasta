@@ -146,7 +146,6 @@ public:
     using G = DynamicAssemblyGraph;
 
     DynamicAssemblyGraph(
-        const MemoryMapped::Vector<ReadFlags>&,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&,
         const string& largeDataFileNamePrefix,
@@ -155,7 +154,7 @@ public:
     ~DynamicAssemblyGraph();
 
     // Store some information passed in to the constructor.
-    const MemoryMapped::Vector<ReadFlags>& readFlags;
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
