@@ -166,16 +166,16 @@ void mode3::LocalAssemblyGraph::writeSvg(
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
 
-    // If coloring segments by number of common reads,
-    // compute the number of common oriented reads
-    // between each segment in the LocalAssemblyGraph and
-    // the reference segment.
-    std::map<vertex_descriptor, uint64_t> commonReadCount;
-    uint64_t maxCommonReadCount = 0;
-    if(options.segmentColoring == "byCommonReads") {
+    // If coloring segments by common reads,
+    // compute the size of the union and intersection of
+    // oriented reads of the reference element against all segments
+    // in the LocalAssemblyGraph.
+    std::map<vertex_descriptor, pair<uint64_t, uint64_t> > similarityTable;
+    vector<OrientedReadId> referenceSegmentOrientedReadIds;
+    if(options.segmentColoring == "byCommonReads" or
+        options.segmentColoring == "byJaccardSimilarity") {
 
         // Find oriented reads in the reference segment.
-        vector<OrientedReadId> referenceSegmentOrientedReadIds;
         assemblyGraph.findOrientedReadsOnSegment(
             options.referenceSegmentId, referenceSegmentOrientedReadIds);
 
@@ -185,18 +185,26 @@ void mode3::LocalAssemblyGraph::writeSvg(
             assemblyGraph.findOrientedReadsOnSegment(
                 localAssemblyGraph[v].segmentId, orientedReadIds);
 
-            vector<OrientedReadId> commonOrientedReadIds;
+            vector<OrientedReadId> intersectionSet;
             set_intersection(
                 referenceSegmentOrientedReadIds.begin(),
                 referenceSegmentOrientedReadIds.end(),
                 orientedReadIds.begin(),
                 orientedReadIds.end(),
-                back_inserter(commonOrientedReadIds)
+                back_inserter(intersectionSet)
                 );
 
-            const uint64_t n = commonOrientedReadIds.size();
-            commonReadCount.insert(make_pair(v, n));
-            maxCommonReadCount = max(maxCommonReadCount, n);
+            vector<OrientedReadId> unionSet;
+            set_union(
+                referenceSegmentOrientedReadIds.begin(),
+                referenceSegmentOrientedReadIds.end(),
+                orientedReadIds.begin(),
+                orientedReadIds.end(),
+                back_inserter(unionSet)
+                );
+
+            similarityTable.insert(make_pair(v, make_pair(intersectionSet.size(), unionSet.size())));
+
         }
     }
 
@@ -359,7 +367,11 @@ void mode3::LocalAssemblyGraph::writeSvg(
             } else if(options.segmentColoring == "uniform") {
                 color = options.segmentColor;
             } else if(options.segmentColoring == "byCommonReads") {
-                const double fraction = double(commonReadCount[v]) / double(maxCommonReadCount);
+                const double fraction = double(similarityTable[v].first) / double(referenceSegmentOrientedReadIds.size());
+                const uint64_t hue = uint64_t(std::round(fraction * 120.));
+                color = "hsl(" + to_string(hue) + ",100%, 50%)";
+            } else if(options.segmentColoring == "byJaccardSimilarity") {
+                const double fraction = double(similarityTable[v].first) / double(similarityTable[v].second);
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
             } else {
@@ -403,8 +415,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", average marker graph edge coverage " << averageEdgeCoverage <<
             ", number of distinct oriented reads " << orientedReadIds.size();
         if(options.segmentColoring == "byCommonReads") {
-            svg << ", number of common oriented reads " << commonReadCount[v] <<
-                " of " << maxCommonReadCount;
+            svg << ", number of common oriented reads " << similarityTable[v].first <<
+                " of " << referenceSegmentOrientedReadIds.size();
         }
         svg <<
             "</title>"
@@ -792,16 +804,16 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<br>"
         "<input type=radio name=segmentColoring value=byCommonReads"
         << (segmentColoring=="byCommonReads" ? " checked=checked" : "") <<
-        ">By number of oriented reads in common with segment "
-        "<input type=text name=referenceSegmentId size=8 style='text-align:center'"
+        ">By number of common supporting oriented reads with reference segment"
+        "<br>"
+        "<input type=radio name=segmentColoring value=byJaccardSimilarity"
+        << (segmentColoring=="byJaccardSimilarity" ? " checked=checked" : "") <<
+        ">By Jaccard similarity with supporting oriented reads of reference segment"
+        "<br>"
+        "Reference segment&nbsp;<input type=text name=referenceSegmentId size=8 style='text-align:center'"
                 " value='" << referenceSegmentId << "'>"
         "</table>"
 
-#if 0
-        string segmentColoring = "random";
-        string segmentColor = "Green";  // Only used if segmentColoring is "uniform"
-        uint64_t referenceSegmentId = 0;// Only used if segmentColoring is "byCommonReads"
-#endif
 
 
         "<tr>"
