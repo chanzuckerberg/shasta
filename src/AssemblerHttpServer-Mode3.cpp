@@ -64,6 +64,17 @@ void Assembler::exploreMode3AssemblyGraph(
         return;
     }
 
+    if(startSegmentId >= assemblyGraph3Pointer->paths.size()) {
+        html << "<p>Invalid start segment id. Maximum valid value is " <<
+            assemblyGraph3Pointer->paths.size() - 1;
+        return;
+    }
+    if(options.referenceSegmentId >= assemblyGraph3Pointer->paths.size()) {
+        html << "<p>Invalid reference segment id. Maximum valid value is " <<
+            assemblyGraph3Pointer->paths.size() - 1;
+        return;
+    }
+
 
     html << "<h1>Local assembly graph near segment " << startSegmentId << "</h1></p>";
 
