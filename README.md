@@ -10,7 +10,7 @@ for error analysis of the Shasta assembler and more.
 Reads from this paper are available 
 [here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html).
 The assembly results are
-[here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=assemblies).
+[here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=publications/SHASTA2019/assemblies/raw/shasta/).
 
 [Here](https://github.com/human-pangenomics/assembly-analysis) is a QUAST analysis of a Shasta assembly of CHM13 
 and a comparison with other assemblers.
