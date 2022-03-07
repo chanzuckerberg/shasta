@@ -367,7 +367,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             } else if(options.segmentColoring == "uniform") {
                 color = options.segmentColor;
             } else if(options.segmentColoring == "byCommonReads") {
-                const double fraction = double(similarityTable[v].first) / double(referenceSegmentOrientedReadIds.size());
+                const double fraction =
+                    options.greenThreshold ?
+                    min(1., double(similarityTable[v].first) / double(options.greenThreshold)) :
+                    double(similarityTable[v].first) / double(referenceSegmentOrientedReadIds.size());
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
             } else if(options.segmentColoring == "byJaccardSimilarity") {
@@ -736,6 +739,7 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     // Segment coloring
     HttpServer::getParameterValue(request, "segmentColoring", segmentColoring);
     HttpServer::getParameterValue(request, "segmentColor", segmentColor);
+    HttpServer::getParameterValue(request, "greenThreshold", greenThreshold);
     HttpServer::getParameterValue(request, "referenceSegmentId", referenceSegmentId);
 
     // Link length and thickness.
@@ -805,7 +809,12 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<input type=radio name=segmentColoring value=byCommonReads"
         << (segmentColoring=="byCommonReads" ? " checked=checked" : "") <<
         ">By number of common supporting oriented reads with reference segment"
-        "<br>"
+        "<div style='text-indent:3em'>"
+        "Green if at least "
+        "<input type=text name=greenThreshold size=4 style='text-align:center'"
+        " value='" << greenThreshold <<
+        "'>"        " common reads (0 = automatic)"
+        "</div>"
         "<input type=radio name=segmentColoring value=byJaccardSimilarity"
         << (segmentColoring=="byJaccardSimilarity" ? " checked=checked" : "") <<
         ">By Jaccard similarity with supporting oriented reads of reference segment"
