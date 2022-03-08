@@ -240,23 +240,20 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
 
 
-    // Figure out the required size of the svg.
+    // Figure out the required size of the viewbox.
     Point diagonal = maxCorner;
     subtract_point(diagonal, minCorner);
-    Point scaledDiagonal = diagonal;
-    multiply_value(scaledDiagonal, options.pixelsPerUnitLength);
-    const uint64_t svgSizeX = uint64_t(std::round(scaledDiagonal.x()));
-    const uint64_t svgSizeY = uint64_t(std::round(scaledDiagonal.y()));
 
     // Begin the svg.
     const string svgId = "LocalAssemblyGraph";
     svg << "\n<svg id='" << svgId <<
-        "' width='" <<  svgSizeX <<
-        "' height='" << svgSizeY <<
+        "' width='" <<  options.sizePixels <<
+        "' height='" << options.sizePixels <<
         "' viewbox='" << minCorner.x() << " " << minCorner.y() << " " <<
         diagonal.x() << " " <<
-        diagonal.y() <<
-        "'>\n";
+        diagonal.y() << "'"
+        " style='border-style:solid;border-color:Black;'"
+        ">\n";
 
 
 
@@ -305,7 +302,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
         svg <<
             "<g>"
-            "<a href='exploreMode3AssemblyGraphLink?linkId=" << linkId << "'>"
+            // "<a href='exploreMode3AssemblyGraphLink?linkId=" << linkId << "'>"
             "<title>"
             "Link " << linkId <<
             " from segment " << segmentId1 <<
@@ -323,7 +320,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " stroke-linecap='round'"
             " fill='transparent'"
             // " vector-effect='non-scaling-stroke'"
-            "/></a></g>\n";
+            " onclick='if(event.ctrlKey) {location.href=\"exploreMode3AssemblyGraphLink?linkId=" << linkId << "\";}'"
+            "/>"
+            // "</a>"
+            "</g>\n";
 
     }
     svg << "</g>\n";
@@ -410,7 +410,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
         const auto oldFlags = svg.setf(std::ios_base::fixed, std::ios_base::floatfield);
         svg <<
             "<g>"
-            "<a href='exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "'>"
+            // "<a href='exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "'>"
             "<title>"
             "Segment " << segmentId <<
             ", distance from start segment " << distance <<
@@ -441,7 +441,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " marker-end='url(#" <<
             arrowMarkerName <<
             ")'"
-            "/></a></g>\n";
+            " onclick='if(event.ctrlKey) {location.href=\"exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "\";}'"
+            "/>"
+            // "</a>"
+            "</g>\n";
         svg.precision(oldPrecision);
         svg.flags(oldFlags);
     }
@@ -727,7 +730,7 @@ double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 // Construct the svg options from an html request.
 LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
 {
-    HttpServer::getParameterValue(request, "pixelsPerUnitLength", pixelsPerUnitLength);
+    HttpServer::getParameterValue(request, "sizePixels", sizePixels);
     HttpServer::getParameterValue(request, "layoutMethod", layoutMethod);
 
     // Segment length and thickness.
@@ -756,9 +759,9 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
 {
     html <<
         "<tr>"
-        "<td>Graphics scaling factor"
-        "<td class=centered><input type=text name=pixelsPerUnitLength size=8 style='text-align:center'"
-        " value='" << pixelsPerUnitLength <<
+        "<td>Graphics size in pixels"
+        "<td class=centered><input type=text name=sizePixels size=8 style='text-align:center'"
+        " value='" << sizePixels <<
         "'>"
 
         "<tr>"

@@ -79,7 +79,7 @@ public:
     class SvgOptions {
     public:
 
-        double pixelsPerUnitLength = 20.;
+        double sizePixels = 600.;
         string layoutMethod = "neato";
 
 

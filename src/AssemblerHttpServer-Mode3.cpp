@@ -115,7 +115,7 @@ void Assembler::exploreMode3AssemblyGraph(
 
     // Display the local assembly graph.
     localAssemblyGraph.writeSvg(html, options);
-
+    addSvgDragAndZoom(html);
 
 
     // To facilitate debugging and testing, also write a gfa file

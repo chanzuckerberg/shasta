@@ -2147,6 +2147,7 @@ public:
         int width,
         int height,
         const string& gnuplotCommands);
+    static void addSvgDragAndZoom(ostream& html);
 
     void fillServerFunctionTable();
     void processRequest(
