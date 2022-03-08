@@ -103,7 +103,7 @@ void Assembler::exploreMode3AssemblyGraph(
 
 
 
-    // Dialog to highlight a segment.
+    // Highlight a segment.
     html << R"stringDelimiter(
         <script>
         function highlightSegment()
@@ -163,6 +163,57 @@ void Assembler::exploreMode3AssemblyGraph(
         <p>Zoom to segment
         <input id=zoomInputField type=text onchange="zoomToSegment()" size=10>
         )stringDelimiter";
+
+
+
+    // Change segment thickness
+    html << R"stringDelimiter(
+    <p><button type='button' onClick='segmentThickness(1.25)'>Make segments<br>thicker</button>
+    <p><button type='button' onClick='segmentThickness(0.8)'>Make segments<br>thinner</button>
+        <script>
+        function segmentThickness(factor)
+        {
+            const group1 = document.getElementById('LocalAssemblyGraph-segments');
+            for (let i=0; i<group1.children.length; i++) {
+                group2 = group1.children[i];
+                if(group2.tagName == 'g') {
+                    for (let j=0; j<group2.children.length; j++) {
+                        path = group2.children[j];
+                        if(path.tagName == 'path') {
+                            path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
+                        }
+                    }
+                }
+            }
+        }
+        </script>
+        )stringDelimiter";
+
+
+
+    // Change link thickness
+    html << R"stringDelimiter(
+    <p><button type='button' onClick='linkThickness(1.25)'>Make links<br>thicker</button>
+    <p><button type='button' onClick='linkThickness(0.8)'>Make links<br>thinner</button>
+        <script>
+        function linkThickness(factor)
+        {
+            const group1 = document.getElementById('LocalAssemblyGraph-links');
+            for (let i=0; i<group1.children.length; i++) {
+                group2 = group1.children[i];
+                if(group2.tagName == 'g') {
+                    for (let j=0; j<group2.children.length; j++) {
+                        path = group2.children[j];
+                        if(path.tagName == 'path') {
+                            path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
+                        }
+                    }
+                }
+            }
+        }
+        </script>
+        )stringDelimiter";
+
 
 
     // End of side panel.

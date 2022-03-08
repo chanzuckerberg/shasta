@@ -444,7 +444,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " onclick='if(event.ctrlKey) {location.href=\"exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "\";}'"
             "/>"
             // "</a>"
-            "</g>\n";
+            "</g>"
+            "\n";
         svg.precision(oldPrecision);
         svg.flags(oldFlags);
     }
