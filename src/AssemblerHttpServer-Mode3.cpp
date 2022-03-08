@@ -87,9 +87,23 @@ void Assembler::exploreMode3AssemblyGraph(
     localAssemblyGraph.computeSegmentTangents();
     html << "<p>The local assembly graph has " <<
         num_vertices(localAssemblyGraph) << " segments and " <<
-        num_edges(localAssemblyGraph) << " links.";
+        num_edges(localAssemblyGraph) << " links."
+        "<p>";
 
-    // Allow manually highlighting selected vertices.
+
+
+    // Display the local assembly graph.
+    html << "<div style='display: inline-block; vertical-align:top'>";
+    localAssemblyGraph.writeSvg(html, options);
+    html << "</div>";
+    addSvgDragAndZoom(html);
+
+    // Side panel.
+    html << "<div style='display: inline-block'>";
+
+
+
+    // Dialog to highlight a segment.
     html << R"stringDelimiter(
         <script>
         function highlightSegment()
@@ -106,17 +120,53 @@ void Assembler::exploreMode3AssemblyGraph(
             element.setAttribute("stroke-width", 2. * thickness);
         }
         </script>
-        <p>
+        Highlight segment
         <input id=highlightInputField type=text onchange="highlightSegment()" size=10>
-        Enter a segment id to highlight, then press Enter.
-        To highlight multiple segments, enter them one at a time in the same way.
-        <p>
         )stringDelimiter";
 
-    // Display the local assembly graph.
-    localAssemblyGraph.writeSvg(html, options);
-    addSvgDragAndZoom(html);
 
+
+    // Zoom to a segment.
+    html << R"stringDelimiter(
+        <script>
+        function zoomToSegment()
+        {
+            // Get the segment id from the input field.
+            inputField = document.getElementById("zoomInputField");
+            segmentId = inputField.value;
+            inputField.value = "";
+
+            // Find the bounding box.
+            var element = document.getElementById("Segment-" + segmentId);
+            var box = element.getBBox();
+            var xCenter = box.x + 0.5 * box.width;
+            var yCenter = box.y + 0.5 * box.height;
+
+            // Change the viewbox of the svg to be a bit larger than the bounding box.
+            var svg = document.querySelector('svg');
+            var enlargeFactor = 5.;
+            width = box.width * enlargeFactor;
+            height = box.height * enlargeFactor;
+            if(width < height) {
+                width = height;
+            }
+            if(height < width) {
+                heigth = width;
+            }
+            x = xCenter - 0.5 * width;
+            y = yCenter - 0.5 * height;
+            svg.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+            ratio = width / svg.getBoundingClientRect().width;
+
+        }
+        </script>
+        <p>Zoom to segment
+        <input id=zoomInputField type=text onchange="zoomToSegment()" size=10>
+        )stringDelimiter";
+
+
+    // End of side panel.
+    html << "</div>";
 
     // To facilitate debugging and testing, also write a gfa file
     // that represents the LocalAssemblyGraph.

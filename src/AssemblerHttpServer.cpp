@@ -572,6 +572,7 @@ void Assembler::addSvgDragAndZoom(ostream& html)
 <script>
 
 var svg = document.querySelector('svg');
+svg.scrollIntoView();
 svg.addEventListener('pointerdown', onPointerDown); 
 svg.addEventListener('pointerup', onPointerUp); 
 svg.addEventListener('pointerleave', onPointerUp); 
