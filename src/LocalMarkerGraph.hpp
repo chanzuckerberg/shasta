@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 #ifndef SHASTA_LOCAL_MARKER_GRAPH_HPP
 #define SHASTA_LOCAL_MARKER_GRAPH_HPP
 
@@ -349,4 +347,3 @@ public:
 
 #endif
 
-#endif

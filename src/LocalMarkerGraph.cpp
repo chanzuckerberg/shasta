@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "LocalMarkerGraph.hpp"
 #include "approximateTopologicalSort.hpp"
@@ -346,4 +344,3 @@ void LocalMarkerGraph::approximateTopologicalSort()
 
 }
 
-#endif
