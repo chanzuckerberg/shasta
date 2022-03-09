@@ -8,9 +8,7 @@
 #include "dset64-gccAtomic.hpp"
 #include "PeakFinder.hpp"
 #include "performanceLog.hpp"
-#ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
-#endif
 #include "Reads.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -1717,7 +1715,6 @@ void Assembler::vertexCoverageStatisticsByKmerId() const
 
 
 
-#ifdef SHASTA_HTTP_SERVER
 bool Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
@@ -2011,7 +2008,6 @@ bool Assembler::extractLocalMarkerGraph(
 
     return true;
 }
-#endif
 
 
 

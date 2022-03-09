@@ -40,6 +40,7 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
+    class LocalMarkerGraph;
     class LocalReadGraph;
     class LocalReadGraphTriangles;
     class LocalMarkerGraphRequestParameters;
@@ -51,9 +52,6 @@ namespace shasta {
     class Reads;
     class ReferenceOverlapMap;
 
-#ifdef SHASTA_HTTP_SERVER
-    class LocalMarkerGraph;
-#endif
 
     namespace MemoryMapped {
         class ByteAllocator;
@@ -1659,7 +1657,6 @@ private:
 
 
 
-#ifdef SHASTA_HTTP_SERVER
     // Extract a local subgraph of the global marker graph.
     bool extractLocalMarkerGraph(
         OrientedReadId,
@@ -1686,7 +1683,6 @@ private:
         bool useLowCoverageCrossEdges,
         LocalMarkerGraph&
         );
-#endif
 
     // Compute consensus sequence for a vertex of the marker graph.
     void computeMarkerGraphVertexConsensusSequence(
