@@ -56,6 +56,7 @@ apt-get install --yes \
     curl \
     libboost-system-dev \
     libboost-program-options-dev \
+    libboost-graph-dev \
     libboost-chrono-dev \
     libpng-dev \
     libblas-dev \
@@ -66,7 +67,6 @@ apt-get install --yes \
 if [ "$minimalInstall" == false ]; then
     # Install packages required for the HTTP server and Python-C++ bindings.
     apt-get install --yes \
-        libboost-graph-dev \
         ncbi-blast+ \
         graphviz \
         gnuplot \
