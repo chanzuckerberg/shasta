@@ -1,12 +1,10 @@
-#ifdef SHASTA_HTTP_SERVER
+#ifndef SHASTA_HTTP_SERVER_HPP
+#define SHASTA_HTTP_SERVER_HPP
 
 // Class http server can be used as a base class to provide simple
 // http server functionality to facilitate data exploration and debugging.
 // The derived class only has to override
 // function processRequest.
-
-#ifndef SHASTA_HTTP_SERVER_HPP
-#define SHASTA_HTTP_SERVER_HPP
 
 #include "span.hpp"
 
@@ -212,4 +210,3 @@ private:
 };
 #endif
 
-#endif

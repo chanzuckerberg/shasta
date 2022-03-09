@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Implementation of class HttpServer - see HttpServer.hpp for more information.
 
 // Shasta.
@@ -788,5 +786,3 @@ bool HttpServer::isLocalConnectionSameUser(
     return false;    // For now.
 }
 
-
-#endif
