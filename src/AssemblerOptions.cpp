@@ -193,7 +193,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         default_value(false),
         "Suppress echoing stdout to stdout.log.")
 
-        #ifdef SHASTA_HTTP_SERVER
         ("exploreAccess",
         value<string>(&commandLineOnlyOptions.exploreAccess)->
         default_value("user"),
@@ -214,7 +213,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "a reference. Only used for --command explore, for display of the alignment "
         "candidate graph. Experimental."
         )
-#endif
         ;
 
 
