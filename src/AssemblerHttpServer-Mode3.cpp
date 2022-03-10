@@ -261,7 +261,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         return;
     }
 
-    // Check tha7 we have a valid segmentId.
+    // Check that we have a valid segmentId.
     if(segmentId >= assemblyGraph3.paths.size()) {
         html << "Invalid segment id. Maximum valid value is " <<
             assemblyGraph3.paths.size() - 1 << ".";
@@ -271,9 +271,9 @@ void Assembler::exploreMode3AssemblyGraphSegment(
     // Access the marker graph path for this segment.
     const auto path = assemblyGraph3.paths[segmentId];
 
-    // Get the oriented reads and average edge coverage.
-    vector<OrientedReadId> orientedReadIds;
-    const double averageEdgeCoverage = assemblyGraph3.findOrientedReadsOnSegment(segmentId, orientedReadIds);
+    // Get information about the oriented reads of this segment.
+    mode3::AssemblyGraph::SegmentOrientedReadInformation orientedReads;
+    assemblyGraph3.getOrientedReadsOnSegment(segmentId, orientedReads);
 
     const auto oldPrecision = html.precision(1);
     const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
@@ -281,11 +281,29 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         "<h1>Assembly graph segment " << segmentId << "</h1>"
         "<p><table>"
         "<tr><th class=left>Length of marker graph path<td class=centered>" << path.size() <<
-        "<tr><th class=left>Average marker graph edge coverage on path<td class=centered>" << averageEdgeCoverage <<
-        "<tr><th class=left>Number of distinct oriented reads on path<td class=centered>" << orientedReadIds.size() <<
+        "<tr><th class=left>Average marker graph edge coverage on path<td class=centered>" <<
+        orientedReads.averageCoverage <<
+        "<tr><th class=left>Number of distinct oriented reads on path<td class=centered>" << orientedReads.infos.size() <<
         "</table>";
     html.precision(oldPrecision);
     html.flags(oldFlags);
+
+
+
+    // Write the oriented reads in a table.
+    html <<
+        "<h2>Oriented reads on this segment</h2>"
+        "<table>"
+        "<tr>"
+        "<th>Oriented<br>read"
+        "<th>Average<br>offset";
+    for(const auto& info: orientedReads.infos) {
+        html<<
+            "<tr>"
+            "<td class=centered>" << info.orientedReadId <<
+            "<td class=centered>" << info.averageOffset;
+    }
+    html << "</table>";
 
 
 

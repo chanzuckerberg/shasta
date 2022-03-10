@@ -289,6 +289,31 @@ public:
         uint64_t segmentId,
         vector<OrientedReadId>&) const;
 
+
+
+    // Get information about the oriented reads that appear on the
+    // marker graph path of a segment.
+    class SegmentOrientedReadInformation {
+    public:
+
+        // The oriented reads on this segment,
+        // each storage with an average offset relative to the segment.
+        class Info {
+        public:
+            OrientedReadId orientedReadId;
+
+            // The average offset, in markers, between the
+            // beginning of this oriented read and the
+            // beginnig of the segment.
+            int32_t averageOffset;
+        };
+        vector<Info> infos;
+
+        double averageCoverage;
+    };
+    void getOrientedReadsOnSegment(
+        uint64_t segmentId,
+        SegmentOrientedReadInformation&) const;
 };
 
 

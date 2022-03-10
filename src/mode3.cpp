@@ -639,3 +639,59 @@ double mode3::AssemblyGraph::findOrientedReadsOnSegment(
     return coverage / double(path.size());
 }
 
+
+// Get information about the oriented reads that appear on the
+// marker graph path of a segment.
+void mode3::AssemblyGraph::getOrientedReadsOnSegment(
+    uint64_t segmentId,
+    SegmentOrientedReadInformation& information) const
+{
+    // A data structure that, for each oriented read we find,
+    // contains a sum of offsets and the number of marker graph vertices
+    // that contributed to the sum.
+    std::map<OrientedReadId, pair<uint64_t, int64_t>  > table;
+
+    // Loop over the marker graph path corresponding to this segment.
+    const span<const MarkerGraphEdgeInfo> path = paths[segmentId];
+    double coverageSum = 0.;
+    std::set<OrientedReadId> orientedReadIds;
+    for(uint64_t position=0; position<path.size(); position++) {
+        const MarkerGraphEdgeInfo& info = path[position];
+        SHASTA_ASSERT(not info.isVirtual);
+
+        // Loop over the marker intervals for this marker graph edge.
+        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+        coverageSum += double(markerIntervals.size());
+        for(const MarkerInterval& markerInterval: markerIntervals) {
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+
+            // Update our table for this oriented read.
+            auto it = table.find(orientedReadId);
+            if(it == table.end()) {
+                tie(it, ignore) = table.insert(make_pair(orientedReadId, make_pair(0ULL, 0LL)));
+            }
+            auto& p = it->second;
+            p.first += 2;
+            p.second += int32_t(position) - int32_t(markerInterval.ordinals[0]);
+            p.second += int32_t(position + 1) -int32_t(markerInterval.ordinals[1]);
+        }
+    }
+
+
+
+    // Store what we found.
+    information.infos.clear();
+    for(const auto& p: table) {
+        SegmentOrientedReadInformation::Info info;
+        info.orientedReadId = p.first;
+        const uint64_t n = p.second.first;
+        const int64_t sum = p.second.second;
+        cout << info.orientedReadId << " " << n << " " << sum << endl;
+        info.averageOffset = int32_t(std::round(double(sum) / double(n)));
+        information.infos.push_back(info);
+    }
+    information.averageCoverage = coverageSum / double(path.size());
+}
+
+
+
