@@ -242,6 +242,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreCompressedAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraphSegment);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraphSegmentPair);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraphLink);
 
 }
@@ -461,8 +462,9 @@ void Assembler::writeNavigation(ostream& html) const
     if(assemblerInfo->assemblyMode == 3) {
         writeNavigation(html, "Assembly graph", {
             {"Local assembly graph", "exploreMode3AssemblyGraph"},
-            {"Local assembly graph segments", "exploreMode3AssemblyGraphSegment"},
-            {"Local assembly graph links", "exploreMode3AssemblyGraphLink"},
+            {"Assembly graph segments", "exploreMode3AssemblyGraphSegment"},
+            {"Assembly graph segment pairs", "exploreMode3AssemblyGraphSegmentPair"},
+            {"Assembly graph links", "exploreMode3AssemblyGraphLink"},
             });
     }
     

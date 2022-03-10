@@ -469,4 +469,171 @@ void Assembler::exploreMode3AssemblyGraphLink(
 
 }
 
+
+
+void Assembler::exploreMode3AssemblyGraphSegmentPair(
+    const vector<string>& request,
+    ostream& html)
+{
+    SHASTA_ASSERT(assemblyGraph3Pointer);
+    const mode3::AssemblyGraph& assemblyGraph3 = *assemblyGraph3Pointer;
+
+    // Get the segment ids from the request.
+    uint64_t segmentId0;
+    const bool segmentId0IsPresent = getParameterValue(request, "segmentId0", segmentId0);
+    uint64_t segmentId1;
+    const bool segmentId1IsPresent = getParameterValue(request, "segmentId1", segmentId1);
+
+
+
+    // Write the form.
+    html <<
+        "<h3>Display details for a pair assembly graph segment</h3>"
+        "<form>"
+        "<table>"
+
+        "<tr>"
+        "<td>Segment id 0"
+        "<td><input type=text required name=segmentId0 size=8 style='text-align:center'"
+        " value='" << (segmentId0IsPresent ? to_string(segmentId0) : "") <<
+        "'>"
+
+        "<tr>"
+        "<td>Segment id 1"
+        "<td><input type=text required name=segmentId1 size=8 style='text-align:center'"
+        " value='" << (segmentId1IsPresent ? to_string(segmentId1) : "") <<
+        "'>"
+
+        "</table>"
+        "<br><input type=submit value='Display'>"
+        "</form>";
+
+    // If the segmentId's were not specified, stop here.
+    if(not segmentId0IsPresent) {
+        return;
+    }
+    if(not segmentId1IsPresent) {
+        return;
+    }
+
+    // Check that we have valid segmentId's.
+    if(segmentId0 >= assemblyGraph3.paths.size()) {
+        html << "Invalid segment id. Maximum valid value is " <<
+            assemblyGraph3.paths.size() - 1 << ".";
+        return;
+    }
+    if(segmentId1 >= assemblyGraph3.paths.size()) {
+        html << "Invalid segment id. Maximum valid value is " <<
+            assemblyGraph3.paths.size() - 1 << ".";
+        return;
+    }
+
+
+    // Get information about the oriented reads of these segments.
+    mode3::AssemblyGraph::SegmentOrientedReadInformation orientedReads0;
+    mode3::AssemblyGraph::SegmentOrientedReadInformation orientedReads1;
+    assemblyGraph3.getOrientedReadsOnSegment(segmentId0, orientedReads0);
+    assemblyGraph3.getOrientedReadsOnSegment(segmentId1, orientedReads1);
+
+
+
+    // Write a table with a row for each oriented read.
+    html <<
+        "<p>"
+        "<table>"
+        "<tr>"
+        "<th>Oriented<br>read"
+        "<th>Average<br>offset<br>in " << segmentId0 <<
+        "<th>Average<br>offset<br>in " << segmentId1 <<
+        "<th>Estimated<br>offset of<br>" << segmentId1 <<
+        "<br>relative to<br>" << segmentId0;
+
+    // Set up a joint loop over oriented reads in the two segments.
+    const auto begin0 = orientedReads0.infos.begin();
+    const auto begin1 = orientedReads1.infos.begin();
+    const auto end0 = orientedReads0.infos.end();
+    const auto end1 = orientedReads1.infos.end();
+    auto it0 = begin0;
+    auto it1 = begin1;
+
+    int64_t offsetSum = 0;
+    int64_t n = 0;
+
+    while(true) {
+
+        // At end of both segments.
+        if(it0 == end0 and it1 == end1) {
+            break;
+        }
+
+        // At end of first segment.
+        if(it0 == end0) {
+            html <<
+                "<tr>"
+                "<td class=centered>" << it1->orientedReadId <<
+                "<td>"
+                "<td class=centered>" << it1->averageOffset <<
+                "<td>";
+            ++it1;
+            continue;
+        }
+
+        // At end of second segment.
+        if(it1 == end1) {
+            html <<
+                "<tr>"
+                "<td class=centered>" << it0->orientedReadId <<
+                "<td class=centered>" << it0->averageOffset <<
+                "<td>"
+                "<td>";
+            ++it0;
+            continue;
+        }
+
+        // If getting here, neither of the two iterators are at end.
+
+        // This oriented read is only on segment 0.
+        if(it0->orientedReadId < it1->orientedReadId) {
+            html <<
+                "<tr>"
+                "<td class=centered>" << it0->orientedReadId <<
+                "<td class=centered>" << it0->averageOffset <<
+                "<td>"
+                "<td>";
+            ++it0;
+            continue;
+        }
+
+        // This oriented read is only on segment 1.
+        if(it1->orientedReadId < it0->orientedReadId) {
+            html <<
+                "<tr>"
+                "<td class=centered>" << it1->orientedReadId <<
+                "<td>"
+                "<td class=centered>" << it1->averageOffset <<
+                "<td>";
+            ++it1;
+            continue;
+        }
+
+        // This oriented read is in both segments.
+        html <<
+            "<tr>"
+            "<td class=centered>" << it0->orientedReadId <<
+            "<td class=centered>" << it0->averageOffset <<
+            "<td class=centered>" << it1->averageOffset <<
+            "<td class=centered>" << it0->averageOffset - it1->averageOffset;
+
+        offsetSum += (int32_t(it0->averageOffset) - int32_t(it1->averageOffset));
+        n++;
+        cout << n << " " << offsetSum << endl;
+        ++it0;
+        ++it1;
+    }
+
+    html << "<tr><th>Average<td><td><td class=centered>" << int32_t(std::round(double(offsetSum) / double(n)));
+    html << "<table>";
+}
+
+
 #endif

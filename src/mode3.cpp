@@ -686,7 +686,6 @@ void mode3::AssemblyGraph::getOrientedReadsOnSegment(
         info.orientedReadId = p.first;
         const uint64_t n = p.second.first;
         const int64_t sum = p.second.second;
-        cout << info.orientedReadId << " " << n << " " << sum << endl;
         info.averageOffset = int32_t(std::round(double(sum) / double(n)));
         information.infos.push_back(info);
     }

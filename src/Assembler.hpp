@@ -2338,6 +2338,7 @@ private:
     // Http server functionality specific to mode 3 assembly.
     void exploreMode3AssemblyGraph(const vector<string>&, ostream&);
     void exploreMode3AssemblyGraphSegment(const vector<string>&, ostream&);
+    void exploreMode3AssemblyGraphSegmentPair(const vector<string>&, ostream&);
     void exploreMode3AssemblyGraphLink(const vector<string>&, ostream&);
 
 
