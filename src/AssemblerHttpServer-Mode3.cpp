@@ -540,13 +540,15 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     // Write a table with a row for each oriented read.
     html <<
         "<p>"
+        "All offsets and lengths are in markers."
         "<table>"
         "<tr>"
         "<th>Oriented<br>read"
-        "<th>Average<br>offset<br>in " << segmentId0 <<
-        "<th>Average<br>offset<br>in " << segmentId1 <<
-        "<th>Estimated<br>offset of<br>" << segmentId1 <<
-        "<br>relative to<br>" << segmentId0;
+        "<th>Length"
+        "<th>Average<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId0 <<
+        "<th>Average<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId1 <<
+        "<th>Estimated<br>offset of<br>segment " << segmentId1 <<
+        "<br>relative to<br>segment " << segmentId0;
 
     // Set up a joint loop over oriented reads in the two segments.
     const auto begin0 = orientedReads0.infos.begin();
@@ -566,11 +568,14 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             break;
         }
 
-        // At end of first segment.
+        // At end of segment 0.
         if(it0 == end0) {
             html <<
                 "<tr>"
-                "<td class=centered>" << it1->orientedReadId <<
+                "<td class=centered>" <<
+                "<a href='exploreRead?readId=" << it1->orientedReadId.getReadId() <<
+                "&strand=" << it1->orientedReadId.getStrand() << "'>" << it1->orientedReadId << "</a>"
+                "<td class=centered>" << markers.size(it1->orientedReadId.getValue()) <<
                 "<td>"
                 "<td class=centered>" << it1->averageOffset <<
                 "<td>";
@@ -578,11 +583,14 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             continue;
         }
 
-        // At end of second segment.
+        // At end of segment 1.
         if(it1 == end1) {
             html <<
                 "<tr>"
-                "<td class=centered>" << it0->orientedReadId <<
+                "<td class=centered>" <<
+                "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
+                "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
+                "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
                 "<td class=centered>" << it0->averageOffset <<
                 "<td>"
                 "<td>";
@@ -596,7 +604,10 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         if(it0->orientedReadId < it1->orientedReadId) {
             html <<
                 "<tr>"
-                "<td class=centered>" << it0->orientedReadId <<
+                "<td class=centered>" <<
+                "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
+                "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
+                "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
                 "<td class=centered>" << it0->averageOffset <<
                 "<td>"
                 "<td>";
@@ -608,7 +619,10 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         if(it1->orientedReadId < it0->orientedReadId) {
             html <<
                 "<tr>"
-                "<td class=centered>" << it1->orientedReadId <<
+                "<td class=centered>" <<
+                "<a href='exploreRead?readId=" << it1->orientedReadId.getReadId() <<
+                "&strand=" << it1->orientedReadId.getStrand() << "'>" << it1->orientedReadId << "</a>"
+                "<td class=centered>" << markers.size(it1->orientedReadId.getValue()) <<
                 "<td>"
                 "<td class=centered>" << it1->averageOffset <<
                 "<td>";
@@ -619,19 +633,23 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         // This oriented read is in both segments.
         html <<
             "<tr>"
-            "<td class=centered>" << it0->orientedReadId <<
+            "<td class=centered>" <<
+            "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
+            "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
+            "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
             "<td class=centered>" << it0->averageOffset <<
             "<td class=centered>" << it1->averageOffset <<
             "<td class=centered>" << it0->averageOffset - it1->averageOffset;
 
         offsetSum += (int32_t(it0->averageOffset) - int32_t(it1->averageOffset));
         n++;
-        cout << n << " " << offsetSum << endl;
         ++it0;
         ++it1;
     }
 
-    html << "<tr><th>Average<td><td><td class=centered>" << int32_t(std::round(double(offsetSum) / double(n)));
+    if(n) {
+        html << "<tr><th>Average<td><td><td><td class=centered>" << int32_t(std::round(double(offsetSum) / double(n)));
+    }
     html << "<table>";
 }
 
