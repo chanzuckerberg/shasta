@@ -314,6 +314,24 @@ public:
     void getOrientedReadsOnSegment(
         uint64_t segmentId,
         SegmentOrientedReadInformation&) const;
+
+
+
+    // Estimate the offset between two segments.
+    // Takes as input SegmentOrientedReadInformation objects
+    // for the two segments.
+    // Common oriented reads between the two segments are used
+    // to estimate the average offset, in markers,
+    // between the beginning of the segments.
+    // The number of common oriented reads
+    // is computed and stored in the last argument.
+    // If that is zero, the computed offset is not valid.
+    void estimateOffset(
+        const SegmentOrientedReadInformation& info0,
+        const SegmentOrientedReadInformation& info1,
+        int64_t& offset,
+        uint64_t& commonOrientedReadCount
+        ) const;
 };
 
 

@@ -6,6 +6,9 @@
 using namespace shasta;
 using namespace mode3;
 
+#include <boost/icl/discrete_interval.hpp>
+#include <boost/icl/right_open_interval.hpp>
+
 
 void Assembler::exploreMode3AssemblyGraph(
     const vector<string>& request,
@@ -475,6 +478,9 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     const vector<string>& request,
     ostream& html)
 {
+    using boost::icl::discrete_interval;
+    using boost::icl::intersects;
+
     SHASTA_ASSERT(assemblyGraph3Pointer);
     const mode3::AssemblyGraph& assemblyGraph3 = *assemblyGraph3Pointer;
 
@@ -534,13 +540,46 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     mode3::AssemblyGraph::SegmentOrientedReadInformation orientedReads1;
     assemblyGraph3.getOrientedReadsOnSegment(segmentId0, orientedReads0);
     assemblyGraph3.getOrientedReadsOnSegment(segmentId1, orientedReads1);
+    const uint64_t length0 = assemblyGraph3.paths.size(segmentId0);
+    const uint64_t length1 = assemblyGraph3.paths.size(segmentId1);
+
+    // Estimate the offset between the segments.
+    int64_t offset01;
+    uint64_t commonOrientedReadCount;
+    assemblyGraph3.estimateOffset(
+        orientedReads0,
+        orientedReads1,
+        offset01,
+        commonOrientedReadCount
+    );
+
+
+
+    /// Write a table with general information about this pair of segments.
+    html <<
+        "<p>"
+        "All offsets and lengths are in markers."
+        "<p>"
+        "<table>"
+        "<tr><th class=left>Length of segment " << segmentId0 <<
+        "<td class=centered>" << length0 <<
+        "<tr><th class=left>Length of segment " << segmentId1 <<
+        "<td class=centered>" << length1 <<
+        "<tr><th class=left>Number of common oriented reads"
+        "<td class=centered>" << commonOrientedReadCount;
+    if(commonOrientedReadCount) {
+        html <<
+            "<tr><th class=left>Estimated offset between segment " << segmentId0 <<
+            " and segment " << segmentId1 <<
+            "<td class=centered>" << offset01;
+    }
+    html <<  "</table>";
 
 
 
     // Write a table with a row for each oriented read.
     html <<
         "<p>"
-        "All offsets and lengths are in markers."
         "<table>"
         "<tr>"
         "<th>Oriented<br>read"
@@ -548,7 +587,10 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         "<th>Average<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId0 <<
         "<th>Average<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId1 <<
         "<th>Estimated<br>offset of<br>segment " << segmentId1 <<
-        "<br>relative to<br>segment " << segmentId0;
+        "<br>relative to<br>segment " << segmentId0 <<
+        "<th>Hypothetical<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId0 <<
+        "<th>Hypothetical<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId1;
+
 
     // Set up a joint loop over oriented reads in the two segments.
     const auto begin0 = orientedReads0.infos.begin();
@@ -558,9 +600,6 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     auto it0 = begin0;
     auto it1 = begin1;
 
-    int64_t offsetSum = 0;
-    int64_t n = 0;
-
     while(true) {
 
         // At end of both segments.
@@ -568,87 +607,90 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             break;
         }
 
-        // At end of segment 0.
-        if(it0 == end0) {
+
+
+        // Only on segment 0.
+        if((it1 == end1) or (it0->orientedReadId < it1->orientedReadId)) {
+            const uint64_t orientedReadLength = markers.size(it0->orientedReadId.getValue());
+            html <<
+                "<tr>"
+                "<td class=centered>" <<
+                "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
+                "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
+                "<td class=centered>" << orientedReadLength <<
+                "<td class=centered>" << it0->averageOffset <<
+                "<td>"
+                "<td><td>";
+
+            if(commonOrientedReadCount) {
+                // Compute the hypothetical range of the oriented read relative
+                // to the beginning of segment 1.
+                const discrete_interval<int64_t> orientedReadRange1(
+                    it0->averageOffset - offset01,
+                    it0->averageOffset - offset01 + orientedReadLength);
+                const discrete_interval<int64_t> segment1Range(0, length1);
+                const bool wouldOverlap = intersects(orientedReadRange1, segment1Range);
+                html <<
+                    "<td class=centered" <<
+                    (wouldOverlap ? " style='background-color:pink'" : "") <<
+                    ">" << orientedReadRange1.lower();
+            } else {
+                html << "<td>";
+            }
+            ++it0;
+        }
+
+
+
+        // Only on segment 1
+        else if((it0 == end0) or (it1->orientedReadId < it0->orientedReadId)) {
+            const uint64_t orientedReadLength = markers.size(it1->orientedReadId.getValue());
             html <<
                 "<tr>"
                 "<td class=centered>" <<
                 "<a href='exploreRead?readId=" << it1->orientedReadId.getReadId() <<
                 "&strand=" << it1->orientedReadId.getStrand() << "'>" << it1->orientedReadId << "</a>"
-                "<td class=centered>" << markers.size(it1->orientedReadId.getValue()) <<
+                "<td class=centered>" << orientedReadLength <<
                 "<td>"
                 "<td class=centered>" << it1->averageOffset <<
                 "<td>";
+
+            if(commonOrientedReadCount) {
+                // Compute the hypothetical range of the oriented read relative
+                // to the beginning of segment 0.
+                const discrete_interval<int64_t> orientedReadRange0(
+                    it1->averageOffset + offset01,
+                    it1->averageOffset + offset01 + orientedReadLength);
+                const discrete_interval<int64_t> segment0Range(0, length0);
+                const bool wouldOverlap = intersects(orientedReadRange0, segment0Range);
+                html <<
+                    "<td class=centered" <<
+                    (wouldOverlap ? " style='background-color:pink'" : "") <<
+                    ">" << orientedReadRange0.lower();
+            } else {
+                html << "<td>";
+            }
+            html << "<td>";
+
             ++it1;
-            continue;
         }
 
-        // At end of segment 1.
-        if(it1 == end1) {
+        // On both segments.
+        else {
             html <<
                 "<tr>"
                 "<td class=centered>" <<
                 "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
                 "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
                 "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
-                "<td class=centered>" << it0->averageOffset <<
-                "<td>"
-                "<td>";
+                "<td class=centered style='background-color:LightGreen'>" << it0->averageOffset <<
+                "<td class=centered style='background-color:LightGreen'>" << it1->averageOffset <<
+                "<td class=centered style='background-color:LightGreen'>" << it0->averageOffset - it1->averageOffset <<
+                "<td><td>";
+
             ++it0;
-            continue;
-        }
-
-        // If getting here, neither of the two iterators are at end.
-
-        // This oriented read is only on segment 0.
-        if(it0->orientedReadId < it1->orientedReadId) {
-            html <<
-                "<tr>"
-                "<td class=centered>" <<
-                "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
-                "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
-                "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
-                "<td class=centered>" << it0->averageOffset <<
-                "<td>"
-                "<td>";
-            ++it0;
-            continue;
-        }
-
-        // This oriented read is only on segment 1.
-        if(it1->orientedReadId < it0->orientedReadId) {
-            html <<
-                "<tr>"
-                "<td class=centered>" <<
-                "<a href='exploreRead?readId=" << it1->orientedReadId.getReadId() <<
-                "&strand=" << it1->orientedReadId.getStrand() << "'>" << it1->orientedReadId << "</a>"
-                "<td class=centered>" << markers.size(it1->orientedReadId.getValue()) <<
-                "<td>"
-                "<td class=centered>" << it1->averageOffset <<
-                "<td>";
             ++it1;
-            continue;
         }
-
-        // This oriented read is in both segments.
-        html <<
-            "<tr>"
-            "<td class=centered>" <<
-            "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
-            "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
-            "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
-            "<td class=centered>" << it0->averageOffset <<
-            "<td class=centered>" << it1->averageOffset <<
-            "<td class=centered>" << it0->averageOffset - it1->averageOffset;
-
-        offsetSum += (int32_t(it0->averageOffset) - int32_t(it1->averageOffset));
-        n++;
-        ++it0;
-        ++it1;
-    }
-
-    if(n) {
-        html << "<tr><th>Average<td><td><td><td class=centered>" << int32_t(std::round(double(offsetSum) / double(n)));
     }
     html << "<table>";
 }

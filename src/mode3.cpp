@@ -640,6 +640,7 @@ double mode3::AssemblyGraph::findOrientedReadsOnSegment(
 }
 
 
+
 // Get information about the oriented reads that appear on the
 // marker graph path of a segment.
 void mode3::AssemblyGraph::getOrientedReadsOnSegment(
@@ -690,6 +691,59 @@ void mode3::AssemblyGraph::getOrientedReadsOnSegment(
         information.infos.push_back(info);
     }
     information.averageCoverage = coverageSum / double(path.size());
+}
+
+
+
+// Estimate the offset between two segments.
+// Takes as input SegmentOrientedReadInformation objects
+// for the two segments.
+// Common oriented reads between the two segments are used
+// to estimate the average offset, in markers,
+// between the beginning of the segments.
+// The number of common oriented reads
+// is computed and stored in the last argument.
+// If that is zero, the computed offset is not valid.
+void mode3::AssemblyGraph::estimateOffset(
+    const SegmentOrientedReadInformation& info0,
+    const SegmentOrientedReadInformation& info1,
+    int64_t& offset,
+    uint64_t& commonOrientedReadCount
+    ) const
+{
+    offset = 0;
+    commonOrientedReadCount = 0;
+
+    // Joint loop over common oriented reads in the two segments.
+    const auto begin0 = info0.infos.begin();
+    const auto begin1 = info1.infos.begin();
+    const auto end0 = info0.infos.end();
+    const auto end1 = info1.infos.end();
+    auto it0 = begin0;
+    auto it1 = begin1;
+    while((it0 != end0) and (it1 != end1)) {
+
+        if(it0->orientedReadId < it1->orientedReadId) {
+            ++it0;
+        } else if(it1->orientedReadId < it0->orientedReadId) {
+            ++it1;
+        } else {
+            SHASTA_ASSERT(it0->orientedReadId == it1->orientedReadId);
+
+            commonOrientedReadCount++;
+            offset += (int64_t(it0->averageOffset) - int64_t(it1->averageOffset));
+
+            ++it0;
+            ++it1;
+        }
+    }
+
+    if(commonOrientedReadCount) {
+        offset = int64_t(std::round(double(offset) / double(commonOrientedReadCount)));
+    } else {
+        offset = std::numeric_limits<uint64_t>::max();
+    }
+
 }
 
 
