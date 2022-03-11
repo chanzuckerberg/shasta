@@ -8,6 +8,8 @@ using namespace shasta;
 using namespace mode3;
 
 // Boost libraries.
+#include <boost/icl/discrete_interval.hpp>
+#include <boost/icl/right_open_interval.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 // Standard library.
@@ -747,4 +749,106 @@ void mode3::AssemblyGraph::estimateOffset(
 }
 
 
+
+// Analyze a pair of segments for common oriented reads,
+// offsets, missing reads, etc.
+void mode3::AssemblyGraph::analyzeSegmentPair(
+    uint64_t segmentId0,
+    uint64_t segmentId1,
+    const SegmentOrientedReadInformation& info0,
+    const SegmentOrientedReadInformation& info1,
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+    SegmentPairInformation& info01
+    ) const
+{
+    using boost::icl::discrete_interval;
+    using boost::icl::intersects;
+
+    // Store the number of oriented reads in each segment.
+    info01.orientedReadCount[0] = info0.infos.size();
+    info01.orientedReadCount[1] = info1.infos.size();
+
+    // Use common oriented reads to estimate the offset between the two segments.
+    // If there are no common oriented reads, stop here.
+    estimateOffset(info0, info1, info01.offset, info01.commonOrientedReadCount);
+    if(info01.commonOrientedReadCount == 0) {
+        return;
+    }
+
+
+    // Count the oriented reads missing from each segment,
+    // and which should have been present based on
+    // the known relative offsets.
+    info01.missingOrientedReadCount = {0, 0};
+
+    // Set up a joint loop over oriented reads in the two segments.
+    const auto begin0 = info0.infos.begin();
+    const auto begin1 = info1.infos.begin();
+    const auto end0 = info0.infos.end();
+    const auto end1 = info1.infos.end();
+    auto it0 = begin0;
+    auto it1 = begin1;
+
+    const uint64_t length0 = paths.size(segmentId0);
+    const uint64_t length1 = paths.size(segmentId1);
+    while(true) {
+
+        // At end of both segments.
+        if(it0 == end0 and it1 == end1) {
+            break;
+        }
+
+
+
+        // This read only appears on segment 0.
+        if((it1 == end1) or (it0->orientedReadId < it1->orientedReadId)) {
+            const int64_t orientedReadLength = markers.size(it0->orientedReadId.getValue());
+
+            // Compute the hypothetical range of the oriented read relative
+            // to the beginning of segment 1.
+            const discrete_interval<int64_t> orientedReadRange1(
+                it0->averageOffset - info01.offset,
+                it0->averageOffset - info01.offset + orientedReadLength);
+            const discrete_interval<int64_t> segment1Range(0, length1);
+
+            // Figure out if it the oriented read would overlap segment 1.
+            const bool wouldOverlap = intersects(orientedReadRange1, segment1Range);
+
+            if(wouldOverlap) {
+                ++info01.missingOrientedReadCount[1];
+            }
+
+            ++it0;
+        }
+
+
+
+        // Only on segment 1
+        else if((it0 == end0) or (it1->orientedReadId < it0->orientedReadId)) {
+            const int64_t orientedReadLength = markers.size(it1->orientedReadId.getValue());
+
+            // Compute the hypothetical range of the oriented read relative
+            // to the beginning of segment 0.
+            const discrete_interval<int64_t> orientedReadRange0(
+                it1->averageOffset + info01.offset,
+                it1->averageOffset + info01.offset + orientedReadLength);
+            const discrete_interval<int64_t> segment0Range(0, length0);
+
+            // Figure out if it the oriented read would overlap segment 0.
+            const bool wouldOverlap = intersects(orientedReadRange0, segment0Range);
+
+            if(wouldOverlap) {
+                ++info01.missingOrientedReadCount[0];
+            }
+            ++it1;
+        }
+
+        // On both segments.
+        else {
+            ++it0;
+            ++it1;
+        }
+    }
+
+}
 

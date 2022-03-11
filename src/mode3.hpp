@@ -332,6 +332,38 @@ public:
         int64_t& offset,
         uint64_t& commonOrientedReadCount
         ) const;
+
+
+
+    // Analyze a pair of segments for common oriented reads,
+    // offsets, missing reads, etc.
+    class SegmentPairInformation {
+    public:
+
+        // The number of oriented reads present in each segment.
+        array<uint64_t, 2> orientedReadCount = {0, 0};
+
+        // The number of oriented reads present in both segments.
+        // If this is zero, the rest of the information is noy valid.
+        uint64_t commonOrientedReadCount = 0;
+
+        // The offset of segment 1 relative to segment 0, in markers.
+        int64_t offset = std::numeric_limits<int64_t>::max();
+
+        // The number of oriented reads missing from each segment,
+        // and which should have been present based on
+        // the known relative offsets.
+        array<uint64_t, 2> missingOrientedReadCount = {0, 0};
+    };
+    void analyzeSegmentPair(
+        uint64_t segmentId0,
+        uint64_t segmentId1,
+        const SegmentOrientedReadInformation& info0,
+        const SegmentOrientedReadInformation& info1,
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+        SegmentPairInformation&
+        ) const;
+
 };
 
 

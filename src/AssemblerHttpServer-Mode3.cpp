@@ -543,16 +543,14 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     const uint64_t length0 = assemblyGraph3.paths.size(segmentId0);
     const uint64_t length1 = assemblyGraph3.paths.size(segmentId1);
 
-    // Estimate the offset between the segments.
-    int64_t offset01;
-    uint64_t commonOrientedReadCount;
-    assemblyGraph3.estimateOffset(
-        orientedReads0,
-        orientedReads1,
-        offset01,
-        commonOrientedReadCount
-    );
-
+    // Estimate the offset between the segments and count missing
+    // oriented reads.
+    mode3::AssemblyGraph::SegmentPairInformation segmentPairInformation;
+    assemblyGraph3.analyzeSegmentPair(
+            segmentId0, segmentId1,
+            orientedReads0, orientedReads1,
+            markers, segmentPairInformation);
+    const uint64_t commonOrientedReadCount = segmentPairInformation.commonOrientedReadCount;
 
 
     /// Write a table with general information about this pair of segments.
@@ -571,7 +569,11 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         html <<
             "<tr><th class=left>Estimated offset between segment " << segmentId0 <<
             " and segment " << segmentId1 <<
-            "<td class=centered>" << offset01;
+            "<td class=centered>" << segmentPairInformation.offset <<
+            "<tr><th class=left>Number of oriented reads missing from segment " << segmentId0 <<
+            "<td class=centered>" << segmentPairInformation.missingOrientedReadCount[0] <<
+            "<tr><th class=left>Number of oriented reads missing from segment " << segmentId1 <<
+            "<td class=centered>" << segmentPairInformation.missingOrientedReadCount[1];
     }
     html <<  "</table>";
 
@@ -611,7 +613,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
 
         // Only on segment 0.
         if((it1 == end1) or (it0->orientedReadId < it1->orientedReadId)) {
-            const uint64_t orientedReadLength = markers.size(it0->orientedReadId.getValue());
+            const int64_t orientedReadLength = markers.size(it0->orientedReadId.getValue());
             html <<
                 "<tr>"
                 "<td class=centered>" <<
@@ -626,8 +628,8 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 // Compute the hypothetical range of the oriented read relative
                 // to the beginning of segment 1.
                 const discrete_interval<int64_t> orientedReadRange1(
-                    it0->averageOffset - offset01,
-                    it0->averageOffset - offset01 + orientedReadLength);
+                    it0->averageOffset - segmentPairInformation.offset,
+                    it0->averageOffset - segmentPairInformation.offset + orientedReadLength);
                 const discrete_interval<int64_t> segment1Range(0, length1);
                 const bool wouldOverlap = intersects(orientedReadRange1, segment1Range);
                 html <<
@@ -644,7 +646,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
 
         // Only on segment 1
         else if((it0 == end0) or (it1->orientedReadId < it0->orientedReadId)) {
-            const uint64_t orientedReadLength = markers.size(it1->orientedReadId.getValue());
+            const int64_t orientedReadLength = markers.size(it1->orientedReadId.getValue());
             html <<
                 "<tr>"
                 "<td class=centered>" <<
@@ -659,8 +661,8 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 // Compute the hypothetical range of the oriented read relative
                 // to the beginning of segment 0.
                 const discrete_interval<int64_t> orientedReadRange0(
-                    it1->averageOffset + offset01,
-                    it1->averageOffset + offset01 + orientedReadLength);
+                    it1->averageOffset + segmentPairInformation.offset,
+                    it1->averageOffset + segmentPairInformation.offset + orientedReadLength);
                 const discrete_interval<int64_t> segment0Range(0, length0);
                 const bool wouldOverlap = intersects(orientedReadRange0, segment0Range);
                 html <<
