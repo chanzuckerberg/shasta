@@ -6,7 +6,7 @@ add_definitions(-std=c++17)
 
 # Compilation warnings.
 if(NOT MACOS)
-    add_definitions(-Wall -Wconversion -Wno-unused-result)
+    add_definitions(-Wall -Wconversion -Wno-unused-result -Wno-trigraphs)
 endif(NOT MACOS)
 
 # Optimization and debug options.
