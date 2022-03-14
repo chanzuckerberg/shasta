@@ -609,6 +609,8 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     auto it0 = begin0;
     auto it1 = begin1;
 
+
+
     while(true) {
 
         // At end of both segments.
@@ -619,7 +621,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
 
 
         // Only on segment 0.
-        if((it1 == end1) or (it0->orientedReadId < it1->orientedReadId)) {
+        if((it1 == end1) or ((it0!=end0) and (it0->orientedReadId < it1->orientedReadId))) {
             const int64_t orientedReadLength = markers.size(it0->orientedReadId.getValue());
             html <<
                 "<tr>"
@@ -648,7 +650,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                     html << "<td><td class=centered>&#10003;<td><td>";
                 }
             } else {
-                html << "<td><td><td>";
+                html << "<td><td><td><td><td><td><td>";
             }
             ++it0;
         }
@@ -656,7 +658,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
 
 
         // Only on segment 1
-        else if((it0 == end0) or (it1->orientedReadId < it0->orientedReadId)) {
+        else if((it0 == end0) or ((it1!=end1) and (it1->orientedReadId < it0->orientedReadId))) {
             const int64_t orientedReadLength = markers.size(it1->orientedReadId.getValue());
             html <<
                 "<tr>"
