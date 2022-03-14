@@ -480,6 +480,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
 {
     using boost::icl::discrete_interval;
     using boost::icl::intersects;
+    using boost::icl::length;
 
     SHASTA_ASSERT(assemblyGraph3Pointer);
     const mode3::AssemblyGraph& assemblyGraph3 = *assemblyGraph3Pointer;
@@ -556,7 +557,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     /// Write a table with general information about this pair of segments.
     html <<
         "<p>"
-        "All offsets and lengths are in markers."
+        "See caption after the tables."
         "<p>"
         "<table>"
         "<tr><th class=left>Length of segment " << segmentId0 <<
@@ -591,7 +592,13 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         "<th>Estimated<br>offset of<br>segment " << segmentId1 <<
         "<br>relative to<br>segment " << segmentId0 <<
         "<th>Hypothetical<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId0 <<
-        "<th>Hypothetical<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId1;
+        "<th>Hypothetical<br>offset of<br>oriented read<br>relative to<br>segment " << segmentId1 <<
+        "<th>Hypothetical<br>overlap of<br>oriented read<br>with<br>segment " << segmentId0 <<
+        "<th>Hypothetical<br>overlap of<br>oriented read<br>with<br>segment " << segmentId1 <<
+        "<th>On both<br>segments" <<
+        "<th>Too<br>short" <<
+        "<th>On segment<br>" << segmentId0 << "<br>only,<br>missing from<br>segment<br>" << segmentId1 <<
+        "<th>On segment<br>" << segmentId1 << "<br>only,<br>missing from<br>segment<br>" << segmentId0;
 
 
     // Set up a joint loop over oriented reads in the two segments.
@@ -633,11 +640,15 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 const discrete_interval<int64_t> segment1Range(0, length1);
                 const bool wouldOverlap = intersects(orientedReadRange1, segment1Range);
                 html <<
-                    "<td class=centered" <<
-                    (wouldOverlap ? " style='background-color:pink'" : "") <<
-                    ">" << orientedReadRange1.lower();
+                    "<td class=centered>" << orientedReadRange1.lower() <<
+                    "<td><td class=centered>" << length(orientedReadRange1 & segment1Range);
+                if(wouldOverlap) {
+                    html << "<td><td><td class=centered>&#10003;<td>";
+                } else {
+                    html << "<td><td class=centered>&#10003;<td><td>";
+                }
             } else {
-                html << "<td>";
+                html << "<td><td><td>";
             }
             ++it0;
         }
@@ -666,13 +677,17 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 const discrete_interval<int64_t> segment0Range(0, length0);
                 const bool wouldOverlap = intersects(orientedReadRange0, segment0Range);
                 html <<
-                    "<td class=centered" <<
-                    (wouldOverlap ? " style='background-color:pink'" : "") <<
-                    ">" << orientedReadRange0.lower();
+                    "<td class=centered>" << orientedReadRange0.lower() <<
+                    "<td><td class=centered>" << length(orientedReadRange0 & segment0Range) << "<td>";
+                if(wouldOverlap) {
+                    html << "<td><td><td><td class=centered>&#10003;";
+                } else {
+                    html << "<td><td class=centered>&#10003;<td><td>";
+                }
+
             } else {
-                html << "<td>";
+                html << "<td><td><td><td><td><td><td><td>";
             }
-            html << "<td>";
 
             ++it1;
         }
@@ -685,16 +700,36 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 "<a href='exploreRead?readId=" << it0->orientedReadId.getReadId() <<
                 "&strand=" << it0->orientedReadId.getStrand() << "'>" << it0->orientedReadId << "</a>"
                 "<td class=centered>" << markers.size(it0->orientedReadId.getValue()) <<
-                "<td class=centered style='background-color:LightGreen'>" << it0->averageOffset <<
-                "<td class=centered style='background-color:LightGreen'>" << it1->averageOffset <<
-                "<td class=centered style='background-color:LightGreen'>" << it0->averageOffset - it1->averageOffset <<
-                "<td><td>";
+                "<td class=centered>" << it0->averageOffset <<
+                "<td class=centered>" << it1->averageOffset <<
+                "<td class=centered>" << it0->averageOffset - it1->averageOffset <<
+                "<td><td><td><td>"
+                "<td class=centered>&#10003;<td><td><td>";
 
             ++it0;
             ++it1;
         }
     }
-    html << "<table>";
+    html << "</table>";
+
+
+
+    // Write a caption for this messy table.
+    html <<
+        "<p><ul>"
+        "<li>All offsets, overlaps, and lengths are in markers."
+        "<li>On both segments: this oriented read appears in both segments "
+        "and was used to estimate their offset."
+        "<li>Too short: this oriented read appears in only one of the two segments "
+        "and, based on the estimated offset between the segments, "
+        "is too short to appear in the other segment."
+        "<li>On one segment only, missing from the other segment: "
+        "this oriented read appears in one segment only and, "
+        "based on the estimated offset between the segments, was expected to also "
+        "appear in the other segment.";
+
+
+
 }
 
 
