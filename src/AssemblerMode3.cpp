@@ -25,6 +25,7 @@ void Assembler::mode3Assembly(
         dynamicAssemblyGraph,
         largeDataFileNamePrefix,
         largeDataPageSize,
+        markers,
         markerGraph);
     assemblyGraph3Pointer->writeGfa("AssemblyGraph.gfa");
 
@@ -34,6 +35,6 @@ void Assembler::mode3Assembly(
 
 void Assembler::accessMode3AssemblyGraph()
 {
-    assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(largeDataFileNamePrefix, markerGraph);
+    assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(largeDataFileNamePrefix, markers, markerGraph);
 }
 

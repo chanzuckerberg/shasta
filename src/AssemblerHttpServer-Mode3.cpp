@@ -571,6 +571,8 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             "<tr><th class=left>Estimated offset between segment " << segmentId0 <<
             " and segment " << segmentId1 <<
             "<td class=centered>" << segmentPairInformation.offset <<
+            "<tr><th class=left>Number of oriented reads too short to appear on both segments"
+            "<td class=centered>" << segmentPairInformation.tooShortCount <<
             "<tr><th class=left>Number of oriented reads missing from segment " << segmentId0 <<
             "<td class=centered>" << segmentPairInformation.missingOrientedReadCount[0] <<
             "<tr><th class=left>Number of oriented reads missing from segment " << segmentId1 <<

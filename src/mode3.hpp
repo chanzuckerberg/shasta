@@ -248,15 +248,18 @@ public:
         const DynamicAssemblyGraph&,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize,
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
     // Constructor from binary data.
     AssemblyGraph(
         const string& largeDataFileNamePrefix,
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 
     // The marker graph paths corresponding to each segment.
@@ -344,7 +347,7 @@ public:
         array<uint64_t, 2> orientedReadCount = {0, 0};
 
         // The number of oriented reads present in both segments.
-        // If this is zero, the rest of the information is noy valid.
+        // If this is zero, the rest of the information is not valid.
         uint64_t commonOrientedReadCount = 0;
 
         // The offset of segment 1 relative to segment 0, in markers.
@@ -354,6 +357,17 @@ public:
         // and which should have been present based on
         // the known relative offsets.
         array<uint64_t, 2> missingOrientedReadCount = {0, 0};
+
+        // The number of oriented reads that appear in only one
+        // of the two segments, but based on the estimated offset
+        // are too sort to appear in the other segment.
+        uint64_t tooShortCount = 0;
+
+        double missingFraction(uint64_t i) const
+        {
+            const uint64_t m = missingOrientedReadCount[i];
+            return double(m) / double(commonOrientedReadCount + m);
+        }
     };
     void analyzeSegmentPair(
         uint64_t segmentId0,

@@ -166,45 +166,33 @@ void mode3::LocalAssemblyGraph::writeSvg(
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
 
-    // If coloring segments by common reads,
-    // compute the size of the union and intersection of
-    // oriented reads of the reference element against all segments
-    // in the LocalAssemblyGraph.
-    std::map<vertex_descriptor, pair<uint64_t, uint64_t> > similarityTable;
-    vector<OrientedReadId> referenceSegmentOrientedReadIds;
-    if(options.segmentColoring == "byCommonReads" or
-        options.segmentColoring == "byJaccardSimilarity") {
+    // If necessary, compute a map containing a SegmentPairInformation object
+    // containing pair information between the reference segment
+    // and each segment in the local assembly graph.
+    const bool doSegmentPairComputations =
+        options.segmentColoring == "byCommonReads" or
+        options.segmentColoring == "byMissingFractionOnDisplayedSegment" or
+        options.segmentColoring == "byMissingFractionOnReferenceSegment";
+    std::map<vertex_descriptor, mode3::AssemblyGraph::SegmentPairInformation> segmentPairInformationTable;
+    mode3::AssemblyGraph::SegmentOrientedReadInformation referenceSegmentInfo;
+    if(doSegmentPairComputations) {
 
         // Find oriented reads in the reference segment.
-        assemblyGraph.findOrientedReadsOnSegment(
-            options.referenceSegmentId, referenceSegmentOrientedReadIds);
+        assemblyGraph.getOrientedReadsOnSegment(options.referenceSegmentId, referenceSegmentInfo);
 
         // Loop over segments in the localAssemblyGraph.
         BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph){
-            vector<OrientedReadId> orientedReadIds;
-            assemblyGraph.findOrientedReadsOnSegment(
-                localAssemblyGraph[v].segmentId, orientedReadIds);
+            mode3::AssemblyGraph::SegmentOrientedReadInformation segmentInfo;
+            assemblyGraph.getOrientedReadsOnSegment(
+                localAssemblyGraph[v].segmentId, segmentInfo);
 
-            vector<OrientedReadId> intersectionSet;
-            set_intersection(
-                referenceSegmentOrientedReadIds.begin(),
-                referenceSegmentOrientedReadIds.end(),
-                orientedReadIds.begin(),
-                orientedReadIds.end(),
-                back_inserter(intersectionSet)
-                );
+            mode3::AssemblyGraph::SegmentPairInformation segmentPairInformation;
+            assemblyGraph.analyzeSegmentPair(
+                options.referenceSegmentId, localAssemblyGraph[v].segmentId,
+                referenceSegmentInfo, segmentInfo,
+                assemblyGraph.markers, segmentPairInformation);
 
-            vector<OrientedReadId> unionSet;
-            set_union(
-                referenceSegmentOrientedReadIds.begin(),
-                referenceSegmentOrientedReadIds.end(),
-                orientedReadIds.begin(),
-                orientedReadIds.end(),
-                back_inserter(unionSet)
-                );
-
-            similarityTable.insert(make_pair(v, make_pair(intersectionSet.size(), unionSet.size())));
-
+            segmentPairInformationTable.insert(make_pair(v, segmentPairInformation));
         }
     }
 
@@ -367,14 +355,21 @@ void mode3::LocalAssemblyGraph::writeSvg(
             } else if(options.segmentColoring == "uniform") {
                 color = options.segmentColor;
             } else if(options.segmentColoring == "byCommonReads") {
-                const double fraction =
-                    options.greenThreshold ?
-                    min(1., double(similarityTable[v].first) / double(options.greenThreshold)) :
-                    double(similarityTable[v].first) / double(referenceSegmentOrientedReadIds.size());
+                const uint64_t commonReadCount = segmentPairInformationTable[v].commonOrientedReadCount;
+                double fraction;
+                if(options.greenThreshold) {
+                    fraction = min(1., double(commonReadCount) / double(options.greenThreshold));
+                } else {
+                    fraction = double(commonReadCount) / double(referenceSegmentInfo.infos.size());
+                }
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
-            } else if(options.segmentColoring == "byJaccardSimilarity") {
-                const double fraction = double(similarityTable[v].first) / double(similarityTable[v].second);
+            } else if(options.segmentColoring == "byMissingFractionOnDisplayedSegment") {
+                const double fraction = 1. - segmentPairInformationTable[v].missingFraction(1);
+                const uint64_t hue = uint64_t(std::round(fraction * 120.));
+                color = "hsl(" + to_string(hue) + ",100%, 50%)";
+            } else if(options.segmentColoring == "byMissingFractionOnReferenceSegment") {
+                const double fraction = 1. - segmentPairInformationTable[v].missingFraction(0);
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
             } else {
@@ -417,9 +412,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", path length " << assemblyGraph.paths.size(segmentId) <<
             ", average marker graph edge coverage " << averageEdgeCoverage <<
             ", number of distinct oriented reads " << orientedReadIds.size();
-        if(options.segmentColoring == "byCommonReads") {
-            svg << ", number of common oriented reads " << similarityTable[v].first <<
-                " of " << referenceSegmentOrientedReadIds.size();
+        if(doSegmentPairComputations) {
+            svg << ", number of common oriented reads " << segmentPairInformationTable[v].commonOrientedReadCount <<
+                " of " << referenceSegmentInfo.infos.size();
         }
         svg <<
             "</title>"
@@ -767,13 +762,13 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
 
         "<tr>"
         "<td>Graph layout method"
-        "<td class=centered>"
+        "<td class=left>"
         "<input type=radio name=layoutMethod value=neato"
         << (layoutMethod=="neato" ? " checked=checked" : "") <<
-        ">neato<br>"
+        ">Graphviz neato (slow for large graphs)<br>"
         "<input type=radio name=layoutMethod value=custom"
         << (layoutMethod=="custom" ? " checked=checked" : "") <<
-        ">custom<br>"
+        ">Custom (user-provided command <code>customLayout</code>)<br>"
 
         "<tr>"
         "<td>Segments"
@@ -798,18 +793,27 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         " value='" << additionalSegmentThicknessPerUnitCoverage <<
         "'>"
 
+
+
+        // Segment coloring.
         "<tr>"
         "<td class = left>Color"
         "<td class=left>"
+
+        // Random segment coloring.
         "<input type=radio name=segmentColoring value=random"
         << (segmentColoring=="random" ? " checked=checked" : "") <<
         ">Random<br>"
+
+        // Uniform segment coloring.
         "<input type=radio name=segmentColoring value=uniform"
         << (segmentColoring=="uniform" ? " checked=checked" : "") <<
         ">"
         "<input type=text name=segmentColor size=8 style='text-align:center'"
                 " value='" << segmentColor << "'>"
         "<br>"
+
+        // Segment coloring by number of common reads with the reference segment.
         "<input type=radio name=segmentColoring value=byCommonReads"
         << (segmentColoring=="byCommonReads" ? " checked=checked" : "") <<
         ">By number of common supporting oriented reads with reference segment"
@@ -819,12 +823,22 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         " value='" << greenThreshold <<
         "'>"        " common reads (0 = automatic)"
         "</div>"
-        "<input type=radio name=segmentColoring value=byJaccardSimilarity"
-        << (segmentColoring=="byJaccardSimilarity" ? " checked=checked" : "") <<
-        ">By Jaccard similarity with supporting oriented reads of reference segment"
+
+        // Segment coloring by missing fraction on the displayed segment versus the reference segment.
+        "<input type=radio name=segmentColoring value=byMissingFractionOnDisplayedSegment"
+        << (segmentColoring=="byMissingFractionOnDisplayedSegment" ? " checked=checked" : "") <<
+        ">By missing fraction on the displayed segment versus the reference segment"
         "<br>"
+
+        // Segment coloring by missing fraction on the reference segment versus the displayed segment.
+        "<input type=radio name=segmentColoring value=byMissingFractionOnReferenceSegment"
+        << (segmentColoring=="byMissingFractionOnReferenceSegment" ? " checked=checked" : "") <<
+        ">By missing fraction on the reference segment versus the displayed segment"
+        "<br>"
+
         "Reference segment&nbsp;<input type=text name=referenceSegmentId size=8 style='text-align:center'"
                 " value='" << referenceSegmentId << "'>"
+
         "</table>"
 
 

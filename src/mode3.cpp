@@ -493,9 +493,11 @@ mode3::AssemblyGraph::AssemblyGraph(
     const DynamicAssemblyGraph& dynamicAssemblyGraph,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
+    markers(markers),
     markerGraph(markerGraph)
 {
 
@@ -538,8 +540,10 @@ mode3::AssemblyGraph::AssemblyGraph(
 // Constructor from binary data.
 mode3::AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
     largeDataFileNamePrefix(largeDataFileNamePrefix),
+    markers(markers),
     markerGraph(markerGraph)
 {
     paths.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Paths");
@@ -780,6 +784,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
     // and which should have been present based on
     // the known relative offsets.
     info01.missingOrientedReadCount = {0, 0};
+    info01.tooShortCount = 0;
 
     // Set up a joint loop over oriented reads in the two segments.
     const auto begin0 = info0.infos.begin();
@@ -794,14 +799,14 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
     while(true) {
 
         // At end of both segments.
-        if(it0 == end0 and it1 == end1) {
+        if((it0 == end0) and (it1 == end1)) {
             break;
         }
 
 
 
         // This read only appears on segment 0.
-        if((it1 == end1) or (it0->orientedReadId < it1->orientedReadId)) {
+        if((it1 == end1) or ((it0 != end0) and (it0->orientedReadId < it1->orientedReadId))) {
             const int64_t orientedReadLength = markers.size(it0->orientedReadId.getValue());
 
             // Compute the hypothetical range of the oriented read relative
@@ -816,15 +821,18 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
 
             if(wouldOverlap) {
                 ++info01.missingOrientedReadCount[1];
+            } else {
+                ++info01.tooShortCount;
             }
 
+            SHASTA_ASSERT(it0 != end0);
             ++it0;
         }
 
 
 
         // Only on segment 1
-        else if((it0 == end0) or (it1->orientedReadId < it0->orientedReadId)) {
+        else if((it0 == end0) or ((it1 != end1) and (it1->orientedReadId < it0->orientedReadId))) {
             const int64_t orientedReadLength = markers.size(it1->orientedReadId.getValue());
 
             // Compute the hypothetical range of the oriented read relative
@@ -839,12 +847,18 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
 
             if(wouldOverlap) {
                 ++info01.missingOrientedReadCount[0];
+            } else {
+                ++info01.tooShortCount;
             }
+
+            SHASTA_ASSERT(it1 != end1);
             ++it1;
         }
 
         // On both segments.
         else {
+            SHASTA_ASSERT(it0 != end0);
+            SHASTA_ASSERT(it1 != end1);
             ++it0;
             ++it1;
         }
