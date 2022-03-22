@@ -169,6 +169,55 @@ void Assembler::exploreMode3AssemblyGraph(
 
 
 
+    // Table that will be automatically updated when the mouse is on a segment.
+    html << R"zzz(  
+<table style='font-size:9'>
+<tr><th class='left' style='width:16em'>Segment id<td id='segmentIdCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Distance from start segment<td id='distanceCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16m'>Path length<td id='pathLengthCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Average edge coverage<td id='coverageCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Number of oriented reads on this segment<td id='orientedReadsCell' class=centered style='width:8em'>
+<tr><th class='left style='width:16em''>Number of oriented reads that in this segment that are also in the reference segment
+<td id='comonOrientedReadsCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Number of oriented reads in this segment only or in the reference segment only
+which are too short to appear on both.
+<td id='tooShortCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Number of oriented reads in this segment but not in the reference segment
+<td id='missingFromReferenceSegmentCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Number of oriented reads in the reference segment but not in this segment
+<td id='missingFromDisplayedSegmentCell' class=centered style='width:8em'>
+</table>
+<script>
+function onMouseEnterSegment(id, distance, pathLength, coverage, orientedReads,
+    common, tooShort, missingFromReference, missingFromDisplayed)
+{
+    document.getElementById('segmentIdCell').innerHTML = id;
+    document.getElementById('distanceCell').innerHTML = distance;
+    document.getElementById('pathLengthCell').innerHTML = pathLength;
+    document.getElementById('coverageCell').innerHTML = coverage;
+    document.getElementById('orientedReadsCell').innerHTML = orientedReads;
+    document.getElementById('comonOrientedReadsCell').innerHTML = common;
+    document.getElementById('tooShortCell').innerHTML = tooShort;
+    document.getElementById('missingFromReferenceSegmentCell').innerHTML = missingFromReference;
+    document.getElementById('missingFromDisplayedSegmentCell').innerHTML = missingFromDisplayed;
+}
+function onMouseExitSegment()
+{
+    document.getElementById('segmentIdCell').innerHTML = '';
+    document.getElementById('distanceCell').innerHTML = '';
+    document.getElementById('pathLengthCell').innerHTML = '';
+    document.getElementById('coverageCell').innerHTML = '';
+    document.getElementById('orientedReadsCell').innerHTML = '';
+    document.getElementById('comonOrientedReadsCell').innerHTML = '';
+    document.getElementById('tooShortCell').innerHTML = '';
+    document.getElementById('missingFromReferenceSegmentCell').innerHTML = '';
+    document.getElementById('missingFromDisplayedSegmentCell').innerHTML = '';
+}
+</script>
+    )zzz";
+
+
+
     // Change segment thickness
     html << R"stringDelimiter(
     <p><button type='button' onClick='segmentThickness(1.25)'>Make segments<br>thicker</button>

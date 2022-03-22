@@ -169,10 +169,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
     // If necessary, compute a map containing a SegmentPairInformation object
     // containing pair information between the reference segment
     // and each segment in the local assembly graph.
-    const bool doSegmentPairComputations =
-        options.segmentColoring == "byCommonReads" or
-        options.segmentColoring == "byMissingFractionOnDisplayedSegment" or
-        options.segmentColoring == "byMissingFractionOnReferenceSegment";
+    const bool doSegmentPairComputations = true;
     std::map<vertex_descriptor, mode3::AssemblyGraph::SegmentPairInformation> segmentPairInformationTable;
     mode3::AssemblyGraph::SegmentOrientedReadInformation referenceSegmentInfo;
     if(doSegmentPairComputations) {
@@ -400,9 +397,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             "</defs>\n";
 
         // Add this segment to the svg.
-        // Draw it as a cubic.
+        const auto& segmentPairInfo = segmentPairInformationTable[v];
         const auto oldPrecision = svg.precision(1);
         const auto oldFlags = svg.setf(std::ios_base::fixed, std::ios_base::floatfield);
+        /*
         svg <<
             "<g>"
             // "<a href='exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "'>"
@@ -413,20 +411,35 @@ void mode3::LocalAssemblyGraph::writeSvg(
             ", average marker graph edge coverage " << averageEdgeCoverage <<
             ", number of distinct oriented reads " << orientedReadIds.size();
         if(doSegmentPairComputations) {
-            svg << ", number of common oriented reads " << segmentPairInformationTable[v].commonOrientedReadCount <<
+            svg << ", number of common oriented reads " << segmentPairInfo.commonOrientedReadCount <<
                 " of " << referenceSegmentInfo.infos.size();
         }
+        */
         svg <<
-            "</title>"
-            "<path id='Segment-" << segmentId <<
+            // "</title>"
+            "<path id='Segment-" << segmentId << "'"
+            " onmouseenter='onMouseEnterSegment(" <<
+            segmentId << "," <<
+            distance << "," <<
+            assemblyGraph.paths.size(segmentId) << "," <<
+            averageEdgeCoverage << "," <<
+            orientedReadIds.size() << "," <<
+            segmentPairInfo.commonOrientedReadCount << "," <<
+            segmentPairInfo.tooShortCount << "," <<
+            segmentPairInfo.missingOrientedReadCount[0] << "," <<
+            segmentPairInfo.missingOrientedReadCount[1] << ")'" <<
+            " onmouseleave='onMouseExitSegment()'" <<
 #if 0
+            common, tooShort, missingFromReference, missingFromDisplayed
+
+
             "' d='M " <<
             p1.x() << " " << p1.y() << " C " <<
             q1.x() << " " << q1.y() << ", " <<
             q2.x() << " " << q2.y() << ", " <<
             p2.x() << " " << p2.y() << "'" <<
 #endif
-            "' d='M " <<
+            " d='M " <<
             p1.x() << " " << p1.y() << " L " <<
             p2.x() << " " << p2.y() << "'" <<
             " stroke='" << color << "'"
