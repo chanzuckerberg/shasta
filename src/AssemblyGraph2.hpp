@@ -333,13 +333,19 @@ private:
         uint64_t edgeLengthThreshold,
         uint64_t maxSuperbubbleSize,
         uint64_t maxSuperbubbleChunkSize,
-        uint64_t maxSuperbubbleChunkPathCount);
+        uint64_t maxSuperbubbleChunkPathCount,
+        bool storeReadInformation,  // If true, store read information for newly created edges.
+        bool assemble               // If true, assemble sequence for newly created edges
+        );
 
     // This creates superbubbles using all edges not in bubble chains.
     void handleSuperbubbles1(
         uint64_t maxSuperbubbleSize,
         uint64_t maxSuperbubbleChunkSize,
-        uint64_t maxSuperbubbleChunkPathCount);
+        uint64_t maxSuperbubbleChunkPathCount,
+        bool storeReadInformation,  // If true, store read information for newly created edges.
+        bool assemble               // If true, assemble sequence for newly created edges
+        );
 
     class Superbubble;
 
@@ -350,7 +356,10 @@ private:
         Superbubble&,
         uint64_t maxSuperbubbleSize,
         uint64_t maxSuperbubbleChunkSize,
-        uint64_t maxSuperbubbleChunkPathCount);
+        uint64_t maxSuperbubbleChunkPathCount,
+        bool storeReadInformation,  // If true, store read information for newly created edges.
+        bool assemble               // If true, assemble sequence for newly created edges
+        );
 
 
 
@@ -371,7 +380,10 @@ private:
     // Also create the vertices if necessary.
     edge_descriptor addEdge(
         const MarkerGraphPath&,
-        bool containsSecondaryEdges);
+        bool containsSecondaryEdges,
+        bool storeReadInformation,  // If true, store read information for newly created edges.
+        bool assemble               // If true, assemble sequence for newly created edges
+        );
 
     // Merge consecutive non-bubbles, when possible.
      void merge(

@@ -102,10 +102,10 @@ AssemblyGraph2::AssemblyGraph2(
 
     // Handle superbubbles.
     handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold,
-        maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
+        maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount, false, false);
     merge(false, false);
     handleSuperbubbles1(
-        maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
+        maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount, false, false);
     merge(false, false);
 
     // Store the reads supporting each branch of each edge.
@@ -352,7 +352,7 @@ void AssemblyGraph2::create()
         }
 
         // Store this path as a new edge of the assembly graph.
-        addEdge(path, containsSecondaryEdges);
+        addEdge(path, containsSecondaryEdges, false, false);
     }
 
 
@@ -582,7 +582,10 @@ AssemblyGraph2::vertex_descriptor AssemblyGraph2::getVertex(MarkerGraph::VertexI
 // Also create the vertices if necessary.
 AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(
     const MarkerGraphPath& path,
-    bool containsSecondaryEdges)
+    bool containsSecondaryEdges,
+    bool storeReadInformation,  // If true, store read information for newly created edges.
+    bool assemble               // If true, assemble sequence for newly created edges
+    )
 {
     // Get the first and last edge of the path.
     const MarkerGraph::EdgeId edgeId0 = path.front();
@@ -603,6 +606,13 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::addEdge(
     tie(e, edgeWasAdded) = add_edge(v0, v1,
         E(nextId++, path, containsSecondaryEdges), *this);
     SHASTA_ASSERT(edgeWasAdded);
+
+    if(storeReadInformation) {
+        (*this)[e].storeReadInformation(markerGraph);
+    }
+    if(assemble) {
+        AssemblyGraph2::assemble(e);
+    }
 
     return e;
 }
@@ -2414,13 +2424,7 @@ AssemblyGraph2::edge_descriptor AssemblyGraph2::merge(
     }
 
     // Add the new edge.
-    const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges);
-    if(storeReadInformation) {
-        g[eNew].storeReadInformation(markerGraph);
-    }
-    if(assemble) {
-        AssemblyGraph2::assemble(eNew);
-    }
+    const edge_descriptor eNew = addEdge(newPath, containsSecondaryEdges, storeReadInformation, assemble);
 
     // Gather the vertices in between, which will be removed.
     vector<vertex_descriptor> verticesToBeRemoved;
@@ -2941,7 +2945,10 @@ void AssemblyGraph2::handleSuperbubbles0(
     uint64_t edgeLengthThreshold,
     uint64_t maxSuperbubbleSize,
     uint64_t maxSuperbubbleChunkSize,
-    uint64_t maxSuperbubbleChunkPathCount)
+    uint64_t maxSuperbubbleChunkPathCount,
+    bool storeReadInformation,  // If true, store read information for newly created edges.
+    bool assemble               // If true, assemble sequence for newly created edges
+    )
 {
     G& g = *this;
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 begins." << endl;
@@ -2993,7 +3000,8 @@ void AssemblyGraph2::handleSuperbubbles0(
 
         // Process it.
         handleSuperbubble1(superbubble,
-            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount,
+            storeReadInformation, assemble);
     }
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles0 ends." << endl;
 }
@@ -3004,7 +3012,10 @@ void AssemblyGraph2::handleSuperbubbles0(
 void AssemblyGraph2::handleSuperbubbles1(
     uint64_t maxSuperbubbleSize,
     uint64_t maxSuperbubbleChunkSize,
-    uint64_t maxSuperbubbleChunkPathCount)
+    uint64_t maxSuperbubbleChunkPathCount,
+    bool storeReadInformation,  // If true, store read information for newly created edges.
+    bool assemble               // If true, assemble sequence for newly created edges
+    )
 {
     G& g = *this;
     performanceLog << timestamp << "AssemblyGraph2::handleSuperbubbles1 begins." << endl;
@@ -3058,7 +3069,8 @@ void AssemblyGraph2::handleSuperbubbles1(
 
         // Process it.
         handleSuperbubble1(superbubble,
-            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount,
+            storeReadInformation, assemble);
     }
 
     clearBubbleChains();
@@ -3126,7 +3138,10 @@ void AssemblyGraph2::handleSuperbubble1(
     Superbubble& superbubble,
     uint64_t maxSuperbubbleSize,
     uint64_t maxSuperbubbleChunkSize,
-    uint64_t maxSuperbubbleChunkPathCount)
+    uint64_t maxSuperbubbleChunkPathCount,
+    bool storeReadInformation,  // If true, store read information for newly created edges.
+    bool assemble               // If true, assemble sequence for newly created edges
+    )
 {
     G& g = *this;
     const bool debug = false;
@@ -3456,7 +3471,7 @@ void AssemblyGraph2::handleSuperbubble1(
             }
 
             // Create a new haploid edge with this path.
-            addEdge(markerGraphPath, containsSecondaryEdges);
+            addEdge(markerGraphPath, containsSecondaryEdges, storeReadInformation, assemble);
         }
 
 
@@ -3512,13 +3527,20 @@ void AssemblyGraph2::handleSuperbubble1(
                     containsSecondaryEdges1 = true;
                 }
             }
+            edge_descriptor eNew;
             bool edgeWasAdded = false;
-            tie(ignore, edgeWasAdded) = add_edge(av0, av1,
+            tie(eNew, edgeWasAdded) = add_edge(av0, av1,
                 E(nextId++,
                 markerGraphPath0, containsSecondaryEdges0,
                 markerGraphPath1, containsSecondaryEdges1),
                 g);
             SHASTA_ASSERT(edgeWasAdded);
+            if(storeReadInformation) {
+                g[eNew].storeReadInformation(markerGraph);
+            }
+            if(assemble) {
+                AssemblyGraph2::assemble(eNew);
+            }
         }
 
 
@@ -3543,7 +3565,7 @@ void AssemblyGraph2::handleSuperbubble1(
             }
 
             // Create a new haploid edge with this path.
-            addEdge(markerGraphPath, containsSecondaryEdges);
+            addEdge(markerGraphPath, containsSecondaryEdges, storeReadInformation, assemble);
         }
 
 
@@ -4099,7 +4121,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
 
     G& g = *this;
-    const bool debug = false;
+    const bool debug = true;
 
     for(uint64_t iteration=0; ; iteration++) {
         performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
@@ -4217,11 +4239,11 @@ void AssemblyGraph2::removeBadBubblesIterative(
 
         // Handle superbubbles that may have appeared as a result of removing bubbles.
         handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold,
-            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
-        merge(false, false);
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount, true, true);
+        merge(true, true);
         handleSuperbubbles1(
-            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount);
-        merge(false, false);
+            maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount, true, true);
+        merge(true, true);
         prune(pruneLength);
 
         performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " ends." << endl;
