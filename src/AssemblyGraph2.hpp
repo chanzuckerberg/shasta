@@ -290,6 +290,7 @@ public:
         bool writeGfa,
         bool writeFasta,
         AssemblyGraph2Statistics* statistics = 0) const;
+    void writePhasedDetails() const;
 
     // Hide a AssemblyGraph2BaseClass::Base.
     using Base = shasta::Base;

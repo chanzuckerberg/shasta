@@ -177,6 +177,7 @@ AssemblyGraph2::AssemblyGraph2(
         if(not mode2Options.suppressGfaOutput) {
             writePhased("Assembly-Phased-NoSequence", false, false, true, false);
         }
+        writePhasedDetails();
     }
 
     // Het snp statistics.
@@ -1578,6 +1579,121 @@ void AssemblyGraph2::writePhased(
     }
 
     performanceLog << timestamp << "AssemblyGraph2::writePhased ends." << endl;
+}
+
+
+
+// This writes a csv file that relates coordinates in the phased
+// assembly to coordinates in the detailed assembly.
+void AssemblyGraph2::writePhasedDetails() const
+{
+    const AssemblyGraph2& g = *this;
+
+    ofstream csv("Assembly-Phased-Details.csv");
+    csv << "Segment,Detailed segment,Length,Begin,End\n";
+
+
+    // Loop over all segments in bubble chains (segment names beginning
+    // with "PR." or "UR.").
+    for(uint64_t bubbleChainId=0; bubbleChainId<uint64_t(bubbleChains.size()); bubbleChainId++) {
+        const BubbleChain& bubbleChain = bubbleChains[bubbleChainId];
+        for(uint64_t phasingRegionId=0;
+            phasingRegionId<uint64_t(bubbleChain.phasingRegions.size()); phasingRegionId++) {
+            const auto& phasingRegion = bubbleChain.phasingRegions[phasingRegionId];
+
+            if(phasingRegion.isPhased) {
+
+                // Phased region. The code is similar to computePhasedRegionGfaSequence.
+                const string namePrefix =
+                    "PR." +
+                    to_string(bubbleChainId) + "." +
+                    to_string(phasingRegionId) + "." +
+                    to_string(phasingRegion.componentId) + ".";
+
+                for(uint64_t haplotype=0; haplotype<2; haplotype++) {
+                    const string name = namePrefix + to_string(haplotype);
+
+                    uint64_t n = 0; // The sequence accumulated so far.
+                    for(uint64_t position=phasingRegion.firstPosition;
+                        position<=phasingRegion.lastPosition; position++) {
+                        const edge_descriptor e = bubbleChain.edges[position];
+                        const E& edge = g[e];
+
+                        if(edge.componentId == std::numeric_limits<uint64_t>::max()) {
+
+                            // This edge is homozygous or unphased.
+                            const uint64_t branchId = edge.getStrongestBranchId();
+                            const E::Branch& branch = edge.branches[branchId];
+                            const uint64_t length = branch.gfaSequence.size();
+                            const uint64_t begin = n;
+                            const uint64_t end = begin + length;
+
+                            csv << name << ",";
+                            csv << edge.pathId(branchId) << ",";
+                            csv << length << ",";
+                            csv << begin << ",";
+                            csv << end << "\n";
+
+                            n = end;
+
+                        } else {
+
+                            // This edge is diploid and phased.
+                            SHASTA_ASSERT(edge.ploidy() == 2);
+                            SHASTA_ASSERT(edge.componentId == phasingRegion.componentId);
+
+                            // Figure out which branch we need.
+                            uint64_t branchId = 0;
+                            if(edge.phase != haplotype) {
+                                branchId = 1;
+                            }
+
+                            const E::Branch& branch = edge.branches[branchId];
+                            const uint64_t length = branch.gfaSequence.size();
+                            const uint64_t begin = n;
+                            const uint64_t end = begin + length;
+
+                            csv << name << ",";
+                            csv << edge.pathId(branchId) << ",";
+                            csv << length << ",";
+                            csv << begin << ",";
+                            csv << end << "\n";
+
+                            n = end;
+                        }
+                    }
+                }
+
+
+            } else {
+
+                // Unphased region. The code is similar to computeUnphasedRegionGfaSequence.
+                const string name = "UR." + to_string(bubbleChainId) + "." + to_string(phasingRegionId);
+
+                uint64_t n = 0; // The sequence accumulated so far.
+                for(uint64_t position=phasingRegion.firstPosition;
+                    position<=phasingRegion.lastPosition; position++) {
+                    const edge_descriptor e = bubbleChain.edges[position];
+                    const E& edge = g[e];
+                    const E::Branch& branch = edge.branches[edge.getStrongestBranchId()];
+                    const uint64_t length = branch.gfaSequence.size();
+                    const uint64_t begin = n;
+                    const uint64_t end = begin + length;
+
+                    csv << name << ",";
+                    csv << edge.pathId(0) << ",";
+                    csv << length << ",";
+                    csv << begin << ",";
+                    csv << end << "\n";
+
+                    n = end;
+                }
+
+
+            }
+
+        }
+    }
 }
 
 
@@ -4121,7 +4237,7 @@ void AssemblyGraph2::removeBadBubblesIterative(
     performanceLog << timestamp << "AssemblyGraph2::removeBadBubblesIterative begins." << endl;
 
     G& g = *this;
-    const bool debug = true;
+    const bool debug = false;
 
     for(uint64_t iteration=0; ; iteration++) {
         performanceLog << timestamp << "Removing bad bubbles: iteration " << iteration << " begins." << endl;
