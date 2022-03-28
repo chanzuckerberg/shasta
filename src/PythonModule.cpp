@@ -500,6 +500,8 @@ PYBIND11_MODULE(shasta, shastaModule)
             arg("threadCount") = 0)
         .def("clusterMarkerGraphEdgeOrientedReads",
             &Assembler::clusterMarkerGraphEdgeOrientedReads)
+        .def("splitMarkerGraphSecondaryEdges",
+            &Assembler::splitMarkerGraphSecondaryEdges)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
             arg("accessEdgesReadWrite") = false,

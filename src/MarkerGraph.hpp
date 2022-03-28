@@ -188,7 +188,9 @@ public:
                 wasRemovedByTransitiveReduction ||
                 wasPruned ||
                 isLowCoverageCrossEdge ||
-                isSuperBubbleEdge;
+                isSuperBubbleEdge ||
+                wasRemovedWhileSplittingSecondaryEdges
+                ;
         }
 
         // Flag that is set if the edge was removed during
@@ -213,8 +215,11 @@ public:
         // Flag for secondary edges in assembly mode 1.
         uint8_t isSecondary;
 
+        // This is set for secondary edges that are created and later split.
+        // Assembly mode 2 only.
+        uint8_t wasRemovedWhileSplittingSecondaryEdges : 1;
+
         // Unused.
-        uint8_t flag5 : 1;
         uint8_t flag6 : 1;
 
         void clearFlags()
@@ -225,7 +230,7 @@ public:
             isLowCoverageCrossEdge = 0;
             wasAssembled = 0;
             isSecondary = 0;
-            flag5 = 0;
+            wasRemovedWhileSplittingSecondaryEdges = 0;
             flag6 = 0;
         }
         Edge() :

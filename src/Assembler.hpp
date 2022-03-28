@@ -1474,7 +1474,13 @@ public:
 
 
     // Cluster the oriented reads on a marker graph edge based on their sequence.
-    void clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId) const;
+    // This returns a vector of connected components.
+    // Each connected component is an index into the marker intervals for the edge.
+    vector< vector<uint64_t> > clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId) const;
+
+    // Use clusterMarkerGraphEdgeOrientedReads to split secondary marker graph edges
+    // where necessary.
+    void splitMarkerGraphSecondaryEdges();
 
 
 

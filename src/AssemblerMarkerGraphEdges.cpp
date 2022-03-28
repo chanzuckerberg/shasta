@@ -1,11 +1,15 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
+#include "orderPairs.hpp"
 #include "performanceLog.hpp"
 #include "Reads.hpp"
 using namespace shasta;
 
 // Seqan
 #include <seqan/align.h>
+
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
 
 
 
@@ -606,7 +610,9 @@ void Assembler::createMarkerGraphSecondaryEdges(
 
 
 // Cluster the oriented reads on a marker graph edge based on their sequence.
-void Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) const
+// This returns a vector of connected components.
+// Each connected component is an index into the marker intervals for the edge.
+vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) const
 {
     // Seqan types and functions used below.
     using TSequence = seqan::String<char>;
@@ -622,7 +628,8 @@ void Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) co
 
     const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
     const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-    SHASTA_ASSERT(markerIntervals.size() == edge.coverage);
+    const uint64_t n = markerIntervals.size();
+    SHASTA_ASSERT(edge.coverage == n);
 
 
 
@@ -664,18 +671,31 @@ void Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) co
 
 
 
-    // Compute the edit distance between the sequences of each pair of oriented reads.
-    ofstream graphOut("a.dot");
-    graphOut << "graph G{\n";
-    for(uint64_t i0=0; i0<sequences.size()-1; i0++) {
-        graphOut << i0 << ";\n";
+    // Implicitly create an undirected graph with a vertex
+    // for each oriented read in this marker graph edge.
+    // If the edit distance between the sequences of two
+    // oriented reads is sufficiently small, add an edge
+    // betwene the corresponding vertices.
+    // Compute connected components of this undirected graph.
+    // each connected component corresponds to a cluster.
+    const double errorRateThreshold = 0.3;  // EXPOSE WHEN CODE STABILIZES.
+
+    // Initialize incremental connected components.
+    vector<uint64_t> rank(n);
+    vector<uint64_t> parent(n);
+    boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint64_t i=0; i<n; i++) {
+        disjointSets.make_set(i);
     }
-    for(uint64_t i0=0; i0<sequences.size()-1; i0++) {
+
+    // Loop over pairs of oriented reads.
+    for(uint64_t i0=0; i0<n-1; i0++) {
         const TSequence& sequence0 = sequences[i0];
 
-        for(uint64_t i1=i0+1; i1<sequences.size(); i1++) {
+        for(uint64_t i1=i0+1; i1<n; i1++) {
             const TSequence& sequence1 = sequences[i1];
 
+            // Compute the error rate.
             TAlign align;
             resize(rows(align), 2);
             assignSource(row(align,0), sequence0);
@@ -683,13 +703,93 @@ void Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) co
             const int editDistance = -globalAlignment(align, Score<int, Simple>(0,-1,-1));
             const double errorRate = double(editDistance) / double(min(length(sequence0), length(sequence1)));
 
-            if(errorRate < 0.3) {   // EXPOSE WHEN CODE STABILIZES
-                graphOut << i0 << "--" << i1 << ";\n";
+            // If the error rate is small, merge the connected components
+            // corresponding to these two oriented reads.
+            if(errorRate < errorRateThreshold) {
+                disjointSets.union_set(i0, i1);
             }
-
         }
     }
-    graphOut << "}\n";
+
+
+    // Gather connected components.
+    vector< vector<uint64_t> > components(n);
+    for(uint64_t i=0; i<n; i++) {
+        const uint64_t componentId = disjointSets.find_set(i);
+        components[componentId].push_back(i);
+    }
+
+    // Gather a vector of pairs (componentId, size) for non-empty components.
+    vector< pair<uint64_t, uint64_t> > componentTable;
+    for(uint64_t componentId=0; componentId<n; componentId++) {
+        const uint64_t componentSize = components[componentId].size();
+        if(componentSize > 0) {
+            componentTable.push_back(make_pair(componentId, componentSize));
+        }
+    }
+
+    // Sort it by decreasing component size.
+    sort(componentTable.begin(), componentTable.end(),
+        OrderPairsBySecondOnlyGreater<uint64_t, uint64_t>());
+
+    // Gather the connected components in order of drcreasing size.
+    vector< vector<uint64_t> > sortedComponents;
+    for(const auto& p: componentTable) {
+        sortedComponents.push_back(components[p.first]);
+    }
+
+    return sortedComponents;
 }
 
 
+
+// Use clusterMarkerGraphEdgeOrientedReads to split secondary marker graph edges
+// where necessary.
+void Assembler::splitMarkerGraphSecondaryEdges()
+{
+    // Loop over marker graph edges.
+    uint64_t secondaryEdgeCount = 0;
+    for(MarkerGraphEdgeId edgeId=0; edgeId<markerGraph.edges.size(); edgeId++) {
+        MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+
+        // Find the reverse complement edge.
+        const MarkerGraphEdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
+        SHASTA_ASSERT(edgeIdRc != edgeId);
+        MarkerGraph::Edge& edgeRc = markerGraph.edges[edgeIdRc];
+
+        // Mark both of them as not removed due to splitting.
+        edge.wasRemovedWhileSplittingSecondaryEdges = 0;
+        edgeRc.wasRemovedWhileSplittingSecondaryEdges = 0;
+
+        // If these are not secondary edges, do nothing.
+        SHASTA_ASSERT(edge.isSecondary == edgeRc.isSecondary);
+        if(not edge.isSecondary) {
+            continue;
+        }
+        secondaryEdgeCount += 2;
+
+        // Sanity check on the marker intervals.
+        const span<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+        const span<MarkerInterval> markerIntervalsRc = markerGraph.edgeMarkerIntervals[edgeIdRc];
+        SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
+        for(uint64_t i=0; i<markerIntervals.size(); i++) {
+            const OrientedReadId& orientedReadId = markerIntervals[i].orientedReadId;
+            const OrientedReadId& orientedReadIdRc = markerIntervalsRc[i].orientedReadId;
+            SHASTA_ASSERT(orientedReadId.getReadId() == orientedReadIdRc.getReadId());
+            SHASTA_ASSERT(orientedReadId.getStrand() == 1 - orientedReadIdRc.getStrand());
+        }
+
+        // Cluster oriented reads on this edge based on their sequence.
+        const vector< vector<uint64_t> > clusters = clusterMarkerGraphEdgeOrientedReads(edgeId);
+        if(clusters.size() > 1) {
+            cout << edgeId << ":";
+            for(const auto& v: clusters) {
+                cout << " " << v.size();
+            }
+            cout << endl;
+        }
+
+    }
+    cout << "Total number of marker graph edges is " << markerGraph.edges.size() << endl;
+    cout << "Number of secondary marker graph edges is " << secondaryEdgeCount << endl;
+}
