@@ -498,6 +498,8 @@ PYBIND11_MODULE(shasta, shastaModule)
             &Assembler::createMarkerGraphSecondaryEdges,
             arg("secondaryEdgeMaxSkip"),
             arg("threadCount") = 0)
+        .def("clusterMarkerGraphEdgeOrientedReads",
+            &Assembler::clusterMarkerGraphEdgeOrientedReads)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
             arg("accessEdgesReadWrite") = false,

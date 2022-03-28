@@ -1469,10 +1469,15 @@ private:
         uint32_t secondaryEdgeMaxSkip,
         bool aggressive,
         size_t threadCount);
-
-
-
 public:
+
+
+
+    // Cluster the oriented reads on a marker graph edge based on their sequence.
+    void clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId) const;
+
+
+
     // Set marker graph edge flags to specified values for all marker graph edges.
     // Specify any value other than 0 or 1 leaves that flag unchanged.
     // Only useful for debugging.

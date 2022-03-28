@@ -4,6 +4,10 @@
 #include "Reads.hpp"
 using namespace shasta;
 
+// Seqan
+#include <seqan/align.h>
+
+
 
 // "Strict" version of createMarkerGraphEdges.
 // Differences from createMarkerGraphEdges:
@@ -597,6 +601,95 @@ void Assembler::createMarkerGraphSecondaryEdges(
         markerGraph.edges.size() << " edges." << endl;
 
 
+}
+
+
+
+// Cluster the oriented reads on a marker graph edge based on their sequence.
+void Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) const
+{
+    // Seqan types and functions used below.
+    using TSequence = seqan::String<char>;
+    using TAlign = seqan::Align<TSequence, seqan::ArrayGaps>;
+    using seqan::assignSource;
+    using seqan::globalAlignment;
+    using seqan::row;
+    using seqan::Score;
+    using seqan::Simple;
+
+    // The length of each marker sequence.
+    const size_t k = assemblerInfo->k;
+
+    const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+    const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+    SHASTA_ASSERT(markerIntervals.size() == edge.coverage);
+
+
+
+    // Get the sequence for each oriented read.
+    // This includes sequence for the flanking markers.
+    vector<TSequence> sequences;
+    for(const MarkerInterval& markerInterval: markerIntervals) {
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the position range, including the flanking markers.
+        const uint32_t positionBegin = marker0.position;
+        const uint32_t positionEnd = marker1.position + uint32_t(k);
+
+        // Get the sequence for this oriented read.
+        TSequence sequence;
+        for(uint32_t position=positionBegin; position!=positionEnd; ++position) {
+
+            if(assemblerInfo->readRepresentation == 1) {
+                Base base;
+                uint8_t repeatCount;
+                tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+                const char c = base.character();
+                for(uint64_t j=0; j<repeatCount; j++) {
+                    appendValue(sequence, c);
+                }
+            } else {
+                const Base base = reads->getOrientedReadBase(orientedReadId, position);
+                const char c = base.character();
+                appendValue(sequence, c);
+            }
+        }
+        sequences.push_back(sequence);
+    }
+
+
+
+    // Compute the edit distance between the sequences of each pair of oriented reads.
+    ofstream graphOut("a.dot");
+    graphOut << "graph G{\n";
+    for(uint64_t i0=0; i0<sequences.size()-1; i0++) {
+        graphOut << i0 << ";\n";
+    }
+    for(uint64_t i0=0; i0<sequences.size()-1; i0++) {
+        const TSequence& sequence0 = sequences[i0];
+
+        for(uint64_t i1=i0+1; i1<sequences.size(); i1++) {
+            const TSequence& sequence1 = sequences[i1];
+
+            TAlign align;
+            resize(rows(align), 2);
+            assignSource(row(align,0), sequence0);
+            assignSource(row(align,1), sequence1);
+            const int editDistance = -globalAlignment(align, Score<int, Simple>(0,-1,-1));
+            const double errorRate = double(editDistance) / double(min(length(sequence0), length(sequence1)));
+
+            if(errorRate < 0.3) {   // EXPOSE WHEN CODE STABILIZES
+                graphOut << i0 << "--" << i1 << ";\n";
+            }
+
+        }
+    }
+    graphOut << "}\n";
 }
 
 
