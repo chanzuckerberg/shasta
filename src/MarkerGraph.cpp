@@ -105,6 +105,29 @@ uint64_t MarkerGraph::outDegree(VertexId vertexId) const
 
 
 
+MarkerGraph::EdgeId MarkerGraph::getFirstNonRemovedOutEdge(
+    MarkerGraph::VertexId vertexId) const
+{
+    for(const EdgeId edgeId: edgesBySource[vertexId]) {
+        if(not edges[edgeId].wasRemoved()) {
+            return edgeId;
+        }
+    }
+    return invalidEdgeId;
+}
+MarkerGraph::EdgeId MarkerGraph::getFirstNonRemovedInEdge(
+    MarkerGraph::VertexId vertexId) const
+{
+    for(const EdgeId edgeId: edgesByTarget[vertexId]) {
+        if(not edges[edgeId].wasRemoved()) {
+            return edgeId;
+        }
+    }
+    return invalidEdgeId;
+}
+
+
+
 // Remove marker graph vertices and update vertices and vertexTable.
 void MarkerGraph::removeVertices(
     const MemoryMapped::Vector<VertexId>& verticesToBeKept,

@@ -1080,6 +1080,7 @@ void shasta::main::mode2Assembly(
     // To recover contiguity, add secondary edges.
     const uint32_t secondaryEdgeMaxSkip = 1000000;    // Effective infinity
     assembler.createMarkerGraphSecondaryEdges(secondaryEdgeMaxSkip, threadCount);
+    assembler.splitMarkerGraphSecondaryEdges(threadCount);
 
     // Coverage histograms for vertices and edges of the marker graph.
     assembler.computeMarkerGraphCoverageHistogram();

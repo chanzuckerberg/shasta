@@ -227,6 +227,9 @@ void AssemblyGraph2::create()
     // Main loop over all edges of the marker graph.
     // At each iteration we find a new linear path of edges.
     for(MarkerGraph::EdgeId startEdgeId=0; startEdgeId<edgeCount; startEdgeId++) {
+        if(markerGraph.edges[startEdgeId].wasRemoved()) {
+            continue;
+        }
         if(debug) {
             const MarkerGraph::Edge& startEdge = markerGraph.edges[startEdgeId];
             debugOut << "Starting a new path at edge " << startEdgeId << " " <<
@@ -246,15 +249,15 @@ void AssemblyGraph2::create()
         while(true) {
             const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
             const MarkerGraph::VertexId v1 = edge.target;
-            const auto outEdges = markerGraph.edgesBySource[v1];
-            if(outEdges.size() != 1) {
+            // const auto outEdges = markerGraph.edgesBySource[v1];
+            if(markerGraph.outDegree(v1) != 1) {
                 break;
             }
-            const auto inEdges = markerGraph.edgesByTarget[v1];
-            if(inEdges.size() != 1) {
+            // const auto inEdges = markerGraph.edgesByTarget[v1];
+            if(markerGraph.inDegree(v1) != 1) {
                 break;
             }
-            edgeId = outEdges[0];
+            edgeId = markerGraph.getFirstNonRemovedOutEdge(v1);
             if(debug) {
                 debugOut << "Forward " << edgeId << " " <<
                     edge.source << "->" << edge.target << endl;
@@ -278,15 +281,15 @@ void AssemblyGraph2::create()
             while(true) {
                 const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
                 const MarkerGraph::VertexId v0 = edge.source;
-                const auto outEdges = markerGraph.edgesBySource[v0];
-                if(outEdges.size() != 1) {
+                // const auto outEdges = markerGraph.edgesBySource[v0];
+                if(markerGraph.outDegree(v0) != 1) {
                     break;
                 }
-                const auto inEdges = markerGraph.edgesByTarget[v0];
-                if(inEdges.size() != 1) {
+                // const auto inEdges = markerGraph.edgesByTarget[v0];
+                if(markerGraph.inDegree(v0) != 1) {
                     break;
                 }
-                edgeId = inEdges[0];
+                edgeId = markerGraph.getFirstNonRemovedInEdge(v0);
                 if(debug) {
                     debugOut << "Backward " << edgeId << " " <<
                         edge.source << "->" << edge.target << endl;
@@ -359,7 +362,9 @@ void AssemblyGraph2::create()
 
 
     // Check that all edges of the marker graph were found.
-    SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
+    for(MarkerGraph::EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
+        SHASTA_ASSERT(wasFound[edgeId] or markerGraph.edges[edgeId].wasRemoved());
+    }
 
     performanceLog << timestamp << "AssemblyGraph2::create ends." << endl;
 }

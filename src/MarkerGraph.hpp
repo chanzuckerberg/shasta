@@ -260,6 +260,8 @@ public:
     // counting only edges that were not removed.
     uint64_t inDegree(VertexId) const;
     uint64_t outDegree(VertexId) const;
+    EdgeId getFirstNonRemovedOutEdge(VertexId) const;
+    EdgeId getFirstNonRemovedInEdge(VertexId) const;
 
     // The reverse complement of each edge.
     // Indexed by EdgeId.

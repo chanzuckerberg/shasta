@@ -1476,11 +1476,34 @@ public:
     // Cluster the oriented reads on a marker graph edge based on their sequence.
     // This returns a vector of connected components.
     // Each connected component is an index into the marker intervals for the edge.
-    vector< vector<uint64_t> > clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId) const;
+    vector< vector<uint64_t> > clusterMarkerGraphEdgeOrientedReads(
+        MarkerGraphEdgeId,
+        double errorRateThreshold) const;
+
+
 
     // Use clusterMarkerGraphEdgeOrientedReads to split secondary marker graph edges
     // where necessary.
-    void splitMarkerGraphSecondaryEdges();
+    void splitMarkerGraphSecondaryEdges(size_t threadCount);
+    void splitMarkerGraphSecondaryEdgesThreadFunction(size_t threadId);
+    class SplitMarkerGraphSecondaryEdgesData {
+    public:
+        double errorRateThreshold;
+        uint64_t minCoverage;
+        uint64_t initialSecondaryCount;
+        uint64_t splitCount;
+        uint64_t createdCount;
+
+        // The new edges that were created by each thread.
+        class Edge {
+        public:
+            MarkerGraphVertexId source;
+            MarkerGraphVertexId target;
+            vector<MarkerInterval> markerIntervals;
+        };
+        vector< vector<Edge> > threadEdges;
+    };
+    SplitMarkerGraphSecondaryEdgesData splitMarkerGraphSecondaryEdgesData;
 
 
 

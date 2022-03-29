@@ -90,6 +90,7 @@ a.computeMarkerGraphCoverageHistogram()
 # Add secondary edges.
 a.createMarkerGraphSecondaryEdges(
     secondaryEdgeMaxSkip = 1000000)
+a.splitMarkerGraphSecondaryEdges()
 
 # Assembler all marker graph vertices and edges.
 a.assembleMarkerGraphVertices()

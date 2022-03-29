@@ -612,7 +612,9 @@ void Assembler::createMarkerGraphSecondaryEdges(
 // Cluster the oriented reads on a marker graph edge based on their sequence.
 // This returns a vector of connected components.
 // Each connected component is an index into the marker intervals for the edge.
-vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(MarkerGraphEdgeId edgeId) const
+vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(
+    MarkerGraphEdgeId edgeId,
+    double errorRateThreshold) const
 {
     // Seqan types and functions used below.
     using TSequence = seqan::String<char>;
@@ -678,7 +680,6 @@ vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(Marker
     // betwene the corresponding vertices.
     // Compute connected components of this undirected graph.
     // each connected component corresponds to a cluster.
-    const double errorRateThreshold = 0.3;  // EXPOSE WHEN CODE STABILIZES.
 
     // Initialize incremental connected components.
     vector<uint64_t> rank(n);
@@ -745,51 +746,180 @@ vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(Marker
 
 // Use clusterMarkerGraphEdgeOrientedReads to split secondary marker graph edges
 // where necessary.
-void Assembler::splitMarkerGraphSecondaryEdges()
+void Assembler::splitMarkerGraphSecondaryEdges(size_t threadCount)
 {
-    // Loop over marker graph edges.
-    uint64_t secondaryEdgeCount = 0;
-    for(MarkerGraphEdgeId edgeId=0; edgeId<markerGraph.edges.size(); edgeId++) {
-        MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
 
-        // Find the reverse complement edge.
-        const MarkerGraphEdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
-        SHASTA_ASSERT(edgeIdRc != edgeId);
-        MarkerGraph::Edge& edgeRc = markerGraph.edges[edgeIdRc];
+    // CONSTANTS TO BE EXPOSED WHEN CODE STABILIZES.
+    const double errorRateThreshold = 0.3;
+    const uint64_t minCoverage = 4;
 
-        // Mark both of them as not removed due to splitting.
-        edge.wasRemovedWhileSplittingSecondaryEdges = 0;
-        edgeRc.wasRemovedWhileSplittingSecondaryEdges = 0;
-
-        // If these are not secondary edges, do nothing.
-        SHASTA_ASSERT(edge.isSecondary == edgeRc.isSecondary);
-        if(not edge.isSecondary) {
-            continue;
-        }
-        secondaryEdgeCount += 2;
-
-        // Sanity check on the marker intervals.
-        const span<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-        const span<MarkerInterval> markerIntervalsRc = markerGraph.edgeMarkerIntervals[edgeIdRc];
-        SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
-        for(uint64_t i=0; i<markerIntervals.size(); i++) {
-            const OrientedReadId& orientedReadId = markerIntervals[i].orientedReadId;
-            const OrientedReadId& orientedReadIdRc = markerIntervalsRc[i].orientedReadId;
-            SHASTA_ASSERT(orientedReadId.getReadId() == orientedReadIdRc.getReadId());
-            SHASTA_ASSERT(orientedReadId.getStrand() == 1 - orientedReadIdRc.getStrand());
-        }
-
-        // Cluster oriented reads on this edge based on their sequence.
-        const vector< vector<uint64_t> > clusters = clusterMarkerGraphEdgeOrientedReads(edgeId);
-        if(clusters.size() > 1) {
-            cout << edgeId << ":";
-            for(const auto& v: clusters) {
-                cout << " " << v.size();
-            }
-            cout << endl;
-        }
-
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Total number of marker graph edges is " << markerGraph.edges.size() << endl;
-    cout << "Number of secondary marker graph edges is " << secondaryEdgeCount << endl;
+
+    // Store parameters to all threads can see them.
+    auto& data = splitMarkerGraphSecondaryEdgesData;
+    data.errorRateThreshold = errorRateThreshold;
+    data.minCoverage = minCoverage;
+
+    // Initialize some counts and data structures.
+    data.initialSecondaryCount = 0;
+    data.splitCount = 0;
+    data.createdCount = 0;
+    data.threadEdges.resize(threadCount);
+
+    cout << "Total number of marker graph edges before splitting of secondary edge " <<
+        markerGraph.edges.size() << endl;
+
+    // The edge splitting is done in multithreaded code.
+    const uint64_t batchSize = 1000;
+    setupLoadBalancing(markerGraph.edges.size(), batchSize);
+    runThreads(&Assembler::splitMarkerGraphSecondaryEdgesThreadFunction, threadCount);
+
+    // Add the new edges to the marker graph.
+    for(size_t threadId=0; threadId<threadCount; threadId++) {
+        for(const auto& tmpNewEdge: data.threadEdges[threadId]) {
+            markerGraph.edges.resize(markerGraph.edges.size() + 1);
+            auto& newEdge = markerGraph.edges.back();
+            newEdge.source = Uint40(tmpNewEdge.source);
+            newEdge.target = Uint40(tmpNewEdge.target);
+            newEdge.coverage = uint8_t(tmpNewEdge.markerIntervals.size());
+            newEdge.isSecondary = 1;
+            markerGraph.edgeMarkerIntervals.appendVector(tmpNewEdge.markerIntervals);
+        }
+    }
+    data.threadEdges.clear();
+    data.threadEdges.shrink_to_fit();
+
+    cout << "Total number of marker graph edges after splitting of secondary edges " <<
+        markerGraph.edges.size() << endl;
+    cout << "Initial number of secondary edges " << data.initialSecondaryCount << endl;
+    cout << "Number of secondary edges that were split " << data.splitCount << endl;
+    cout << "Number of secondary edges that were created " << data.createdCount << endl;
+
+
+    // We need to recreate edgesBySource and edgesByTarget.
+    if(markerGraph.edgesBySource.isOpen()) {
+        markerGraph.edgesBySource.close();
+    }
+    if(markerGraph.edgesByTarget.isOpen()) {
+        markerGraph.edgesByTarget.close();
+    }
+    createMarkerGraphEdgesBySourceAndTarget(threadCount);
+
+    // We also need to recompute reverse complement marker graph edges.
+    if(markerGraph.reverseComplementEdge.isOpen) {
+        markerGraph.reverseComplementEdge.close();
+    }
+    findMarkerGraphReverseComplementEdges(threadCount);
+
+}
+
+
+
+void Assembler::splitMarkerGraphSecondaryEdgesThreadFunction(size_t threadId)
+{
+
+    auto& data = splitMarkerGraphSecondaryEdgesData;
+    const double errorRateThreshold = data.errorRateThreshold;
+    const uint64_t minCoverage = data.minCoverage;
+    auto& newEdges = data.threadEdges[threadId];
+
+    uint64_t initialSecondaryCount = 0;
+    uint64_t splitCount = 0;
+    uint64_t createdCount = 0;
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over marker graph edges assigned to this batch
+        for(MarkerGraphEdgeId edgeId=begin; edgeId!=end; edgeId++) {
+            MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+
+            // Find the reverse complement edge.
+            const MarkerGraphEdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
+
+            // Process each pair of reverse complemented edges only once.
+            SHASTA_ASSERT(edgeIdRc != edgeId);
+            if(edgeIdRc < edgeId) {
+                continue;
+            }
+            MarkerGraph::Edge& edgeRc = markerGraph.edges[edgeIdRc];
+
+            // Mark both of them as not removed due to splitting.
+            edge.wasRemovedWhileSplittingSecondaryEdges = 0;
+            edgeRc.wasRemovedWhileSplittingSecondaryEdges = 0;
+
+            // If these are not secondary edges, do nothing.
+            SHASTA_ASSERT(edge.isSecondary == edgeRc.isSecondary);
+            if(not edge.isSecondary) {
+                continue;
+            }
+            initialSecondaryCount += 2;
+
+            // Sanity check on the marker intervals.
+            const span<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+            const span<MarkerInterval> markerIntervalsRc = markerGraph.edgeMarkerIntervals[edgeIdRc];
+            SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
+            for(uint64_t i=0; i<markerIntervals.size(); i++) {
+                const OrientedReadId& orientedReadId = markerIntervals[i].orientedReadId;
+                const OrientedReadId& orientedReadIdRc = markerIntervalsRc[i].orientedReadId;
+                SHASTA_ASSERT(orientedReadId.getReadId() == orientedReadIdRc.getReadId());
+                SHASTA_ASSERT(orientedReadId.getStrand() == 1 - orientedReadIdRc.getStrand());
+            }
+
+            // Cluster oriented reads on this edge based on their sequence.
+            // The clusters are returned sorted by decreasing size.
+            const vector< vector<uint64_t> > clusters =
+                clusterMarkerGraphEdgeOrientedReads(edgeId, errorRateThreshold);
+
+            // If we only found one cluster, we don't need to do anything.
+            if(clusters.size() == 1) {
+                continue;
+            }
+
+            // We will split this edge and its reverse complement.
+            splitCount += 2;
+            edge.wasRemovedWhileSplittingSecondaryEdges = 1;
+            edgeRc.wasRemovedWhileSplittingSecondaryEdges = 1;
+
+            // Each cluster generates a new edge,
+            // if it is big enough. But always generate at least one.
+            for(uint64_t i=0; i<clusters.size(); i++) {
+                const vector<uint64_t>& cluster = clusters[i];
+
+                // If this cluster is too small and it is not the first
+                // cluster, stop here.
+                if((cluster.size() < minCoverage) and (i > 0)) {
+                    break;
+                }
+
+                // If getting here, generate a new edge for
+                // each of edge and edgeRc.
+                createdCount += 2;
+                newEdges.resize(newEdges.size() + 2);
+                auto& newEdge = newEdges[newEdges.size() - 2];
+                auto& newEdgeRc = newEdges[newEdges.size() - 1];
+
+                // Fill in the vertices.
+                newEdge.source = edge.source;
+                newEdge.target = edge.target;
+                newEdgeRc.source = edgeRc.source;
+                newEdgeRc.target = edgeRc.target;
+
+                // Fill in the marker intervals.
+                for(const uint64_t j: cluster) {
+                    newEdge.markerIntervals.push_back(markerIntervals[j]);
+                    newEdgeRc.markerIntervals.push_back(markerIntervalsRc[j]);
+                }
+            }
+        }
+    }
+
+    // Increment global counts.
+    __sync_fetch_and_add(&data.initialSecondaryCount, initialSecondaryCount);
+    __sync_fetch_and_add(&data.splitCount, splitCount);
+    __sync_fetch_and_add(&data.createdCount, createdCount);
 }
