@@ -1703,6 +1703,7 @@ private:
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
         bool useLowCoverageCrossEdges,
+        bool useRemovedSecondaryEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraph(
@@ -1715,6 +1716,7 @@ private:
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
         bool useLowCoverageCrossEdges,
+        bool useRemovedSecondaryEdges,
         LocalMarkerGraph&
         );
 

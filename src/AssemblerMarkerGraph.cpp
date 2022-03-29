@@ -1726,6 +1726,7 @@ bool Assembler::extractLocalMarkerGraph(
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
     bool useLowCoverageCrossEdges,
+    bool useRemovedSecondaryEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1739,6 +1740,7 @@ bool Assembler::extractLocalMarkerGraph(
         usePrunedEdges,
         useSuperBubbleEdges,
         useLowCoverageCrossEdges,
+        useRemovedSecondaryEdges,
         graph);
 
 }
@@ -1755,6 +1757,7 @@ bool Assembler::extractLocalMarkerGraph(
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
     bool useLowCoverageCrossEdges,
+    bool useRemovedSecondaryEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1821,6 +1824,9 @@ bool Assembler::extractLocalMarkerGraph(
                 continue;
             }
             if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
+                continue;
+            }
+            if(edge.wasRemovedWhileSplittingSecondaryEdges && !useRemovedSecondaryEdges) {
                 continue;
             }
 

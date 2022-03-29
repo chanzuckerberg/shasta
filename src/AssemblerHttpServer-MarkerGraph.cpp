@@ -60,11 +60,6 @@ void Assembler::exploreMarkerGraph(
 
 
 
-
-
-
-
-
     // Validity checks.
     if(requestParameters.vertexId > markerGraph.vertexCount()) {
         html << "<p>Invalid vertex id " << requestParameters.vertexId;
@@ -93,6 +88,7 @@ void Assembler::exploreMarkerGraph(
         requestParameters.usePrunedEdges,
         requestParameters.useSuperBubbleEdges,
         requestParameters.useLowCoverageCrossEdges,
+        requestParameters.useRemovedSecondaryEdges,
         graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
@@ -405,6 +401,10 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.useLowCoverageCrossEdges = getParameterValue(
         request, "useLowCoverageCrossEdges", useLowCoverageCrossEdgesString);
 
+    string useRemovedSecondaryEdgesString;
+    parameters.useRemovedSecondaryEdges = getParameterValue(
+        request, "useRemovedSecondaryEdges", useRemovedSecondaryEdgesString);
+
     parameters.sizePixels = 800;
     parameters.sizePixelsIsPresent = getParameterValue(
         request, "sizePixels", parameters.sizePixels);
@@ -560,6 +560,13 @@ void LocalMarkerGraphRequestParameters::writeForm(
         "<td class=centered>"
         "<input type=checkbox name=useLowCoverageCrossEdges" <<
         (useLowCoverageCrossEdges ? " checked=checked" : "") << ">"
+
+        "<tr title='Check to include in the local marker graph "
+        "secondary edges that were removed during splitting'>"
+        "<td>Secondary edges removed during splitting"
+        "<td class=centered>"
+        "<input type=checkbox name=useRemovedSecondaryEdges" <<
+        (useRemovedSecondaryEdges ? " checked=checked" : "") << ">"
 
         "</table>"
         "<h3>Graphics</h3>"

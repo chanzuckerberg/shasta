@@ -23,6 +23,7 @@ public:
     bool usePrunedEdges;
     bool useSuperBubbleEdges;
     bool useLowCoverageCrossEdges;
+    bool useRemovedSecondaryEdges;
 
     // Vertex and edge label control:
     // 0 = no label
