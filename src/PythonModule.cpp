@@ -499,7 +499,10 @@ PYBIND11_MODULE(shasta, shastaModule)
             arg("secondaryEdgeMaxSkip"),
             arg("threadCount") = 0)
         .def("clusterMarkerGraphEdgeOrientedReads",
-            &Assembler::clusterMarkerGraphEdgeOrientedReads)
+            &Assembler::clusterMarkerGraphEdgeOrientedReads,
+            arg("edgeId"),
+            arg("errorRateThreshold"),
+            arg("debug") = false)
         .def("splitMarkerGraphSecondaryEdges",
             &Assembler::splitMarkerGraphSecondaryEdges,
             arg("threadCount") = 0)

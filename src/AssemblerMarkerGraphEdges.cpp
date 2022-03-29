@@ -614,7 +614,8 @@ void Assembler::createMarkerGraphSecondaryEdges(
 // Each connected component is an index into the marker intervals for the edge.
 vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(
     MarkerGraphEdgeId edgeId,
-    double errorRateThreshold) const
+    double errorRateThreshold,
+    bool debug) const
 {
     // Seqan types and functions used below.
     using TSequence = seqan::String<char>;
@@ -672,6 +673,17 @@ vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(
     }
 
 
+    ofstream csv;
+    ofstream dot;
+    if(debug) {
+        csv.open("ClusterOrientedReads.csv");
+        dot.open("ClusterOrientedReads.dot");
+        dot << "graph G{\n";
+        for(uint64_t i=0; i<n; i++) {
+            dot << "\"" << markerIntervals[i].orientedReadId << "\";\n";
+        }
+    }
+
 
     // Implicitly create an undirected graph with a vertex
     // for each oriented read in this marker graph edge.
@@ -709,7 +721,22 @@ vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(
             if(errorRate < errorRateThreshold) {
                 disjointSets.union_set(i0, i1);
             }
+
+            if(debug) {
+                const OrientedReadId orientedReadId0 = markerIntervals[i0].orientedReadId;
+                const OrientedReadId orientedReadId1 = markerIntervals[i1].orientedReadId;
+                csv << orientedReadId0 << ",";
+                csv << orientedReadId1 << ",";
+                csv << errorRate << "\n";
+                if((errorRate < errorRateThreshold)) {
+                    dot << "\"" << orientedReadId0 << "\"--\"" << orientedReadId1 << "\";\n";
+                }
+            }
         }
+    }
+
+    if(debug) {
+        dot << "}\n";
     }
 
 
@@ -750,7 +777,7 @@ void Assembler::splitMarkerGraphSecondaryEdges(size_t threadCount)
 {
 
     // CONSTANTS TO BE EXPOSED WHEN CODE STABILIZES.
-    const double errorRateThreshold = 0.3;
+    const double errorRateThreshold = 0.25;
     const uint64_t minCoverage = 4;
 
     // Adjust the numbers of threads, if necessary.
@@ -873,7 +900,7 @@ void Assembler::splitMarkerGraphSecondaryEdgesThreadFunction(size_t threadId)
             // Cluster oriented reads on this edge based on their sequence.
             // The clusters are returned sorted by decreasing size.
             const vector< vector<uint64_t> > clusters =
-                clusterMarkerGraphEdgeOrientedReads(edgeId, errorRateThreshold);
+                clusterMarkerGraphEdgeOrientedReads(edgeId, errorRateThreshold, false);
 
             // If we only found one cluster, we don't need to do anything.
             if(clusters.size() == 1) {

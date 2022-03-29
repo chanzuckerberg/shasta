@@ -1478,7 +1478,8 @@ public:
     // Each connected component is an index into the marker intervals for the edge.
     vector< vector<uint64_t> > clusterMarkerGraphEdgeOrientedReads(
         MarkerGraphEdgeId,
-        double errorRateThreshold) const;
+        double errorRateThreshold,
+        bool debug) const;
 
 
 
