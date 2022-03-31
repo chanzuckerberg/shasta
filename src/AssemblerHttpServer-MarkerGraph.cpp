@@ -1320,7 +1320,16 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         "<a href='exploreMarkerGraphVertex?vertexId=" << vertexIds[0] << "'>" << vertexIds[0] << "</a>"
         "<tr><th class=left>Target vertex<td class=centered>" <<
         "<a href='exploreMarkerGraphVertex?vertexId=" << vertexIds[1] << "'>" << vertexIds[1] << "</a>"
-        "<tr><th class=left>Coverage<td class=centered>" << markerCount <<
+        "<tr><th class=left>Coverage<td class=centered>" << markerCount;
+
+    if(assemblerInfo->assemblyMode == 2) {
+        html <<
+        "<tr><th class=left>Secondary edge?<td class=centered>" <<
+        (edge.isSecondary ? "Yes" : "No") <<
+        "<tr><th class=left>Removed while splitting of secondary edges?<td class=centered>" <<
+        (edge.wasRemovedWhileSplittingSecondaryEdges ? "Yes" : "No");
+    } else {
+        html <<
         "<tr><th class=left>Removed during transitive reduction?<td class=centered>" <<
         (edge.wasRemovedByTransitiveReduction ? "Yes" : "No") <<
         "<tr><th class=left>Removed during pruning?<td class=centered>" <<
@@ -1329,6 +1338,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         (edge.isSuperBubbleEdge ? "Yes" : "No") <<
         "<tr><th class=left>Removed as a low coverage cross edge?<td class=centered>" <<
         (edge.isLowCoverageCrossEdge ? "Yes" : "No");
+    }
 
     // Usage of this edge in the assembly graph.
     if(assemblyGraphPointer and assemblyGraphPointer->markerToAssemblyTable.isOpen()) {
