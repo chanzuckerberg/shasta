@@ -18,7 +18,7 @@ a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphReverseComplementVertex()
-a.accessMarkerGraphEdges()
+a.accessMarkerGraphEdges(accessEdgesReadWrite = True)
 a.accessMarkerGraphReverseComplementEdge()
 a.accessMarkerGraphConsensus()
 

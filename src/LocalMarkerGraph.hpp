@@ -201,8 +201,11 @@ public:
     // edge that was assembled.
     uint8_t wasAssembled = 0;
 
-    // Flag for secondary edges in assembly mode 1.
+    // Flag for secondary edges in assembly mode 2.
     uint8_t isSecondary = 0;
+
+    // Flag for secondary edges that were removed during splitting.
+    uint8_t wasRemovedWhileSplittingSecondaryEdges = 0;
 
     // Field used by approximateTopologicalSort.
     bool isDagEdge = true;
@@ -223,6 +226,7 @@ public:
     LocalMarkerGraph(
         uint64_t readRepresentation,
         uint32_t k,
+        uint64_t assemblyMode,
         const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
@@ -290,6 +294,9 @@ private:
     // The length of k-mers used as markers.
     uint32_t k;
 
+    // The assembly mode. Used to make some display decisions.
+    uint64_t assemblyMode;
+
     // Reference to the global data structure containing all reads and markers
     // (not just those in this local marker graph).
     const Reads& reads;
@@ -325,6 +332,7 @@ private:
         static const string edgeArrowColorRemovedDuringPruning;
         static const string edgeArrowColorRemovedDuringSuperBubbleRemoval;
         static const string edgeArrowColorRemovedAsLowCoverageCrossEdge;
+        static const string edgeArrowColorRemovedWhileSplittingSecondaryEdges;
         static const string edgeArrowColorNotRemovedNotAssembled;
         static const string edgeArrowColorNotRemovedAssembled;
         static const string edgeLabelColorRemovedDuringTransitiveReduction;
@@ -341,8 +349,8 @@ private:
 
 public:
     static void writeColorLegendVerticesByDistance(ostream&);
-    static void writeColorLegendEdgeArrowsByFlags(ostream&);
-    static void writeColorLegendEdgeLabelsByFlags(ostream&);
+    void writeColorLegendEdgeArrowsByFlags(ostream&);
+    void writeColorLegendEdgeLabelsByFlags(ostream&);
 };
 
 #endif

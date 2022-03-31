@@ -1873,6 +1873,9 @@ bool Assembler::extractLocalMarkerGraph(
             if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
                 continue;
             }
+            if(edge.wasRemovedWhileSplittingSecondaryEdges && !useRemovedSecondaryEdges) {
+                continue;
+            }
 
             const MarkerGraph::VertexId vertexId1 = edge.source;
             SHASTA_ASSERT(edge.target == vertexId0);
@@ -1926,6 +1929,9 @@ bool Assembler::extractLocalMarkerGraph(
             if(edge.isLowCoverageCrossEdge && !useLowCoverageCrossEdges) {
                 continue;
             }
+            if(edge.wasRemovedWhileSplittingSecondaryEdges && !useRemovedSecondaryEdges) {
+                continue;
+            }
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
@@ -1959,6 +1965,7 @@ bool Assembler::extractLocalMarkerGraph(
             graph[e].isLowCoverageCrossEdge = markerGraph.edges[edgeId].isLowCoverageCrossEdge;
             graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
             graph[e].isSecondary = markerGraph.edges[edgeId].isSecondary;
+            graph[e].wasRemovedWhileSplittingSecondaryEdges = markerGraph.edges[edgeId].wasRemovedWhileSplittingSecondaryEdges;
 
             // Link to assembly graph vertex.
             if(assemblyGraphPointer and assemblyGraph.markerToAssemblyTable.isOpen()) {

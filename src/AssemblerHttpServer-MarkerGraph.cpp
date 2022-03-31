@@ -73,6 +73,7 @@ void Assembler::exploreMarkerGraph(
     LocalMarkerGraph graph(
         assemblerInfo->readRepresentation,
         uint32_t(assemblerInfo->k),
+        assemblerInfo->assemblyMode,
         getReads(),
         markers,
         markerGraph.vertexTable,
@@ -205,11 +206,11 @@ void Assembler::exploreMarkerGraph(
     if(requestParameters.edgeColoring == "byFlags") {
         if(requestParameters.highlightedOrientedReads.empty()) {
             html << "<h3>Color legend for edges lines and arrows</h3>";
-            LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(html);
+            graph.writeColorLegendEdgeArrowsByFlags(html);
         }
         if(requestParameters.edgeLabels > 0) {
             html << "<h3>Color legend for edge labels</h3>";
-            LocalMarkerGraph::writeColorLegendEdgeLabelsByFlags(html);
+            graph.writeColorLegendEdgeLabelsByFlags(html);
         }
     }
 

@@ -13,6 +13,7 @@ using namespace shasta;
 LocalMarkerGraph::LocalMarkerGraph(
     uint64_t readRepresentation,
     uint32_t k,
+    uint64_t assemblyMode,
     const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
@@ -20,6 +21,7 @@ LocalMarkerGraph::LocalMarkerGraph(
     ) :
     readRepresentation(readRepresentation),
     k(k),
+    assemblyMode(assemblyMode),
     reads(reads),
     markers(markers),
     globalMarkerGraphVertex(globalMarkerGraphVertex),

@@ -54,7 +54,8 @@ const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringTransitiveRedu
 const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringPruning               = "#ff00ff";
 const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval    = "#009900";
 const string LocalMarkerGraph::Writer::edgeArrowColorRemovedAsLowCoverageCrossEdge      = "#c0c000";
-const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedNotAssembled             = "#663300";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedWhileSplittingSecondaryEdges      = "#ff0000";
+const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedNotAssembled             = "#fcba03";
 const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedAssembled                = "#000000";
 const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringTransitiveReduction   = "#ff9999";
 const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringPruning               = "#c03280";
@@ -129,19 +130,33 @@ string LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdge& edge
 
     } else if(edgeColoring == "byFlags") {
 
-        if(edge.wasRemovedByTransitiveReduction) {
-            return edgeArrowColorRemovedDuringTransitiveReduction;
-        } else if(edge.wasPruned) {
-            return edgeArrowColorRemovedDuringPruning;
-        } else if (edge.isSuperBubbleEdge) {
-            return edgeArrowColorRemovedDuringSuperBubbleRemoval;
-        } else if (edge.isLowCoverageCrossEdge) {
-            return edgeArrowColorRemovedAsLowCoverageCrossEdge;
-        } else {
-            if(edge.wasAssembled) {
-                return edgeArrowColorNotRemovedAssembled;
+        if(graph.assemblyMode == 2) {
+            if(edge.wasRemovedWhileSplittingSecondaryEdges) {
+                return edgeArrowColorRemovedWhileSplittingSecondaryEdges;
             } else {
-                return edgeArrowColorNotRemovedNotAssembled;
+                if(edge.wasAssembled) {
+                    return edgeArrowColorNotRemovedAssembled;
+                } else {
+                    return edgeArrowColorNotRemovedNotAssembled;
+                }
+            }
+
+        } else {
+
+            if(edge.wasRemovedByTransitiveReduction) {
+                return edgeArrowColorRemovedDuringTransitiveReduction;
+            } else if(edge.wasPruned) {
+                return edgeArrowColorRemovedDuringPruning;
+            } else if (edge.isSuperBubbleEdge) {
+                return edgeArrowColorRemovedDuringSuperBubbleRemoval;
+            } else if (edge.isLowCoverageCrossEdge) {
+                return edgeArrowColorRemovedAsLowCoverageCrossEdge;
+            } else {
+                if(edge.wasAssembled) {
+                    return edgeArrowColorNotRemovedAssembled;
+                } else {
+                    return edgeArrowColorNotRemovedNotAssembled;
+                }
             }
         }
     } else {
@@ -215,21 +230,34 @@ void LocalMarkerGraph::writeColorLegendVerticesByDistance(ostream& html)
 
 void LocalMarkerGraph::writeColorLegendEdgeArrowsByFlags(ostream& html)
 {
-    html <<
-        "<table>"
-        "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
-        Writer::edgeArrowColorRemovedDuringTransitiveReduction << "'>"
-        "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
-        Writer::edgeArrowColorRemovedDuringPruning << "'>"
-        "<tr><td>Removed during bubble/superbubble removal<td style='width:50px;background-color:" <<
-        Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval << "'>"
-        "<tr><td>Removed as low coverage cross edge<td style='width:50px;background-color:" <<
-        Writer::edgeArrowColorRemovedAsLowCoverageCrossEdge << "'>"
-        "<tr><td>Not removed, opposite strand assembled<td style='width:50px;background-color:" <<
-        Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
-        "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
-        Writer::edgeArrowColorNotRemovedAssembled << "'>"
-        "</table>";
+    if(assemblyMode == 2) {
+        html <<
+            "<table>"
+            "<tr><td>Removed while splitting secondary edges<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorRemovedWhileSplittingSecondaryEdges << "'>"
+            "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
+            "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorNotRemovedAssembled << "'>"
+            "</table>";
+
+    } else {
+        html <<
+            "<table>"
+            "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorRemovedDuringTransitiveReduction << "'>"
+            "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorRemovedDuringPruning << "'>"
+            "<tr><td>Removed during bubble/superbubble removal<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval << "'>"
+            "<tr><td>Removed as low coverage cross edge<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorRemovedAsLowCoverageCrossEdge << "'>"
+            "<tr><td>Not removed, opposite strand assembled<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
+            "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
+            Writer::edgeArrowColorNotRemovedAssembled << "'>"
+            "</table>";
+    }
 
 }
 

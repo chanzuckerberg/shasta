@@ -40,7 +40,7 @@ AssemblyGraph2::AssemblyGraph2(
     uint64_t k, // Marker length
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph,
+    MarkerGraph& markerGraph,
     uint64_t pruneLength,
     const Mode2AssemblyOptions& mode2Options,
     AssemblyGraph2Statistics& statistics,
@@ -154,6 +154,10 @@ AssemblyGraph2::AssemblyGraph2(
     writeBubbleChains();
     findPhasingRegions();
     writePhasingRegions();
+
+    // Set the wasAssembled flag for marker graph edges that are
+    // in the final AssemblyGraph2.
+    updateMarkerGraph();
 
     // Write out what we have.
     storeGfaSequence();
@@ -335,7 +339,7 @@ void AssemblyGraph2::create()
         {
             const MarkerGraph::Edge& edge = markerGraph.edges[path.front()];
             const MarkerGraphVertexId vertexId = edge.source;
-            const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+            const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
             const MarkerId markerId = markerIds[0];
             const OrientedReadId orientedReadId = findMarkerId(markerId, markers).first;
             const ReadId readId = orientedReadId.getReadId();
@@ -4520,4 +4524,31 @@ void AssemblyGraph2::removeShortLoopbackEdges(uint64_t edgeLengthThreshold)
     for(const edge_descriptor e: edgesToBeRemoved) {
         boost::remove_edge(e, g);
     }
+}
+
+
+
+// Set the wasAssembled flag for marker graph edges that are
+// in the final AssemblyGraph2.
+void AssemblyGraph2::updateMarkerGraph()
+{
+    const G& g = *this;
+
+    // First clear the flag for all marker graph edges.
+    for(MarkerGraphEdgeId edgeId=0; edgeId<markerGraph.edges.size(); edgeId++) {
+        markerGraph.edges[edgeId].wasAssembled = 0;
+    }
+
+    // Now set the flags for marker graph edges that appear anywhere in the assembly graph.
+    uint64_t n = 0;;
+    BGL_FORALL_EDGES(e, g, G) {
+        const AssemblyGraph2Edge& edge = g[e];
+        for(const AssemblyGraph2Edge::Branch& branch: edge.branches) {
+            for(const MarkerGraphEdgeId edgeId: branch.path) {
+                markerGraph.edges[edgeId].wasAssembled = 1;
+                ++n;
+            }
+        }
+    }
+    cout << "**** " << n << " " << markerGraph.edges.size() << endl;
 }

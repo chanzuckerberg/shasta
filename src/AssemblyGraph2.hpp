@@ -252,7 +252,7 @@ public:
         uint64_t k, // Marker length
         const MemoryMapped::Vector<ReadFlags>& readFlags,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&,
+        MarkerGraph&,
         uint64_t pruneLength,
         const Mode2AssemblyOptions&,
         AssemblyGraph2Statistics&,
@@ -313,7 +313,7 @@ public:
         return markers.size() / 2;
     }
 private:
-    const MarkerGraph& markerGraph;
+    MarkerGraph& markerGraph;
 
     // Map that gives us the vertex descriptor corresponding to
     // each marker graph vertex.
@@ -488,6 +488,10 @@ private:
     void findPhasingRegions();
     void findPhasingRegions(BubbleChain&);
     void writePhasingRegions();
+
+    // Set the wasAssembled flag for marker graph edges that are
+    // in the final AssemblyGraph2.
+    void updateMarkerGraph();
 
     // Compute the gfa sequence of a bubble chain
     // by concatenating gfa sequence of the strongest branch of
