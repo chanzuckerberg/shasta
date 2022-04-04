@@ -646,7 +646,8 @@ PYBIND11_MODULE(shasta, shastaModule)
             &Assembler::createAssemblyGraph2,
             arg("pruneLength"),
             arg("mode2Options"),
-            arg("threadCount") = 0)
+            arg("threadCount") = 0,
+            arg("debug") = false)
 
         // Assembly mode 3.
         .def("mode3Assembly",

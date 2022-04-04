@@ -256,7 +256,8 @@ public:
         uint64_t pruneLength,
         const Mode2AssemblyOptions&,
         AssemblyGraph2Statistics&,
-        size_t threadCount
+        size_t threadCount,
+        bool debug
         );
 
     void writeCsv(const string& baseName) const;

@@ -7,8 +7,17 @@ This run the final portion of Mode 2 assembly.
 """
 
 import ast
+import argparse
 import shasta
 import GetConfig
+
+
+parser = argparse.ArgumentParser()    
+parser.add_argument('--debug', action='store_true')
+parser.add_argument('--no-debug', action='store_false')
+parser.set_defaults(debug=False)
+arguments = parser.parse_args()
+debug = arguments.debug
 
 config = GetConfig.getConfig()
 
@@ -55,7 +64,9 @@ mode2Options.suppressHaploidOutput  = ast.literal_eval(config['Assembly']['mode2
 
 a.createAssemblyGraph2(
     pruneLength = int(config['Assembly']['pruneLength']),
-    mode2Options = mode2Options 
+    mode2Options = mode2Options,
+    threadCount = 0,
+    debug = debug
     )
 
 

@@ -2406,7 +2406,8 @@ public:
     void createAssemblyGraph2(
         uint64_t pruneLength,
         const Mode2AssemblyOptions&,
-        size_t threadCount);
+        size_t threadCount,
+        bool debug);
 
 
     // Mode 3 assembly.

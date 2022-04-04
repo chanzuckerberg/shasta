@@ -10,7 +10,8 @@ using namespace shasta;
 void Assembler::createAssemblyGraph2(
     uint64_t pruneLength,
     const Mode2AssemblyOptions& mode2Options,
-    size_t threadCount
+    size_t threadCount,
+    bool debug
     )
 {
     // Check that we have what we need.
@@ -37,7 +38,8 @@ void Assembler::createAssemblyGraph2(
         pruneLength,
         mode2Options,
         assemblerInfo->assemblyGraph2Statistics,
-        threadCount
+        threadCount,
+        debug
         );
 
     performanceLog << timestamp << "Assembler::createAssemblyGraph2 ends." << endl;

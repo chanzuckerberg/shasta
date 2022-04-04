@@ -1103,7 +1103,7 @@ void shasta::main::mode2Assembly(
     assembler.createAssemblyGraph2(
         assemblerOptions.assemblyOptions.pruneLength,
         assemblerOptions.assemblyOptions.mode2Options,
-        threadCount);
+        threadCount, false);
 
 
 }

@@ -44,7 +44,8 @@ AssemblyGraph2::AssemblyGraph2(
     uint64_t pruneLength,
     const Mode2AssemblyOptions& mode2Options,
     AssemblyGraph2Statistics& statistics,
-    size_t threadCount
+    size_t threadCount,
+    bool debug
     ) :
     MultithreadedObject<AssemblyGraph2>(*this),
     readRepresentation(readRepresentation),
@@ -53,7 +54,6 @@ AssemblyGraph2::AssemblyGraph2(
     markers(markers),
     markerGraph(markerGraph)
 {
-
 
 
     // Threshold that defines a strong branch.
@@ -100,13 +100,23 @@ AssemblyGraph2::AssemblyGraph2(
     // Gather parallel edges into bubbles.
     gatherBubbles();
 
+    if(debug) {
+        writeDetailedEarly("Assembly-Detailed-Debug-1");
+    }
+
     // Handle superbubbles.
     handleSuperbubbles0(superbubbleRemovalEdgeLengthThreshold,
         maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount, false, false);
     merge(false, false);
+    if(debug) {
+        writeDetailedEarly("Assembly-Detailed-Debug-2");
+    }
     handleSuperbubbles1(
         maxSuperbubbleSize, maxSuperbubbleChunkSize, maxSuperbubbleChunkPathCount, false, false);
     merge(false, false);
+    if(debug) {
+        writeDetailedEarly("Assembly-Detailed-Debug-3");
+    }
 
     // Store the reads supporting each branch of each edge.
     storeReadInformationParallel(threadCount);
@@ -120,10 +130,18 @@ AssemblyGraph2::AssemblyGraph2(
     // Assemble sequence.
     assembleParallel(threadCount);
 
+    if(debug) {
+        writeDetailedEarly("Assembly-Detailed-Debug-4");
+    }
+
     // Remove degenerate edges (both branches have the same sequence).
     removeDegenerateBranches();
     merge(true, true);
     prune(pruneLength);
+
+    if(debug) {
+        writeDetailedEarly("Assembly-Detailed-Debug-5");
+    }
 
     // Use the PhasingGraph to iteratively remove bad bubbles, then to phase.
     removeBadBubblesIterative(
@@ -144,6 +162,10 @@ AssemblyGraph2::AssemblyGraph2(
         minLogPForPhasing,
         epsilon,
         threadCount);
+
+    if(debug) {
+        writeDetailedEarly("Assembly-Detailed-Debug-6");
+    }
 
     // Final pruning.
     prune(pruneLength);
@@ -4550,5 +4572,4 @@ void AssemblyGraph2::updateMarkerGraph()
             }
         }
     }
-    cout << "**** " << n << " " << markerGraph.edges.size() << endl;
 }
