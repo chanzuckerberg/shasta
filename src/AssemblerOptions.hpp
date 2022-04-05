@@ -249,6 +249,12 @@ public:
     bool reverseTransitiveReduction;
     double peakFinderMinAreaFraction;
     uint64_t peakFinderAreaStartIndex;
+
+    // Options that control secondary edges (assembly mode 2 only).
+    uint64_t secondaryEdgesMaxSkip;
+    double secondaryEdgesSplitErrorRateThreshold;
+    uint64_t secondaryEdgesSplitMinCoverage;
+
     void parseSimplifyMaxLength();
     void write(ostream&) const;
 };

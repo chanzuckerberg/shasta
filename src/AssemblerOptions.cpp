@@ -701,6 +701,21 @@ void AssemblerOptions::addConfigurableOptions()
         "Used in the automatic selection of --MarkerGraph.minCoverage when "
         "--MarkerGraph.minCoverage is set to 0.")
 
+        ("MarkerGraph.secondaryEdges.maxSkip",
+        value<uint64_t>(&markerGraphOptions.secondaryEdgesMaxSkip)->
+        default_value(1000000),
+        "Maximum number of markers skipped by a secondary edge (mode 2 assembly only).")
+
+        ("MarkerGraph.secondaryEdges.split.errorRateThreshold",
+        value<double>(&markerGraphOptions.secondaryEdgesSplitErrorRateThreshold)->
+        default_value(0.25),
+        "Error rate threshold used for splitting secondary edges (mode 2 assembly only).")
+
+        ("MarkerGraph.secondaryEdges.split.minCoverage",
+        value<uint64_t>(&markerGraphOptions.secondaryEdgesSplitMinCoverage)->
+        default_value(4),
+        "Minimum coverage for secondary edges generated during splitting (mode 2 assembly only).")
+
         ("Assembly.mode",
         value<uint64_t>(&assemblyOptions.mode)->
         default_value(0),
@@ -1066,6 +1081,10 @@ void MarkerGraphOptions::write(ostream& s) const
         convertBoolToPythonString(reverseTransitiveReduction) << "\n";
     s << "peakFinder.minAreaFraction = " << peakFinderMinAreaFraction << "\n";
     s << "peakFinder.areaStartIndex = " << peakFinderAreaStartIndex << "\n";
+
+    s << "secondaryEdges.maxSkip = " << secondaryEdgesMaxSkip << "\n";
+    s << "secondaryEdges.split.errorRateThreshold = " << secondaryEdgesSplitErrorRateThreshold << "\n";
+    s << "secondaryEdges.split.minCoverage = " << secondaryEdgesSplitMinCoverage << "\n";
 }
 
 

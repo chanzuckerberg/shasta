@@ -773,12 +773,11 @@ vector< vector<uint64_t> > Assembler::clusterMarkerGraphEdgeOrientedReads(
 
 // Use clusterMarkerGraphEdgeOrientedReads to split secondary marker graph edges
 // where necessary.
-void Assembler::splitMarkerGraphSecondaryEdges(size_t threadCount)
+void Assembler::splitMarkerGraphSecondaryEdges(
+    double errorRateThreshold,
+    uint64_t minCoverage,
+    size_t threadCount)
 {
-
-    // CONSTANTS TO BE EXPOSED WHEN CODE STABILIZES.
-    const double errorRateThreshold = 0.25;
-    const uint64_t minCoverage = 4;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {

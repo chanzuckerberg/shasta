@@ -1485,7 +1485,10 @@ public:
 
     // Use clusterMarkerGraphEdgeOrientedReads to split secondary marker graph edges
     // where necessary.
-    void splitMarkerGraphSecondaryEdges(size_t threadCount);
+    void splitMarkerGraphSecondaryEdges(
+        double errorRateThreshold,
+        uint64_t minCoverage,
+        size_t threadCount);
     void splitMarkerGraphSecondaryEdgesThreadFunction(size_t threadId);
     class SplitMarkerGraphSecondaryEdgesData {
     public:

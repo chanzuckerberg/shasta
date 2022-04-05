@@ -11,6 +11,9 @@ a.accessMarkers()
 a.accessMarkerGraphEdges(True, True)
 a.accessMarkerGraphReverseComplementEdge()
 
-a.splitMarkerGraphSecondaryEdges()
+a.splitMarkerGraphSecondaryEdges(
+    errorRateThreshold = float(config['MarkerGraph']['secondaryEdges.split.errorRateThreshold']),
+    minCoverage = int(float(config['MarkerGraph']['secondaryEdges.split.minCoverage'])
+    )
 
 

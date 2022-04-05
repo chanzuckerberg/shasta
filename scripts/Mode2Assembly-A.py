@@ -89,8 +89,10 @@ a.computeMarkerGraphCoverageHistogram()
 
 # Add secondary edges.
 a.createMarkerGraphSecondaryEdges(
-    secondaryEdgeMaxSkip = 1000000)
-a.splitMarkerGraphSecondaryEdges()
+    secondaryEdgeMaxSkip = int(config['MarkerGraph']['secondaryEdges.maxSkip']))
+a.splitMarkerGraphSecondaryEdges(
+    errorRateThreshold = float(config['MarkerGraph']['secondaryEdges.split.errorRateThreshold']),
+    minCoverage = int(config['MarkerGraph']['secondaryEdges.split.minCoverage']))
 
 # Assembler all marker graph vertices and edges.
 a.assembleMarkerGraphVertices()

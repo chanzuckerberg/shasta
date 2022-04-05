@@ -505,12 +505,14 @@ PYBIND11_MODULE(shasta, shastaModule)
             arg("debug") = false)
         .def("splitMarkerGraphSecondaryEdges",
             &Assembler::splitMarkerGraphSecondaryEdges,
+            arg("errorRateThreshold"),
+            arg("minCoverage"),
             arg("threadCount") = 0)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
             arg("accessEdgesReadWrite") = false,
             arg("accessConnectivityReadWrite") = false)
-            .def("transitiveReduction",
+        .def("transitiveReduction",
             &Assembler::transitiveReduction,
             arg("lowCoverageThreshold"),
             arg("highCoverageThreshold"),
