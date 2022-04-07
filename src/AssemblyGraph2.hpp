@@ -202,6 +202,10 @@ public:
     uint64_t countCommonPrefixBases() const;
     uint64_t countCommonSuffixBases() const;
 
+    // Compute the edit distance between the sequences of the two branches.
+    // This can only be called for a diploid bubble (2 branches).
+    uint64_t bubbleEditDistance() const;
+
     // The number of raw sequence bases transfered
     // in each direction for gfa output.
     uint64_t backwardTransferCount = 0;

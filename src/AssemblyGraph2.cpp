@@ -25,6 +25,9 @@ using namespace shasta;
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/reverse_graph.hpp>
 
+// Seqan
+#include <seqan/align.h>
+
 // Standard library.
 #include "fstream.hpp"
 #include <limits>
@@ -2085,6 +2088,39 @@ void AssemblyGraph2Edge::computeCopyNumberDifferencePeriod(uint64_t maxPeriod)
     } else {
         period = 0;
     }
+}
+
+
+
+// Compute the edit distance between the sequences of the two branches.
+// This can only be called for a diploid bubble (2 branches).
+uint64_t AssemblyGraph2Edge::bubbleEditDistance() const
+{
+    // Seqan types and functions used below.
+    using TSequence = seqan::String<char>;
+    using TAlign = seqan::Align<TSequence, seqan::ArrayGaps>;
+    using seqan::assignSource;
+    using seqan::globalAlignment;
+    using seqan::row;
+    using seqan::Score;
+    using seqan::Simple;
+
+    // Fill in the sequences of the two branches of this bubble.
+    SHASTA_ASSERT(branches.size() == 2);
+    array<TSequence, 2> sequences;
+    for(uint64_t i=0; i<2; i++) {
+        for(const Base b: branches[i].rawSequence) {
+            append(sequences[i], b.character());
+        }
+    }
+
+    TAlign align;
+    resize(rows(align), 2);
+    assignSource(row(align,0), sequences[0]);
+    assignSource(row(align,1), sequences[1]);
+    const int editDistance = - globalAlignment(align, Score<int, Simple>(0,-1,-1));
+    SHASTA_ASSERT(editDistance >= 0);
+    return uint64_t(editDistance);
 }
 
 
@@ -4358,21 +4394,16 @@ void AssemblyGraph2::removeBadBubblesIterative(
 
             // Remove the bubbles in this component, except for the large ones.
             for(const PhasingGraph::vertex_descriptor v: component) {
+#if 1
                 badBubbles.push_back(v);
-#if 0
+#else
                 const PhasingGraphVertex& vertex = phasingGraph[v];
                 SHASTA_ASSERT(vertex.bubbles.size() == 1);
                 const AssemblyGraph2::edge_descriptor e = vertex.bubbles.front().first;
                 const AssemblyGraph2Edge& edge = g[e];
                 SHASTA_ASSERT(edge.branches.size() == 2);
-                bool isLarge = false;
-                for(const AssemblyGraph2Edge::Branch& branch: edge.branches) {
-                    if(branch.rawSequence.size() > 100) {   // EXPOSE WHEN CODE STABILIZES
-                        isLarge = true;
-                        break;
-                    }
-                }
-                if(not isLarge) {
+                const bool hasLargeEditDistance = edge.bubbleEditDistance() > 10;   // EXPOSE WHEN CODE STABILIZES
+                if(not hasLargeEditDistance) {
                     badBubbles.push_back(v);
                 }
 #endif
