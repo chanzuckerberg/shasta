@@ -4346,18 +4346,40 @@ void AssemblyGraph2::removeBadBubblesIterative(
         }
 
 
+
         // Gather the bubbles that are going to be removed.
-        // Right now, these are the bubbles in small connected components.
-        // Later, we will add bubbles with inconsistent edges.
         vector<PhasingGraph::vertex_descriptor> badBubbles;
         for(const vector<PhasingGraph::vertex_descriptor>& component: components) {
+
+            // If this is a large component, don't remove these bubbles.
             if(component.size() >= componentSizeThreshold) {
                 continue;
             }
+
+            // Remove the bubbles in this component, except for the large ones.
             for(const PhasingGraph::vertex_descriptor v: component) {
                 badBubbles.push_back(v);
+#if 0
+                const PhasingGraphVertex& vertex = phasingGraph[v];
+                SHASTA_ASSERT(vertex.bubbles.size() == 1);
+                const AssemblyGraph2::edge_descriptor e = vertex.bubbles.front().first;
+                const AssemblyGraph2Edge& edge = g[e];
+                SHASTA_ASSERT(edge.branches.size() == 2);
+                bool isLarge = false;
+                for(const AssemblyGraph2Edge::Branch& branch: edge.branches) {
+                    if(branch.rawSequence.size() > 100) {   // EXPOSE WHEN CODE STABILIZES
+                        isLarge = true;
+                        break;
+                    }
+                }
+                if(not isLarge) {
+                    badBubbles.push_back(v);
+                }
+#endif
             }
         }
+
+
 
         // If no bubbles were marked as bad, end the iteration.
         if(badBubbles.empty()) {
