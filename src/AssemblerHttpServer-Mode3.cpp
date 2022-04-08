@@ -139,26 +139,20 @@ void Assembler::exploreMode3AssemblyGraph(
             segmentId = inputField.value;
             inputField.value = "";
 
-            // Find the bounding box.
+            // Find the bounding box and its center.
             var element = document.getElementById("Segment-" + segmentId);
             var box = element.getBBox();
             var xCenter = box.x + 0.5 * box.width;
             var yCenter = box.y + 0.5 * box.height;
 
-            // Change the viewbox of the svg to be a bit larger than the bounding box.
-            var svg = document.querySelector('svg');
+            // Change the viewbox of the svg to be a bit larger than a square
+            // containing the bounding box.
             var enlargeFactor = 5.;
-            width = box.width * enlargeFactor;
-            height = box.height * enlargeFactor;
-            if(width < height) {
-                width = height;
-            }
-            if(height < width) {
-                heigth = width;
-            }
-            x = xCenter - 0.5 * width;
-            y = yCenter - 0.5 * height;
-            svg.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+            var size = enlargeFactor * Math.max(box.width, box.height);
+            x = xCenter - 0.5 * size;
+            y = yCenter - 0.5 * size;
+            var svg = document.querySelector('svg');
+            svg.setAttribute('viewBox', `${x} ${y} ${size} ${size}`);
             ratio = width / svg.getBoundingClientRect().width;
 
         }
