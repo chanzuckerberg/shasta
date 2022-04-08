@@ -5,7 +5,7 @@ Most Shasta users don't need to use the contents of this directory. Instead, use
 * `shasta --command listConfigurations` to get a list of available built-in configuration names.
 * `shasta --command listConfiguration --config configurationName` to list the details of a specific configuration. Its output will include comments describing the intended usage of the specified configuration.
 
-See [here](../docs/Configurations.html) for more information about Shasta assembly configurations. See below for more detailed information about the contents of this directory. Most of this information is not necessary or useful to most Shasta users.
+See [here](https://chanzuckerberg.github.io/shasta/Configurations.html) for more information about Shasta assembly configurations. See below for more detailed information about the contents of this directory. Most of this information is not necessary or useful to most Shasta users.
 
 
 
