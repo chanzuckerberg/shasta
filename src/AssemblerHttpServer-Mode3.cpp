@@ -149,11 +149,13 @@ void Assembler::exploreMode3AssemblyGraph(
             // containing the bounding box.
             var enlargeFactor = 5.;
             var size = enlargeFactor * Math.max(box.width, box.height);
+            width = size;
+            height = size;
             x = xCenter - 0.5 * size;
             y = yCenter - 0.5 * size;
             var svg = document.querySelector('svg');
             svg.setAttribute('viewBox', `${x} ${y} ${size} ${size}`);
-            ratio = width / svg.getBoundingClientRect().width;
+            ratio = size / svg.getBoundingClientRect().width;
 
         }
         </script>
