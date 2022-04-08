@@ -173,7 +173,7 @@ void Assembler::exploreMode3AssemblyGraph(
 <tr><th class='left' style='width:16m'>Path length<td id='pathLengthCell' class=centered style='width:8em'>
 <tr><th class='left' style='width:16em'>Average edge coverage<td id='coverageCell' class=centered style='width:8em'>
 <tr><th class='left' style='width:16em'>Number of oriented reads on this segment<td id='orientedReadsCell' class=centered style='width:8em'>
-<tr><th class='left style='width:16em''>Number of oriented reads that in this segment that are also in the reference segment
+<tr><th class='left style='width:16em''>Number of oriented reads on this segment that are also in the reference segment
 <td id='comonOrientedReadsCell' class=centered style='width:8em'>
 <tr><th class='left' style='width:16em'>Number of oriented reads in this segment only or in the reference segment only
 which are too short to appear on both.
@@ -221,16 +221,11 @@ function onMouseExitSegment()
         <script>
         function segmentThickness(factor)
         {
-            const group1 = document.getElementById('LocalAssemblyGraph-segments');
-            for (let i=0; i<group1.children.length; i++) {
-                group2 = group1.children[i];
-                if(group2.tagName == 'g') {
-                    for (let j=0; j<group2.children.length; j++) {
-                        path = group2.children[j];
-                        if(path.tagName == 'path') {
-                            path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
-                        }
-                    }
+            const group = document.getElementById('LocalAssemblyGraph-segments');
+            for (let i=0; i<group.children.length; i++) {
+                path = group.children[i];
+                if(path.tagName == 'path') {
+                    path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
                 }
             }
         }
