@@ -12,7 +12,8 @@ const std::set<string> shasta::SimpleBayesianConsensusCaller::builtIns =
     "guppy-3.6.0-a",
     "r10-guppy-3.4.8-a",
     "bonito-0.3.1-a",
-    "guppy-5.0.7-a"
+    "guppy-5.0.7-a",
+    "guppy-5.0.7-b"
 };
 
 
@@ -74,8 +75,14 @@ bool SimpleBayesianConsensusCaller::constructBuiltin(const string& constructorSt
         return true;
     }
 
+    if(constructorString == "guppy-5.0.7-b"){
+        // From SimpleBayesianConsensusCaller-11.csv
+        #include "SimpleBayesianConsensusCaller-Builtin-guppy-5.0.7-b.hpp"
+        return true;
+    }
+
     // We already checked for a valid built-in before,
-    // so if getting here there is missign logic above.
+    // so if getting here there is missing logic above.
     SHASTA_ASSERT(0);
 }
 
