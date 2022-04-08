@@ -216,8 +216,12 @@ function onMouseExitSegment()
 
     // Change segment thickness
     html << R"stringDelimiter(
-    <p><button type='button' onClick='segmentThickness(1.25)'>Make segments<br>thicker</button>
-    <p><button type='button' onClick='segmentThickness(0.8)'>Make segments<br>thinner</button>
+    <p>
+    <button type='button' onClick='segmentThickness(1.25)'>Make segments<br>25% thicker</button>
+    <button type='button' onClick='segmentThickness(2.)'>Make segments<br>2x thicker</button>
+    <p>
+    <button type='button' onClick='segmentThickness(0.8)'>Make segments<br>25% thinner</button>
+    <button type='button' onClick='segmentThickness(0.5)'>Make segments<br>2x thinner</button>
         <script>
         function segmentThickness(factor)
         {
@@ -236,8 +240,12 @@ function onMouseExitSegment()
 
     // Change link thickness
     html << R"stringDelimiter(
-    <p><button type='button' onClick='linkThickness(1.25)'>Make links<br>thicker</button>
-    <p><button type='button' onClick='linkThickness(0.8)'>Make links<br>thinner</button>
+    <p>
+    <button type='button' onClick='linkThickness(1.25)'>Make links<br>25% thicker</button>
+    <button type='button' onClick='linkThickness(2.)'>Make links<br>2x thicker</button>
+    <p>
+    <button type='button' onClick='linkThickness(0.8)'>Make links<br>25% thinner</button>
+    <button type='button' onClick='linkThickness(0.5)'>Make links<br>2x thinner</button>
         <script>
         function linkThickness(factor)
         {
