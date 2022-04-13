@@ -165,36 +165,81 @@ void Assembler::exploreMode3AssemblyGraph(
 
 
 
-    // Table that will be automatically updated when the mouse is on a segment.
+    // Tables that will be automatically updated when the mouse is on a segment.
     html << R"zzz(  
+<p>
+Hover on a segment to populate the tables below.
+<p>
 <table style='font-size:9'>
-<tr><th class='left' style='width:16em'>Segment id<td id='segmentIdCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Distance from start segment<td id='distanceCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16m'>Path length<td id='pathLengthCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Average edge coverage<td id='coverageCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Number of oriented reads on this segment<td id='orientedReadsCell' class=centered style='width:8em'>
-<tr><th class='left style='width:16em''>Number of oriented reads on this segment that are also in the reference segment
-<td id='comonOrientedReadsCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Short reads
-<td id='tooShortCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Unexplained reads in the reference segment
-<td id='unexplainedOnReferenceSegmentCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Unexplained reads in the displayed segment
-<td id='unexplainedOnDisplayedSegmentCell' class=centered style='width:8em'>
+<tr><th class='left'>Segment id<td id='segmentIdCell' class=centered style='width:8em'>
+<tr><th class='left'>Distance from start segment<td id='distanceCell' class=centered style='width:8em'>
+<tr><th class='left'>Path length<td id='pathLengthCell' class=centered style='width:8em'>
+<tr><th class='left'>Average edge coverage<td id='coverageCell' class=centered style='width:8em'>
 </table>
+<p>
+Comparison of read compositions
+<p>
+<table>
+
+<tr>
+<td>
+<th>Reference<br>segment
+<th>Displayed<br>segment
+
+<tr>
+<th class='left'>Total
+<th id='totalReferenceCell'>
+<th id='totalDisplayedCell'>
+
+<tr>
+<th class='left'>Common
+<th id='commonReferenceCell'>
+<th id='commonDisplayedCell'>
+
+<tr>
+<th class='left'>Short
+<th id='shortReferenceCell'>
+<th id='shortDisplayedCell'>
+
+<tr>
+<th class='left'>Unexplained
+<th id='unexplainedReferenceCell'>
+<th id='unexplainedDisplayedCell'>
+
+<tr>
+<th class='left'>Unexplained fraction
+<th id='unexplainedFractionReferenceCell'>
+<th id='unexplainedFractionDisplayedCell'>
+
+</table>
+
 <script>
-function onMouseEnterSegment(id, distance, pathLength, coverage, orientedReads,
-    common, tooShort, unexplainedOnReference, unexplainedOnDisplayed)
+function onMouseEnterSegment(id, distance, pathLength, coverage, 
+    totalReference, totalDisplayed,
+    shortReference, shortDisplayed,
+    common, 
+    unexplainedReference, unexplainedDisplayed)
 {
     document.getElementById('segmentIdCell').innerHTML = id;
     document.getElementById('distanceCell').innerHTML = distance;
     document.getElementById('pathLengthCell').innerHTML = pathLength;
     document.getElementById('coverageCell').innerHTML = coverage;
-    document.getElementById('orientedReadsCell').innerHTML = orientedReads;
-    document.getElementById('comonOrientedReadsCell').innerHTML = common;
-    document.getElementById('tooShortCell').innerHTML = tooShort;
-    document.getElementById('unexplainedOnReferenceSegmentCell').innerHTML = unexplainedOnReference;
-    document.getElementById('unexplainedOnDisplayedSegmentCell').innerHTML = unexplainedOnDisplayed;
+
+    document.getElementById('totalReferenceCell').innerHTML = totalReference;
+    document.getElementById('totalDisplayedCell').innerHTML = totalDisplayed;
+    document.getElementById('commonReferenceCell').innerHTML = common;
+    document.getElementById('commonDisplayedCell').innerHTML = common;
+
+    if(common > 0) {
+        document.getElementById('shortReferenceCell').innerHTML = shortReference;
+        document.getElementById('shortDisplayedCell').innerHTML = shortDisplayed;
+        document.getElementById('unexplainedReferenceCell').innerHTML = unexplainedReference;
+        document.getElementById('unexplainedDisplayedCell').innerHTML = unexplainedDisplayed;
+        document.getElementById('unexplainedFractionReferenceCell').innerHTML = 
+            (unexplainedReference / (unexplainedReference + common)).toFixed(2);
+        document.getElementById('unexplainedFractionDisplayedCell').innerHTML = 
+            (unexplainedDisplayed / (unexplainedDisplayed + common)).toFixed(2);
+    }   
 }
 function onMouseExitSegment()
 {
@@ -202,11 +247,17 @@ function onMouseExitSegment()
     document.getElementById('distanceCell').innerHTML = '';
     document.getElementById('pathLengthCell').innerHTML = '';
     document.getElementById('coverageCell').innerHTML = '';
-    document.getElementById('orientedReadsCell').innerHTML = '';
-    document.getElementById('comonOrientedReadsCell').innerHTML = '';
-    document.getElementById('tooShortCell').innerHTML = '';
-    document.getElementById('unexplainedOnReferenceSegmentCell').innerHTML = '';
-    document.getElementById('unexplainedOnDisplayedSegmentCell').innerHTML = '';
+
+    document.getElementById('totalReferenceCell').innerHTML = '';
+    document.getElementById('totalDisplayedCell').innerHTML = '';
+    document.getElementById('shortReferenceCell').innerHTML = '';
+    document.getElementById('shortDisplayedCell').innerHTML = '';
+    document.getElementById('commonReferenceCell').innerHTML = '';
+    document.getElementById('commonDisplayedCell').innerHTML = '';
+    document.getElementById('unexplainedReferenceCell').innerHTML = '';
+    document.getElementById('unexplainedDisplayedCell').innerHTML = '';
+    document.getElementById('unexplainedFractionReferenceCell').innerHTML = '';
+    document.getElementById('unexplainedFractionDisplayedCell').innerHTML = '';
 }
 </script>
     )zzz";
@@ -619,9 +670,9 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             " and segment " << segmentId1 <<
             "<td class=centered>" << segmentPairInformation.offset <<
             "<tr><th class=left>Number of short reads on segment " << segmentId0 <<
-            "<td class=centered>" << segmentPairInformation.tooShortCount[0] <<
+            "<td class=centered>" << segmentPairInformation.shortCount[0] <<
             "<tr><th class=left>Number of short reads on segment " << segmentId1 <<
-            "<td class=centered>" << segmentPairInformation.tooShortCount[1] <<
+            "<td class=centered>" << segmentPairInformation.shortCount[1] <<
             "<tr><th class=left>Number of unexplained reads on segment " << segmentId0 <<
             "<td class=centered>" << segmentPairInformation.unexplainedCount[0] <<
             "<tr><th class=left>Number of unexplained reads on segment " << segmentId1 <<

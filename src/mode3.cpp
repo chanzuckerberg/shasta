@@ -784,7 +784,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
     // and which should have been present based on
     // the known relative offsets.
     info01.unexplainedCount = {0, 0};
-    info01.tooShortCount = {0, 0};
+    info01.shortCount = {0, 0};
 
     // Set up a joint loop over oriented reads in the two segments.
     const auto begin0 = info0.infos.begin();
@@ -822,7 +822,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             if(wouldOverlap) {
                 ++info01.unexplainedCount[0];
             } else {
-                ++info01.tooShortCount[0];
+                ++info01.shortCount[0];
             }
 
             SHASTA_ASSERT(it0 != end0);
@@ -848,7 +848,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             if(wouldOverlap) {
                 ++info01.unexplainedCount[1];
             } else {
-                ++info01.tooShortCount[1];
+                ++info01.shortCount[1];
             }
 
             SHASTA_ASSERT(it1 != end1);

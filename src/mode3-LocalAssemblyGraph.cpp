@@ -423,9 +423,11 @@ void mode3::LocalAssemblyGraph::writeSvg(
             distance << "," <<
             assemblyGraph.paths.size(segmentId) << "," <<
             averageEdgeCoverage << "," <<
-            orientedReadIds.size() << "," <<
+            segmentPairInfo.totalCount[0] << "," <<
+            segmentPairInfo.totalCount[1] << "," <<
+            segmentPairInfo.shortCount[0] << "," <<
+            segmentPairInfo.shortCount[1] << "," <<
             segmentPairInfo.commonCount << "," <<
-            segmentPairInfo.tooShortCount[0] + segmentPairInfo.tooShortCount[1] << "," <<
             segmentPairInfo.unexplainedCount[0] << "," <<
             segmentPairInfo.unexplainedCount[1] << ")'" <<
             " onmouseleave='onMouseExitSegment()'" <<

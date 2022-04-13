@@ -362,13 +362,13 @@ public:
         // The number of oriented reads that appear in only one
         // of the two segments, but based on the estimated offset
         // are too short to appear in the other segment.
-        array<uint64_t, 2> tooShortCount = {0, 0};
+        array<uint64_t, 2> shortCount = {0, 0};
 
         // Check that the above counts are consistent.
         void check() const
         {
             for(uint64_t i=0; i<2; i++) {
-                SHASTA_ASSERT(commonCount + unexplainedCount[i] + tooShortCount[i] ==
+                SHASTA_ASSERT(commonCount + unexplainedCount[i] + shortCount[i] ==
                     totalCount[i]);
             }
         }
