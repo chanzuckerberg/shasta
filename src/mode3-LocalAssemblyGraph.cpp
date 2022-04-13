@@ -425,20 +425,21 @@ void mode3::LocalAssemblyGraph::writeSvg(
             averageEdgeCoverage << "," <<
             orientedReadIds.size() << "," <<
             segmentPairInfo.commonOrientedReadCount << "," <<
-            segmentPairInfo.tooShortCount << "," <<
+            segmentPairInfo.tooShortCount[0] + segmentPairInfo.tooShortCount[1] << "," <<
             segmentPairInfo.missingOrientedReadCount[0] << "," <<
             segmentPairInfo.missingOrientedReadCount[1] << ")'" <<
             " onmouseleave='onMouseExitSegment()'" <<
+
 #if 0
-            common, tooShort, missingFromReference, missingFromDisplayed
-
-
+            // Old code that displays the segment as a cubic spline.
+            // This can create artifacts when the segment is very thick.
             "' d='M " <<
             p1.x() << " " << p1.y() << " C " <<
             q1.x() << " " << q1.y() << ", " <<
             q2.x() << " " << q2.y() << ", " <<
             p2.x() << " " << p2.y() << "'" <<
 #endif
+
             " d='M " <<
             p1.x() << " " << p1.y() << " L " <<
             p2.x() << " " << p2.y() << "'" <<

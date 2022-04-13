@@ -360,8 +360,8 @@ public:
 
         // The number of oriented reads that appear in only one
         // of the two segments, but based on the estimated offset
-        // are too sort to appear in the other segment.
-        uint64_t tooShortCount = 0;
+        // are too short to appear in the other segment.
+        array<uint64_t, 2> tooShortCount = {0, 0};
 
         double missingFraction(uint64_t i) const
         {
