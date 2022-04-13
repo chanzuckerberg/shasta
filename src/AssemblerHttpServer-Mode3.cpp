@@ -216,12 +216,12 @@ function onMouseExitSegment()
 
     // Change segment thickness
     html << R"stringDelimiter(
-    <p>
-    <button type='button' onClick='segmentThickness(1.25)'>Make segments<br>25% thicker</button>
-    <button type='button' onClick='segmentThickness(2.)'>Make segments<br>2x thicker</button>
-    <p>
-    <button type='button' onClick='segmentThickness(0.8)'>Make segments<br>25% thinner</button>
-    <button type='button' onClick='segmentThickness(0.5)'>Make segments<br>2x thinner</button>
+    <p><table>
+    <tr><th class=left>Segment thickness<td>
+    <button type='button' onClick='segmentThickness(0.5)' style='width:2em'>--</button>
+    <button type='button' onClick='segmentThickness(0.8)' style='width:2em'>-</button>
+    <button type='button' onClick='segmentThickness(1.25)' style='width:2em'>+</button>
+    <button type='button' onClick='segmentThickness(2)' style='width:2em'>++</button>
         <script>
         function segmentThickness(factor)
         {
@@ -240,12 +240,11 @@ function onMouseExitSegment()
 
     // Change link thickness
     html << R"stringDelimiter(
-    <p>
-    <button type='button' onClick='linkThickness(1.25)'>Make links<br>25% thicker</button>
-    <button type='button' onClick='linkThickness(2.)'>Make links<br>2x thicker</button>
-    <p>
-    <button type='button' onClick='linkThickness(0.8)'>Make links<br>25% thinner</button>
-    <button type='button' onClick='linkThickness(0.5)'>Make links<br>2x thinner</button>
+    <tr><th class=left>Link thickness<td>
+    <button type='button' onClick='linkThickness(0.5)' style='width:2em'>--</button>
+    <button type='button' onClick='linkThickness(0.8)' style='width:2em'>-</button>
+    <button type='button' onClick='linkThickness(1.25)' style='width:2em'>+</button>
+    <button type='button' onClick='linkThickness(2.)' style='width:2em'>++</button>
         <script>
         function linkThickness(factor)
         {
@@ -263,6 +262,7 @@ function onMouseExitSegment()
             }
         }
         </script>
+     </table>
         )stringDelimiter";
 
 
