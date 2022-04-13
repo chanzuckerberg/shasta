@@ -175,17 +175,16 @@ void Assembler::exploreMode3AssemblyGraph(
 <tr><th class='left' style='width:16em'>Number of oriented reads on this segment<td id='orientedReadsCell' class=centered style='width:8em'>
 <tr><th class='left style='width:16em''>Number of oriented reads on this segment that are also in the reference segment
 <td id='comonOrientedReadsCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Number of oriented reads in this segment only or in the reference segment only
-which are too short to appear on both.
+<tr><th class='left' style='width:16em'>Short reads
 <td id='tooShortCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Number of oriented reads in this segment but not in the reference segment
-<td id='missingFromReferenceSegmentCell' class=centered style='width:8em'>
-<tr><th class='left' style='width:16em'>Number of oriented reads in the reference segment but not in this segment
-<td id='missingFromDisplayedSegmentCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Unexplained reads in the reference segment
+<td id='unexplainedOnReferenceSegmentCell' class=centered style='width:8em'>
+<tr><th class='left' style='width:16em'>Unexplained reads in the displayed segment
+<td id='unexplainedOnDisplayedSegmentCell' class=centered style='width:8em'>
 </table>
 <script>
 function onMouseEnterSegment(id, distance, pathLength, coverage, orientedReads,
-    common, tooShort, missingFromReference, missingFromDisplayed)
+    common, tooShort, unexplainedOnReference, unexplainedOnDisplayed)
 {
     document.getElementById('segmentIdCell').innerHTML = id;
     document.getElementById('distanceCell').innerHTML = distance;
@@ -194,8 +193,8 @@ function onMouseEnterSegment(id, distance, pathLength, coverage, orientedReads,
     document.getElementById('orientedReadsCell').innerHTML = orientedReads;
     document.getElementById('comonOrientedReadsCell').innerHTML = common;
     document.getElementById('tooShortCell').innerHTML = tooShort;
-    document.getElementById('missingFromReferenceSegmentCell').innerHTML = missingFromReference;
-    document.getElementById('missingFromDisplayedSegmentCell').innerHTML = missingFromDisplayed;
+    document.getElementById('unexplainedOnReferenceSegmentCell').innerHTML = unexplainedOnReference;
+    document.getElementById('unexplainedOnDisplayedSegmentCell').innerHTML = unexplainedOnDisplayed;
 }
 function onMouseExitSegment()
 {
@@ -206,8 +205,8 @@ function onMouseExitSegment()
     document.getElementById('orientedReadsCell').innerHTML = '';
     document.getElementById('comonOrientedReadsCell').innerHTML = '';
     document.getElementById('tooShortCell').innerHTML = '';
-    document.getElementById('missingFromReferenceSegmentCell').innerHTML = '';
-    document.getElementById('missingFromDisplayedSegmentCell').innerHTML = '';
+    document.getElementById('unexplainedOnReferenceSegmentCell').innerHTML = '';
+    document.getElementById('unexplainedOnDisplayedSegmentCell').innerHTML = '';
 }
 </script>
     )zzz";
@@ -612,23 +611,21 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         "<td class=centered>" << length0 <<
         "<tr><th class=left>Length of segment " << segmentId1 <<
         "<td class=centered>" << length1 <<
-        "<tr><th class=left>Number of common oriented reads"
+        "<tr><th class=left>Number of common reads"
         "<td class=centered>" << commonCount;
     if(commonCount) {
         html <<
             "<tr><th class=left>Estimated offset between segment " << segmentId0 <<
             " and segment " << segmentId1 <<
             "<td class=centered>" << segmentPairInformation.offset <<
-            "<tr><th class=left>Number of oriented reads on segment " << segmentId0 <<
-            " that are too short to appear on both segments"
+            "<tr><th class=left>Number of short reads on segment " << segmentId0 <<
             "<td class=centered>" << segmentPairInformation.tooShortCount[0] <<
-            "<tr><th class=left>Number of oriented reads on segment " << segmentId1 <<
-            " that are too short to appear on both segments"
+            "<tr><th class=left>Number of short reads on segment " << segmentId1 <<
             "<td class=centered>" << segmentPairInformation.tooShortCount[1] <<
-            "<tr><th class=left>Number of oriented reads missing from segment " << segmentId0 <<
-            "<td class=centered>" << segmentPairInformation.missingCount[0] <<
-            "<tr><th class=left>Number of oriented reads missing from segment " << segmentId1 <<
-            "<td class=centered>" << segmentPairInformation.missingCount[1];
+            "<tr><th class=left>Number of unexplained reads on segment " << segmentId0 <<
+            "<td class=centered>" << segmentPairInformation.unexplainedCount[0] <<
+            "<tr><th class=left>Number of unexplained reads on segment " << segmentId1 <<
+            "<td class=centered>" << segmentPairInformation.unexplainedCount[1];
     }
     html <<  "</table>";
 

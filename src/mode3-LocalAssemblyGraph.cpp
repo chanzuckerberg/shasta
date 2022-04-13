@@ -361,12 +361,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 }
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
-            } else if(options.segmentColoring == "byMissingFractionOnDisplayedSegment") {
-                const double fraction = 1. - segmentPairInformationTable[v].missingFraction(1);
+            } else if(options.segmentColoring == "byUnexplainedFractionOnReferenceSegment") {
+                const double fraction = 1. - segmentPairInformationTable[v].unexplainedFraction(0);
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
-            } else if(options.segmentColoring == "byMissingFractionOnReferenceSegment") {
-                const double fraction = 1. - segmentPairInformationTable[v].missingFraction(0);
+            } else if(options.segmentColoring == "byUnexplainedFractionOnDisplayedSegment") {
+                const double fraction = 1. - segmentPairInformationTable[v].unexplainedFraction(1);
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
             } else {
@@ -426,8 +426,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
             orientedReadIds.size() << "," <<
             segmentPairInfo.commonCount << "," <<
             segmentPairInfo.tooShortCount[0] + segmentPairInfo.tooShortCount[1] << "," <<
-            segmentPairInfo.missingCount[0] << "," <<
-            segmentPairInfo.missingCount[1] << ")'" <<
+            segmentPairInfo.unexplainedCount[0] << "," <<
+            segmentPairInfo.unexplainedCount[1] << ")'" <<
             " onmouseleave='onMouseExitSegment()'" <<
 
 #if 0
@@ -838,16 +838,16 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "'>"        " common reads (0 = automatic)"
         "</div>"
 
-        // Segment coloring by missing fraction on the displayed segment versus the reference segment.
-        "<input type=radio name=segmentColoring value=byMissingFractionOnDisplayedSegment"
-        << (segmentColoring=="byMissingFractionOnDisplayedSegment" ? " checked=checked" : "") <<
-        ">By missing fraction on the displayed segment versus the reference segment"
+        // Segment coloring by unexplained fraction on the reference segment.
+        "<input type=radio name=segmentColoring value=byUnexplainedFractionOnReferenceSegment"
+        << (segmentColoring=="byUnexplainedFractionOnReferenceSegment" ? " checked=checked" : "") <<
+        ">By unexplained fraction on the reference segment"
         "<br>"
 
-        // Segment coloring by missing fraction on the reference segment versus the displayed segment.
-        "<input type=radio name=segmentColoring value=byMissingFractionOnReferenceSegment"
-        << (segmentColoring=="byMissingFractionOnReferenceSegment" ? " checked=checked" : "") <<
-        ">By missing fraction on the reference segment versus the displayed segment"
+        // Segment coloring by unexplained fraction on the displayed segment.
+        "<input type=radio name=segmentColoring value=byUnexplainedFractionOnDisplayedSegment"
+        << (segmentColoring=="byUnexplainedFractionOnDisplayedSegment" ? " checked=checked" : "") <<
+        ">By unexplained fraction on the displayed segment"
         "<br>"
 
         "Reference segment&nbsp;<input type=text name=referenceSegmentId size=8 style='text-align:center'"

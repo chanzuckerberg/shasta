@@ -353,19 +353,31 @@ public:
         // The offset of segment 1 relative to segment 0, in markers.
         int64_t offset = std::numeric_limits<int64_t>::max();
 
-        // The number of oriented reads missing from each segment,
-        // and which should have been present based on
-        // the known relative offsets.
-        array<uint64_t, 2> missingCount = {0, 0};
+
+        // The number of oriented reads present in each segment
+        // but missing from the other segment,
+        // and which should have been present based on the above estimated offset.
+        array<uint64_t, 2> unexplainedCount = {0, 0};
 
         // The number of oriented reads that appear in only one
         // of the two segments, but based on the estimated offset
         // are too short to appear in the other segment.
         array<uint64_t, 2> tooShortCount = {0, 0};
 
-        double missingFraction(uint64_t i) const
+        // Check that the above counts are consistent.
+        void check() const
         {
-            const uint64_t m = missingCount[i];
+            for(uint64_t i=0; i<2; i++) {
+                SHASTA_ASSERT(commonCount + unexplainedCount[i] + tooShortCount[i] ==
+                    totalCount[i]);
+            }
+        }
+
+        // This computes the fraction of unexplained oriented reads,
+        // without counting the short ones.
+        double unexplainedFraction(uint64_t i) const
+        {
+            const uint64_t m = unexplainedCount[i];
             return double(m) / double(commonCount + m);
         }
     };

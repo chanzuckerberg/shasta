@@ -783,7 +783,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
     // Count the oriented reads missing from each segment,
     // and which should have been present based on
     // the known relative offsets.
-    info01.missingCount = {0, 0};
+    info01.unexplainedCount = {0, 0};
     info01.tooShortCount = {0, 0};
 
     // Set up a joint loop over oriented reads in the two segments.
@@ -820,7 +820,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             const bool wouldOverlap = intersects(orientedReadRange1, segment1Range);
 
             if(wouldOverlap) {
-                ++info01.missingCount[1];
+                ++info01.unexplainedCount[0];
             } else {
                 ++info01.tooShortCount[0];
             }
@@ -846,7 +846,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             const bool wouldOverlap = intersects(orientedReadRange0, segment0Range);
 
             if(wouldOverlap) {
-                ++info01.missingCount[0];
+                ++info01.unexplainedCount[1];
             } else {
                 ++info01.tooShortCount[1];
             }
@@ -863,6 +863,8 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             ++it1;
         }
     }
+
+    info01.check();
 
 }
 
