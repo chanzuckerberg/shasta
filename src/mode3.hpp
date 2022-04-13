@@ -343,12 +343,12 @@ public:
     class SegmentPairInformation {
     public:
 
-        // The number of oriented reads present in each segment.
-        array<uint64_t, 2> orientedReadCount = {0, 0};
+        // The total number of oriented reads present in each segment.
+        array<uint64_t, 2> totalCount = {0, 0};
 
         // The number of oriented reads present in both segments.
         // If this is zero, the rest of the information is not valid.
-        uint64_t commonOrientedReadCount = 0;
+        uint64_t commonCount = 0;
 
         // The offset of segment 1 relative to segment 0, in markers.
         int64_t offset = std::numeric_limits<int64_t>::max();
@@ -356,7 +356,7 @@ public:
         // The number of oriented reads missing from each segment,
         // and which should have been present based on
         // the known relative offsets.
-        array<uint64_t, 2> missingOrientedReadCount = {0, 0};
+        array<uint64_t, 2> missingCount = {0, 0};
 
         // The number of oriented reads that appear in only one
         // of the two segments, but based on the estimated offset
@@ -365,8 +365,8 @@ public:
 
         double missingFraction(uint64_t i) const
         {
-            const uint64_t m = missingOrientedReadCount[i];
-            return double(m) / double(commonOrientedReadCount + m);
+            const uint64_t m = missingCount[i];
+            return double(m) / double(commonCount + m);
         }
     };
     void analyzeSegmentPair(

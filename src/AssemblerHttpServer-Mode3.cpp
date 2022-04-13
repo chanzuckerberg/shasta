@@ -599,7 +599,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             segmentId0, segmentId1,
             orientedReads0, orientedReads1,
             markers, segmentPairInformation);
-    const uint64_t commonOrientedReadCount = segmentPairInformation.commonOrientedReadCount;
+    const uint64_t commonCount = segmentPairInformation.commonCount;
 
 
     /// Write a table with general information about this pair of segments.
@@ -613,8 +613,8 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         "<tr><th class=left>Length of segment " << segmentId1 <<
         "<td class=centered>" << length1 <<
         "<tr><th class=left>Number of common oriented reads"
-        "<td class=centered>" << commonOrientedReadCount;
-    if(commonOrientedReadCount) {
+        "<td class=centered>" << commonCount;
+    if(commonCount) {
         html <<
             "<tr><th class=left>Estimated offset between segment " << segmentId0 <<
             " and segment " << segmentId1 <<
@@ -626,9 +626,9 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             " that are too short to appear on both segments"
             "<td class=centered>" << segmentPairInformation.tooShortCount[1] <<
             "<tr><th class=left>Number of oriented reads missing from segment " << segmentId0 <<
-            "<td class=centered>" << segmentPairInformation.missingOrientedReadCount[0] <<
+            "<td class=centered>" << segmentPairInformation.missingCount[0] <<
             "<tr><th class=left>Number of oriented reads missing from segment " << segmentId1 <<
-            "<td class=centered>" << segmentPairInformation.missingOrientedReadCount[1];
+            "<td class=centered>" << segmentPairInformation.missingCount[1];
     }
     html <<  "</table>";
 
@@ -687,7 +687,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 "<td>"
                 "<td><td>";
 
-            if(commonOrientedReadCount) {
+            if(commonCount) {
                 // Compute the hypothetical range of the oriented read relative
                 // to the beginning of segment 1.
                 const discrete_interval<int64_t> orientedReadRange1(
@@ -724,7 +724,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
                 "<td class=centered>" << it1->averageOffset <<
                 "<td>";
 
-            if(commonOrientedReadCount) {
+            if(commonCount) {
                 // Compute the hypothetical range of the oriented read relative
                 // to the beginning of segment 0.
                 const discrete_interval<int64_t> orientedReadRange0(

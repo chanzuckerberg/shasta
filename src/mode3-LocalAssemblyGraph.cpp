@@ -352,12 +352,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
             } else if(options.segmentColoring == "uniform") {
                 color = options.segmentColor;
             } else if(options.segmentColoring == "byCommonReads") {
-                const uint64_t commonReadCount = segmentPairInformationTable[v].commonOrientedReadCount;
+                const uint64_t commonCount = segmentPairInformationTable[v].commonCount;
                 double fraction;
                 if(options.greenThreshold) {
-                    fraction = min(1., double(commonReadCount) / double(options.greenThreshold));
+                    fraction = min(1., double(commonCount) / double(options.greenThreshold));
                 } else {
-                    fraction = double(commonReadCount) / double(referenceSegmentInfo.infos.size());
+                    fraction = double(commonCount) / double(referenceSegmentInfo.infos.size());
                 }
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
@@ -424,10 +424,10 @@ void mode3::LocalAssemblyGraph::writeSvg(
             assemblyGraph.paths.size(segmentId) << "," <<
             averageEdgeCoverage << "," <<
             orientedReadIds.size() << "," <<
-            segmentPairInfo.commonOrientedReadCount << "," <<
+            segmentPairInfo.commonCount << "," <<
             segmentPairInfo.tooShortCount[0] + segmentPairInfo.tooShortCount[1] << "," <<
-            segmentPairInfo.missingOrientedReadCount[0] << "," <<
-            segmentPairInfo.missingOrientedReadCount[1] << ")'" <<
+            segmentPairInfo.missingCount[0] << "," <<
+            segmentPairInfo.missingCount[1] << ")'" <<
             " onmouseleave='onMouseExitSegment()'" <<
 
 #if 0

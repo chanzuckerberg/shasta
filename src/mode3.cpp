@@ -769,13 +769,13 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
     using boost::icl::intersects;
 
     // Store the number of oriented reads in each segment.
-    info01.orientedReadCount[0] = info0.infos.size();
-    info01.orientedReadCount[1] = info1.infos.size();
+    info01.totalCount[0] = info0.infos.size();
+    info01.totalCount[1] = info1.infos.size();
 
     // Use common oriented reads to estimate the offset between the two segments.
     // If there are no common oriented reads, stop here.
-    estimateOffset(info0, info1, info01.offset, info01.commonOrientedReadCount);
-    if(info01.commonOrientedReadCount == 0) {
+    estimateOffset(info0, info1, info01.offset, info01.commonCount);
+    if(info01.commonCount == 0) {
         return;
     }
 
@@ -783,7 +783,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
     // Count the oriented reads missing from each segment,
     // and which should have been present based on
     // the known relative offsets.
-    info01.missingOrientedReadCount = {0, 0};
+    info01.missingCount = {0, 0};
     info01.tooShortCount = {0, 0};
 
     // Set up a joint loop over oriented reads in the two segments.
@@ -820,7 +820,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             const bool wouldOverlap = intersects(orientedReadRange1, segment1Range);
 
             if(wouldOverlap) {
-                ++info01.missingOrientedReadCount[1];
+                ++info01.missingCount[1];
             } else {
                 ++info01.tooShortCount[0];
             }
@@ -846,7 +846,7 @@ void mode3::AssemblyGraph::analyzeSegmentPair(
             const bool wouldOverlap = intersects(orientedReadRange0, segment0Range);
 
             if(wouldOverlap) {
-                ++info01.missingOrientedReadCount[0];
+                ++info01.missingCount[0];
             } else {
                 ++info01.tooShortCount[1];
             }
