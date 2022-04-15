@@ -1452,12 +1452,15 @@ void shasta::main::listCommands()
 
 void shasta::main::listConfigurations()
 {
-    cout << "Valid Shasta built-in configurations are:" << endl;
+    cout << "Valid Shasta built-in configurations, in chronological order, are:\n" << endl;
     for(const auto& p: configurationTable) {
         cout << p.first << endl;
     }
-    cout << "In the command line, after --config, "
-        "you can specify any of the above configuration names, "
+    cout <<
+        "\nUse \"shasta --command listConfiguration --config configurationName\" "
+        "to list the details of one of the above configurations.\n\n"
+        "When running an assembly, you can use option \"--config\" "
+        "to specify any of the above configuration names, "
         "or the name of a configuration file. "
         "See shasta/conf for examples of configuration files. "
         "Each of the above configurations has a corresponding "
