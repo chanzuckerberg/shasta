@@ -711,6 +711,41 @@ void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions1>& transit
 
 
 
+void AssemblyGraph::createLinks(
+    const std::map<SegmentPair, Transitions1>& transitionMap,
+    uint64_t minCoverage)
+{
+    links.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Links"),
+        largeDataPageSize);
+    transitions.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Transitions"),
+        largeDataPageSize);
+    for(const auto& p: transitionMap) {
+        const auto& transitionVector = p.second;
+        const uint64_t coverage = transitionVector.size();
+        if(coverage >= minCoverage) {
+            const uint64_t segmentId0 = p.first.first;
+            const uint64_t segmentId1 = p.first.second;
+            links.push_back(Link(segmentId0, segmentId1, coverage));
+            transitions.appendVector(transitionVector);
+        }
+    }
+
+#if 0
+    BGL_FORALL_EDGES(e, dynamicAssemblyGraph, DynamicAssemblyGraph) {
+        const DynamicAssemblyGraph::vertex_descriptor v0 = source(e, dynamicAssemblyGraph);
+        const DynamicAssemblyGraph::vertex_descriptor v1 = target(e, dynamicAssemblyGraph);
+        const uint64_t segmentId0 = m[v0];
+        const uint64_t segmentId1 = m[v1];
+        links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
+        transitions.appendVector(dynamicAssemblyGraph[e].transitions);
+    }
+#endif
+}
+
+
+
 // Find out if the two segments joined by a Link
 // have consecutive marker graph paths.
 bool DynamicAssemblyGraph::linkJoinsConsecutivePaths(edge_descriptor e) const
@@ -741,7 +776,7 @@ bool DynamicAssemblyGraph::linkJoinsConsecutivePaths(edge_descriptor e) const
 }
 
 
-
+#if 0
 // Return the average link separation for the Link
 // described by an edge.
 double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
@@ -754,7 +789,7 @@ double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
 
     return mode3::linkSeparation(g[e].transitions, pathLength0);
 }
-
+#endif
 
 
 // The mode3::AssemblyGraph stores a permanent and immutable copy
@@ -773,6 +808,9 @@ AssemblyGraph::AssemblyGraph(
     markers(markers),
     markerGraph(markerGraph)
 {
+    // Minimum number of transitions (oriented reads) to create a link.
+    const uint64_t minCoverage = 2; // EXPOSE WHEN CODE STABILIZES
+
     // Create a segment for each linear chain of marker graph edges.
     std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
     paths.createNew(
@@ -796,7 +834,9 @@ AssemblyGraph::AssemblyGraph(
     std::map<SegmentPair, Transitions1> transitionMap;
     findTransitions(transitionMap);
 
-    // Create a link for each edge of the DynamicAssemblyGraph.
+    // Create a links between pairs of segments with a sufficient number of transitions.
+    createLinks(transitionMap, minCoverage);
+#if 0
     links.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Links"),
         largeDataPageSize);
@@ -811,6 +851,7 @@ AssemblyGraph::AssemblyGraph(
         links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
         transitions.appendVector(dynamicAssemblyGraph[e].transitions);
     }
+#endif
     pseudoPaths.remove();
     createConnectivity();
 

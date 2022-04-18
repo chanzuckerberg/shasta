@@ -319,10 +319,13 @@ public:
 
     // The links.
     MemoryMapped::Vector<Link> links;
+    void createLinks(
+        const std::map<SegmentPair, Transitions1>& transitionMap,
+        uint64_t minCoverage);
 
     // The transitions for each link.
     // Indexed by linkId.
-    MemoryMapped::VectorOfVectors< pair<OrientedReadId, Transition>, uint64_t> transitions;
+    MemoryMapped::VectorOfVectors< pair<OrientedReadId, Transition1>, uint64_t> transitions;
     uint64_t linkCoverage(uint64_t linkId) const
     {
         return transitions.size(linkId);
@@ -453,8 +456,8 @@ template<class Container> double shasta::mode3::linkSeparation(
 {
     double averageLinkSeparation = 0.;
 
-    for(const pair<OrientedReadId, Transition>& p: transitions) {
-        const Transition& transition = p.second;
+    for(const pair<OrientedReadId, Transition1>& p: transitions) {
+        const Transition1& transition = p.second;
         const auto& pseudoPathEntry0 = transition[0];
         const auto& pseudoPathEntry1 = transition[1];
 

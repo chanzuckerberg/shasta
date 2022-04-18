@@ -541,7 +541,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
 
     for(const auto& p: transitions) {
         const OrientedReadId orientedReadId = p.first;
-        const Transition& transition = p.second;
+        const Transition1& transition = p.second;
         const auto& pseudoPathEntry0 = transition[0];
         const auto& pseudoPathEntry1 = transition[1];
 
