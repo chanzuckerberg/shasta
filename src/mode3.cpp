@@ -153,6 +153,104 @@ void DynamicAssemblyGraph::createVertices(
 
 
 
+// Each  linear chain of marker graph edges generates a vertex
+// of the DynamicAssemblyGraph.
+void AssemblyGraph::createSegments()
+{
+    const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
+    vector<bool> wasFound(edgeCount, false);
+
+    using MarkerGraphPath = vector<MarkerGraph::EdgeId>;
+    MarkerGraphPath nextEdges;
+    MarkerGraphPath previousEdges;
+    MarkerGraphPath path;
+    MarkerGraphPath reverseComplementedPath;
+
+    // Main loop over all edges of the marker graph.
+    // At each iteration we find a new linear path of edges.
+    for(MarkerGraph::EdgeId startEdgeId=0; startEdgeId<edgeCount; startEdgeId++) {
+
+        // If we already found this edge, skip it.
+        // It is part of a path we already found.
+        if(wasFound[startEdgeId]) {
+            continue;
+        }
+
+        // Follow the path forward.
+        nextEdges.clear();
+        MarkerGraph::EdgeId edgeId = startEdgeId;
+        bool isCircular = false;
+        while(true) {
+            const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
+            const MarkerGraph::VertexId v1 = edge.target;
+            const auto outEdges = markerGraph.edgesBySource[v1];
+            if(outEdges.size() != 1) {
+                break;
+            }
+            const auto inEdges = markerGraph.edgesByTarget[v1];
+            if(inEdges.size() != 1) {
+                break;
+            }
+            edgeId = outEdges[0];
+            if(edgeId == startEdgeId) {
+                isCircular = true;
+                break;
+            }
+            nextEdges.push_back(edgeId);
+            SHASTA_ASSERT(not wasFound[edgeId]);
+        }
+
+        // Follow the path backward.
+        previousEdges.clear();
+        if(!isCircular) {
+            edgeId = startEdgeId;
+            while(true) {
+                const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
+                const MarkerGraph::VertexId v0 = edge.source;
+                const auto outEdges = markerGraph.edgesBySource[v0];
+                if(outEdges.size() != 1) {
+                    break;
+                }
+                const auto inEdges = markerGraph.edgesByTarget[v0];
+                if(inEdges.size() != 1) {
+                    break;
+                }
+                edgeId = inEdges[0];
+                previousEdges.push_back(edgeId);
+                SHASTA_ASSERT(not wasFound[edgeId]);
+            }
+        }
+
+        // Gather the path.
+        path.clear();
+        copy(previousEdges.rbegin(), previousEdges.rend(), back_inserter(path));
+        path.push_back(startEdgeId);
+        copy(nextEdges.begin(), nextEdges.end(), back_inserter(path));
+
+        // Mark all the edges in the path as found.
+        for(const MarkerGraph::EdgeId edgeId: path) {
+            if(wasFound[edgeId]) {
+                cout << "Assertion failed at " << edgeId << endl;
+                SHASTA_ASSERT(0);
+            }
+            wasFound[edgeId] = true;
+        }
+
+        // Store this path as a new segment.
+        paths.appendVector();
+        for(const MarkerGraphEdgeId edgeId: path) {
+            paths.append(MarkerGraphEdgeInfo(edgeId, false));
+        }
+    }
+
+
+
+    // Check that all edges of the marker graph were found.
+    SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
+
+}
+
+
 MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
     MarkerGraph::EdgeId edgeIdArgument, bool isVirtualArgument)
 {
@@ -500,18 +598,18 @@ mode3::AssemblyGraph::AssemblyGraph(
     markers(markers),
     markerGraph(markerGraph)
 {
-
-    // Create a segment for each vertex of the DynamicAssemblyGraph.
+    // Create a segment for each linear chain of marker graph edges.
     std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
-    uint64_t segmentId = 0;
     paths.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
         largeDataPageSize);
+    uint64_t segmentId = 0;
     BGL_FORALL_VERTICES(v, dynamicAssemblyGraph, DynamicAssemblyGraph) {
-        paths.appendVector(dynamicAssemblyGraph[v].path);
+        // paths.appendVector(dynamicAssemblyGraph[v].path);    // Now done in createSegments()
         m.insert(make_pair(v, segmentId++));
     }
-
+    createSegments();
+    SHASTA_ASSERT(paths.size() == num_vertices(dynamicAssemblyGraph));
 
 
     // Create a link for each edge of the DynamicAssemblyGraph.

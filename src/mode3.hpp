@@ -265,6 +265,7 @@ public:
     // The marker graph paths corresponding to each segment.
     // Indexed by segment id.
     MemoryMapped::VectorOfVectors<MarkerGraphEdgeInfo, uint64_t> paths;
+    void createSegments();
 
     // The links.
     MemoryMapped::Vector<Link> links;
