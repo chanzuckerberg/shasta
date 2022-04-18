@@ -796,7 +796,6 @@ double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
 // of the DynamicAssemblyGraph in memory mapped data structures,
 // so it can be accessed inthe http server and in the Python API.
 AssemblyGraph::AssemblyGraph(
-    const DynamicAssemblyGraph& dynamicAssemblyGraph,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
     size_t threadCount,
@@ -812,17 +811,19 @@ AssemblyGraph::AssemblyGraph(
     const uint64_t minCoverage = 2; // EXPOSE WHEN CODE STABILIZES
 
     // Create a segment for each linear chain of marker graph edges.
-    std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
+    // std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
     paths.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
         largeDataPageSize);
+    /*
     uint64_t segmentId = 0;
     BGL_FORALL_VERTICES(v, dynamicAssemblyGraph, DynamicAssemblyGraph) {
         // paths.appendVector(dynamicAssemblyGraph[v].path);    // Now done in createSegments()
         m.insert(make_pair(v, segmentId++));
     }
+    */
     createSegments();
-    SHASTA_ASSERT(paths.size() == num_vertices(dynamicAssemblyGraph));
+    // SHASTA_ASSERT(paths.size() == num_vertices(dynamicAssemblyGraph));
 
     // Keep track of the segment and position each marker graph edge corresponds to.
     computeMarkerGraphEdgeTable(threadCount);

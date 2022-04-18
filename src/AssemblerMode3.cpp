@@ -22,7 +22,6 @@ void Assembler::mode3Assembly(
         threadCount);
 
     assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(
-        dynamicAssemblyGraph,
         largeDataFileNamePrefix,
         largeDataPageSize,
         threadCount,

@@ -265,7 +265,6 @@ public:
 
     // Constructor from a DynamicAssemblyGraph.
     AssemblyGraph(
-        const DynamicAssemblyGraph&,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize,
         size_t threadCount,
