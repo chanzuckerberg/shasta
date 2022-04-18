@@ -65,7 +65,7 @@ void shasta::filesystem::changeDirectory(const string& path)
 void shasta::filesystem::remove(const string& path)
 {
     if(::unlink(path.c_str()) == -1) {
-        throw runtime_error("Unable to remove directory " + path);
+        throw runtime_error("Unable to remove " + path);
     }
 }
 
