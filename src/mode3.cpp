@@ -680,6 +680,37 @@ void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
 
 
 
+void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions1>& transitionMap)
+{
+    transitionMap.clear();
+
+    for(ReadId readId=0; readId<pseudoPaths.size()/2; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
+
+            if(pseudoPath.size() < 2) {
+                continue;
+            }
+
+            for(uint64_t i=1; i<pseudoPath.size(); i++) {
+                const auto& previous = pseudoPath[i-1];
+                const auto& current = pseudoPath[i];
+                if(previous.segmentId == current.segmentId) {
+                    continue;
+                }
+
+                const SegmentPair segmentPair = make_pair(previous.segmentId, current.segmentId);
+                transitionMap[segmentPair].push_back(
+                    make_pair(orientedReadId, Transition1({previous, current})));
+
+            }
+        }
+    }
+}
+
+
+
 // Find out if the two segments joined by a Link
 // have consecutive marker graph paths.
 bool DynamicAssemblyGraph::linkJoinsConsecutivePaths(edge_descriptor e) const
@@ -760,6 +791,10 @@ AssemblyGraph::AssemblyGraph(
 
     // Compute pseudopaths of all oriented reads.
     computePseudoPaths(threadCount);
+
+    // Find pseudopath transitions and store them keyed by the pair of segments.
+    std::map<SegmentPair, Transitions1> transitionMap;
+    findTransitions(transitionMap);
 
     // Create a link for each edge of the DynamicAssemblyGraph.
     links.createNew(

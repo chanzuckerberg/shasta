@@ -37,6 +37,7 @@ namespace shasta {
         class PseudoPathEntry;
         class PseudoPathEntry1;
         class Transition;
+        class Transition1;
         class VirtualMarkerGraphEdge;
 
         template<class Container> double linkSeparation(
@@ -93,6 +94,11 @@ class shasta::mode3::Transition : public array<PseudoPathEntry, 2> {
 public:
     Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
     Transition() {}
+};
+class shasta::mode3::Transition1 : public array<PseudoPathEntry1, 2> {
+public:
+    Transition1(const array<PseudoPathEntry1, 2>& x) : array<PseudoPathEntry1, 2>(x) {}
+    Transition1() {}
 };
 
 
@@ -304,6 +310,12 @@ public:
     void computePseudoPathsPass2(size_t threadId);
     void computePseudoPathsPass12(uint64_t pass);
     void sortPseudoPaths(size_t threadId);
+
+    // Find pseudopath transitions and store them keyed by the pair of segments.
+    using SegmentPair = pair<uint64_t, uint64_t>;
+    using Transitions1 = vector< pair<OrientedReadId, Transition1> >;
+    std::map<SegmentPair, Transitions1> transitionMap;
+    void findTransitions(std::map<SegmentPair, Transitions1>& transitionMap);
 
     // The links.
     MemoryMapped::Vector<Link> links;
