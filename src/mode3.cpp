@@ -514,6 +514,92 @@ void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
 
 
 
+void AssemblyGraph::computePseudoPaths(size_t threadCount)
+{
+    pseudoPaths.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-mode3-PseudoPaths-1"),
+        largeDataPageSize);
+
+    uint64_t batchSize = 1000;
+    pseudoPaths.beginPass1(markers.size());
+    setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
+    runThreads(&AssemblyGraph::computePseudoPathsPass1, threadCount);
+    pseudoPaths.beginPass2();
+    setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
+    runThreads(&AssemblyGraph::computePseudoPathsPass2, threadCount);
+    pseudoPaths.endPass2();
+
+    batchSize = 100;
+    setupLoadBalancing(pseudoPaths.size(), batchSize);
+    runThreads(&AssemblyGraph::sortPseudoPaths, threadCount);
+}
+
+
+
+void AssemblyGraph::computePseudoPathsPass1(size_t threadId)
+{
+    computePseudoPathsPass12(1);
+}
+
+
+
+void AssemblyGraph::computePseudoPathsPass2(size_t threadId)
+{
+    computePseudoPathsPass12(2);
+}
+
+
+
+void AssemblyGraph::computePseudoPathsPass12(uint64_t pass)
+{
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over marker graph edges assigned to this batch.
+        for(MarkerGraph::EdgeId edgeId=begin; edgeId!=end; ++edgeId) {
+            const auto& p = markerGraphEdgeTable[edgeId];
+            const uint64_t segmentId = p.first;
+            const uint32_t position = p.second;
+            SHASTA_ASSERT(segmentId != std::numeric_limits<uint64_t>::max());
+            SHASTA_ASSERT(position != std::numeric_limits<uint32_t>::max());
+
+            // Loop over the marker intervals of this marker graph edge..
+            const auto markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+            for(const MarkerInterval& markerInterval: markerIntervals) {
+                const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+
+                if(pass == 1) {
+                    pseudoPaths.incrementCountMultithreaded(orientedReadId.getValue());
+                } else {
+                    PseudoPathEntry1 pseudoPathEntry;
+                    pseudoPathEntry.segmentId = segmentId;
+                    pseudoPathEntry.position = position;
+                    pseudoPathEntry.ordinals = markerInterval.ordinals;
+                    pseudoPaths.storeMultithreaded(orientedReadId.getValue(), pseudoPathEntry);
+                }
+            }
+        }
+    }
+}
+
+
+
+void AssemblyGraph::sortPseudoPaths(size_t threadId)
+{
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over marker graph edges assigned to this batch.
+        for(uint64_t i=begin; i!=end; ++i) {
+            auto pseudoPath = pseudoPaths[i];
+            sort(pseudoPath.begin(), pseudoPath.end());
+        }
+    }
+}
+
+
+
 void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
 {
     G& g = *this;
@@ -643,7 +729,7 @@ double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
 // The mode3::AssemblyGraph stores a permanent and immutable copy
 // of the DynamicAssemblyGraph in memory mapped data structures,
 // so it can be accessed inthe http server and in the Python API.
-mode3::AssemblyGraph::AssemblyGraph(
+AssemblyGraph::AssemblyGraph(
     const DynamicAssemblyGraph& dynamicAssemblyGraph,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
@@ -672,6 +758,8 @@ mode3::AssemblyGraph::AssemblyGraph(
     // Keep track of the segment and position each marker graph edge corresponds to.
     computeMarkerGraphEdgeTable(threadCount);
 
+    // Compute pseudopaths of all oriented reads.
+    computePseudoPaths(threadCount);
 
     // Create a link for each edge of the DynamicAssemblyGraph.
     links.createNew(
@@ -688,6 +776,7 @@ mode3::AssemblyGraph::AssemblyGraph(
         links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
         transitions.appendVector(dynamicAssemblyGraph[e].transitions);
     }
+    pseudoPaths.remove();
     createConnectivity();
 
     cout << "The mode 3 assembly graph has " << paths.size() << " segments and " <<
@@ -696,7 +785,7 @@ mode3::AssemblyGraph::AssemblyGraph(
 
 
 
-string mode3::AssemblyGraph::largeDataName(const string& name) const
+string AssemblyGraph::largeDataName(const string& name) const
 {
     if(largeDataFileNamePrefix.empty()) {
         return "";  // Anonymous;
@@ -708,7 +797,7 @@ string mode3::AssemblyGraph::largeDataName(const string& name) const
 
 
 // Constructor from binary data.
-mode3::AssemblyGraph::AssemblyGraph(
+AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :

@@ -35,6 +35,7 @@ namespace shasta {
         class LocalAssemblyGraphVertex;
         class MarkerGraphEdgeInfo;
         class PseudoPathEntry;
+        class PseudoPathEntry1;
         class Transition;
         class VirtualMarkerGraphEdge;
 
@@ -66,6 +67,18 @@ public:
     array<uint32_t, 2> ordinals;
 
     bool operator<(const PseudoPathEntry& that) const
+    {
+        return ordinals[0] < that.ordinals[0];
+    }
+};
+// An entry of the pseudo-path of an oriented read in the AssemblyGraph.
+class shasta::mode3::PseudoPathEntry1 {
+public:
+    uint64_t segmentId;
+    uint32_t position;
+    array<uint32_t, 2> ordinals;
+
+    bool operator<(const PseudoPathEntry1& that) const
     {
         return ordinals[0] < that.ordinals[0];
     }
@@ -281,6 +294,16 @@ public:
     void computeMarkerGraphEdgeTable(size_t threadCount);
     void computeMarkerGraphEdgeTableThreadFunction(size_t threadId);
 
+    // Compute pseudopaths for all oriented reads.
+    // The pseudopath of an oriented read is the
+    // sequence of MarkerIntervals it encounters.
+    // This is indexed by OrientedReadId::getValue();
+    MemoryMapped::VectorOfVectors<PseudoPathEntry1, uint64_t> pseudoPaths;
+    void computePseudoPaths(size_t threadCount);
+    void computePseudoPathsPass1(size_t threadId);
+    void computePseudoPathsPass2(size_t threadId);
+    void computePseudoPathsPass12(uint64_t pass);
+    void sortPseudoPaths(size_t threadId);
 
     // The links.
     MemoryMapped::Vector<Link> links;
