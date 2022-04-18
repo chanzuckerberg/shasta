@@ -362,13 +362,23 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
             } else if(options.segmentColoring == "byUnexplainedFractionOnReferenceSegment") {
-                const double fraction = 1. - segmentPairInformationTable[v].unexplainedFraction(0);
-                const uint64_t hue = uint64_t(std::round(fraction * 120.));
-                color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                const auto& pairInfo = segmentPairInformationTable[v];
+                if(pairInfo.commonCount > 0) {
+                    const double fraction = 1. - pairInfo.unexplainedFraction(0);
+                    const uint64_t hue = uint64_t(std::round(fraction * 120.));
+                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                } else {
+                    color = "blue";
+                }
             } else if(options.segmentColoring == "byUnexplainedFractionOnDisplayedSegment") {
-                const double fraction = 1. - segmentPairInformationTable[v].unexplainedFraction(1);
-                const uint64_t hue = uint64_t(std::round(fraction * 120.));
-                color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                const auto& pairInfo = segmentPairInformationTable[v];
+                if(pairInfo.commonCount > 0) {
+                    const double fraction = 1. - pairInfo.unexplainedFraction(1);
+                    const uint64_t hue = uint64_t(std::round(fraction * 120.));
+                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                } else {
+                    color = "blue";
+                }
             } else {
                 color = "Black";
             }
