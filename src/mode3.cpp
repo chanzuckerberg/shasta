@@ -115,6 +115,7 @@ void AssemblyGraph::createSegments()
 }
 
 
+
 MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
     MarkerGraph::EdgeId edgeIdArgument, bool isVirtualArgument)
 {
@@ -322,7 +323,7 @@ void AssemblyGraph::createLinks(
 
 
 
-// Initial construction of the mode3::AssemblyGraph.
+// Initial construction of the AssemblyGraph.
 AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
@@ -339,7 +340,6 @@ AssemblyGraph::AssemblyGraph(
     const uint64_t minCoverage = 2; // EXPOSE WHEN CODE STABILIZES
 
     // Create a segment for each linear chain of marker graph edges.
-    // std::map<DynamicAssemblyGraph::vertex_descriptor, uint64_t> m;
     paths.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
         largeDataPageSize);
@@ -397,7 +397,7 @@ AssemblyGraph::AssemblyGraph(
 
 
 
-void mode3::AssemblyGraph::createConnectivity()
+void AssemblyGraph::createConnectivity()
 {
     linksBySource.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-LinksBySource"),
@@ -426,7 +426,7 @@ void mode3::AssemblyGraph::createConnectivity()
 
 
 
-void mode3::AssemblyGraph::writeGfa(const string& fileName) const
+void AssemblyGraph::writeGfa(const string& fileName) const
 {
     ofstream gfa(fileName);
     writeGfa(gfa);
@@ -434,7 +434,7 @@ void mode3::AssemblyGraph::writeGfa(const string& fileName) const
 
 
 
-void mode3::AssemblyGraph::writeGfa(ostream& gfa) const
+void AssemblyGraph::writeGfa(ostream& gfa) const
 {
     // Write the header.
     gfa << "H\tVN:Z:1.0\n";
@@ -460,7 +460,7 @@ void mode3::AssemblyGraph::writeGfa(ostream& gfa) const
 
 // Find the distinct oriented reads that appear on the path
 // of a segment. Also return the average edge coverage for the path.
-double mode3::AssemblyGraph::findOrientedReadsOnSegment(
+double AssemblyGraph::findOrientedReadsOnSegment(
     uint64_t segmentId,
     vector<OrientedReadId>& orientedReadIdsArgument) const
 {
@@ -491,7 +491,7 @@ double mode3::AssemblyGraph::findOrientedReadsOnSegment(
 
 // Get information about the oriented reads that appear on the
 // marker graph path of a segment.
-void mode3::AssemblyGraph::getOrientedReadsOnSegment(
+void AssemblyGraph::getOrientedReadsOnSegment(
     uint64_t segmentId,
     SegmentOrientedReadInformation& information) const
 {
@@ -552,7 +552,7 @@ void mode3::AssemblyGraph::getOrientedReadsOnSegment(
 // The number of common oriented reads
 // is computed and stored in the last argument.
 // If that is zero, the computed offset is not valid.
-void mode3::AssemblyGraph::estimateOffset(
+void AssemblyGraph::estimateOffset(
     const SegmentOrientedReadInformation& info0,
     const SegmentOrientedReadInformation& info1,
     int64_t& offset,
@@ -598,7 +598,7 @@ void mode3::AssemblyGraph::estimateOffset(
 
 // Analyze a pair of segments for common oriented reads,
 // offsets, missing reads, etc.
-void mode3::AssemblyGraph::analyzeSegmentPair(
+void AssemblyGraph::analyzeSegmentPair(
     uint64_t segmentId0,
     uint64_t segmentId1,
     const SegmentOrientedReadInformation& info0,

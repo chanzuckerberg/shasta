@@ -1,7 +1,19 @@
 #ifndef SHASTA_MODE3_HPP
 #define SHASTA_MODE3_HPP
 
-// Classes used for Mode 3 assembly.
+/*******************************************************************************
+
+Class mode3::AssemblyGraph is the class used for Mode 3 assembly.
+Using GFA terminology, the graph consists of Segments and Links.
+
+A Segment corresponds to a linear sequence of edges, without branches,
+in the marker graph.
+
+If an oriented read enters segment 1 immediately after exiting segment 0,
+we say that there is a transition 0->1. If there is a sufficient
+number of transitions 0->1, we create a link 0->1.
+
+*******************************************************************************/
 
 // Shasta.
 #include "MemoryMappedVectorOfVectors.hpp"
