@@ -240,7 +240,8 @@ public:
 // The AssemblyGraph is used to store the Mode 3 assembly graph,
 // when it no longer needs to be changed,
 // in memory mapped data structures.
-class shasta::mode3::AssemblyGraph {
+class shasta::mode3::AssemblyGraph :
+    public MultithreadedObject<AssemblyGraph> {
 public:
 
     // Constructor from a DynamicAssemblyGraph.
@@ -248,6 +249,7 @@ public:
         const DynamicAssemblyGraph&,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize,
+        size_t threadCount,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
@@ -259,6 +261,10 @@ public:
 
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
+    string largeDataName(const string&) const;
+
+
+
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 
@@ -266,6 +272,15 @@ public:
     // Indexed by segment id.
     MemoryMapped::VectorOfVectors<MarkerGraphEdgeInfo, uint64_t> paths;
     void createSegments();
+
+    // For each marker graph edge, store in the marker graph edge table
+    // the corresponding (segment)
+    // and position in the path, if any.
+    // This is needed when computing pseudopaths.
+    MemoryMapped::Vector< pair<uint64_t, uint32_t> > markerGraphEdgeTable;
+    void computeMarkerGraphEdgeTable(size_t threadCount);
+    void computeMarkerGraphEdgeTableThreadFunction(size_t threadId);
+
 
     // The links.
     MemoryMapped::Vector<Link> links;

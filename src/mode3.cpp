@@ -337,6 +337,62 @@ void DynamicAssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t thre
 
 
 
+// For each marker graph edge, store in the marker graph edge table
+// the corresponding (segment)
+// and position in the path, if any.
+// This is needed when computing pseudopaths.
+void AssemblyGraph::computeMarkerGraphEdgeTable(size_t threadCount)
+{
+
+    // Initialize the marker graph edge table.
+    markerGraphEdgeTable.createNew(
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "mode3-MarkerGraphEdgeTable"),
+        largeDataPageSize);
+    markerGraphEdgeTable.resize(markerGraph.edges.size());
+    fill(markerGraphEdgeTable.begin(), markerGraphEdgeTable.end(), make_pair(
+        std::numeric_limits<uint64_t>::max(),
+        std::numeric_limits<uint32_t>::max()
+        ));
+
+    // Fill in the marker graph edge table.
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(paths.size(), batchSize);
+    runThreads(&AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction, threadCount);
+}
+
+
+
+void AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
+{
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all vertices assigned to this batch.
+        for(uint64_t segmentId=begin; segmentId!=end; ++segmentId) {
+            const span<MarkerGraphEdgeInfo> path = paths[segmentId];
+
+            // Loop over the path of this segment.
+            for(uint64_t position=0; position<path.size(); position++) {
+                const MarkerGraphEdgeInfo& info = path[position];
+
+                // Skip virtual edges.
+                if(info.isVirtual) {
+                    continue;
+                }
+
+                // Store the marker graph edge table entry for this edge.
+                const MarkerGraph::EdgeId edgeId = info.edgeId;
+                SHASTA_ASSERT(edgeId < markerGraphEdgeTable.size());
+                markerGraphEdgeTable[edgeId] = make_pair(segmentId, position);
+            }
+        }
+
+    }
+}
+
+
 
 void DynamicAssemblyGraph::computePseudoPaths()
 {
@@ -591,8 +647,10 @@ mode3::AssemblyGraph::AssemblyGraph(
     const DynamicAssemblyGraph& dynamicAssemblyGraph,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
+    size_t threadCount,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
+    MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
     markers(markers),
@@ -610,6 +668,9 @@ mode3::AssemblyGraph::AssemblyGraph(
     }
     createSegments();
     SHASTA_ASSERT(paths.size() == num_vertices(dynamicAssemblyGraph));
+
+    // Keep track of the segment and position each marker graph edge corresponds to.
+    computeMarkerGraphEdgeTable(threadCount);
 
 
     // Create a link for each edge of the DynamicAssemblyGraph.
@@ -635,20 +696,33 @@ mode3::AssemblyGraph::AssemblyGraph(
 
 
 
+string mode3::AssemblyGraph::largeDataName(const string& name) const
+{
+    if(largeDataFileNamePrefix.empty()) {
+        return "";  // Anonymous;
+    } else {
+        return largeDataFileNamePrefix + name;
+    }
+}
+
+
+
 // Constructor from binary data.
 mode3::AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
+    MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     markers(markers),
     markerGraph(markerGraph)
 {
-    paths.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Paths");
-    links.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Links");
-    transitions.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-Transitions");
-    linksBySource.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-LinksBySource");
-    linksByTarget.accessExistingReadOnly(largeDataFileNamePrefix + "Mode3-LinksByTarget");
+    paths.accessExistingReadOnly(largeDataName("Mode3-Paths"));
+    markerGraphEdgeTable.accessExistingReadOnly(largeDataName("mode3-MarkerGraphEdgeTable"));
+    links.accessExistingReadOnly(largeDataName("Mode3-Links"));
+    transitions.accessExistingReadOnly(largeDataName("Mode3-Transitions"));
+    linksBySource.accessExistingReadOnly(largeDataName("Mode3-LinksBySource"));
+    linksByTarget.accessExistingReadOnly(largeDataName("Mode3-LinksByTarget"));
 }
 
 
