@@ -14,147 +14,11 @@ using namespace mode3;
 
 // Standard library.
 #include <map>
+#include <set>
 
 
 
-DynamicAssemblyGraph::DynamicAssemblyGraph(
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph,
-    const string& largeDataFileNamePrefix,
-    size_t largeDataPageSize,
-    size_t threadCount) :
-    MultithreadedObject<DynamicAssemblyGraph>(*this),
-    markers(markers),
-    markerGraph(markerGraph),
-    largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize),
-    threadCount(threadCount)
-{
-    // Minimum number of transitions (oriented reads) to create a link.
-    const uint64_t minCoverage = 2;
-
-    createVertices(markers);
-    computeMarkerGraphEdgeTable();
-
-    computePseudoPaths();
-    writePseudoPaths("PseudoPaths.csv");
-
-    createEdges(minCoverage);
-}
-
-
-
-DynamicAssemblyGraph::~DynamicAssemblyGraph()
-{
-    if(markerGraphEdgeTable.isOpen) {
-        markerGraphEdgeTable.remove();
-    }
-    if(pseudoPaths.isOpen()) {
-        pseudoPaths.remove();
-    }
-}
-
-
-
-// Each  linear chain of marker graph edges generates a vertex
-// of the DynamicAssemblyGraph.
-void DynamicAssemblyGraph::createVertices(
-     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers)
-{
-    const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
-    vector<bool> wasFound(edgeCount, false);
-
-    using MarkerGraphPath = vector<MarkerGraph::EdgeId>;
-    MarkerGraphPath nextEdges;
-    MarkerGraphPath previousEdges;
-    MarkerGraphPath path;
-    MarkerGraphPath reverseComplementedPath;
-
-    // Main loop over all edges of the marker graph.
-    // At each iteration we find a new linear path of edges.
-    for(MarkerGraph::EdgeId startEdgeId=0; startEdgeId<edgeCount; startEdgeId++) {
-
-        // If we already found this edge, skip it.
-        // It is part of a path we already found.
-        if(wasFound[startEdgeId]) {
-            continue;
-        }
-
-        // Follow the path forward.
-        nextEdges.clear();
-        MarkerGraph::EdgeId edgeId = startEdgeId;
-        bool isCircular = false;
-        while(true) {
-            const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
-            const MarkerGraph::VertexId v1 = edge.target;
-            const auto outEdges = markerGraph.edgesBySource[v1];
-            if(outEdges.size() != 1) {
-                break;
-            }
-            const auto inEdges = markerGraph.edgesByTarget[v1];
-            if(inEdges.size() != 1) {
-                break;
-            }
-            edgeId = outEdges[0];
-            if(edgeId == startEdgeId) {
-                isCircular = true;
-                break;
-            }
-            nextEdges.push_back(edgeId);
-            SHASTA_ASSERT(not wasFound[edgeId]);
-        }
-
-        // Follow the path backward.
-        previousEdges.clear();
-        if(!isCircular) {
-            edgeId = startEdgeId;
-            while(true) {
-                const MarkerGraph::Edge edge = markerGraph.edges[edgeId];
-                const MarkerGraph::VertexId v0 = edge.source;
-                const auto outEdges = markerGraph.edgesBySource[v0];
-                if(outEdges.size() != 1) {
-                    break;
-                }
-                const auto inEdges = markerGraph.edgesByTarget[v0];
-                if(inEdges.size() != 1) {
-                    break;
-                }
-                edgeId = inEdges[0];
-                previousEdges.push_back(edgeId);
-                SHASTA_ASSERT(not wasFound[edgeId]);
-            }
-        }
-
-        // Gather the path.
-        path.clear();
-        copy(previousEdges.rbegin(), previousEdges.rend(), back_inserter(path));
-        path.push_back(startEdgeId);
-        copy(nextEdges.begin(), nextEdges.end(), back_inserter(path));
-
-        // Mark all the edges in the path as found.
-        for(const MarkerGraph::EdgeId edgeId: path) {
-            if(wasFound[edgeId]) {
-                cout << "Assertion failed at " << edgeId << endl;
-                SHASTA_ASSERT(0);
-            }
-            wasFound[edgeId] = true;
-        }
-
-        // This path generates a new vertex of the assembly graph.
-        boost::add_vertex(DynamicAssemblyGraphVertex(path), *this);
-    }
-
-
-
-    // Check that all edges of the marker graph were found.
-    SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
-
-}
-
-
-
-// Each  linear chain of marker graph edges generates a vertex
-// of the DynamicAssemblyGraph.
+// Each  linear chain of marker graph edges generates a segment.
 void AssemblyGraph::createSegments()
 {
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
@@ -260,83 +124,6 @@ MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
 
 
 
-DynamicAssemblyGraphVertex::DynamicAssemblyGraphVertex(
-    const vector<MarkerGraph::EdgeId>& pathArgument)
-{
-    for(const MarkerGraph::EdgeId edgeId: pathArgument) {
-        path.push_back(MarkerGraphEdgeInfo(edgeId, false));
-    }
-}
-
-
-
-// For each marker graph edge, store in the marker graph edge table
-// the DynamicAssemblyGraph vertex (segment)
-// and position, if any.
-// This is needed when computing pseudopaths.
-void DynamicAssemblyGraph::computeMarkerGraphEdgeTable()
-{
-    G& g = *this;
-
-    // Initialize the marker graph edge table.
-    markerGraphEdgeTable.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-mode3-MarkerGraphEdgeTable"),
-        largeDataPageSize);
-    markerGraphEdgeTable.resize(markerGraph.edges.size());
-    fill(markerGraphEdgeTable.begin(), markerGraphEdgeTable.end(), make_pair(null_vertex(), 0));
-
-    // Store a vector of all vertices.
-    markerGraphEdgeTableData.allVertices.clear();
-    BGL_FORALL_VERTICES(v, g, DynamicAssemblyGraph) {
-        markerGraphEdgeTableData.allVertices.push_back(v);
-    }
-
-    // Fill in the marker graph edge table.
-    const uint64_t batchSize = 100;
-    setupLoadBalancing(markerGraphEdgeTableData.allVertices.size(), batchSize);
-    runThreads(&G::computeMarkerGraphEdgeTableThreadFunction, threadCount);
-
-    // Clean up.
-    markerGraphEdgeTableData.allVertices.clear();
-    markerGraphEdgeTableData.allVertices.shrink_to_fit();
-}
-
-
-
-void DynamicAssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
-{
-    G& g = *this;
-
-    // Loop over all batches assigned to this thread.
-    uint64_t begin, end;
-    while(getNextBatch(begin, end)) {
-
-        // Loop over all vertices assigned to this batch.
-        for(uint64_t i=begin; i!=end; ++i) {
-            const vertex_descriptor v = markerGraphEdgeTableData.allVertices[i];
-            const vector<MarkerGraphEdgeInfo>& path = g[v].path;
-
-            // Loop over the path of this vertex (segment).
-            for(uint64_t position=0; position<path.size(); position++) {
-                const MarkerGraphEdgeInfo& info = path[position];
-
-                // Skip virtual edges.
-                if(info.isVirtual) {
-                    continue;
-                }
-
-                // Store the marker graph edge table entry for this edge.
-                const MarkerGraph::EdgeId edgeId = info.edgeId;
-                SHASTA_ASSERT(edgeId < markerGraphEdgeTable.size());
-                markerGraphEdgeTable[edgeId] = make_pair(v, position);
-            }
-        }
-
-    }
-}
-
-
-
 // For each marker graph edge, store in the marker graph edge table
 // the corresponding (segment)
 // and position in the path, if any.
@@ -389,126 +176,6 @@ void AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
             }
         }
 
-    }
-}
-
-
-
-void DynamicAssemblyGraph::computePseudoPaths()
-{
-    pseudoPaths.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-mode3-PseudoPaths"),
-        largeDataPageSize);
-
-    uint64_t batchSize = 1000;
-    pseudoPaths.beginPass1(markers.size());
-    setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
-    runThreads(&G::computePseudoPathsPass1, threadCount);
-    pseudoPaths.beginPass2();
-    setupLoadBalancing(markerGraphEdgeTable.size(), batchSize);
-    runThreads(&G::computePseudoPathsPass2, threadCount);
-    pseudoPaths.endPass2();
-
-    batchSize = 100;
-    setupLoadBalancing(pseudoPaths.size(), batchSize);
-    runThreads(&G::sortPseudoPaths, threadCount);
-}
-
-
-
-void DynamicAssemblyGraph::computePseudoPathsPass1(size_t threadId)
-{
-    computePseudoPathsPass12(1);
-}
-
-
-
-void DynamicAssemblyGraph::computePseudoPathsPass2(size_t threadId)
-{
-    computePseudoPathsPass12(2);
-}
-
-
-
-void DynamicAssemblyGraph::computePseudoPathsPass12(uint64_t pass)
-{
-    // Loop over all batches assigned to this thread.
-    uint64_t begin, end;
-    while(getNextBatch(begin, end)) {
-
-        // Loop over marker graph edges assigned to this batch.
-        for(MarkerGraph::EdgeId edgeId=begin; edgeId!=end; ++edgeId) {
-            const auto& p = markerGraphEdgeTable[edgeId];
-
-            // Get the DynamicAssemblyGraph vertex and position, if any.
-            const vertex_descriptor v = p.first;
-            if(v == null_vertex()) {
-                continue;
-            }
-            const uint32_t position = p.second;
-
-            // Loop over the marker intervals of this read.
-            const auto markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-            for(const MarkerInterval& markerInterval: markerIntervals) {
-                const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-
-                if(pass == 1) {
-                    pseudoPaths.incrementCountMultithreaded(orientedReadId.getValue());
-                } else {
-                    PseudoPathEntry pseudoPathEntry;
-                    pseudoPathEntry.v = v;
-                    pseudoPathEntry.position = position;
-                    pseudoPathEntry.ordinals = markerInterval.ordinals;
-                    pseudoPaths.storeMultithreaded(orientedReadId.getValue(), pseudoPathEntry);
-                }
-            }
-        }
-    }
-}
-
-
-
-void DynamicAssemblyGraph::sortPseudoPaths(size_t threadId)
-{
-    uint64_t begin, end;
-    while(getNextBatch(begin, end)) {
-
-        // Loop over marker graph edges assigned to this batch.
-        for(uint64_t i=begin; i!=end; ++i) {
-            auto pseudoPath = pseudoPaths[i];
-            sort(pseudoPath.begin(), pseudoPath.end());
-        }
-    }
-}
-
-
-
-
-void DynamicAssemblyGraph::writePseudoPaths(const string& fileName) const
-{
-    ofstream csv(fileName);
-    writePseudoPaths(csv);
-}
-
-
-
-void DynamicAssemblyGraph::writePseudoPaths(ostream& csv) const
-{
-    csv << "OrientedReadId,Vertex,Position,Ordinal0,Ordinal1\n";
-
-    for(ReadId readId=0; readId<pseudoPaths.size()/2; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
-
-            for(const auto& pseudoPathEntry: pseudoPath) {
-                csv << orientedReadId << ",";
-                csv << pseudoPathEntry.v << ",";
-                csv << pseudoPathEntry.position << ",";
-                csv << pseudoPathEntry.ordinals[0] << ",";
-                csv << pseudoPathEntry.ordinals[1] << "\n";
-            }
-        }
     }
 }
 
@@ -572,7 +239,7 @@ void AssemblyGraph::computePseudoPathsPass12(uint64_t pass)
                 if(pass == 1) {
                     pseudoPaths.incrementCountMultithreaded(orientedReadId.getValue());
                 } else {
-                    PseudoPathEntry1 pseudoPathEntry;
+                    PseudoPathEntry pseudoPathEntry;
                     pseudoPathEntry.segmentId = segmentId;
                     pseudoPathEntry.position = position;
                     pseudoPathEntry.ordinals = markerInterval.ordinals;
@@ -600,87 +267,7 @@ void AssemblyGraph::sortPseudoPaths(size_t threadId)
 
 
 
-void DynamicAssemblyGraph::createEdges(uint64_t minCoverage)
-{
-    G& g = *this;
-
-    // Gather transitions, and store them keyed by the
-    // pair of vertices involved.
-    using Key = pair<vertex_descriptor, vertex_descriptor>;
-    using Value = vector< pair<OrientedReadId, Transition> >;
-    std::map< Key, Value> m;
-
-
-    for(ReadId readId=0; readId<pseudoPaths.size()/2; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
-
-            if(pseudoPath.size() < 2) {
-                continue;
-            }
-
-            for(uint64_t i=1; i<pseudoPath.size(); i++) {
-                const auto& previous = pseudoPath[i-1];
-                const auto& current = pseudoPath[i];
-                if(previous.v == current.v) {
-                    continue;
-                }
-
-                const Key key = make_pair(previous.v, current.v);
-                m[key].push_back(
-                    make_pair(orientedReadId, Transition({previous, current})));
-
-            }
-        }
-    }
-
-
-    ofstream csv("Transitions.csv");
-    for(const auto& p: m) {
-        const vertex_descriptor v0 = p.first.first;
-        const vertex_descriptor v1 = p.first.second;
-        for(const auto& q: p.second) {
-            const OrientedReadId orientedReadId = q.first;
-            // const Transition& transition = q.second.second;
-            csv << v0 << ",";
-            csv << v1 << ",";
-            csv << orientedReadId << "\n";
-        }
-    }
-
-
-
-    ofstream dot("Transitions.dot");
-    dot << "digraph G {\n";
-    BGL_FORALL_VERTICES(v, g, G) {
-        dot << "\"" << v << "\";\n";
-    }
-    for(const auto& p: m) {
-        const vertex_descriptor v0 = p.first.first;
-        const vertex_descriptor v1 = p.first.second;
-        const uint64_t coverage = p.second.size();
-        if(coverage >= minCoverage) {
-            dot << "\"" << v0 << "\"->\"";
-            dot << v1 << "\" [penwidth=" << 0.2*double(coverage) << "];\n";
-        }
-    }
-    dot << "}\n";
-
-    for(const auto& p: m) {
-        const vertex_descriptor v0 = p.first.first;
-        const vertex_descriptor v1 = p.first.second;
-        const auto& transitions = p.second;
-        if(transitions.size() >= minCoverage) {
-            add_edge(v0, v1, DynamicAssemblyGraphEdge(transitions), g);
-        }
-    }
-
-}
-
-
-
-void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions1>& transitionMap)
+void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions>& transitionMap)
 {
     transitionMap.clear();
 
@@ -702,7 +289,7 @@ void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions1>& transit
 
                 const SegmentPair segmentPair = make_pair(previous.segmentId, current.segmentId);
                 transitionMap[segmentPair].push_back(
-                    make_pair(orientedReadId, Transition1({previous, current})));
+                    make_pair(orientedReadId, Transition({previous, current})));
 
             }
         }
@@ -712,7 +299,7 @@ void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions1>& transit
 
 
 void AssemblyGraph::createLinks(
-    const std::map<SegmentPair, Transitions1>& transitionMap,
+    const std::map<SegmentPair, Transitions>& transitionMap,
     uint64_t minCoverage)
 {
     links.createNew(
@@ -731,70 +318,11 @@ void AssemblyGraph::createLinks(
             transitions.appendVector(transitionVector);
         }
     }
-
-#if 0
-    BGL_FORALL_EDGES(e, dynamicAssemblyGraph, DynamicAssemblyGraph) {
-        const DynamicAssemblyGraph::vertex_descriptor v0 = source(e, dynamicAssemblyGraph);
-        const DynamicAssemblyGraph::vertex_descriptor v1 = target(e, dynamicAssemblyGraph);
-        const uint64_t segmentId0 = m[v0];
-        const uint64_t segmentId1 = m[v1];
-        links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
-        transitions.appendVector(dynamicAssemblyGraph[e].transitions);
-    }
-#endif
 }
 
 
 
-// Find out if the two segments joined by a Link
-// have consecutive marker graph paths.
-bool DynamicAssemblyGraph::linkJoinsConsecutivePaths(edge_descriptor e) const
-{
-    const G& g = *this;
-
-    // Access the vertices corresponding to the two segments
-    // joined by this link.
-    const vertex_descriptor v0 = source(e, g);
-    const vertex_descriptor v1 = target(e, g);
-
-    // Get their paths.
-    const auto& path0 = g[v0].path;
-    const auto& path1 = g[v1].path;
-
-    // Get the last marker graph edge of path0 and
-    // the first marker graph edge of path1.
-    const MarkerGraphEdgeInfo& info0 = path0.back();
-    const MarkerGraphEdgeInfo& info1 = path1.front();
-    SHASTA_ASSERT(not info0.isVirtual);
-    SHASTA_ASSERT(not info1.isVirtual);
-    const MarkerGraph::EdgeId edgeId0 = info0.edgeId;
-    const MarkerGraph::EdgeId edgeId1 = info1.edgeId;
-    const MarkerGraph::Edge& edge0 = markerGraph.edges[edgeId0];
-    const MarkerGraph::Edge& edge1 = markerGraph.edges[edgeId1];
-
-    return edge0.target == edge1.source;
-}
-
-
-#if 0
-// Return the average link separation for the Link
-// described by an edge.
-double DynamicAssemblyGraph::linkSeparation(edge_descriptor e) const
-{
-    const G& g = *this;
-
-    // We need the path length of the source of this link.
-    const vertex_descriptor v0 = source(e, g);
-    const uint64_t pathLength0 = g[v0].path.size();
-
-    return mode3::linkSeparation(g[e].transitions, pathLength0);
-}
-#endif
-
-
-// The mode3::AssemblyGraph stores a permanent and immutable copy
-// of the DynamicAssemblyGraph in memory mapped data structures,
-// so it can be accessed inthe http server and in the Python API.
+// Initial construction of the mode3::AssemblyGraph.
 AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
@@ -815,15 +343,7 @@ AssemblyGraph::AssemblyGraph(
     paths.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
         largeDataPageSize);
-    /*
-    uint64_t segmentId = 0;
-    BGL_FORALL_VERTICES(v, dynamicAssemblyGraph, DynamicAssemblyGraph) {
-        // paths.appendVector(dynamicAssemblyGraph[v].path);    // Now done in createSegments()
-        m.insert(make_pair(v, segmentId++));
-    }
-    */
     createSegments();
-    // SHASTA_ASSERT(paths.size() == num_vertices(dynamicAssemblyGraph));
 
     // Keep track of the segment and position each marker graph edge corresponds to.
     computeMarkerGraphEdgeTable(threadCount);
@@ -832,27 +352,11 @@ AssemblyGraph::AssemblyGraph(
     computePseudoPaths(threadCount);
 
     // Find pseudopath transitions and store them keyed by the pair of segments.
-    std::map<SegmentPair, Transitions1> transitionMap;
+    std::map<SegmentPair, Transitions> transitionMap;
     findTransitions(transitionMap);
 
     // Create a links between pairs of segments with a sufficient number of transitions.
     createLinks(transitionMap, minCoverage);
-#if 0
-    links.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Links"),
-        largeDataPageSize);
-    transitions.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Transitions"),
-        largeDataPageSize);
-    BGL_FORALL_EDGES(e, dynamicAssemblyGraph, DynamicAssemblyGraph) {
-        const DynamicAssemblyGraph::vertex_descriptor v0 = source(e, dynamicAssemblyGraph);
-        const DynamicAssemblyGraph::vertex_descriptor v1 = target(e, dynamicAssemblyGraph);
-        const uint64_t segmentId0 = m[v0];
-        const uint64_t segmentId1 = m[v1];
-        links.push_back(Link(segmentId0, segmentId1, dynamicAssemblyGraph[e].coverage()));
-        transitions.appendVector(dynamicAssemblyGraph[e].transitions);
-    }
-#endif
     pseudoPaths.remove();
     createConnectivity();
 

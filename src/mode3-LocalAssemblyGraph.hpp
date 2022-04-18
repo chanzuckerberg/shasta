@@ -1,11 +1,15 @@
 #ifndef SHASTA_MODE3_LOCAL_ASSEMBLY_GRAPH_HPP
 #define SHASTA_MODE3_LOCAL_ASSEMBLY_GRAPH_HPP
 
+// Shasta.
 #include "mode3.hpp"
 
+// Boost libraries.
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/algorithms/distance.hpp>
 #include <boost/geometry/arithmetic/arithmetic.hpp>
+#include <boost/graph/adjacency_list.hpp>
+
 
 
 namespace shasta {

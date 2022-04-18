@@ -9,9 +9,6 @@
 #include "ReadId.hpp"
 #include "shastaTypes.hpp"
 
-// Boost libraries.
-#include <boost/graph/adjacency_list.hpp>
-
 // Standard library.
 #include "array.hpp"
 #include "vector.hpp"
@@ -21,12 +18,6 @@
 namespace shasta {
     namespace mode3 {
 
-        class DynamicAssemblyGraph;
-        class DynamicAssemblyGraphVertex;
-        class DynamicAssemblyGraphEdge;
-        using DynamicAssemblyGraphBaseClass =
-            boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS,
-            DynamicAssemblyGraphVertex, DynamicAssemblyGraphEdge>;
 
         class AssemblyGraph;
         class Link;
@@ -35,9 +26,7 @@ namespace shasta {
         class LocalAssemblyGraphVertex;
         class MarkerGraphEdgeInfo;
         class PseudoPathEntry;
-        class PseudoPathEntry1;
         class Transition;
-        class Transition1;
         class VirtualMarkerGraphEdge;
 
         template<class Container> double linkSeparation(
@@ -60,26 +49,15 @@ public:
 
 
 
-// An entry of the pseudo-path of an oriented read in the DynamicAssemblyGraph.
-class shasta::mode3::PseudoPathEntry {
-public:
-    DynamicAssemblyGraphBaseClass::vertex_descriptor v;
-    uint32_t position;
-    array<uint32_t, 2> ordinals;
 
-    bool operator<(const PseudoPathEntry& that) const
-    {
-        return ordinals[0] < that.ordinals[0];
-    }
-};
 // An entry of the pseudo-path of an oriented read in the AssemblyGraph.
-class shasta::mode3::PseudoPathEntry1 {
+class shasta::mode3::PseudoPathEntry {
 public:
     uint64_t segmentId;
     uint32_t position;
     array<uint32_t, 2> ordinals;
 
-    bool operator<(const PseudoPathEntry1& that) const
+    bool operator<(const PseudoPathEntry& that) const
     {
         return ordinals[0] < that.ordinals[0];
     }
@@ -95,11 +73,6 @@ public:
     Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
     Transition() {}
 };
-class shasta::mode3::Transition1 : public array<PseudoPathEntry1, 2> {
-public:
-    Transition1(const array<PseudoPathEntry1, 2>& x) : array<PseudoPathEntry1, 2>(x) {}
-    Transition1() {}
-};
 
 
 
@@ -112,130 +85,6 @@ public:
     uint64_t isVirtual : 1;
     MarkerGraphEdgeId edgeId: 63;
     MarkerGraphEdgeInfo(MarkerGraphEdgeId=0, bool isVirtual=false);
-};
-
-
-
-// Each vertex corresponds to a gfa Segment of the assembly graph -
-// a linear sequence of marker graph edges, possibly containing
-// "virtual marker graph edges".
-class shasta::mode3::DynamicAssemblyGraphVertex {
-public:
-
-    DynamicAssemblyGraphVertex(const vector<MarkerGraphEdgeId>&);
-
-    // The marker graph path that
-    // makes up the gfa Segment corresponding to this vertex.
-    // This can contain virtual marker graph edges.
-    vector<MarkerGraphEdgeInfo> path;
-
-};
-
-
-
-// Each edge corresponds to a Link in the assembly graph.
-class shasta::mode3::DynamicAssemblyGraphEdge {
-public:
-
-    DynamicAssemblyGraphEdge(
-        const vector< pair<OrientedReadId, Transition> >& transitions):
-            transitions(transitions) {}
-
-    // The transitions that support this edge.
-    vector< pair<OrientedReadId, Transition> > transitions;
-
-    uint64_t coverage() const
-    {
-        return transitions.size();
-    }
-};
-
-
-
-// The DynamicAssemblyGraph is used for initial creation
-// of the Mode 3 assembly graph. It is implemented using
-// the Boost Graph library.
-// Note that the roles of vertices and edges are swapped
-// relative to what happens in the shasta::AssemblyGraph,
-// where each Segment corresponds to an edge.
-class shasta::mode3::DynamicAssemblyGraph :
-    public DynamicAssemblyGraphBaseClass,
-    public MultithreadedObject<DynamicAssemblyGraph> {
-public:
-    using G = DynamicAssemblyGraph;
-
-    DynamicAssemblyGraph(
-        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&,
-        const string& largeDataFileNamePrefix,
-        size_t largeDataPageSize,
-        size_t threadCount);
-    ~DynamicAssemblyGraph();
-
-    // Store some information passed in to the constructor.
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
-    const MarkerGraph& markerGraph;
-    const string& largeDataFileNamePrefix;
-    size_t largeDataPageSize;
-    size_t threadCount;
-
-    // Initial creation of vertices of the DynamicAssemblyGraph.
-    // Each vertex (gfa segment) corresponds to a linear sequence
-    // of edges (a path) in the marker graph.
-    void createVertices(
-        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers);
-
-    // For each marker graph edge, store in the marker graph edge table
-    // the corresponding DynamicAssemblyGraph vertex (segment)
-    // and position in the path, if any.
-    // This is needed when computing pseudopaths.
-    MemoryMapped::Vector< pair<vertex_descriptor, uint32_t> > markerGraphEdgeTable;
-    void computeMarkerGraphEdgeTable();
-    void computeMarkerGraphEdgeTableThreadFunction(size_t threadId);
-    class MarkerGraphEdgeTableData {
-    public:
-        vector<vertex_descriptor> allVertices;
-    };
-    MarkerGraphEdgeTableData markerGraphEdgeTableData;
-
-
-    // Compute pseudopaths for all oriented reads.
-    // The pseudopath of an oriented read is the
-    // sequence of MarkerIntervals it encounters.
-    // This is indexed by OrientedReadId::getValue();
-    MemoryMapped::VectorOfVectors<PseudoPathEntry, uint64_t> pseudoPaths;
-    void computePseudoPaths();
-    void computePseudoPathsPass1(size_t threadId);
-    void computePseudoPathsPass2(size_t threadId);
-    void computePseudoPathsPass12(uint64_t pass);
-    void sortPseudoPaths(size_t threadId);
-    class ComputePseudoPathsData {
-    public:
-    };
-    ComputePseudoPathsData computePseudoPathsData;
-
-    void writePseudoPaths(const string& fileName) const;
-    void writePseudoPaths(ostream&) const;
-
-
-
-    // Use transitions in pseudopaths to create edges (gfa links).
-    void createEdges(uint64_t minCoverage);
-
-
-    // The virtual marker graph edges.
-    // These don't exists in the marker graph and we
-    // define them here.
-    vector<VirtualMarkerGraphEdge> virtualMarkerGraphEdges;
-
-
-    // Find out if the two segments joined by a Link
-    // have consecutive marker graph paths.
-    bool linkJoinsConsecutivePaths(edge_descriptor) const;
-
-    // Return the average link separation for the Link
-    // described by an edge.
-    double linkSeparation(edge_descriptor) const;
 };
 
 
@@ -263,7 +112,7 @@ class shasta::mode3::AssemblyGraph :
     public MultithreadedObject<AssemblyGraph> {
 public:
 
-    // Constructor from a DynamicAssemblyGraph.
+    // Initial construction.
     AssemblyGraph(
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize,
@@ -303,7 +152,7 @@ public:
     // The pseudopath of an oriented read is the
     // sequence of MarkerIntervals it encounters.
     // This is indexed by OrientedReadId::getValue();
-    MemoryMapped::VectorOfVectors<PseudoPathEntry1, uint64_t> pseudoPaths;
+    MemoryMapped::VectorOfVectors<PseudoPathEntry, uint64_t> pseudoPaths;
     void computePseudoPaths(size_t threadCount);
     void computePseudoPathsPass1(size_t threadId);
     void computePseudoPathsPass2(size_t threadId);
@@ -312,19 +161,19 @@ public:
 
     // Find pseudopath transitions and store them keyed by the pair of segments.
     using SegmentPair = pair<uint64_t, uint64_t>;
-    using Transitions1 = vector< pair<OrientedReadId, Transition1> >;
-    std::map<SegmentPair, Transitions1> transitionMap;
-    void findTransitions(std::map<SegmentPair, Transitions1>& transitionMap);
+    using Transitions = vector< pair<OrientedReadId, Transition> >;
+    std::map<SegmentPair, Transitions> transitionMap;
+    void findTransitions(std::map<SegmentPair, Transitions>& transitionMap);
 
     // The links.
     MemoryMapped::Vector<Link> links;
     void createLinks(
-        const std::map<SegmentPair, Transitions1>& transitionMap,
+        const std::map<SegmentPair, Transitions>& transitionMap,
         uint64_t minCoverage);
 
     // The transitions for each link.
     // Indexed by linkId.
-    MemoryMapped::VectorOfVectors< pair<OrientedReadId, Transition1>, uint64_t> transitions;
+    MemoryMapped::VectorOfVectors< pair<OrientedReadId, Transition>, uint64_t> transitions;
     uint64_t linkCoverage(uint64_t linkId) const
     {
         return transitions.size(linkId);
@@ -455,8 +304,8 @@ template<class Container> double shasta::mode3::linkSeparation(
 {
     double averageLinkSeparation = 0.;
 
-    for(const pair<OrientedReadId, Transition1>& p: transitions) {
-        const Transition1& transition = p.second;
+    for(const pair<OrientedReadId, Transition>& p: transitions) {
+        const Transition& transition = p.second;
         const auto& pseudoPathEntry0 = transition[0];
         const auto& pseudoPathEntry1 = transition[1];
 
