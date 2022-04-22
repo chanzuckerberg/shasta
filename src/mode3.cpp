@@ -14,6 +14,7 @@ using namespace mode3;
 
 // Standard library.
 #include <map>
+#include <queue>
 #include <set>
 
 
@@ -709,4 +710,156 @@ void AssemblyGraph::analyzeSegmentPair(
     info01.check();
 
 }
+
+
+
+// Gather oriented read information for each segment.
+void AssemblyGraph::storeSegmentOrientedReadInformation(size_t threadCount)
+{
+    const uint64_t segmentCount = paths.size();
+    segmentOrientedReadInformation.resize(segmentCount);
+    const uint64_t batchSize = 10;
+    setupLoadBalancing(segmentCount, batchSize);
+    runThreads(&AssemblyGraph::storeSegmentOrientedReadInformationThreadFunction, threadCount);
+}
+
+
+
+
+// Gather oriented read information for each segment.
+void AssemblyGraph::storeSegmentOrientedReadInformationThreadFunction(size_t threadId)
+{
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over segments assigned to this batch.
+        for(uint64_t segmentId=begin; segmentId!=end; ++segmentId) {
+
+            // Get oriented read information for this segment.
+            getOrientedReadsOnSegment(segmentId, segmentOrientedReadInformation[segmentId]);
+        }
+    }
+}
+
+void AssemblyGraph::clusterSegments(size_t threadCount)
+{
+    // Gather oriented read information for all segments.
+    storeSegmentOrientedReadInformation(threadCount);
+
+    // Find the segment pairs.
+    const uint64_t segmentCount = paths.size();
+    const uint64_t batchSize = 10;
+    setupLoadBalancing(segmentCount, batchSize);
+    clusterSegmentsData.threadPairs.resize(threadCount);
+    runThreads(&AssemblyGraph::clusterSegmentsThreadFunction1, threadCount);
+
+    // For now, write a dot file with the pairs.
+    ofstream dot("SegmentGraph.dot");
+    dot << "graph segmentGraph {\n";
+    for(const auto& threadPairs: clusterSegmentsData.threadPairs) {
+        for(const auto& p: threadPairs) {
+            dot << p.first << "--" << p.second << ";\n";
+        }
+    }
+    dot << "}\n";
+
+    // Clean up.
+    clusterSegmentsData.threadPairs.clear();
+    clusterSegmentsData.threadPairs.shrink_to_fit();
+    segmentOrientedReadInformation.clear();
+    segmentOrientedReadInformation.shrink_to_fit();
+}
+
+
+
+void AssemblyGraph::clusterSegmentsThreadFunction1(size_t threadId)
+{
+    // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
+    const uint64_t maxDistance = 20;
+    const uint64_t minCommonReadCount = 4;
+    const double maxUnexplainedFraction = 0.15;
+
+    auto& threadPairs = clusterSegmentsData.threadPairs[threadId];
+    threadPairs.clear();
+    vector<uint64_t> descendants;
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over segments assigned to this batch.
+        for(uint64_t segmentId0=begin; segmentId0!=end; ++segmentId0) {
+            findDescendants(segmentId0, maxDistance, descendants);
+
+            // Check all the descendants.
+            for(const uint64_t segmentId1: descendants) {
+                SegmentPairInformation info;
+                analyzeSegmentPair(segmentId0, segmentId1,
+                    segmentOrientedReadInformation[segmentId0],
+                    segmentOrientedReadInformation[segmentId1],
+                    markers, info);
+                if(info.commonCount < minCommonReadCount) {
+                    continue;
+                }
+                if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
+                    continue;
+                }
+                pair<uint64_t, uint64_t> segmentPair(segmentId0, segmentId1);
+                if(segmentPair.first > segmentPair.second) {
+                    swap(segmentPair.first, segmentPair.second);
+                }
+                threadPairs.push_back(segmentPair);
+
+            }
+        }
+    }
+}
+
+
+
+// Find descendants of a given segment, up to a given distance in the graph.
+void AssemblyGraph::findDescendants(
+    uint64_t startSegmentId,
+    uint64_t maxDistance,
+    vector<uint64_t>& descendants
+    ) const
+{
+    // Initialize the BFS.
+    descendants.clear();
+    std::queue<uint64_t> q;
+    q.push(startSegmentId);
+    std::map<uint64_t, uint64_t> distanceMap;
+    distanceMap.insert(make_pair(startSegmentId, 0));
+
+    // BFS loop.
+    while(not q.empty()) {
+        const uint64_t segmentId0 = q.front();
+        q.pop();
+
+        const uint64_t distance0 = distanceMap[segmentId0];
+        const uint64_t distance1 = distance0 + 1;
+
+        // Loop over children of segmentId0.
+        for(const uint64_t linkId01: linksBySource[segmentId0]) {
+            const Link& link01 = links[linkId01];
+            const uint64_t segmentId1 = link01.segmentId1;
+
+            // If we already encountered segmentId1, skip it.
+            if(distanceMap.find(segmentId1) != distanceMap.end()) {
+                continue;
+            }
+
+            descendants.push_back(segmentId1);
+            distanceMap.insert(make_pair(segmentId1, distance1));
+            if(distance1 < maxDistance) {
+                q.push(segmentId1);
+            }
+        }
+    }
+}
+
+
+
 

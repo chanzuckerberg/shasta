@@ -16,6 +16,7 @@ number of transitions 0->1, we create a link 0->1.
 *******************************************************************************/
 
 // Shasta.
+#include "hashArray.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
 #include "ReadId.hpp"
@@ -23,6 +24,7 @@ number of transitions 0->1, we create a link 0->1.
 
 // Standard library.
 #include "array.hpp"
+#include "unordered_map"
 #include "vector.hpp"
 
 
@@ -197,6 +199,13 @@ public:
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksByTarget;
     void createConnectivity();
 
+    // Find descendants of a given segment, up to a given distance in the graph.
+    void findDescendants(
+        uint64_t segmentId,
+        uint64_t maxDistance,
+        vector<uint64_t>& segmentIds
+        ) const;
+
     void writeGfa(const string& fileName) const;
     void writeGfa(ostream&) const;
 
@@ -231,6 +240,12 @@ public:
     void getOrientedReadsOnSegment(
         uint64_t segmentId,
         SegmentOrientedReadInformation&) const;
+
+    // Oriented read information for each segment.
+    // This is only stored when needed.
+    vector<SegmentOrientedReadInformation> segmentOrientedReadInformation;
+    void storeSegmentOrientedReadInformation(size_t threadCount);
+    void storeSegmentOrientedReadInformationThreadFunction(size_t threadId);
 
 
 
@@ -294,6 +309,10 @@ public:
             const uint64_t m = unexplainedCount[i];
             return double(m) / double(commonCount + m);
         }
+        double maximumUnexplainedFraction() const
+        {
+            return max(unexplainedFraction(0), unexplainedFraction(1));
+        }
     };
     void analyzeSegmentPair(
         uint64_t segmentId0,
@@ -303,6 +322,37 @@ public:
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         SegmentPairInformation&
         ) const;
+
+
+
+    // Find segment pairs a sufficient number of common reads
+    // and with low unexplained fraction (in both directions)
+    // between segmentId0 and one of its descendants within the specified distance.
+    // This requires the vector segmentOrientedReadInformation above to be
+    // available.
+    void findSegmentPairs(
+        uint64_t segmentId0,
+        uint64_t maxDistance,
+        uint64_t minCommonReadCount,
+        double maxUnexplainedFraction,
+        vector<uint64_t>& segmentIds1
+    ) const;
+
+
+
+    // Cluster the segments based on read composition.
+    // We find segment pairs a sufficient number of common reads
+    // and with low unexplained fraction (in both directions).
+    void clusterSegments(size_t threadCount);
+    class ClusterSegmentsData {
+    public:
+
+        // The segment pairs found by each thread.
+        // In each pair, the lower number segment comes first.
+        vector< vector< pair<uint64_t, uint64_t> > > threadPairs;
+    };
+    ClusterSegmentsData clusterSegmentsData;
+    void clusterSegmentsThreadFunction1(size_t threadId);
 
 };
 

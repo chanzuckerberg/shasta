@@ -20,7 +20,9 @@ void Assembler::mode3Assembly(
         threadCount,
         markers,
         markerGraph);
-    assemblyGraph3Pointer->writeGfa("AssemblyGraph.gfa");
+    auto& assemblyGraph3 = *assemblyGraph3Pointer;
+    assemblyGraph3.writeGfa("AssemblyGraph.gfa");
+    assemblyGraph3.clusterSegments(threadCount);
 
 }
 
