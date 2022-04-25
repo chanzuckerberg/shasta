@@ -102,15 +102,12 @@ public:
         double minimumSegmentThickness = 0.3;
         double additionalSegmentThicknessPerUnitCoverage = 0.005;
 
-        // Three choices for segmentColoring:
-        // - random: colors with random hue and fixed saturation, lightness.
-        // - uniform: all segments have the color specified by segmentColor.
-        // - byCommonReads: colored green to red based on common reads with
-        //   the segment specified by referenceSegmentId
+        // Segment coloring
         string segmentColoring = "random";
         string segmentColor = "Green";  // Only used if segmentColoring is "uniform"
         uint64_t greenThreshold = 0;    // Minimum number of common reads to color green (0=automatic).
         uint64_t referenceSegmentId = 0;// Only used if segmentColoring is "byCommonReads"
+        uint64_t hashSeed = 0;          // Only used if segmentCooring is "byClusterId".
 
 
 

@@ -384,7 +384,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 if(clusterId == std::numeric_limits<uint64_t>::max()) {
                     color = "Gray";
                 } else {
-                    const uint32_t hashValue = MurmurHash2(&clusterId, sizeof(clusterId), 231);
+                    const uint32_t hashValue = MurmurHash2(&clusterId, sizeof(clusterId), uint32_t(options.hashSeed));
                     const uint32_t hue = hashValue % 360;
                     color = "hsl(" + to_string(hue) + ",100%, 50%)";
                 }
@@ -776,6 +776,7 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     HttpServer::getParameterValue(request, "segmentColor", segmentColor);
     HttpServer::getParameterValue(request, "greenThreshold", greenThreshold);
     HttpServer::getParameterValue(request, "referenceSegmentId", referenceSegmentId);
+    HttpServer::getParameterValue(request, "hashSeed", hashSeed);
 
     // Link length and thickness.
     HttpServer::getParameterValue(request, "minimumLinkLength", minimumLinkLength);
@@ -875,10 +876,13 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "Reference segment&nbsp;<input type=text name=referenceSegmentId size=8 style='text-align:center'"
                 " value='" << referenceSegmentId << "'><br>"
 
-        // Segment coloring by unexplained fraction on the displayed segment.
+        // Segment coloring by cluster id.
         "<input type=radio name=segmentColoring value=byCluster"
         << (segmentColoring=="byCluster" ? " checked=checked" : "") <<
         ">By cluster"
+        "<br>"
+        "Hash seed&nbsp;<input type=text name=hashSeed size=8 style='text-align:center'"
+                " value='" << hashSeed << "'><br>"
 
         "</table>"
 
