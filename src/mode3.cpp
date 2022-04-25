@@ -822,7 +822,7 @@ void AssemblyGraph::clusterSegments(size_t threadCount, uint64_t minClusterSize)
 
 
     // Store the cluster id of each segment.
-    clusterIds.createNew(largeDataName("Mode3-ClusterId"), largeDataPageSize);
+    clusterIds.createNew(largeDataName("Mode3-ClusterIds"), largeDataPageSize);
     clusterIds.resize(segmentCount);
     fill(clusterIds.begin(), clusterIds.end(), std::numeric_limits<uint64_t>::max());
     for(uint64_t clusterId=0; clusterId<clusterTable.size(); clusterId++) {

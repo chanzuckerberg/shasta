@@ -379,6 +379,15 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 } else {
                     color = "blue";
                 }
+            } else if(options.segmentColoring == "byCluster") {
+                const uint64_t clusterId = assemblyGraph.clusterIds[segmentId];
+                if(clusterId == std::numeric_limits<uint64_t>::max()) {
+                    color = "Black";
+                } else {
+                    const uint32_t hashValue = MurmurHash2(&clusterId, sizeof(clusterId), 231);
+                    const uint32_t hue = hashValue % 360;
+                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                }
             } else {
                 color = "Black";
             }
@@ -863,7 +872,12 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<br>"
 
         "Reference segment&nbsp;<input type=text name=referenceSegmentId size=8 style='text-align:center'"
-                " value='" << referenceSegmentId << "'>"
+                " value='" << referenceSegmentId << "'><br>"
+
+        // Segment coloring by unexplained fraction on the displayed segment.
+        "<input type=radio name=segmentColoring value=byCluster"
+        << (segmentColoring=="byCluster" ? " checked=checked" : "") <<
+        ">By cluster"
 
         "</table>"
 
