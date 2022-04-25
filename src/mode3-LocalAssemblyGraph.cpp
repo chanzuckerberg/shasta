@@ -195,6 +195,23 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
 
 
+    // If coloring by cluster id only some clusters, create a color map
+    // for the clusters to be colored.
+    std::map<uint64_t, string> clusterColorMap;
+    if(options.segmentColoring == "byCluster") {
+        const uint64_t clusterCount = options.clustersToBeColored.size();
+        if(clusterCount > 0) {
+            for(uint64_t i=0; i<clusterCount; i++) {
+                const uint64_t hue = uint64_t(std::round(double(i) * 360. / double(clusterCount)));
+                const string color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                const uint64_t clusterId = options.clustersToBeColored[i];
+                clusterColorMap.insert(make_pair(clusterId, color));
+            }
+        }
+    }
+
+
+
     using boost::geometry::add_point;
     using boost::geometry::expand;
     using boost::geometry::make_inverse;
@@ -384,9 +401,20 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 if(clusterId == std::numeric_limits<uint64_t>::max()) {
                     color = "Gray";
                 } else {
-                    const uint32_t hashValue = MurmurHash2(&clusterId, sizeof(clusterId), uint32_t(options.hashSeed));
-                    const uint32_t hue = hashValue % 360;
-                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                    if(options.clustersToBeColored.empty()) {
+                        // We are coloring all cluster. Use a hash function to decide the color.
+                        const uint32_t hashValue = MurmurHash2(&clusterId, sizeof(clusterId), uint32_t(options.hashSeed));
+                        const uint32_t hue = hashValue % 360;
+                        color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                    } else {
+                        // We are only coloring some segments.
+                        auto it = clusterColorMap.find(clusterId);
+                        if(it == clusterColorMap.end()) {
+                            color = "Black";
+                        } else {
+                            color = it->second;
+                        }
+                    }
                 }
             } else {
                 color = "Black";
@@ -778,6 +806,22 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     HttpServer::getParameterValue(request, "referenceSegmentId", referenceSegmentId);
     HttpServer::getParameterValue(request, "hashSeed", hashSeed);
 
+    string clustersToBeColoredString;
+    HttpServer::getParameterValue(request, "clustersToBeColored", clustersToBeColoredString);
+    clustersToBeColored.clear();
+    if(not clustersToBeColoredString.empty()) {
+        vector<string> tokens;
+        boost::algorithm::split(tokens, clustersToBeColoredString, boost::algorithm::is_any_of(" "));
+        for(const string& token: tokens) {
+            try {
+                const uint64_t clusterId =std::stoi(token);
+                clustersToBeColored.push_back(clusterId);
+            } catch(const std::exception&) {
+                // Neglect it.
+            }
+        }
+    }
+
     // Link length and thickness.
     HttpServer::getParameterValue(request, "minimumLinkLength", minimumLinkLength);
     HttpServer::getParameterValue(request, "additionalLinkLengthPerMarker", additionalLinkLengthPerMarker);
@@ -883,6 +927,13 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<br>"
         "Hash seed&nbsp;<input type=text name=hashSeed size=8 style='text-align:center'"
                 " value='" << hashSeed << "'><br>"
+        "Only color clusters&nbsp;<input type=text name=clustersToBeColored size=8 style='text-align:center'"
+                " value='";
+         for(const uint64_t clusterId: clustersToBeColored) {
+             html << clusterId << " ";
+         }
+         html <<  "'><br>"
+
 
         "</table>"
 

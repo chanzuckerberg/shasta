@@ -109,6 +109,10 @@ public:
         uint64_t referenceSegmentId = 0;// Only used if segmentColoring is "byCommonReads"
         uint64_t hashSeed = 0;          // Only used if segmentCooring is "byClusterId".
 
+        // Clusters to be colored, if coloring by cluster id.
+        // If empty, all clusters are colored.
+        vector<uint64_t> clustersToBeColored;
+
 
 
         // Link length and thickness.
