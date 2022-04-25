@@ -840,7 +840,7 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         // Random segment coloring.
         "<input type=radio name=segmentColoring value=random"
         << (segmentColoring=="random" ? " checked=checked" : "") <<
-        ">Random<br>"
+        ">Random<hr>"
 
         // Uniform segment coloring.
         "<input type=radio name=segmentColoring value=uniform"
@@ -848,7 +848,7 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         ">"
         "<input type=text name=segmentColor size=8 style='text-align:center'"
                 " value='" << segmentColor << "'>"
-        "<br>"
+        "<hr>"
 
         // Segment coloring by number of common reads with the reference segment.
         "<input type=radio name=segmentColoring value=byCommonReads"
@@ -874,7 +874,7 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<br>"
 
         "Reference segment&nbsp;<input type=text name=referenceSegmentId size=8 style='text-align:center'"
-                " value='" << referenceSegmentId << "'><br>"
+                " value='" << referenceSegmentId << "'><hr>"
 
         // Segment coloring by cluster id.
         "<input type=radio name=segmentColoring value=byCluster"
