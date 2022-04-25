@@ -24,6 +24,8 @@ using namespace mode3;
 // Each  linear chain of marker graph edges generates a segment.
 void AssemblyGraph::createSegments()
 {
+    const bool debug = false;
+
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
     vector<bool> wasFound(edgeCount, false);
 
@@ -41,6 +43,10 @@ void AssemblyGraph::createSegments()
         // It is part of a path we already found.
         if(wasFound[startEdgeId]) {
             continue;
+        }
+
+        if(debug) {
+            cout << "Starting a new path at edge " << startEdgeId << endl;
         }
 
         // Follow the path forward.
@@ -65,6 +71,9 @@ void AssemblyGraph::createSegments()
             }
             nextEdges.push_back(edgeId);
             SHASTA_ASSERT(not wasFound[edgeId]);
+            if(debug) {
+                cout << "Moving forward: added " << edgeId << endl;
+            }
         }
 
         // Follow the path backward.
@@ -85,6 +94,9 @@ void AssemblyGraph::createSegments()
                 edgeId = inEdges[0];
                 previousEdges.push_back(edgeId);
                 SHASTA_ASSERT(not wasFound[edgeId]);
+                if(debug) {
+                    cout << "Moving backward: added " << edgeId << endl;
+                }
             }
         }
 
@@ -114,6 +126,24 @@ void AssemblyGraph::createSegments()
 
     // Check that all edges of the marker graph were found.
     SHASTA_ASSERT(find(wasFound.begin(), wasFound.end(), false) == wasFound.end());
+
+
+    // Debug output: write the paths.
+    if(debug) {
+        ofstream csv("Paths.csv");
+        for(uint64_t segmentId=0; segmentId<paths.size(); segmentId++) {
+            const auto path = paths[segmentId];
+            for(const MarkerGraphEdgeInfo info: path) {
+                if(info.isVirtual) {
+                    csv << segmentId << ",";
+                    csv << "Virtual\n";
+                } else {
+                    csv << segmentId << ",";
+                    csv << info.edgeId << "\n";
+                }
+            }
+        }
+    }
 
 }
 
