@@ -382,7 +382,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             } else if(options.segmentColoring == "byCluster") {
                 const uint64_t clusterId = assemblyGraph.clusterIds[segmentId];
                 if(clusterId == std::numeric_limits<uint64_t>::max()) {
-                    color = "Black";
+                    color = "Gray";
                 } else {
                     const uint32_t hashValue = MurmurHash2(&clusterId, sizeof(clusterId), 231);
                     const uint32_t hue = hashValue % 360;
