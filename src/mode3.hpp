@@ -343,7 +343,7 @@ public:
     // Cluster the segments based on read composition.
     // We find segment pairs a sufficient number of common reads
     // and with low unexplained fraction (in both directions).
-    void clusterSegments(size_t threadCount);
+    void clusterSegments(size_t threadCount, uint64_t minClusterSize);
     class ClusterSegmentsData {
     public:
 
@@ -353,6 +353,7 @@ public:
     };
     ClusterSegmentsData clusterSegmentsData;
     void clusterSegmentsThreadFunction1(size_t threadId);
+    MemoryMapped::Vector<uint64_t> clusterIds;
 
 };
 

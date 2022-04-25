@@ -9,6 +9,9 @@ using namespace mode3;
 void Assembler::mode3Assembly(
     size_t threadCount)
 {
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t minClusterSize = 10;
+
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
@@ -22,7 +25,7 @@ void Assembler::mode3Assembly(
         markerGraph);
     auto& assemblyGraph3 = *assemblyGraph3Pointer;
     assemblyGraph3.writeGfa("AssemblyGraph.gfa");
-    assemblyGraph3.clusterSegments(threadCount);
+    assemblyGraph3.clusterSegments(threadCount, minClusterSize);
 
 }
 

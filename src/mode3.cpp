@@ -3,6 +3,7 @@
 #include "mode3.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerGraph.hpp"
+#include "orderPairs.hpp"
 #include "ReadFlags.hpp"
 using namespace shasta;
 using namespace mode3;
@@ -11,6 +12,7 @@ using namespace mode3;
 #include <boost/icl/discrete_interval.hpp>
 #include <boost/icl/right_open_interval.hpp>
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/pending/disjoint_sets.hpp>
 
 // Standard library.
 #include <map>
@@ -394,6 +396,7 @@ AssemblyGraph::AssemblyGraph(
     transitions.accessExistingReadOnly(largeDataName("Mode3-Transitions"));
     linksBySource.accessExistingReadOnly(largeDataName("Mode3-LinksBySource"));
     linksByTarget.accessExistingReadOnly(largeDataName("Mode3-LinksByTarget"));
+    clusterIds.accessExistingReadOnly(largeDataName("Mode3-ClusterIds"));
 }
 
 
@@ -743,7 +746,7 @@ void AssemblyGraph::storeSegmentOrientedReadInformationThreadFunction(size_t thr
     }
 }
 
-void AssemblyGraph::clusterSegments(size_t threadCount)
+void AssemblyGraph::clusterSegments(size_t threadCount, uint64_t minClusterSize)
 {
     // Gather oriented read information for all segments.
     storeSegmentOrientedReadInformation(threadCount);
@@ -764,6 +767,74 @@ void AssemblyGraph::clusterSegments(size_t threadCount)
         }
     }
     dot << "}\n";
+
+
+
+    // The segment pairs we found define a subgraph of the assembly graph.
+    // Compute connected components of this subgraph.
+    // The connected components of sufficient size become clusters.
+    vector<uint64_t> rank(segmentCount);
+    vector<uint64_t> parent(segmentCount);
+    boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        disjointSets.make_set(segmentId);
+    }
+    for(const auto& threadPairs: clusterSegmentsData.threadPairs) {
+        for(const auto& p: threadPairs) {
+            disjointSets.union_set(p.first, p.second);
+        }
+    }
+
+    // Gather the segments in each connected component.
+    vector< vector<uint64_t> > components(segmentCount);
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        const uint64_t componentId = disjointSets.find_set(segmentId);
+        components[componentId].push_back(segmentId);
+    }
+
+    // Each connected components of size at least minClusterSize
+    // becomes a cluster.
+    vector< pair<uint64_t, uint64_t> > clusterTable;
+    for(uint64_t componentId=0; componentId<segmentCount; componentId++) {
+        const vector<uint64_t>& component = components[componentId];
+        const uint64_t componentSize = component.size();
+        if(component.size() >= minClusterSize) {
+            clusterTable.push_back(make_pair(componentId, componentSize));
+        }
+    }
+
+    // Sort the clusters by decreasing size.
+    sort(clusterTable.begin(), clusterTable.end(),
+        OrderPairsBySecondOnlyGreater<uint64_t, uint64_t>());
+
+    cout << "Found " << clusterTable.size() << " segment clusters with the following sizes:" << endl;
+    uint64_t clusteredSegmentCount = 0;
+    for(uint64_t clusterId=0; clusterId<clusterTable.size(); clusterId++) {
+        const auto& p = clusterTable[clusterId];
+        const uint64_t componentSize = p.second;
+        cout << " " << componentSize;
+        clusteredSegmentCount += componentSize;
+    }
+    cout << endl;
+    cout << "Out of " << segmentCount << " segments, " <<
+        clusteredSegmentCount << " were assigned to a cluster." << endl;
+
+
+
+    // Store the cluster id of each segment.
+    clusterIds.createNew(largeDataName("Mode3-ClusterId"), largeDataPageSize);
+    clusterIds.resize(segmentCount);
+    fill(clusterIds.begin(), clusterIds.end(), std::numeric_limits<uint64_t>::max());
+    for(uint64_t clusterId=0; clusterId<clusterTable.size(); clusterId++) {
+        const auto& p = clusterTable[clusterId];
+        const uint64_t componentId = p.first;
+        const vector<uint64_t>& cluster = components[componentId];
+        for(const uint64_t segmentId: cluster) {
+            clusterIds[segmentId] = clusterId;
+        }
+    }
+
+
 
     // Clean up.
     clusterSegmentsData.threadPairs.clear();
