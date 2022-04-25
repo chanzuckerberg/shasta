@@ -442,6 +442,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             distance << "," <<
             assemblyGraph.paths.size(segmentId) << "," <<
             averageEdgeCoverage << "," <<
+            assemblyGraph.clusterIds[segmentId] << "," <<
             segmentPairInfo.totalCount[0] << "," <<
             segmentPairInfo.totalCount[1] << "," <<
             segmentPairInfo.shortCount[0] << "," <<

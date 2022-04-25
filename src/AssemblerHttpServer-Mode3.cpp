@@ -175,6 +175,7 @@ Hover on a segment to populate the tables below.
 <tr><th class='left'>Distance from start segment<td id='distanceCell' class=centered style='width:8em'>
 <tr><th class='left'>Path length<td id='pathLengthCell' class=centered style='width:8em'>
 <tr><th class='left'>Average edge coverage<td id='coverageCell' class=centered style='width:8em'>
+<tr><th class='left'>Cluster id<td id='clusterIdCell' class=centered style='width:8em'>
 </table>
 <p>
 Comparison of read compositions
@@ -214,7 +215,7 @@ Comparison of read compositions
 </table>
 
 <script>
-function onMouseEnterSegment(id, distance, pathLength, coverage, 
+function onMouseEnterSegment(id, distance, pathLength, coverage, clusterId,
     totalReference, totalDisplayed,
     shortReference, shortDisplayed,
     common, 
@@ -224,6 +225,9 @@ function onMouseEnterSegment(id, distance, pathLength, coverage,
     document.getElementById('distanceCell').innerHTML = distance;
     document.getElementById('pathLengthCell').innerHTML = pathLength;
     document.getElementById('coverageCell').innerHTML = coverage;
+    if(clusterId != 18446744073709551615) {
+        document.getElementById('clusterIdCell').innerHTML = clusterId;
+    }
 
     document.getElementById('totalReferenceCell').innerHTML = totalReference;
     document.getElementById('totalDisplayedCell').innerHTML = totalDisplayed;
@@ -247,6 +251,7 @@ function onMouseExitSegment()
     document.getElementById('distanceCell').innerHTML = '';
     document.getElementById('pathLengthCell').innerHTML = '';
     document.getElementById('coverageCell').innerHTML = '';
+    document.getElementById('clusterIdCell').innerHTML = '';
 
     document.getElementById('totalReferenceCell').innerHTML = '';
     document.getElementById('totalDisplayedCell').innerHTML = '';
