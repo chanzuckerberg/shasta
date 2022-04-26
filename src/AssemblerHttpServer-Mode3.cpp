@@ -657,33 +657,57 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     const uint64_t commonCount = segmentPairInformation.commonCount;
 
 
-    /// Write a table with general information about this pair of segments.
+
+    /// Write a table with information about this pair of segments.
     html <<
         "<p>"
-        "See caption after the tables."
-        "<p>"
         "<table>"
-        "<tr><th class=left>Length of segment " << segmentId0 <<
+
+        "<tr>"
+        "<th class=left>Segment id"
+        "<td class=centered>" << segmentId0 <<
+        "<td class=centered>" << segmentId1 <<
+
+        "<tr title='Segment length in marker graph edges'>"
+        "<th class=left>Length"
         "<td class=centered>" << length0 <<
-        "<tr><th class=left>Length of segment " << segmentId1 <<
         "<td class=centered>" << length1 <<
-        "<tr><th class=left>Number of common reads"
-        "<td class=centered>" << commonCount;
-    if(commonCount) {
+
+        "<tr title='Total number of oriented reads in this segment'>"
+        "<th class=left>Total"
+        "<td class=centered>" << segmentPairInformation.totalCount[0] <<
+        "<td class=centered>" << segmentPairInformation.totalCount[1] <<
+
+        "<tr title='Number of oriented reads present in both segments'>"
+        "<th class=left>Common"
+        "<td class=centered>" << segmentPairInformation.commonCount <<
+        "<td class=centered>" << segmentPairInformation.commonCount;
+
+    if(segmentPairInformation.commonCount > 0) {
+        const auto oldPrecision = html.precision(2);
+        const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
         html <<
-            "<tr><th class=left>Estimated offset between segment " << segmentId0 <<
-            " and segment " << segmentId1 <<
-            "<td class=centered>" << segmentPairInformation.offset <<
-            "<tr><th class=left>Number of short reads on segment " << segmentId0 <<
+            "<tr title='Number of oriented reads in this segment that are too short to appear in the other segment'>"
+            "<th class=left>Short"
             "<td class=centered>" << segmentPairInformation.shortCount[0] <<
-            "<tr><th class=left>Number of short reads on segment " << segmentId1 <<
             "<td class=centered>" << segmentPairInformation.shortCount[1] <<
-            "<tr><th class=left>Number of unexplained reads on segment " << segmentId0 <<
+
+            "<tr title='Number of oriented reads in this segment that are "
+            "unexpectedly missing in the other segment'>"
+            "<th class=left>Unexplained"
             "<td class=centered>" << segmentPairInformation.unexplainedCount[0] <<
-            "<tr><th class=left>Number of unexplained reads on segment " << segmentId1 <<
-            "<td class=centered>" << segmentPairInformation.unexplainedCount[1];
+            "<td class=centered>" << segmentPairInformation.unexplainedCount[1] <<
+
+            "<tr title='Fraction of oriented reads in this segment that are "
+            "unexpectedly missing in the other segment'>"
+            "<th class=left>Unexplained fraction"
+            "<td class=centered>" << segmentPairInformation.unexplainedFraction(0) <<
+            "<td class=centered>" << segmentPairInformation.unexplainedFraction(1);
+        html.precision(oldPrecision);
+        html.flags(oldFlags);
     }
-    html <<  "</table>";
+
+     html <<  "</table>";
 
 
 
@@ -820,24 +844,6 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         }
     }
     html << "</table>";
-
-
-
-    // Write a caption for this messy table.
-    html <<
-        "<p><ul>"
-        "<li>All offsets, overlaps, and lengths are in markers."
-        "<li>On both segments: this oriented read appears in both segments "
-        "and was used to estimate their offset."
-        "<li>Too short: this oriented read appears in only one of the two segments "
-        "and, based on the estimated offset between the segments, "
-        "is too short to appear in the other segment."
-        "<li>On one segment only, missing from the other segment: "
-        "this oriented read appears in one segment only and, "
-        "based on the estimated offset between the segments, was expected to also "
-        "appear in the other segment.";
-
-
 
 }
 
