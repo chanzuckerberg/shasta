@@ -154,6 +154,10 @@ public:
     MemoryMapped::VectorOfVectors<MarkerGraphEdgeInfo, uint64_t> paths;
     void createSegments();
 
+    // Average marker graph edge coverage for all segments.
+    MemoryMapped::Vector<float> segmentCoverage;
+    void computeSegmentCoverage();
+
     // For each marker graph edge, store in the marker graph edge table
     // the corresponding (segment)
     // and position in the path, if any.
@@ -234,8 +238,6 @@ public:
             int32_t averageOffset;
         };
         vector<Info> infos;
-
-        double averageCoverage;
     };
     void getOrientedReadsOnSegment(
         uint64_t segmentId,

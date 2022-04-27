@@ -149,6 +149,41 @@ void AssemblyGraph::createSegments()
 
 
 
+// Compute coverage for all segments.
+// It is computed as aompute average marker graph edge coverage.
+void AssemblyGraph::computeSegmentCoverage()
+{
+    // Initialize segmentCoverage.
+    segmentCoverage.createNew(
+        largeDataName("Mode3-SegmentCoverage"), largeDataPageSize);
+    const uint64_t segmentCount = paths.size();
+    segmentCoverage.resize(segmentCount);
+
+    // Loop over all segments.
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+
+        // Access the marker graph path for this segment.
+        const span<MarkerGraphEdgeInfo> path = paths[segmentId];
+
+
+        // Loop over this path.
+        uint64_t coverageSum = 0.;
+        for(uint64_t position=0; position<path.size(); position++) {
+            MarkerGraphEdgeInfo& info = path[position];
+            SHASTA_ASSERT(not info.isVirtual);
+
+            // Add the marker intervals on this marker graph edge.
+            const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+            coverageSum += markerIntervals.size();
+        }
+
+        segmentCoverage[segmentId] = float(coverageSum) / float(path.size());
+
+    }
+}
+
+
+
 MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
     MarkerGraph::EdgeId edgeIdArgument, bool isVirtualArgument)
 {
@@ -377,6 +412,7 @@ AssemblyGraph::AssemblyGraph(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
         largeDataPageSize);
     createSegments();
+    computeSegmentCoverage();
 
     // Keep track of the segment and position each marker graph edge corresponds to.
     computeMarkerGraphEdgeTable(threadCount);
@@ -421,6 +457,8 @@ AssemblyGraph::AssemblyGraph(
     markerGraph(markerGraph)
 {
     paths.accessExistingReadOnly(largeDataName("Mode3-Paths"));
+    segmentCoverage.accessExistingReadOnly(
+        largeDataName("Mode3-SegmentCoverage"));
     markerGraphEdgeTable.accessExistingReadOnly(largeDataName("mode3-MarkerGraphEdgeTable"));
     links.accessExistingReadOnly(largeDataName("Mode3-Links"));
     transitions.accessExistingReadOnly(largeDataName("Mode3-Transitions"));
@@ -536,7 +574,6 @@ void AssemblyGraph::getOrientedReadsOnSegment(
 
     // Loop over the marker graph path corresponding to this segment.
     const span<const MarkerGraphEdgeInfo> path = paths[segmentId];
-    double coverageSum = 0.;
     std::set<OrientedReadId> orientedReadIds;
     for(uint64_t position=0; position<path.size(); position++) {
         const MarkerGraphEdgeInfo& info = path[position];
@@ -544,7 +581,6 @@ void AssemblyGraph::getOrientedReadsOnSegment(
 
         // Loop over the marker intervals for this marker graph edge.
         const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
-        coverageSum += double(markerIntervals.size());
         for(const MarkerInterval& markerInterval: markerIntervals) {
             const OrientedReadId orientedReadId = markerInterval.orientedReadId;
 
@@ -572,8 +608,7 @@ void AssemblyGraph::getOrientedReadsOnSegment(
         info.averageOffset = int32_t(std::round(double(sum) / double(n)));
         information.infos.push_back(info);
     }
-    information.averageCoverage = coverageSum / double(path.size());
-}
+ }
 
 
 

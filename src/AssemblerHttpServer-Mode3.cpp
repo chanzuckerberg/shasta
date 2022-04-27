@@ -159,7 +159,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         "<p><table>"
         "<tr><th class=left>Length of marker graph path<td class=centered>" << path.size() <<
         "<tr><th class=left>Average marker graph edge coverage on path<td class=centered>" <<
-        orientedReads.averageCoverage <<
+        assemblyGraph3.segmentCoverage[segmentId] <<
         "<tr><th class=left>Number of distinct oriented reads on path<td class=centered>" << orientedReads.infos.size() <<
         "</table>";
     html.precision(oldPrecision);
