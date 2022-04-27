@@ -42,6 +42,11 @@ add_definitions(-DBUILD_ID=${BUILD_ID})
 add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 
+# This is needed to avoid some Boost warnings about deprecated messages.
+# We canot fix this in Shasta as it is a Boost problem.
+# It can be removed if Boost is fixed.
+add_definitions(-DBOOST_ALLOW_DEPRECATED_HEADERS)
+
 # Definitions that control what components get built.
 if(BUILD_WITH_HTTP_SERVER)
     add_definitions(-DSHASTA_HTTP_SERVER)
