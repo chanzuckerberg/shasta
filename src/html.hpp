@@ -12,6 +12,7 @@ namespace shasta {
     void writeHtmlEnd(ostream&);
     void writeStyle(ostream&);
 
+    void addSvgDragAndZoom(ostream& html);
 }
 
 #endif

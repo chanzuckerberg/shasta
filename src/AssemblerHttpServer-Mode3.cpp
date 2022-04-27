@@ -1,6 +1,7 @@
 #ifdef SHASTA_HTTP_SERVER
 
 #include "Assembler.hpp"
+#include "html.hpp"
 #include "mode3.hpp"
 #include "mode3-LocalAssemblyGraph.hpp"
 using namespace shasta;
