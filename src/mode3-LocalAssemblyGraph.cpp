@@ -5,6 +5,7 @@
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "computeLayout.hpp"
+#include "html.hpp"
 #include "HttpServer.hpp"
 #include "MarkerGraph.hpp"
 #include "MurmurHash2.hpp"
@@ -149,6 +150,239 @@ mode3::LocalAssemblyGraph::vertex_descriptor mode3::LocalAssemblyGraph::addVerte
 
 
 
+void mode3::LocalAssemblyGraph::writeHtml(ostream& html, const SvgOptions& options) const
+{
+    // Write the svg object.
+    html << "<div style='display: inline-block; vertical-align:top'>";
+    writeSvg(html, options);
+    html << "</div>";
+    addSvgDragAndZoom(html);
+
+    // Side panel.
+    html << "<div style='display: inline-block'>";
+
+
+
+    // Highlight a segment.
+    html << R"stringDelimiter(
+        <script>
+        function highlightSegment()
+        {
+            // Get the segment id from the input field.
+            inputField = document.getElementById("highlightInputField");
+            segmentId = inputField.value;
+            inputField.value = "";
+
+            // Make it dashed and wider.
+            var element = document.getElementById("Segment-" + segmentId);
+            var thickness = element.getAttribute("stroke-width");
+            element.style.strokeDasharray = 0.2 * thickness;
+            element.setAttribute("stroke-width", 2. * thickness);
+        }
+        </script>
+        Highlight segment
+        <input id=highlightInputField type=text onchange="highlightSegment()" size=10>
+        )stringDelimiter";
+
+
+
+    // Zoom to a segment.
+    html << R"stringDelimiter(
+        <script>
+        function zoomToSegment()
+        {
+            // Get the segment id from the input field.
+            inputField = document.getElementById("zoomInputField");
+            segmentId = inputField.value;
+            inputField.value = "";
+
+            // Find the bounding box and its center.
+            var element = document.getElementById("Segment-" + segmentId);
+            var box = element.getBBox();
+            var xCenter = box.x + 0.5 * box.width;
+            var yCenter = box.y + 0.5 * box.height;
+
+            // Change the viewbox of the svg to be a bit larger than a square
+            // containing the bounding box.
+            var enlargeFactor = 5.;
+            var size = enlargeFactor * Math.max(box.width, box.height);
+            width = size;
+            height = size;
+            x = xCenter - 0.5 * size;
+            y = yCenter - 0.5 * size;
+            var svg = document.querySelector('svg');
+            svg.setAttribute('viewBox', `${x} ${y} ${size} ${size}`);
+            ratio = size / svg.getBoundingClientRect().width;
+
+        }
+        </script>
+        <p>Zoom to segment
+        <input id=zoomInputField type=text onchange="zoomToSegment()" size=10>
+        )stringDelimiter";
+
+
+
+    // Tables that will be automatically updated when the mouse is on a segment.
+    html << R"zzz(  
+<p>
+Hover on a segment to populate the tables below.
+<p>
+<table style='font-size:9'>
+<tr><th class='left'>Segment id<td id='segmentIdCell' class=centered style='width:8em'>
+<tr><th class='left'>Distance from start segment<td id='distanceCell' class=centered style='width:8em'>
+<tr><th class='left'>Path length<td id='pathLengthCell' class=centered style='width:8em'>
+<tr><th class='left'>Average edge coverage<td id='coverageCell' class=centered style='width:8em'>
+<tr><th class='left'>Cluster id<td id='clusterIdCell' class=centered style='width:8em'>
+</table>
+<p>
+Comparison of read compositions
+<p>
+<table>
+
+<tr>
+<td>
+<th>Reference<br>segment
+<th>Displayed<br>segment
+
+<tr>
+<th class='left'>Total
+<th id='totalReferenceCell'>
+<th id='totalDisplayedCell'>
+
+<tr>
+<th class='left'>Common
+<th id='commonReferenceCell'>
+<th id='commonDisplayedCell'>
+
+<tr>
+<th class='left'>Short
+<th id='shortReferenceCell'>
+<th id='shortDisplayedCell'>
+
+<tr>
+<th class='left'>Unexplained
+<th id='unexplainedReferenceCell'>
+<th id='unexplainedDisplayedCell'>
+
+<tr>
+<th class='left'>Unexplained fraction
+<th id='unexplainedFractionReferenceCell'>
+<th id='unexplainedFractionDisplayedCell'>
+
+</table>
+
+<script>
+function onMouseEnterSegment(id, distance, pathLength, coverage, clusterId,
+    totalReference, totalDisplayed,
+    shortReference, shortDisplayed,
+    common, 
+    unexplainedReference, unexplainedDisplayed)
+{
+    document.getElementById('segmentIdCell').innerHTML = id;
+    document.getElementById('distanceCell').innerHTML = distance;
+    document.getElementById('pathLengthCell').innerHTML = pathLength;
+    document.getElementById('coverageCell').innerHTML = coverage;
+    if(clusterId != 18446744073709551615) {
+        document.getElementById('clusterIdCell').innerHTML = clusterId;
+    }
+
+    document.getElementById('totalReferenceCell').innerHTML = totalReference;
+    document.getElementById('totalDisplayedCell').innerHTML = totalDisplayed;
+    document.getElementById('commonReferenceCell').innerHTML = common;
+    document.getElementById('commonDisplayedCell').innerHTML = common;
+
+    if(common > 0) {
+        document.getElementById('shortReferenceCell').innerHTML = shortReference;
+        document.getElementById('shortDisplayedCell').innerHTML = shortDisplayed;
+        document.getElementById('unexplainedReferenceCell').innerHTML = unexplainedReference;
+        document.getElementById('unexplainedDisplayedCell').innerHTML = unexplainedDisplayed;
+        document.getElementById('unexplainedFractionReferenceCell').innerHTML = 
+            (unexplainedReference / (unexplainedReference + common)).toFixed(2);
+        document.getElementById('unexplainedFractionDisplayedCell').innerHTML = 
+            (unexplainedDisplayed / (unexplainedDisplayed + common)).toFixed(2);
+    }   
+}
+function onMouseExitSegment()
+{
+    document.getElementById('segmentIdCell').innerHTML = '';
+    document.getElementById('distanceCell').innerHTML = '';
+    document.getElementById('pathLengthCell').innerHTML = '';
+    document.getElementById('coverageCell').innerHTML = '';
+    document.getElementById('clusterIdCell').innerHTML = '';
+
+    document.getElementById('totalReferenceCell').innerHTML = '';
+    document.getElementById('totalDisplayedCell').innerHTML = '';
+    document.getElementById('shortReferenceCell').innerHTML = '';
+    document.getElementById('shortDisplayedCell').innerHTML = '';
+    document.getElementById('commonReferenceCell').innerHTML = '';
+    document.getElementById('commonDisplayedCell').innerHTML = '';
+    document.getElementById('unexplainedReferenceCell').innerHTML = '';
+    document.getElementById('unexplainedDisplayedCell').innerHTML = '';
+    document.getElementById('unexplainedFractionReferenceCell').innerHTML = '';
+    document.getElementById('unexplainedFractionDisplayedCell').innerHTML = '';
+}
+</script>
+    )zzz";
+
+
+
+    // Change segment thickness
+    html << R"stringDelimiter(
+    <p><table>
+    <tr><th class=left>Segment thickness<td>
+    <button type='button' onClick='segmentThickness(0.5)' style='width:2em'>--</button>
+    <button type='button' onClick='segmentThickness(0.8)' style='width:2em'>-</button>
+    <button type='button' onClick='segmentThickness(1.25)' style='width:2em'>+</button>
+    <button type='button' onClick='segmentThickness(2)' style='width:2em'>++</button>
+        <script>
+        function segmentThickness(factor)
+        {
+            const group = document.getElementById('LocalAssemblyGraph-segments');
+            for (let i=0; i<group.children.length; i++) {
+                path = group.children[i];
+                if(path.tagName == 'path') {
+                    path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
+                }
+            }
+        }
+        </script>
+        )stringDelimiter";
+
+
+
+    // Change link thickness
+    html << R"stringDelimiter(
+    <tr><th class=left>Link thickness<td>
+    <button type='button' onClick='linkThickness(0.5)' style='width:2em'>--</button>
+    <button type='button' onClick='linkThickness(0.8)' style='width:2em'>-</button>
+    <button type='button' onClick='linkThickness(1.25)' style='width:2em'>+</button>
+    <button type='button' onClick='linkThickness(2.)' style='width:2em'>++</button>
+        <script>
+        function linkThickness(factor)
+        {
+            const group1 = document.getElementById('LocalAssemblyGraph-links');
+            for (let i=0; i<group1.children.length; i++) {
+                group2 = group1.children[i];
+                if(group2.tagName == 'g') {
+                    for (let j=0; j<group2.children.length; j++) {
+                        path = group2.children[j];
+                        if(path.tagName == 'path') {
+                            path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
+                        }
+                    }
+                }
+            }
+        }
+        </script>
+     </table>
+        )stringDelimiter";
+
+
+
+    // End of side panel.
+    html << "</div>";
+
+}
 
 
 

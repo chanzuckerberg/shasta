@@ -144,6 +144,7 @@ public:
         // Add rows to the html request form.
         void addFormRows(ostream& html);
     };
+    void writeHtml(ostream& html, const SvgOptions&) const;
     void writeSvg(const string& fileName, const SvgOptions&) const;
     void writeSvg(ostream&, const SvgOptions&) const;
     void computeLayout(const SvgOptions&, double timeout);
