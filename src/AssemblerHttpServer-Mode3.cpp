@@ -258,7 +258,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
         return;
     }
 
-    const Link& link = assemblyGraph3.links[linkId];
+    const mode3::AssemblyGraph::Link& link = assemblyGraph3.links[linkId];
     const auto transitions = assemblyGraph3.transitions[linkId];
     const uint64_t segmentId0 = link.segmentId0;
     const uint64_t segmentId1 = link.segmentId1;

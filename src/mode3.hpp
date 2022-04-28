@@ -31,34 +31,13 @@ number of transitions 0->1, we create a link 0->1.
 
 namespace shasta {
     namespace mode3 {
-
-
         class AssemblyGraph;
-        class Link;
-        class VirtualMarkerGraphEdge;
-
     }
 
     // Some forward declarations of classes in the shasta namespace.
     class CompressedMarker;
     class MarkerGraph;
 }
-
-
-
-// A gfa link in the mode3::AssemblyGraph.
-class shasta::mode3::Link {
-public:
-    uint64_t segmentId0;
-    uint64_t segmentId1;
-
-    Link(
-        uint64_t segmentId0 = 0,
-        uint64_t segmentId1 = 0,
-        uint64_t coverage = 0) :
-        segmentId0(segmentId0),
-        segmentId1(segmentId1) {}
-};
 
 
 
@@ -157,6 +136,18 @@ public:
 
 
     // The links.
+    class Link {
+    public:
+        uint64_t segmentId0;
+        uint64_t segmentId1;
+
+        Link(
+            uint64_t segmentId0 = 0,
+            uint64_t segmentId1 = 0,
+            uint64_t coverage = 0) :
+            segmentId0(segmentId0),
+            segmentId1(segmentId1) {}
+    };
     MemoryMapped::Vector<Link> links;
     void createLinks(
         const std::map<SegmentPair, Transitions>& transitionMap,

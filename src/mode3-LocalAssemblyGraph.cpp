@@ -71,7 +71,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
 
         // Loop over children.
         for(const uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
-            const Link& link = assemblyGraph.links[linkId];
+            const mode3::AssemblyGraph::Link& link = assemblyGraph.links[linkId];
             const uint64_t segmentId1 = link.segmentId1;
             if(segmentMap.find(segmentId1) != segmentMap.end()) {
                 // We already encountered this segment.
@@ -86,7 +86,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
 
         // Loop over parents.
         for(const uint64_t linkId: assemblyGraph.linksByTarget[segmentId0]) {
-            const Link& link = assemblyGraph.links[linkId];
+            const mode3::AssemblyGraph::Link& link = assemblyGraph.links[linkId];
             const uint64_t segmentId1 = link.segmentId0;
             if(segmentMap.find(segmentId1) != segmentMap.end()) {
                 // We already encountered this segment.
@@ -108,7 +108,7 @@ mode3::LocalAssemblyGraph::LocalAssemblyGraph(
         const vertex_descriptor v0 = p.second;
 
         for(const uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
-            const Link& link = assemblyGraph.links[linkId];
+            const mode3::AssemblyGraph::Link& link = assemblyGraph.links[linkId];
             const uint64_t segmentId1 = link.segmentId1;
             const auto it1 = segmentMap.find(segmentId1);
             if(it1 == segmentMap.end()) {
@@ -1227,7 +1227,7 @@ void LocalAssemblyGraph::writeGfa(ostream& gfa) const
     // Write the links.
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
         const uint64_t linkId = localAssemblyGraph[e].linkId;
-        const Link& link = assemblyGraph.links[linkId];
+        const mode3::AssemblyGraph::Link& link = assemblyGraph.links[linkId];
         gfa << "L\t" <<
             link.segmentId0 << "\t+\t" <<
             link.segmentId1 << "\t+\t0M\n";
