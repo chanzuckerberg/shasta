@@ -984,13 +984,8 @@ bool LocalAssemblyGraph::haveConsecutivePaths(
     const auto path0 = assemblyGraph.paths[segmentId0];
     const auto path1 = assemblyGraph.paths[segmentId1];
 
-    const MarkerGraphEdgeInfo& info0 = path0.back();
-    const MarkerGraphEdgeInfo& info1 = path1.front();
-    SHASTA_ASSERT(not info0.isVirtual);
-    SHASTA_ASSERT(not info1.isVirtual);
-
-    const MarkerGraph::EdgeId edgeId0 = info0.edgeId;
-    const MarkerGraph::EdgeId edgeId1 = info1.edgeId;
+    const MarkerGraphEdgeId edgeId0 = path0.back();
+    const MarkerGraphEdgeId edgeId1 = path1.front();
 
     const MarkerGraph::Edge& edge0 = markerGraph.edges[edgeId0];
     const MarkerGraph::Edge& edge1 = markerGraph.edges[edgeId1];

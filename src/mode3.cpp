@@ -118,7 +118,7 @@ void AssemblyGraph::createSegments()
         // Store this path as a new segment.
         paths.appendVector();
         for(const MarkerGraphEdgeId edgeId: path) {
-            paths.append(MarkerGraphEdgeInfo(edgeId, false));
+            paths.append(edgeId);
         }
     }
 
@@ -133,14 +133,9 @@ void AssemblyGraph::createSegments()
         ofstream csv("Paths.csv");
         for(uint64_t segmentId=0; segmentId<paths.size(); segmentId++) {
             const auto path = paths[segmentId];
-            for(const MarkerGraphEdgeInfo info: path) {
-                if(info.isVirtual) {
-                    csv << segmentId << ",";
-                    csv << "Virtual\n";
-                } else {
-                    csv << segmentId << ",";
-                    csv << info.edgeId << "\n";
-                }
+            for(const MarkerGraphEdgeId edgeId: path) {
+                csv << segmentId << ",";
+                csv << edgeId << "\n";
             }
         }
     }
@@ -163,32 +158,22 @@ void AssemblyGraph::computeSegmentCoverage()
     for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
 
         // Access the marker graph path for this segment.
-        const span<MarkerGraphEdgeInfo> path = paths[segmentId];
+        const span<MarkerGraphEdgeId> path = paths[segmentId];
 
 
         // Loop over this path.
         uint64_t coverageSum = 0.;
         for(uint64_t position=0; position<path.size(); position++) {
-            MarkerGraphEdgeInfo& info = path[position];
-            SHASTA_ASSERT(not info.isVirtual);
+            MarkerGraphEdgeId& edgeId = path[position];
 
             // Add the marker intervals on this marker graph edge.
-            const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+            const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
             coverageSum += markerIntervals.size();
         }
 
         segmentCoverage[segmentId] = float(coverageSum) / float(path.size());
 
     }
-}
-
-
-
-MarkerGraphEdgeInfo::MarkerGraphEdgeInfo(
-    MarkerGraph::EdgeId edgeIdArgument, bool isVirtualArgument)
-{
-    isVirtual = uint64_t(isVirtualArgument & 1);
-    edgeId = edgeIdArgument & 0x7fffffffffffffffULL;
 }
 
 
@@ -227,19 +212,13 @@ void AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
 
         // Loop over all vertices assigned to this batch.
         for(uint64_t segmentId=begin; segmentId!=end; ++segmentId) {
-            const span<MarkerGraphEdgeInfo> path = paths[segmentId];
+            const span<MarkerGraphEdgeId> path = paths[segmentId];
 
             // Loop over the path of this segment.
             for(uint64_t position=0; position<path.size(); position++) {
-                const MarkerGraphEdgeInfo& info = path[position];
-
-                // Skip virtual edges.
-                if(info.isVirtual) {
-                    continue;
-                }
+                const MarkerGraphEdgeId edgeId = path[position];
 
                 // Store the marker graph edge table entry for this edge.
-                const MarkerGraph::EdgeId edgeId = info.edgeId;
                 SHASTA_ASSERT(edgeId < markerGraphEdgeTable.size());
                 markerGraphEdgeTable[edgeId] = make_pair(segmentId, position);
             }
@@ -537,14 +516,13 @@ double AssemblyGraph::findOrientedReadsOnSegment(
     vector<OrientedReadId>& orientedReadIdsArgument) const
 {
     // Loop over the marker graph path corresponding to this segment.
-    const span<const MarkerGraphEdgeInfo> path = paths[segmentId];
+    const span<const MarkerGraphEdgeId> path = paths[segmentId];
     double coverage = 0.;
     std::set<OrientedReadId> orientedReadIds;
-    for(const MarkerGraphEdgeInfo& info: path) {
-        SHASTA_ASSERT(not info.isVirtual);
+    for(const MarkerGraphEdgeId& edgeId: path) {
 
         // Loop over the marker intervals for this marker graph edge.
-        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
         coverage += double(markerIntervals.size());
         for(const MarkerInterval& markerInterval: markerIntervals) {
             orientedReadIds.insert(markerInterval.orientedReadId);
@@ -573,14 +551,13 @@ void AssemblyGraph::getOrientedReadsOnSegment(
     std::map<OrientedReadId, pair<uint64_t, int64_t>  > table;
 
     // Loop over the marker graph path corresponding to this segment.
-    const span<const MarkerGraphEdgeInfo> path = paths[segmentId];
+    const span<const MarkerGraphEdgeId> path = paths[segmentId];
     std::set<OrientedReadId> orientedReadIds;
     for(uint64_t position=0; position<path.size(); position++) {
-        const MarkerGraphEdgeInfo& info = path[position];
-        SHASTA_ASSERT(not info.isVirtual);
+        const MarkerGraphEdgeId& edgeId = path[position];
 
         // Loop over the marker intervals for this marker graph edge.
-        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[info.edgeId];
+        const span<const MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
         for(const MarkerInterval& markerInterval: markerIntervals) {
             const OrientedReadId orientedReadId = markerInterval.orientedReadId;
 

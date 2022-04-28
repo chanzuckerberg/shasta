@@ -35,7 +35,6 @@ namespace shasta {
 
         class AssemblyGraph;
         class Link;
-        class MarkerGraphEdgeInfo;
         class VirtualMarkerGraphEdge;
 
     }
@@ -44,28 +43,6 @@ namespace shasta {
     class CompressedMarker;
     class MarkerGraph;
 }
-
-
-
-// A VirtualMarkerGraphEdge describes a marker graph edge
-// that actually does not exist in the marker graph.
-class shasta::mode3::VirtualMarkerGraphEdge {
-public:
-    array<MarkerGraphVertexId, 2> vertices;
-};
-
-
-
-// A small class that can describe both a real and a virtual
-// marker graph edge.
-// If virtual, the edgeId is an index into the
-// virtualMarkerGraphEdges vector.
-class shasta::mode3::MarkerGraphEdgeInfo {
-public:
-    uint64_t isVirtual : 1;
-    MarkerGraphEdgeId edgeId: 63;
-    MarkerGraphEdgeInfo(MarkerGraphEdgeId=0, bool isVirtual=false);
-};
 
 
 
@@ -116,7 +93,7 @@ public:
 
     // The marker graph paths corresponding to each segment.
     // Indexed by segment id.
-    MemoryMapped::VectorOfVectors<MarkerGraphEdgeInfo, uint64_t> paths;
+    MemoryMapped::VectorOfVectors<MarkerGraphEdgeId, uint64_t> paths;
     void createSegments();
 
     // Average marker graph edge coverage for all segments.

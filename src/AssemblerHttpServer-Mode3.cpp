@@ -196,12 +196,7 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         "<th>Target<br>vertex";
 
     for(uint64_t position=0; position<path.size(); position++) {
-        const MarkerGraphEdgeInfo& markerGraphEdgeInfo = path[position];
-
-        // For now we are not generating virtual marker graph edges.
-        SHASTA_ASSERT(not markerGraphEdgeInfo.isVirtual);
-
-        const MarkerGraph::EdgeId edgeId = markerGraphEdgeInfo.edgeId;
+        const MarkerGraphEdgeId& edgeId = path[position];
         const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
         const MarkerGraph::VertexId vertexId0 = edge.source;
         const MarkerGraph::VertexId vertexId1 = edge.target;
@@ -271,8 +266,8 @@ void Assembler::exploreMode3AssemblyGraphLink(
     const auto path1 = assemblyGraph3.paths[segmentId1];
     const uint64_t pathLength0 = path0.size();
     const uint64_t pathLength1 = path1.size();
-    const MarkerGraph::VertexId vertexId0 = markerGraph.edges[path0.back().edgeId].target;
-    const MarkerGraph::VertexId vertexId1 = markerGraph.edges[path1.front().edgeId].source;
+    const MarkerGraph::VertexId vertexId0 = markerGraph.edges[path0.back()].target;
+    const MarkerGraph::VertexId vertexId1 = markerGraph.edges[path1.front()].source;
 
     const double linkSeparation = mode3::AssemblyGraph::linkSeparation(transitions, pathLength0);
 
