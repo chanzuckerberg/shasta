@@ -96,7 +96,7 @@ public:
     // edge is identified by the segmentId in the AssemblyGraph
     // and the edge position in the segment (e. g. the first marker graph edge
     // in the segment is at position 0).
-    // This is indexed by OrientedReadId::getValue().
+    // Indexed by OrientedReadId::getValue().
     // It gets removed when no longer needed.
     class PseudoPathEntry {
     public:
@@ -115,6 +115,16 @@ public:
     void computePseudoPathsPass2(size_t threadId);
     void computePseudoPathsPass12(uint64_t pass);
     void sortPseudoPaths(size_t threadId);
+
+
+
+    // The compressed pseudopath of an oriented read
+    // is the sequence of segmentIds it encounters.
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> compressedPseudoPaths;
+    void computeCompressedPseudoPaths();
+    void computeCompressedPseudoPath(
+        const span<PseudoPathEntry> pseudoPath,
+        vector<uint64_t>& compressedPseudoPath);
 
 
 
@@ -198,7 +208,7 @@ public:
 
             // The average offset, in markers, between the
             // beginning of this oriented read and the
-            // beginnig of the segment.
+            // beginning of the segment.
             int32_t averageOffset;
         };
         vector<Info> infos;

@@ -186,9 +186,7 @@ void AssemblyGraph::computeMarkerGraphEdgeTable(size_t threadCount)
 {
 
     // Initialize the marker graph edge table.
-    markerGraphEdgeTable.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "mode3-MarkerGraphEdgeTable"),
-        largeDataPageSize);
+    markerGraphEdgeTable.createNew(largeDataName("Mode3-MarkerGraphEdgeTable"), largeDataPageSize);
     markerGraphEdgeTable.resize(markerGraph.edges.size());
     fill(markerGraphEdgeTable.begin(), markerGraphEdgeTable.end(), make_pair(
         std::numeric_limits<uint64_t>::max(),
@@ -314,6 +312,76 @@ void AssemblyGraph::sortPseudoPaths(size_t threadId)
 }
 
 
+// The compressed pseudopath of an oriented read
+// is the sequence of segmentIds it encounters.
+// For each entry, we also store the average offset
+// of the beginning of the oriented read relative
+// to the beginning of the segment, in markers.
+void AssemblyGraph::computeCompressedPseudoPaths()
+{
+    // Initialize the compressed pseudopaths.
+    compressedPseudoPaths.createNew(
+        largeDataName("Mode3-CompressedPseudoPaths"), largeDataPageSize);
+
+    // Work vector defined outside the loop to reduce memory allocation overhead.
+    vector<uint64_t> compressedPseudoPath;
+
+    // Loop over all oriented reads.
+    for(uint64_t i=0; i<pseudoPaths.size(); i++) {
+
+        // Access the pseudopath for this oriented read.
+        const span<PseudoPathEntry> pseudoPath = pseudoPaths[i];
+
+        // Compute the compressed pseudopath.
+        computeCompressedPseudoPath(pseudoPath, compressedPseudoPath);
+
+        // Store it.
+        compressedPseudoPaths.appendVector(compressedPseudoPath);
+    }
+
+
+
+    // Write them out.
+    ofstream csv("CompressedPseudoPaths.csv");
+    for(uint64_t i=0; i<pseudoPaths.size(); i++) {
+        const ReadId readId = ReadId(i >> 1);
+        const Strand strand = i & 1;
+        const OrientedReadId orientedReadId(readId, strand);
+        const span<uint64_t> compressedPseudoPath = compressedPseudoPaths[i];
+
+        csv << orientedReadId << ",";
+        for(const uint64_t segmentId: compressedPseudoPath) {
+            csv << segmentId << ",";
+        }
+        csv << endl;
+    }
+}
+
+
+
+void AssemblyGraph::computeCompressedPseudoPath(
+    const span<PseudoPathEntry> pseudoPath,
+    vector<uint64_t>& compressedPseudoPath)
+{
+    // Start with an empty compressed pseudopath.
+    compressedPseudoPath.clear();
+
+    // Loop over the pseudopath.
+    for(uint64_t i=0; i<pseudoPath.size(); /* Increment later */) {
+        const PseudoPathEntry& pseudoPathEntry = pseudoPath[i];
+        const uint64_t segmentId = pseudoPathEntry.segmentId;
+
+        // Move to the end of the streak of pseudoPath entries with the same segmentId.
+        for(i++; i<pseudoPath.size() and (pseudoPath[i].segmentId == segmentId); i++) {
+        }
+
+        // Store this segmentId in the compressed pseudopath.
+        compressedPseudoPath.push_back(segmentId);
+
+    }
+}
+
+
 
 void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions>& transitionMap)
 {
@@ -398,6 +466,7 @@ AssemblyGraph::AssemblyGraph(
 
     // Compute pseudopaths of all oriented reads.
     computePseudoPaths(threadCount);
+    computeCompressedPseudoPaths();
 
     // Find pseudopath transitions and store them keyed by the pair of segments.
     std::map<SegmentPair, Transitions> transitionMap;
@@ -438,7 +507,9 @@ AssemblyGraph::AssemblyGraph(
     paths.accessExistingReadOnly(largeDataName("Mode3-Paths"));
     segmentCoverage.accessExistingReadOnly(
         largeDataName("Mode3-SegmentCoverage"));
-    markerGraphEdgeTable.accessExistingReadOnly(largeDataName("mode3-MarkerGraphEdgeTable"));
+    markerGraphEdgeTable.accessExistingReadOnly(largeDataName("Mode3-MarkerGraphEdgeTable"));
+    compressedPseudoPaths.accessExistingReadOnly(
+        largeDataName("Mode3-CompressedPseudoPaths"));
     links.accessExistingReadOnly(largeDataName("Mode3-Links"));
     transitions.accessExistingReadOnly(largeDataName("Mode3-Transitions"));
     linksBySource.accessExistingReadOnly(largeDataName("Mode3-LinksBySource"));
