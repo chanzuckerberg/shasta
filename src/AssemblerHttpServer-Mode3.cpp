@@ -274,7 +274,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
     const MarkerGraph::VertexId vertexId0 = markerGraph.edges[path0.back().edgeId].target;
     const MarkerGraph::VertexId vertexId1 = markerGraph.edges[path1.front().edgeId].source;
 
-    const double linkSeparation = mode3::linkSeparation(transitions, pathLength0);
+    const double linkSeparation = mode3::AssemblyGraph::linkSeparation(transitions, pathLength0);
 
     html <<
         "<h1>Assembly graph link " << linkId << "</h1>"
@@ -317,7 +317,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
 
     for(const auto& p: transitions) {
         const OrientedReadId orientedReadId = p.first;
-        const Transition& transition = p.second;
+        const mode3::AssemblyGraph::Transition& transition = p.second;
         const auto& pseudoPathEntry0 = transition[0];
         const auto& pseudoPathEntry1 = transition[1];
 

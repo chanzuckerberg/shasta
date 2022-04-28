@@ -1015,7 +1015,7 @@ double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 
     // Now we can compute the link separation.
     const uint64_t linkId = localAssemblyGraph[e].linkId;
-    return mode3::linkSeparation(assemblyGraph.transitions[linkId], pathLength0);
+    return mode3::AssemblyGraph::linkSeparation(assemblyGraph.transitions[linkId], pathLength0);
 
 }
 

@@ -35,22 +35,15 @@ namespace shasta {
 
         class AssemblyGraph;
         class Link;
-        class LocalAssemblyGraph;
-        class LocalAssemblyGraphEdge;
-        class LocalAssemblyGraphVertex;
         class MarkerGraphEdgeInfo;
-        class PseudoPathEntry;
-        class Transition;
         class VirtualMarkerGraphEdge;
 
-        template<class Container> double linkSeparation(
-            const Container& transitions,
-            uint64_t pathLength0);
     }
 
+    // Some forward declarations of classes in the shasta namespace.
     class CompressedMarker;
     class MarkerGraph;
-    class ReadFlags;
+}
 
 
 
@@ -59,33 +52,6 @@ namespace shasta {
 class shasta::mode3::VirtualMarkerGraphEdge {
 public:
     array<MarkerGraphVertexId, 2> vertices;
-};
-
-
-
-
-// An entry of the pseudo-path of an oriented read in the AssemblyGraph.
-class shasta::mode3::PseudoPathEntry {
-public:
-    uint64_t segmentId;
-    uint32_t position;
-    array<uint32_t, 2> ordinals;
-
-    bool operator<(const PseudoPathEntry& that) const
-    {
-        return ordinals[0] < that.ordinals[0];
-    }
-};
-
-
-
-// A Transition occurs when the pseudopath of an oriented read
-// moves from a Segment to a different segment.
-// Transitions are used to create edges (gfa links).
-class shasta::mode3::Transition : public array<PseudoPathEntry, 2> {
-public:
-    Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
-    Transition() {}
 };
 
 
@@ -144,8 +110,7 @@ public:
     size_t largeDataPageSize;
     string largeDataName(const string&) const;
 
-
-
+    // References to Assembler objects.
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 
@@ -166,10 +131,28 @@ public:
     void computeMarkerGraphEdgeTable(size_t threadCount);
     void computeMarkerGraphEdgeTableThreadFunction(size_t threadId);
 
-    // Compute pseudopaths for all oriented reads.
-    // The pseudopath of an oriented read is the
-    // sequence of MarkerIntervals it encounters.
-    // This is indexed by OrientedReadId::getValue();
+
+
+    // Pseudopaths for all oriented reads.
+    // The pseudopath of an oriented read is the sequence of
+    // marker graph edges it encounters.
+    // For each entry in the pseudopath, the marker graph
+    // edge is identified by the segmentId in the AssemblyGraph
+    // and the edge position in the segment (e. g. the first marker graph edge
+    // in the segment is at position 0).
+    // This is indexed by OrientedReadId::getValue().
+    // It gets removed when no longer needed.
+    class PseudoPathEntry {
+    public:
+        uint64_t segmentId;
+        uint32_t position;
+        array<uint32_t, 2> ordinals;
+
+        bool operator<(const PseudoPathEntry& that) const
+        {
+            return ordinals[0] < that.ordinals[0];
+        }
+    };
     MemoryMapped::VectorOfVectors<PseudoPathEntry, uint64_t> pseudoPaths;
     void computePseudoPaths(size_t threadCount);
     void computePseudoPathsPass1(size_t threadId);
@@ -177,11 +160,24 @@ public:
     void computePseudoPathsPass12(uint64_t pass);
     void sortPseudoPaths(size_t threadId);
 
+
+
+    // A pseudopath transition occurs when the pseudopath of an oriented read
+    // moves from a segment to a different segment.
+    // Transitions are used to create edges in the AssemblyGraph (gfa links).
+    class Transition : public array<PseudoPathEntry, 2> {
+    public:
+        Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
+        Transition() {}
+    };
+
     // Find pseudopath transitions and store them keyed by the pair of segments.
     using SegmentPair = pair<uint64_t, uint64_t>;
     using Transitions = vector< pair<OrientedReadId, Transition> >;
     std::map<SegmentPair, Transitions> transitionMap;
     void findTransitions(std::map<SegmentPair, Transitions>& transitionMap);
+
+
 
     // The links.
     MemoryMapped::Vector<Link> links;
@@ -357,36 +353,36 @@ public:
     void clusterSegmentsThreadFunction1(size_t threadId);
     MemoryMapped::Vector<uint64_t> clusterIds;
 
+
+
+    // Compute link separation given a set of Transitions.
+    template<class Container> static double linkSeparation(
+        const Container& transitions,
+        uint64_t pathLength0)
+    {
+        double averageLinkSeparation = 0.;
+
+        for(const pair<OrientedReadId, Transition>& p: transitions) {
+            const Transition& transition = p.second;
+            const auto& pseudoPathEntry0 = transition[0];
+            const auto& pseudoPathEntry1 = transition[1];
+
+            SHASTA_ASSERT(pseudoPathEntry1.ordinals[0] >= pseudoPathEntry0.ordinals[1]);
+
+            const int64_t linkSeparation =
+                int64_t(pseudoPathEntry1.ordinals[0] - pseudoPathEntry0.ordinals[1]) -
+                int64_t(pathLength0 - 1 - pseudoPathEntry0.position) -
+                int64_t(pseudoPathEntry1.position);
+            averageLinkSeparation += double(linkSeparation);
+        }
+        averageLinkSeparation /= double(transitions.size());
+
+        return averageLinkSeparation;
+    }
 };
 
 
 
-// Generic function to compute link separation.
-// Compute link separation given a set of Transitions
-template<class Container> double shasta::mode3::linkSeparation(
-    const Container& transitions,
-    uint64_t pathLength0)
-{
-    double averageLinkSeparation = 0.;
-
-    for(const pair<OrientedReadId, Transition>& p: transitions) {
-        const Transition& transition = p.second;
-        const auto& pseudoPathEntry0 = transition[0];
-        const auto& pseudoPathEntry1 = transition[1];
-
-        SHASTA_ASSERT(pseudoPathEntry1.ordinals[0] >= pseudoPathEntry0.ordinals[1]);
-
-        const int64_t linkSeparation =
-            int64_t(pseudoPathEntry1.ordinals[0] - pseudoPathEntry0.ordinals[1]) -
-            int64_t(pathLength0 - 1 - pseudoPathEntry0.position) -
-            int64_t(pseudoPathEntry1.position);
-        averageLinkSeparation += double(linkSeparation);
-    }
-    averageLinkSeparation /= double(transitions.size());
-
-    return averageLinkSeparation;
-}
-}
 
 #endif
 
