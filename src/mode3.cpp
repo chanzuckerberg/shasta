@@ -960,10 +960,6 @@ void AssemblyGraph::clusterSegments(size_t threadCount, uint64_t minClusterSize)
 
 void AssemblyGraph::clusterSegmentsThreadFunction1(size_t threadId)
 {
-    // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
-    const uint64_t maxDistance = 20;
-    const uint64_t minCommonReadCount = 4;
-    const double maxUnexplainedFraction = 0.15;
 
     auto& threadPairs = clusterSegmentsData.threadPairs[threadId];
     threadPairs.clear();
@@ -975,28 +971,51 @@ void AssemblyGraph::clusterSegmentsThreadFunction1(size_t threadId)
 
         // Loop over segments assigned to this batch.
         for(uint64_t segmentId0=begin; segmentId0!=end; ++segmentId0) {
-            findDescendants(segmentId0, maxDistance, descendants);
 
-            // Check all the descendants.
-            for(const uint64_t segmentId1: descendants) {
-                SegmentPairInformation info;
-                analyzeSegmentPair(segmentId0, segmentId1,
-                    segmentOrientedReadInformation[segmentId0],
-                    segmentOrientedReadInformation[segmentId1],
-                    markers, info);
-                if(info.commonCount < minCommonReadCount) {
-                    continue;
-                }
-                if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
-                    continue;
-                }
-                pair<uint64_t, uint64_t> segmentPair(segmentId0, segmentId1);
-                if(segmentPair.first > segmentPair.second) {
-                    swap(segmentPair.first, segmentPair.second);
-                }
-                threadPairs.push_back(segmentPair);
+            // Add pairs for which the lowest numbered segment is segmentId0.
+            addClusterPairs(threadId, segmentId0);
+        }
+    }
+}
 
+
+
+void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t segmentId0)
+{
+    // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
+    const uint64_t minCommonReadCount = 4;
+    const double maxUnexplainedFraction = 0.15;
+
+    // Loop over oriented reads in segmentId0.
+    for(const auto& info: segmentOrientedReadInformation[segmentId0].infos) {
+        const OrientedReadId orientedReadId = info.orientedReadId;
+
+        // I NEED TO STORE A VECTOR OF segmentId1 and deduplicate.
+
+        // Loop over the compressed pseudopath of this oriented read.
+        const span<uint64_t> compressedPseudoPath = compressedPseudoPaths[orientedReadId.getValue()];
+        for(const uint64_t segmentId1: compressedPseudoPath) {
+
+            // Find each pair once.
+            if(segmentId1 <= segmentId0) {
+                continue;
             }
+
+            // Check the pair (segmentId0, segmentId1).
+            SegmentPairInformation info;
+            analyzeSegmentPair(segmentId0, segmentId1,
+                segmentOrientedReadInformation[segmentId0],
+                segmentOrientedReadInformation[segmentId1],
+                markers, info);
+            if(info.commonCount < minCommonReadCount) {
+                continue;
+            }
+            if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
+                continue;
+            }
+
+            // Store it.
+            clusterSegmentsData.threadPairs[threadId].push_back(make_pair(segmentId0, segmentId1));
         }
     }
 }

@@ -329,6 +329,7 @@ public:
     };
     ClusterSegmentsData clusterSegmentsData;
     void clusterSegmentsThreadFunction1(size_t threadId);
+    void addClusterPairs(size_t threadId, uint64_t segmentId0);
     MemoryMapped::Vector<uint64_t> clusterIds;
 
 
