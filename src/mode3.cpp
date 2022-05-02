@@ -15,6 +15,7 @@ using namespace mode3;
 #include <boost/pending/disjoint_sets.hpp>
 
 // Standard library.
+#include <unordered_set>
 #include <map>
 #include <queue>
 #include <set>
@@ -980,17 +981,18 @@ void AssemblyGraph::clusterSegmentsThreadFunction1(size_t threadId)
 
 
 
+#if 0
 void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t segmentId0)
 {
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
-    const uint64_t minCommonReadCount = 4;
-    const double maxUnexplainedFraction = 0.15;
+    const uint64_t minCommonReadCount = 6;
+    const double maxUnexplainedFraction = 0.05;
 
     // Loop over oriented reads in segmentId0.
+    std::unordered_set<uint64_t> segmentId1s;
     for(const auto& info: segmentOrientedReadInformation[segmentId0].infos) {
         const OrientedReadId orientedReadId = info.orientedReadId;
 
-        // I NEED TO STORE A VECTOR OF segmentId1 and deduplicate.
 
         // Loop over the compressed pseudopath of this oriented read.
         const span<uint64_t> compressedPseudoPath = compressedPseudoPaths[orientedReadId.getValue()];
@@ -1000,22 +1002,111 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t segmentId0)
             if(segmentId1 <= segmentId0) {
                 continue;
             }
+            segmentId1s.insert(segmentId1);
+        }
+    }
 
-            // Check the pair (segmentId0, segmentId1).
-            SegmentPairInformation info;
-            analyzeSegmentPair(segmentId0, segmentId1,
-                segmentOrientedReadInformation[segmentId0],
-                segmentOrientedReadInformation[segmentId1],
-                markers, info);
-            if(info.commonCount < minCommonReadCount) {
-                continue;
-            }
-            if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
-                continue;
+
+
+    // Check the pairs (segmentId0, segmentId1) we found.
+    for(const uint64_t segmentId1: segmentId1s) {
+        SegmentPairInformation info;
+        analyzeSegmentPair(segmentId0, segmentId1,
+            segmentOrientedReadInformation[segmentId0],
+            segmentOrientedReadInformation[segmentId1],
+            markers, info);
+        if(info.commonCount < minCommonReadCount) {
+            continue;
+        }
+        if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
+            continue;
+        }
+
+        // Store it.
+        clusterSegmentsData.threadPairs[threadId].push_back(make_pair(segmentId0, segmentId1));
+    }
+}
+#endif
+
+
+
+void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
+{
+    // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
+    const uint64_t minCommonReadCount = 3;
+    const double maxUnexplainedFraction = 0.1;
+    const uint64_t pairCountPerSegment = 1;
+    const uint64_t maxDistance = 100;
+
+    // std::lock_guard<std::mutex> lock(mutex);    // *********** TAKE OUT
+
+    // Do a BFS and check each pair as we encounter it.
+    // The BFS terminates when we found enough pairs.
+
+    // Do the BFS in both directions.
+    for(uint64_t direction=0; direction<2; direction++) {
+        // cout << startSegmentId << " direction " << direction << endl;
+
+        // Initialize the BFS.
+        std::queue<uint64_t> q;
+        q.push(startSegmentId);
+        std::map<uint64_t, uint64_t> distanceMap;
+        distanceMap.insert(make_pair(startSegmentId, 0));
+        uint64_t foundCount = 0;
+
+        // BFS loop.
+        while(not q.empty()) {
+            const uint64_t segmentId0 = q.front();
+            // cout << "Dequeued " << segmentId0 << endl;
+            q.pop();
+
+            const uint64_t distance0 = distanceMap[segmentId0];
+            const uint64_t distance1 = distance0 + 1;
+
+            // Loop over children or parents of segmentId0.
+            const auto neighbors = (direction == 0) ? linksBySource[segmentId0] : linksByTarget[segmentId0];
+            for(const uint64_t linkId01: neighbors) {
+                const Link& link01 = links[linkId01];
+                const uint64_t segmentId1 = (direction==0) ? link01.segmentId1 : link01.segmentId0;
+
+                // If we already encountered segmentId1, skip it.
+                if(distanceMap.find(segmentId1) != distanceMap.end()) {
+                    continue;
+                }
+
+                // Enqueue it.
+                if(distance1 < maxDistance) {
+                    q.push(segmentId1);
+                }
+                distanceMap.insert(make_pair(segmentId1, distance1));
+
+                // cout << "Found " << segmentId1 << endl;
+
+                // Check the pair (startSegmentId, segmentId1).
+                SegmentPairInformation info;
+                analyzeSegmentPair(startSegmentId, segmentId1,
+                    segmentOrientedReadInformation[startSegmentId],
+                    segmentOrientedReadInformation[segmentId1],
+                    markers, info);
+                if(info.commonCount < minCommonReadCount) {
+                    continue;
+                }
+                if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
+                    continue;
+                }
+
+                // Store it.
+                // cout << "Stored " << segmentId1 << endl;
+                clusterSegmentsData.threadPairs[threadId].push_back(make_pair(startSegmentId, segmentId1));
+                ++foundCount;
+                if(foundCount >= pairCountPerSegment) {
+                    break;
+                }
             }
 
-            // Store it.
-            clusterSegmentsData.threadPairs[threadId].push_back(make_pair(segmentId0, segmentId1));
+            if(foundCount >= pairCountPerSegment) {
+                break;
+            }
         }
     }
 }
