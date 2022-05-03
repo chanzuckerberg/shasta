@@ -1043,6 +1043,385 @@ mode2.bubbleRemoval.minConcordantReadCount = 2
 
 
 
+)zzz"},
+    {"Nanopore-May2022", R"zzz(# This is known to work at least under the following conditions:
+# - Oxford Nanopore Ultra-Long reads.
+# - Human genomes.
+# - Guppy 5 base caller or newer with "super" accuracy.
+# - Coverage 40x to 80x. If you have more coverage, 
+#   adjust --Reads.minReadLength or --Reads.desiredCoverage
+#   to bring coverage down to this range.
+
+# Under the above conditions, this should give an assembly with
+# N50 in the tens of Mb.
+
+
+[Reads]
+minReadLength = 10000
+noCache = True
+
+[Kmers]
+k = 14
+
+[MinHash]
+minBucketSize = 5
+maxBucketSize = 30
+minFrequency = 5
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+# The following Align parameters are set to very permissive values to allow the majority of alignments
+# to be assessed during the initial stage of automatic alignment parameter selection
+# (ReadGraph.creationMethod 2).
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+
+[ReadGraph]
+# This uses the observed distribution of alignment statistics to choose thresholds for
+# maxSkip, maxDrift, maxTrim, minAlignedMarkerCount, and minAlignedFraction
+creationMethod = 2
+
+[MarkerGraph]
+simplifyMaxLength = 10,100,1000,10000,100000
+crossEdgeCoverageThreshold = 3
+
+# Adaptive estimation of coverage threshold to generate marker graph vertices.
+minCoverage = 0
+
+[Assembly]
+consensusCaller = Bayesian:guppy-5.0.7-b
+detangleMethod = 2
+
+
+)zzz"},
+    {"Nanopore-Phased-May2022", R"zzz(
+
+# This is known to work at least under the following conditions:
+# - Phased assembly.
+# - Oxford Nanopore Ultra-Long reads.
+# - Human genomes.
+# - Guppy 5 base caller or newer with "super" accuracy.
+# - Coverage 40x to 80x. If you have more coverage, 
+#   adjust --Reads.minReadLength or --Reads.desiredCoverage
+#   to bring coverage down to this range.
+
+
+
+[Reads]
+# Read length. Adjust as necessary,
+# or use desiredCoverage option to get coverage 
+# around 40x to 80x.
+minReadLength = 10000
+
+noCache = True
+
+
+
+[MinHash]
+minBucketSize = 5
+maxBucketSize = 30
+minFrequency = 5
+
+
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+# Permissive alignment criteria as required for read graph creation method 2.
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+
+
+
+[ReadGraph]
+
+# Automatic adjustment of alignment criteria.
+creationMethod = 2
+
+# Strict strand separation is required for Mode 2 (phased) assembly.
+strandSeparationMethod = 2
+
+maxAlignmentCount = 6
+
+
+
+[MarkerGraph]
+minCoverage = 6
+minCoveragePerStrand = 1
+minEdgeCoverage = 6
+minEdgeCoveragePerStrand = 1
+
+
+
+[Assembly]
+mode = 2
+consensusCaller = Bayesian:guppy-5.0.7-b
+pruneLength = 100
+mode2.bubbleRemoval.minConcordantReadCount = 2
+
+
+
+
+
+)zzz"},
+    {"Nanopore-UL-May2022", R"zzz(# This is known to work at least under the following conditions:
+# - Oxford Nanopore Ultra-Long (UL) reads with read N50 50 Kb or more.
+# - Guppy 5 base caller or newer with "super" accuracy.
+# - Human genome.
+# - Coverage 60x to 80x. If you have more coverage, 
+#   adjust --Reads.minReadLength or --Reads.desiredCoverage
+#   to bring coverage down to this range.
+#   For a human genome you can set --Reads.desiredCoverage 200G. 
+
+# Under the above conditions, this should give an assembly with
+# N50 in the tens of Mb.
+
+
+
+[Reads]
+minReadLength = 50000
+noCache = True
+
+[Kmers]
+k = 14
+
+[MinHash]
+minBucketSize = 10
+maxBucketSize = 50
+minFrequency = 5
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+# The following Align parameters are set to very permissive values to allow the majority of alignments
+# to be assessed during the initial stage of automatic alignment parameter selection
+# (ReadGraph.creationMethod 2).
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+
+[ReadGraph]
+# This uses the observed distribution of alignment statistics to choose thresholds for
+# maxSkip, maxDrift, maxTrim, minAlignedMarkerCount, and minAlignedFraction
+creationMethod = 2
+maxAlignmentCount = 12
+strandSeparationMethod = 2
+
+[MarkerGraph]
+simplifyMaxLength = 10,100,1000,10000,100000
+crossEdgeCoverageThreshold = 3
+
+# Adaptive estimation of coverage threshold to generate marker graph vertices.
+minCoverage = 0
+
+[Assembly]
+consensusCaller = Bayesian:guppy-5.0.7-b
+detangleMethod = 2
+
+
+)zzz"},
+    {"Nanopore-UL-Phased-May2022", R"zzz(
+# Configuration file that uses assembly mode 2
+# to create a phased diploid assembly using 
+# Nanopore Ultra-Long (UL) reads.
+
+# This is known to work at least under the following conditions:
+# - Oxford Nanopore Ultra-Long (UL) reads with read N50 50 Kb or more.
+# - Guppy 5 base caller with "super" accuracy.
+# - Human genome.
+# - Coverage 60x to 80x. If you have more coverage, 
+#   adjust --Reads.minReadLength or --Reads.desiredCoverage
+#   to bring coverage down to this range.
+#   For a human genome you can set --Reads.desiredCoverage 200G. 
+
+
+
+[Reads]
+# Read length cutoff for UL reads, adjust as necessary,
+# or use desiredCoverage option to get coverage 
+# around 40x to 80x.
+minReadLength = 50000
+noCache = True
+
+
+
+[MinHash]
+minBucketSize = 10
+maxBucketSize = 50
+minFrequency = 5
+
+
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+
+# Permissive alignment criteria as required for read graph creation method 2.
+maxSkip = 100
+maxDrift = 100
+maxTrim = 100
+minAlignedMarkerCount = 10
+minAlignedFraction = 0.1
+
+
+
+[ReadGraph]
+
+# Automatic adjustment of alignment criteria.
+creationMethod = 2
+
+# Strict strand separation is required for Mode 2 (phased) assembly.
+strandSeparationMethod = 2
+
+maxAlignmentCount = 12
+
+
+
+[MarkerGraph]
+minCoverage = 6
+minCoveragePerStrand = 1
+minEdgeCoverage = 6
+minEdgeCoveragePerStrand = 1
+
+
+
+[Assembly]
+mode = 2
+consensusCaller = Bayesian:guppy-5.0.7-b
+pruneLength = 100
+mode2.bubbleRemoval.minConcordantReadCount = 2
+
+
+
+
+
+)zzz"},
+    {"Nanopore-Human-SingleFlowcell-May2022", R"zzz(# Shasta assembly configuration specialized for human assemblies
+# at low coverage using a single flowcell of nanopore reads.
+# It is meant to be used under the following conditions:
+#
+# - Human genome.
+# - Nanopore reads, single flowcell (100-120 Gb of coverage or around 35x).
+# - Guppy 5.0.7 base caller or newer, with "super" accuracy.
+# - Read N50 around 30 Kb.
+# - Haploid assembly.
+
+
+
+[Reads]
+minReadLength = 10000
+noCache = True
+
+[Kmers]
+k = 14
+
+[MinHash]
+minBucketSize = 5
+maxBucketSize = 30
+minHashIterationCount = 100
+minFrequency = 5
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+maxSkip = 30
+maxDrift = 15
+maxTrim = 30
+minAlignedMarkerCount = 200
+minAlignedFraction = 0.6
+
+[ReadGraph]
+creationMethod = 0
+maxAlignmentCount = 12
+
+[MarkerGraph]
+simplifyMaxLength = 10,100,1000,10000,100000
+crossEdgeCoverageThreshold = 3
+
+# Adaptive estimation of coverage threshold to generate marker graph vertices.
+minCoverage = 0
+
+[Assembly]
+consensusCaller = Bayesian:guppy-5.0.7-b
+detangleMethod = 2
+
+)zzz"},
+    {"Nanopore-Human-SingleFlowcell-Phased-May2022", R"zzz(# Shasta assembly configuration specialized for phased diploid 
+# human assemblies at low coverage using
+# a single flowcell of nanopore reads.
+# Because of low coverage, it assembles relatively smalll diploid bubbles.
+# It is meant to be used under the following conditions:
+#
+# - Human genome.
+# - Nanopore reads, single flowcell (100-120 Gb of coverage or around 35x).
+# - Guppy 5.0.7 base caller or newer, with "super" accuracy.
+# - Read N50 around 30 Kb.
+# - Phased diploid assembly.
+
+
+
+[Reads]
+noCache = True
+
+[MinHash]
+minBucketSize = 5
+maxBucketSize = 30
+minHashIterationCount = 100
+minFrequency = 5
+
+[Align]
+alignMethod = 3
+downsamplingFactor = 0.05
+matchScore = 6
+sameChannelReadAlignment.suppressDeltaThreshold = 30
+maxSkip = 30
+maxDrift = 15
+maxTrim = 30
+minAlignedMarkerCount = 200
+minAlignedFraction = 0.6
+
+[ReadGraph]
+strandSeparationMethod = 2
+maxAlignmentCount = 12
+
+[MarkerGraph]
+minCoverage = 6
+minCoveragePerStrand = 1
+minEdgeCoverage = 6
+minEdgeCoveragePerStrand = 1
+
+[Assembly]
+mode = 2
+consensusCaller = Bayesian:guppy-5.0.7-b
+pruneLength = 100
+mode2.bubbleRemoval.minConcordantReadCount = 2
+
+
+
+
+
 )zzz"}
     };
 }
