@@ -1486,8 +1486,12 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
             "    \"Number of bubbles that describe a single SNP (total)\": " <<
             statistics.simpleSnpBubbleTransitionCount + statistics.simpleSnpBubbleTransversionCount << ",\n"
             "    \"Transition/transversion ratio for bubbles that describe a single SNP\": " <<
-            double(statistics.simpleSnpBubbleTransitionCount) /
-            double(statistics.simpleSnpBubbleTransversionCount) << ",\n"
+            (
+                // Make sure not to write a nan to json - it is not allowed.
+                (statistics.simpleSnpBubbleTransversionCount > 0) ?
+                (double(statistics.simpleSnpBubbleTransitionCount) / double(statistics.simpleSnpBubbleTransversionCount)) :
+                0.
+            ) << ",\n"
             "    \"Number of bubbles that describe indels or more than one SNP\": " <<
             statistics.nonSimpleSnpBubbleCount << "\n"
             "  },\n";
