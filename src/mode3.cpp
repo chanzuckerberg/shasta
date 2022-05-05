@@ -23,10 +23,11 @@ using namespace mode3;
 
 
 // Each  linear chain of marker graph edges generates a segment.
-void AssemblyGraph::createSegments()
+void AssemblyGraph::createSegmentPaths()
 {
     const bool debug = false;
 
+    createNew(paths, "Mode3-Paths");
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
     vector<bool> wasFound(edgeCount, false);
 
@@ -146,12 +147,12 @@ void AssemblyGraph::createSegments()
 
 
 // Compute coverage for all segments.
-// It is computed as aompute average marker graph edge coverage.
+// It is computed as average marker graph edge coverage
+// over the marker graph edges in the path of each segment.
 void AssemblyGraph::computeSegmentCoverage()
 {
     // Initialize segmentCoverage.
-    segmentCoverage.createNew(
-        largeDataName("Mode3-SegmentCoverage"), largeDataPageSize);
+    createNew(segmentCoverage, "Mode3-SegmentCoverage");
     const uint64_t segmentCount = paths.size();
     segmentCoverage.resize(segmentCount);
 
@@ -187,7 +188,7 @@ void AssemblyGraph::computeMarkerGraphEdgeTable(size_t threadCount)
 {
 
     // Initialize the marker graph edge table.
-    markerGraphEdgeTable.createNew(largeDataName("Mode3-MarkerGraphEdgeTable"), largeDataPageSize);
+    createNew(markerGraphEdgeTable, "Mode3-MarkerGraphEdgeTable");
     markerGraphEdgeTable.resize(markerGraph.edges.size());
     fill(markerGraphEdgeTable.begin(), markerGraphEdgeTable.end(), make_pair(
         std::numeric_limits<uint64_t>::max(),
@@ -230,9 +231,7 @@ void AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
 
 void AssemblyGraph::computePseudoPaths(size_t threadCount)
 {
-    pseudoPaths.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-mode3-PseudoPaths-1"),
-        largeDataPageSize);
+    createNew(pseudoPaths, "tmp-mode3-PseudoPaths-1");
 
     uint64_t batchSize = 1000;
     pseudoPaths.beginPass1(markers.size());
@@ -321,8 +320,7 @@ void AssemblyGraph::sortPseudoPaths(size_t threadId)
 void AssemblyGraph::computeCompressedPseudoPaths()
 {
     // Initialize the compressed pseudopaths.
-    compressedPseudoPaths.createNew(
-        largeDataName("Mode3-CompressedPseudoPaths"), largeDataPageSize);
+    createNew(compressedPseudoPaths, "Mode3-CompressedPseudoPaths");
 
     // Work vector defined outside the loop to reduce memory allocation overhead.
     vector<uint64_t> compressedPseudoPath;
@@ -419,12 +417,8 @@ void AssemblyGraph::createLinks(
     const std::map<SegmentPair, Transitions>& transitionMap,
     uint64_t minCoverage)
 {
-    links.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Links"),
-        largeDataPageSize);
-    transitions.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Transitions"),
-        largeDataPageSize);
+    createNew(links, "Mode3-Links");
+    createNew(transitions, "Mode3-Transitions");
     for(const auto& p: transitionMap) {
         const auto& transitionVector = p.second;
         const uint64_t coverage = transitionVector.size();
@@ -456,10 +450,7 @@ AssemblyGraph::AssemblyGraph(
     const uint64_t minCoverage = 2; // EXPOSE WHEN CODE STABILIZES
 
     // Create a segment for each linear chain of marker graph edges.
-    paths.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-Paths"),
-        largeDataPageSize);
-    createSegments();
+    createSegmentPaths();
     computeSegmentCoverage();
 
     // Keep track of the segment and position each marker graph edge corresponds to.
@@ -505,29 +496,23 @@ AssemblyGraph::AssemblyGraph(
     markers(markers),
     markerGraph(markerGraph)
 {
-    paths.accessExistingReadOnly(largeDataName("Mode3-Paths"));
-    segmentCoverage.accessExistingReadOnly(
-        largeDataName("Mode3-SegmentCoverage"));
-    markerGraphEdgeTable.accessExistingReadOnly(largeDataName("Mode3-MarkerGraphEdgeTable"));
-    compressedPseudoPaths.accessExistingReadOnly(
-        largeDataName("Mode3-CompressedPseudoPaths"));
-    links.accessExistingReadOnly(largeDataName("Mode3-Links"));
-    transitions.accessExistingReadOnly(largeDataName("Mode3-Transitions"));
-    linksBySource.accessExistingReadOnly(largeDataName("Mode3-LinksBySource"));
-    linksByTarget.accessExistingReadOnly(largeDataName("Mode3-LinksByTarget"));
-    clusterIds.accessExistingReadOnly(largeDataName("Mode3-ClusterIds"));
+    accessExistingReadOnly(paths, "Mode3-Paths");
+    accessExistingReadOnly(segmentCoverage, "Mode3-SegmentCoverage");
+    accessExistingReadOnly(markerGraphEdgeTable, "Mode3-MarkerGraphEdgeTable");
+    accessExistingReadOnly(compressedPseudoPaths, "Mode3-CompressedPseudoPaths");
+    accessExistingReadOnly(links, "Mode3-Links");
+    accessExistingReadOnly(transitions, "Mode3-Transitions");
+    accessExistingReadOnly(linksBySource, "Mode3-LinksBySource");
+    accessExistingReadOnly(linksByTarget, "Mode3-LinksByTarget");
+    accessExistingReadOnly(clusterIds, "Mode3-ClusterIds");
 }
 
 
 
 void AssemblyGraph::createConnectivity()
 {
-    linksBySource.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-LinksBySource"),
-        largeDataPageSize);
-    linksByTarget.createNew(
-        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "Mode3-LinksByTarget"),
-        largeDataPageSize);
+    createNew(linksBySource, "Mode3-LinksBySource");
+    createNew(linksByTarget, "Mode3-LinksByTarget");
 
     linksBySource.beginPass1(links.size());
     linksByTarget.beginPass1(links.size());
@@ -936,7 +921,7 @@ void AssemblyGraph::clusterSegments(size_t threadCount, uint64_t minClusterSize)
 
 
     // Store the cluster id of each segment.
-    clusterIds.createNew(largeDataName("Mode3-ClusterIds"), largeDataPageSize);
+    createNew(clusterIds, "Mode3-ClusterIds");
     clusterIds.resize(segmentCount);
     fill(clusterIds.begin(), clusterIds.end(), std::numeric_limits<uint64_t>::max());
     for(uint64_t clusterId=0; clusterId<clusterTable.size(); clusterId++) {

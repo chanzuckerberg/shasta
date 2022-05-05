@@ -62,26 +62,37 @@ public:
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
+    // Data and functions to handle memory mapped data.
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
     string largeDataName(const string&) const;
+    template<class T> void createNew(T& t, const string& name)
+    {
+        t.createNew(largeDataName(name), largeDataPageSize);
+    }
+    template<class T> void accessExistingReadOnly(T& t, const string& name)
+    {
+        t.accessExistingReadOnly(largeDataName(name));
+    }
 
     // References to Assembler objects.
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 
-    // The marker graph paths corresponding to each segment.
-    // Indexed by segment id.
+    // Each  linear chain of marker graph edges generates a segment.
+    // The marker graph path corresponding to each segment is stored
+    // indexed by segment id.
     MemoryMapped::VectorOfVectors<MarkerGraphEdgeId, uint64_t> paths;
-    void createSegments();
+    void createSegmentPaths();
 
     // Average marker graph edge coverage for all segments.
     MemoryMapped::Vector<float> segmentCoverage;
     void computeSegmentCoverage();
 
+    // Keep track of the segment and position each marker graph edge corresponds to.
     // For each marker graph edge, store in the marker graph edge table
-    // the corresponding (segment)
-    // and position in the path, if any.
+    // the corresponding segment id and position in the path, if any.
+    // Indexed by the edge id in the marker graph.
     // This is needed when computing pseudopaths.
     MemoryMapped::Vector< pair<uint64_t, uint32_t> > markerGraphEdgeTable;
     void computeMarkerGraphEdgeTable(size_t threadCount);
