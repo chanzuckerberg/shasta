@@ -986,7 +986,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t segmentId0)
 {
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
     const uint64_t minCommonReadCount = 6;
-    const double maxUnexplainedFraction = 0.05;
+    const double maxUnexplainedFraction = 0.1;
 
     // Loop over oriented reads in segmentId0.
     std::unordered_set<uint64_t> segmentId1s;
@@ -1026,17 +1026,17 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t segmentId0)
         clusterSegmentsData.threadPairs[threadId].push_back(make_pair(segmentId0, segmentId1));
     }
 }
-#endif
+#else
 
 
 
 void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
 {
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
-    const uint64_t minCommonReadCount = 3;
+    const uint64_t minCommonReadCount = 6;
     const double maxUnexplainedFraction = 0.1;
     const uint64_t pairCountPerSegment = 1;
-    const uint64_t maxDistance = 100;
+    const uint64_t maxDistance = 50;
 
     // std::lock_guard<std::mutex> lock(mutex);    // *********** TAKE OUT
 
@@ -1110,7 +1110,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
         }
     }
 }
-
+#endif
 
 
 // Find descendants of a given segment, up to a given distance in the graph.

@@ -10,7 +10,7 @@ void Assembler::mode3Assembly(
     size_t threadCount)
 {
     // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t minClusterSize = 10;
+    const uint64_t minClusterSize = 3;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
