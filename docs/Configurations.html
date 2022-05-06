@@ -72,11 +72,11 @@ For example, configuration <code>Nanopore-Oct2021</code>
 can be specified in one of two ways:
 
 <pre>
-shasta --config Nanopore-Oct2021
+shasta --config Nanopore-May2022
 </pre>
 or
 <pre>
-shasta --config .../shasta/conf/Nanopore-Oct2021.conf
+shasta --config .../shasta/conf/Nanopore-May2022.conf
 </pre>
 
 When using the second form, the file must be available,
@@ -92,7 +92,7 @@ use Shasta command <code>listConfigurations</code> as follows:
 shasta --command listConfigurations
 </pre>
 
-At the time of writing (January 2022), this outputs the following
+At the time of writing (May 2022), this outputs the following
 list of built-in configurations:
 
 <pre>
@@ -111,34 +111,47 @@ HiFi-Oct2021
 Nanopore-UL-Jan2022
 Nanopore-Phased-Jan2022
 Nanopore-UL-Phased-Jan2022
+Nanopore-May2022
+Nanopore-Phased-May2022
+Nanopore-UL-May2022
+Nanopore-UL-Phased-May2022
+Nanopore-Human-SingleFlowcell-May2022
+Nanopore-Human-SingleFlowcell-Phased-May2022
+
 </pre>
 
 <p>
 The following table summarizes configurations 
-recommended at the time of writing (January 2022)
+recommended at the time of writing (May 2022)
 under the following conditions:
 <ul>
 <li>Human assemblies
 <li>Oxford Nanopore reads.
 <li>Guppy 5.0.7 with "super" accuracy.
-<li>Coverage &#x2245; 60x.
 </ul>
 
-Three of these four configurations will first be available in 
-Shasta release 0.9.0.
+These configurations will first be available in 
+Shasta release 0.10.0.
 
 <p>
 <table>
-<tr><td><th>Haploid assembly<th>Phased assembly
-<tr><th>Standard reads
-<td class=centered>Nanopore-Oct2021
-<td class=centered>Nanopore-Phased-Jan2022
+<tr><th>Read type<th>Coverage<th>Haploid assembly<th>Phased assembly
 
+<tr><th>Standard reads<th>40x to 80x
+<td class=centered><code>Nanopore-May2022</code>
+<td class=centered><code>Nanopore-Phased-May2022</code>
 
 <tr><th class=centered>Ultra-Long (UL) reads
 <br>(N<sub>50</sub> &#x2273; 60 Kb)
-<td class=centered>Nanopore-UL-Jan2022
-<td class=centered>Nanopore-UL-Phased-Jan2022
+<th>40x to 80x
+<td class=centered><code>Nanopore-UL-May2022</code>
+<td class=centered><code>Nanopore-UL-Phased-May2022</code>
+
+<tr><th>Standard reads<th>Human genome with a single flowcell
+(low coverage, around 30x)
+<td class=centered><code>Nanopore-Human-SingleFlowcell-May2022</code>
+<td class=centered><code>Nanopore-Human-SingleFlowcell-Phased-May2022</code>
+
 
 </table>
 
@@ -149,7 +162,7 @@ use Shasta command <code>listConfiguration</code> as follows,
 specifiying the built-in configuration of interest after <code>--config</code>:
 
 <pre>
-shasta --command listConfiguration --config Nanopore-Oct2021
+shasta --command listConfiguration --config Nanopore-May2022
 </pre>
 
 <p>
