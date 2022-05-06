@@ -323,7 +323,7 @@ void AssemblyGraph::computeCompressedPseudoPaths()
     createNew(compressedPseudoPaths, "Mode3-CompressedPseudoPaths");
 
     // Work vector defined outside the loop to reduce memory allocation overhead.
-    vector<uint64_t> compressedPseudoPath;
+    vector<CompressedPseudoPathEntry> compressedPseudoPath;
 
     // Loop over all oriented reads.
     for(uint64_t i=0; i<pseudoPaths.size(); i++) {
@@ -346,11 +346,11 @@ void AssemblyGraph::computeCompressedPseudoPaths()
         const ReadId readId = ReadId(i >> 1);
         const Strand strand = i & 1;
         const OrientedReadId orientedReadId(readId, strand);
-        const span<uint64_t> compressedPseudoPath = compressedPseudoPaths[i];
+        const span<CompressedPseudoPathEntry> compressedPseudoPath = compressedPseudoPaths[i];
 
         csv << orientedReadId << ",";
-        for(const uint64_t segmentId: compressedPseudoPath) {
-            csv << segmentId << ",";
+        for(const CompressedPseudoPathEntry entry: compressedPseudoPath) {
+            csv << entry.segmentId << ",";
         }
         csv << endl;
     }
@@ -360,7 +360,7 @@ void AssemblyGraph::computeCompressedPseudoPaths()
 
 void AssemblyGraph::computeCompressedPseudoPath(
     const span<PseudoPathEntry> pseudoPath,
-    vector<uint64_t>& compressedPseudoPath)
+    vector<CompressedPseudoPathEntry>& compressedPseudoPath)
 {
     // Start with an empty compressed pseudopath.
     compressedPseudoPath.clear();
@@ -375,7 +375,9 @@ void AssemblyGraph::computeCompressedPseudoPath(
         }
 
         // Store this segmentId in the compressed pseudopath.
-        compressedPseudoPath.push_back(segmentId);
+        CompressedPseudoPathEntry compressedPseudoPathEntry;
+        compressedPseudoPathEntry.segmentId = segmentId;
+        compressedPseudoPath.push_back(compressedPseudoPathEntry);
 
     }
 }

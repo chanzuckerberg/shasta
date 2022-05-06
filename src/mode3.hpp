@@ -131,11 +131,16 @@ public:
 
     // The compressed pseudopath of an oriented read
     // is the sequence of segmentIds it encounters.
-    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> compressedPseudoPaths;
+    class CompressedPseudoPathEntry {
+    public:
+        uint64_t segmentId;
+    };
+    // Indexed by OrientedReadId::getValue().
+    MemoryMapped::VectorOfVectors<CompressedPseudoPathEntry, uint64_t> compressedPseudoPaths;
     void computeCompressedPseudoPaths();
     void computeCompressedPseudoPath(
         const span<PseudoPathEntry> pseudoPath,
-        vector<uint64_t>& compressedPseudoPath);
+        vector<CompressedPseudoPathEntry>& compressedPseudoPath);
 
 
 
