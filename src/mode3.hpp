@@ -137,17 +137,9 @@ public:
     public:
         uint64_t segmentId;
 
-        // The positions in the path for this segment of
-        // the first and last marker graph edge on which
-        // the oriented read appears.
-        array<uint32_t, 2> position;
-
-        // The corresponding first and last ordinals.
-        // ordinals[0] is the ordinal in the oriented read
-        // of the SOURCE vertex of the marker graph edge identified by position[0].
-        // ordinals[1] is the ordinal in the oriented read
-        // of the TARGET vertex of the marker graph edge identified by position[1].
-        array<uint32_t, 2> ordinals;
+        // The first and last PseudoPathEntry's that contributed to this
+        // CompressedPseudoPathEntry.
+        array<PseudoPathEntry, 2> pseudoPathEntries;
     };
     // Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<CompressedPseudoPathEntry, uint64_t> compressedPseudoPaths;
