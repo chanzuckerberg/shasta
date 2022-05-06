@@ -231,6 +231,8 @@ void AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
 
 void AssemblyGraph::computePseudoPaths(size_t threadCount)
 {
+    const bool debug = false;
+
     createNew(pseudoPaths, "tmp-mode3-PseudoPaths-1");
 
     uint64_t batchSize = 1000;
@@ -245,6 +247,24 @@ void AssemblyGraph::computePseudoPaths(size_t threadCount)
     batchSize = 100;
     setupLoadBalancing(pseudoPaths.size(), batchSize);
     runThreads(&AssemblyGraph::sortPseudoPaths, threadCount);
+
+    if(debug) {
+        ofstream csv("PseudoPaths.csv");
+        csv << "OrientedReadId,SegmentId,Position,ordinal0,Ordinal1\n";
+        for(uint64_t i=0; i<markers.size(); i++) {
+            const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(i));
+            const auto pseudoPath = pseudoPaths[i];
+            for(uint64_t position=0; position<pseudoPath.size(); position++) {
+                const auto& entry = pseudoPath[position];
+                csv << orientedReadId << ",";
+                csv << entry.segmentId << ",";
+                csv << entry.position << ",";
+                csv << entry.ordinals[0] << ",";
+                csv << entry.ordinals[1] << "\n";
+            }
+        }
+
+    }
 }
 
 
@@ -319,6 +339,8 @@ void AssemblyGraph::sortPseudoPaths(size_t threadId)
 // to the beginning of the segment, in markers.
 void AssemblyGraph::computeCompressedPseudoPaths()
 {
+    const bool debug = false;
+
     // Initialize the compressed pseudopaths.
     createNew(compressedPseudoPaths, "Mode3-CompressedPseudoPaths");
 
@@ -341,19 +363,48 @@ void AssemblyGraph::computeCompressedPseudoPaths()
 
 
     // Write them out.
-    ofstream csv("CompressedPseudoPaths.csv");
-    for(uint64_t i=0; i<pseudoPaths.size(); i++) {
-        const ReadId readId = ReadId(i >> 1);
-        const Strand strand = i & 1;
-        const OrientedReadId orientedReadId(readId, strand);
-        const span<CompressedPseudoPathEntry> compressedPseudoPath = compressedPseudoPaths[i];
+    if(debug) {
+        ofstream csv("CompressedPseudoPaths.csv");
+        for(uint64_t i=0; i<pseudoPaths.size(); i++) {
+            const ReadId readId = ReadId(i >> 1);
+            const Strand strand = i & 1;
+            const OrientedReadId orientedReadId(readId, strand);
+            const span<CompressedPseudoPathEntry> compressedPseudoPath = compressedPseudoPaths[i];
 
-        csv << orientedReadId << ",";
-        for(const CompressedPseudoPathEntry entry: compressedPseudoPath) {
-            csv << entry.segmentId << ",";
+            csv << orientedReadId << ",";
+            for(const CompressedPseudoPathEntry entry: compressedPseudoPath) {
+                csv << entry.segmentId << ",";
+            }
+            csv << endl;
         }
-        csv << endl;
     }
+
+
+
+    // Write them out again, with more details.
+    if(debug) {
+        ofstream csv("CompressedPseudoPathsDetails.csv");
+        csv << "OrientedReadId,Position,SegmentId,Position0,Position1,Ordinal0,Ordinal1\n";
+        for(uint64_t i=0; i<pseudoPaths.size(); i++) {
+            const ReadId readId = ReadId(i >> 1);
+            const Strand strand = i & 1;
+            const OrientedReadId orientedReadId(readId, strand);
+            const span<CompressedPseudoPathEntry> compressedPseudoPath = compressedPseudoPaths[i];
+
+            for(uint64_t position=0; position<compressedPseudoPath.size(); position++) {
+                const CompressedPseudoPathEntry& entry = compressedPseudoPath[position];
+                csv << orientedReadId << ",";
+                csv << position << ",";
+                csv << entry.segmentId << ",";
+                csv << entry.position[0] << ",";
+                csv << entry.position[1] << ",";
+                csv << entry.ordinals[0] << ",";
+                csv << entry.ordinals[1] << "\n";
+            }
+        }
+    }
+
+
 }
 
 
@@ -366,19 +417,27 @@ void AssemblyGraph::computeCompressedPseudoPath(
     compressedPseudoPath.clear();
 
     // Loop over the pseudopath.
-    for(uint64_t i=0; i<pseudoPath.size(); /* Increment later */) {
+    for(uint32_t i=0; i<pseudoPath.size(); /* Increment later */) {
         const PseudoPathEntry& pseudoPathEntry = pseudoPath[i];
         const uint64_t segmentId = pseudoPathEntry.segmentId;
 
         // Move to the end of the streak of pseudoPath entries with the same segmentId.
-        for(i++; i<pseudoPath.size() and (pseudoPath[i].segmentId == segmentId); i++) {
+        const uint32_t streakBegin = i;
+        uint32_t streakEnd = streakBegin + 1;
+        for(; streakEnd<pseudoPath.size() and (pseudoPath[streakEnd].segmentId == segmentId); streakEnd++) {
         }
 
         // Store this segmentId in the compressed pseudopath.
         CompressedPseudoPathEntry compressedPseudoPathEntry;
         compressedPseudoPathEntry.segmentId = segmentId;
+        compressedPseudoPathEntry.position[0] = pseudoPath[streakBegin].position;
+        compressedPseudoPathEntry.position[1] = pseudoPath[streakEnd - 1].position;
+        compressedPseudoPathEntry.ordinals[0] = pseudoPath[streakBegin].ordinals[0]; // For SOURCE vertex
+        compressedPseudoPathEntry.ordinals[1] = pseudoPath[streakEnd-1].ordinals[1]; // For TARGET vertex.
         compressedPseudoPath.push_back(compressedPseudoPathEntry);
 
+        // Prepare to handle the next segment.
+        i = streakEnd;
     }
 }
 
