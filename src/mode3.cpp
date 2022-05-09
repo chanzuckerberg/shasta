@@ -451,25 +451,21 @@ void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions>& transiti
 {
     transitionMap.clear();
 
-    for(ReadId readId=0; readId<pseudoPaths.size()/2; readId++) {
+    for(ReadId readId=0; readId<compressedPseudoPaths.size()/2; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const auto pseudoPath = pseudoPaths[orientedReadId.getValue()];
+            const auto compressedPseudoPath = compressedPseudoPaths[orientedReadId.getValue()];
 
-            if(pseudoPath.size() < 2) {
-                continue;
-            }
-
-            for(uint64_t i=1; i<pseudoPath.size(); i++) {
-                const auto& previous = pseudoPath[i-1];
-                const auto& current = pseudoPath[i];
-                if(previous.segmentId == current.segmentId) {
-                    continue;
-                }
+            for(uint64_t i=1; i<compressedPseudoPath.size(); i++) {
+                const auto& previous = compressedPseudoPath[i-1];
+                const auto& current = compressedPseudoPath[i];
+                SHASTA_ASSERT(previous.segmentId != current.segmentId);
 
                 const SegmentPair segmentPair = make_pair(previous.segmentId, current.segmentId);
                 transitionMap[segmentPair].push_back(
-                    make_pair(orientedReadId, Transition({previous, current})));
+                    make_pair(orientedReadId, Transition({
+                    previous.pseudoPathEntries[1],
+                    current.pseudoPathEntries[0]})));
 
             }
         }
@@ -522,8 +518,10 @@ AssemblyGraph::AssemblyGraph(
     computeMarkerGraphEdgeTable(threadCount);
 
     // Compute pseudopaths of all oriented reads.
+    // We permanently store only the compressed pseudopaths.
     computePseudoPaths(threadCount);
     computeCompressedPseudoPaths();
+    pseudoPaths.remove();
 
     // Find pseudopath transitions and store them keyed by the pair of segments.
     std::map<SegmentPair, Transitions> transitionMap;
@@ -531,7 +529,6 @@ AssemblyGraph::AssemblyGraph(
 
     // Create a links between pairs of segments with a sufficient number of transitions.
     createLinks(transitionMap, minCoverage);
-    pseudoPaths.remove();
     createConnectivity();
 
     cout << "The mode 3 assembly graph has " << paths.size() << " segments and " <<

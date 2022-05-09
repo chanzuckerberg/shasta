@@ -119,6 +119,12 @@ public:
         {
             return ordinals[0] < that.ordinals[0];
         }
+        bool operator==(const PseudoPathEntry& that) const
+        {
+            return
+                tie(segmentId, position, ordinals) ==
+                tie(that.segmentId, that.position, that.ordinals);
+        }
     };
     MemoryMapped::VectorOfVectors<PseudoPathEntry, uint64_t> pseudoPaths;
     void computePseudoPaths(size_t threadCount);
