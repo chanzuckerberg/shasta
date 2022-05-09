@@ -2,7 +2,7 @@
 
 import shasta
 
-segmentIds = [200, 300, 400]
+segmentIds = [int(token) for token in input('Enter segment ids on one line: ').split()] 
 
 a = shasta.Assembler()
 a.accessMode3AssemblyGraph()

@@ -1296,5 +1296,54 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
         }
     }
 
+
+
+    // Find streaks for the same OrientedReadId where the position
+    // increases by 1 each time.
+    // Each streak generates a CompressedPseudoPathSnippet.
+    vector<CompressedPseudoPathSnippet> snippets;
+    for(uint64_t i=0; i<triplets.size(); /* Increment later */) {
+        const OrientedReadId orientedReadId = get<0>(triplets[i]);
+
+        // Find this streak.
+        uint64_t streakBegin = i;
+        uint64_t streakEnd = streakBegin + 1;
+        for(; streakEnd<triplets.size(); streakEnd++) {
+            if(get<0>(triplets[streakEnd]) != orientedReadId) {
+                break;
+            }
+            if(get<1>(triplets[streakEnd]) != get<1>(triplets[streakEnd-1]) + 1) {
+                break;
+            }
+        }
+
+        // Add a snippet.
+        CompressedPseudoPathSnippet snippet;
+        snippet.orientedReadId = orientedReadId;
+        snippet.beginPosition = get<1>(triplets[streakBegin]);
+        for(uint64_t j=streakBegin; j!=streakEnd; ++j) {
+            snippet.segmentIds.push_back(get<2>(triplets[j]));
+        }
+        snippets.push_back(snippet);
+
+        // Prepare to process the next streak.
+        i = streakEnd;
+    }
+
+
+
+    // Write the snippets.
+    {
+        ofstream csv("CompressedPseudoPathSnippets.csv");
+        csv << "OrientedReadId,Begin position,SegmentIds\n";
+        for(const CompressedPseudoPathSnippet& snippet: snippets) {
+            csv << snippet.orientedReadId << ",";
+            csv << snippet.beginPosition << ",";
+            for(const uint64_t segmentId: snippet.segmentIds) {
+                csv << segmentId << ",";
+            }
+            csv << "\n";
+        }
+    }
 }
 

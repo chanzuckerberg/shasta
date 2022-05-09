@@ -371,6 +371,15 @@ public:
     // Analyze a subgraph of the assembly graph.
     void analyzeSubgraph(const vector<uint64_t>& segmentIds) const;
 
+    // A sequence of consecutive positions of the compressed pseudopath
+    // of an oriented read.
+    class CompressedPseudoPathSnippet {
+    public:
+        OrientedReadId orientedReadId;
+        uint64_t beginPosition; // In the compressed pseudopath for this OrientedReadId.
+        vector<uint64_t> segmentIds;
+    };
+
 
 
     // Compute link separation given a set of Transitions.
