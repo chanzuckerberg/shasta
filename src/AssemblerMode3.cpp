@@ -36,3 +36,9 @@ void Assembler::accessMode3AssemblyGraph()
     assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(largeDataFileNamePrefix, markers, markerGraph);
 }
 
+
+
+void Assembler::analyzeMode3Subgraph(const vector<uint64_t>& segmentIds)
+{
+    assemblyGraph3Pointer->analyzeSubgraph(segmentIds);
+}

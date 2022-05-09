@@ -2417,6 +2417,7 @@ public:
         size_t threadCount);
     shared_ptr<mode3::AssemblyGraph> assemblyGraph3Pointer;
     void accessMode3AssemblyGraph();
+    void analyzeMode3Subgraph(const vector<uint64_t>& segmentIds);
 
 
 

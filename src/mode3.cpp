@@ -447,6 +447,71 @@ void AssemblyGraph::computeCompressedPseudoPath(
 
 
 
+void AssemblyGraph::computeSegmentCompressedPseudoPathInfo()
+{
+    const bool debug = true;
+
+    const uint64_t segmentCount = paths.size();
+    const uint64_t readCount = compressedPseudoPaths.size()/2;
+
+    createNew(segmentCompressedPseudoPathInfo, "Mode3-SegmentCompressedPseudoPathInfo");
+
+    // Pass 1.
+    segmentCompressedPseudoPathInfo.beginPass1(segmentCount);
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const auto compressedPseudoPath = compressedPseudoPaths[orientedReadId.getValue()];
+
+            for(uint64_t position=0; position<compressedPseudoPath.size(); position++) {
+                const CompressedPseudoPathEntry& compressedPseudoPathEntry =
+                    compressedPseudoPath[position];
+                const uint64_t segmentId = compressedPseudoPathEntry.segmentId;
+                segmentCompressedPseudoPathInfo.incrementCount(segmentId);
+            }
+        }
+    }
+
+    // Pass 2.
+    segmentCompressedPseudoPathInfo.beginPass2();
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const auto compressedPseudoPath = compressedPseudoPaths[orientedReadId.getValue()];
+
+            for(uint64_t position=0; position<compressedPseudoPath.size(); position++) {
+                const CompressedPseudoPathEntry& compressedPseudoPathEntry =
+                    compressedPseudoPath[position];
+                const uint64_t segmentId = compressedPseudoPathEntry.segmentId;
+                segmentCompressedPseudoPathInfo.store(segmentId, make_pair(orientedReadId, position));
+            }
+        }
+    }
+    segmentCompressedPseudoPathInfo.endPass2();
+
+    // Sort.
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        const auto v = segmentCompressedPseudoPathInfo[segmentId];
+        sort(v.begin(), v.end());
+    }
+
+
+    if(debug) {
+        ofstream csv("SegmentCompressedPseudoPathInfo.csv");
+        csv << "SegmentId,OrientedReadId,Position in compressed pseudopath\n";
+        for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+            const auto v = segmentCompressedPseudoPathInfo[segmentId];
+            for(const auto& p: v) {
+                csv << segmentId << ",";
+                csv << p.first << ",";
+                csv << p.second << "\n";
+            }
+        }
+    }
+}
+
+
+
 void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions>& transitionMap)
 {
     transitionMap.clear();
@@ -522,6 +587,7 @@ AssemblyGraph::AssemblyGraph(
     computePseudoPaths(threadCount);
     computeCompressedPseudoPaths();
     pseudoPaths.remove();
+    computeSegmentCompressedPseudoPathInfo();
 
     // Find pseudopath transitions and store them keyed by the pair of segments.
     std::map<SegmentPair, Transitions> transitionMap;
@@ -562,6 +628,7 @@ AssemblyGraph::AssemblyGraph(
     accessExistingReadOnly(segmentCoverage, "Mode3-SegmentCoverage");
     accessExistingReadOnly(markerGraphEdgeTable, "Mode3-MarkerGraphEdgeTable");
     accessExistingReadOnly(compressedPseudoPaths, "Mode3-CompressedPseudoPaths");
+    accessExistingReadOnly(segmentCompressedPseudoPathInfo, "Mode3-SegmentCompressedPseudoPathInfo");
     accessExistingReadOnly(links, "Mode3-Links");
     accessExistingReadOnly(transitions, "Mode3-Transitions");
     accessExistingReadOnly(linksBySource, "Mode3-LinksBySource");
@@ -1203,4 +1270,31 @@ void AssemblyGraph::findDescendants(
 
 
 
+// Analyze a subgraph of the assembly graph.
+void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
+{
+    // Gather triplets (orientedReadId, position in compressedPseudoPath, segmentId).
+    using Triplet = tuple<OrientedReadId, uint64_t, uint64_t>;
+    vector<Triplet> triplets;
+    for(const uint64_t segmentId: segmentIds) {
+        const auto v = segmentCompressedPseudoPathInfo[segmentId];
+        for(const auto& p: v) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t position = p.second;
+            triplets.push_back(Triplet(orientedReadId, position, segmentId));
+        }
+    }
+    sort(triplets.begin(), triplets.end());
+
+    // Write the triplets.
+    {
+        ofstream csv("Triplets.csv");
+        for(const Triplet& triplet: triplets) {
+            csv << get<0>(triplet) << ",";
+            csv << get<1>(triplet) << ",";
+            csv << get<2>(triplet) << "\n";
+        }
+    }
+
+}
 

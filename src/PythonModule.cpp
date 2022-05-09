@@ -655,6 +655,10 @@ PYBIND11_MODULE(shasta, shastaModule)
         .def("mode3Assembly",
             &Assembler::mode3Assembly,
             arg("threadCount") = 0)
+        .def("accessMode3AssemblyGraph",
+            &Assembler::accessMode3AssemblyGraph)
+        .def("analyzeMode3Subgraph",
+            &Assembler::analyzeMode3Subgraph)
 
 
 

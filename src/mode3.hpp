@@ -137,6 +137,8 @@ public:
 
     // The compressed pseudopath of an oriented read
     // is the sequence of segmentIds it encounters.
+    // It stores only the first and last PseudoPathEntry
+    // on each segment.
     // Note a segmentId can appear more than once on the compressed
     // pseudopath of an oriented read.
     class CompressedPseudoPathEntry {
@@ -153,6 +155,11 @@ public:
     void computeCompressedPseudoPath(
         const span<PseudoPathEntry> pseudoPath,
         vector<CompressedPseudoPathEntry>& compressedPseudoPath);
+
+    // Store appearances of segments in compressed pseudopaths.
+    // For each segment, store pairs (orientedReadId, position in compressed pseudo path).
+    MemoryMapped::VectorOfVectors<pair<OrientedReadId, uint64_t>, uint64_t> segmentCompressedPseudoPathInfo;
+    void computeSegmentCompressedPseudoPathInfo();
 
 
 
@@ -358,6 +365,11 @@ public:
     void clusterSegmentsThreadFunction1(size_t threadId);
     void addClusterPairs(size_t threadId, uint64_t segmentId0);
     MemoryMapped::Vector<uint64_t> clusterIds;
+
+
+
+    // Analyze a subgraph of the assembly graph.
+    void analyzeSubgraph(const vector<uint64_t>& segmentIds) const;
 
 
 
