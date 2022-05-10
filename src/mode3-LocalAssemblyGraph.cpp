@@ -297,9 +297,9 @@ function onMouseEnterSegment(id, distance, pathLength, coverage, clusterId,
         document.getElementById('unexplainedReferenceCell').innerHTML = unexplainedReference;
         document.getElementById('unexplainedDisplayedCell').innerHTML = unexplainedDisplayed;
         document.getElementById('unexplainedFractionReferenceCell').innerHTML = 
-            (unexplainedReference / totalReference).toFixed(2);
+            (unexplainedReference / (common + unexplainedReference)).toFixed(2);
         document.getElementById('unexplainedFractionDisplayedCell').innerHTML = 
-            (unexplainedDisplayed / totalDisplayed).toFixed(2);
+            (unexplainedDisplayed / (common + unexplainedDisplayed)).toFixed(2);
     }   
 }
 function onMouseExitSegment()

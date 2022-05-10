@@ -2379,6 +2379,7 @@ private:
     void exploreMode3AssemblyGraphSegment(const vector<string>&, ostream&);
     void exploreMode3AssemblyGraphSegmentPair(const vector<string>&, ostream&);
     void exploreMode3AssemblyGraphLink(const vector<string>&, ostream&);
+    void exploreMode3MetaAlignment(const vector<string>&, ostream&);
 
 
 

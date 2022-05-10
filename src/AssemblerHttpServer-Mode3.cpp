@@ -3,6 +3,7 @@
 #include "Assembler.hpp"
 #include "mode3.hpp"
 #include "mode3-LocalAssemblyGraph.hpp"
+#include "PngImage.hpp"
 using namespace shasta;
 using namespace mode3;
 
@@ -610,6 +611,78 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
         }
     }
     html << "</table>";
+
+}
+
+
+
+void Assembler::exploreMode3MetaAlignment(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Access the mode 3 assembly graph.
+    SHASTA_ASSERT(assemblyGraph3Pointer);
+    const mode3::AssemblyGraph& assemblyGraph3 = *assemblyGraph3Pointer;
+
+    // Get the oriented read ids from the request.
+    string orientedReadId0String;
+    const bool orientedReadId0IsPresent = getParameterValue(request, "orientedReadId0", orientedReadId0String);
+    string orientedReadId1String;
+    const bool orientedReadId1IsPresent = getParameterValue(request, "orientedReadId1", orientedReadId1String);
+
+    // Write the form.
+    html <<
+        "Enter the two oriented read ids:"
+        "<form>"
+        "<p><input type=text size=8 name=orientedReadId0 value='" <<
+        (orientedReadId0IsPresent ? orientedReadId0String : "") << "'>"
+        "<p><input type=text size=8 name=orientedReadId1 value='" <<
+        (orientedReadId1IsPresent ? orientedReadId1String : "") << "'>"
+        "<p><input type=submit value='Compute the meta-alignment'>"
+        "</form>";
+
+    // If the oriented reads are not present, do nothing.
+    if(not(orientedReadId0IsPresent and orientedReadId1IsPresent)) {
+        return;
+    }
+    const OrientedReadId orientedReadId0(orientedReadId0String);
+    const OrientedReadId orientedReadId1(orientedReadId1String);
+
+    html << "<h1>Meta-alignment of oriented reads " <<
+        orientedReadId0 << " " << orientedReadId1 << "</h1>";
+
+    // Access the pseudo-paths, that is the meta-sequences to be aligned.
+    const auto pseudoPath0 = assemblyGraph3.compressedPseudoPaths[orientedReadId0.getValue()];
+    const auto pseudoPath1 = assemblyGraph3.compressedPseudoPaths[orientedReadId1.getValue()];
+    const int n0 = int(pseudoPath0.size());
+    const int n1 = int(pseudoPath1.size());
+
+    // Create a png file representing the alignment matrix.
+    PngImage image = PngImage(int(n0), int(n1));
+    for(int i0=0; i0<n0; i0++) {
+        const uint64_t segmentId0 = pseudoPath0[i0].segmentId;
+        for(int i1=0; i1<n1; i1++) {
+            const uint64_t segmentId1 = pseudoPath1[i1].segmentId;
+            if(segmentId0 == segmentId1) {
+                image.setPixel(i0, i1, 255, 0, 0);
+            }
+        }
+    }
+    image.write("MetaAlignment.png");
+
+    // Create a base64 version of the png file.
+    const string command = "base64 MetaAlignment.png > MetaAlignment.png.base64";
+    ::system(command.c_str());
+
+    // Display the picture with the alignment.
+    html <<
+        "<h3>Alignment matrix</h3>"
+        "<p><img "
+        " style='width:" << 3*n0 << "px;height:auto;image-rendering:crisp-edges;'"
+        "src=\"data:image/png;base64,";
+    ifstream png("MetaAlignment.png.base64");
+    html << png.rdbuf();
+    html << "\"/>";
 
 }
 

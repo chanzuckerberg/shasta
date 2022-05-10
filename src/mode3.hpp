@@ -317,7 +317,8 @@ public:
         // without counting the short ones.
         double unexplainedFraction(uint64_t i) const
         {
-            return double(unexplainedCount[i]) / double(totalCount[i]);
+            // return double(unexplainedCount[i]) / double(totalCount[i]);
+            return double(unexplainedCount[i]) / double(commonCount + unexplainedCount[i]);
         }
         double maximumUnexplainedFraction() const
         {

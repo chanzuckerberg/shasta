@@ -1148,8 +1148,8 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
 {
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
     const uint64_t minCommonReadCount = 6;
-    const double maxUnexplainedFraction = 0.1;
-    const uint64_t pairCountPerSegment = 1;
+    const double maxUnexplainedFraction = 0.2;
+    const uint64_t pairCountPerSegment = 6;
     const uint64_t maxDistance = 50;
 
     // std::lock_guard<std::mutex> lock(mutex);    // *********** TAKE OUT
@@ -1158,7 +1158,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
     // The BFS terminates when we found enough pairs.
 
     // Do the BFS in both directions.
-    for(uint64_t direction=0; direction<2; direction++) {
+    for(uint64_t direction=0; direction<1; direction++) { // ********* ONE DIRECTION ONLY
         // cout << startSegmentId << " direction " << direction << endl;
 
         // Initialize the BFS.
