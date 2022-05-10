@@ -12,8 +12,8 @@
 <h1>Quick start</h1>
 
 Note that the Shasta executable has no dependencies and requires no installation
-or set up, except for setting its execute permission.
-See below for more information, including some small changes required for macOS and Windows.
+or set up. This means that you can use it immediately afterdownloading it and setting its execute permission.
+See below for more information.
 
 
 <h2 id="QuickStartLinux">Linux</h2>
@@ -21,13 +21,13 @@ See below for more information, including some small changes required for macOS 
 You can use the following commands to download the executable from the latest release and run an assembly:
 <pre>
 # Download the executable for the latest release.
-curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.8.0/shasta-Linux-0.8.0
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.10.0/shasta-Linux-0.10.0
 
-# Grant necessary permissions.
-chmod ugo+x shasta-Linux-0.8.0
+# Grant execute permissions.
+chmod ugo+x shasta-Linux-0.10.0
 
 # Run an assembly.
-./shasta-Linux-0.8.0 --input input.fasta --config Nanopore-Oct2021
+./shasta-Linux-0.10.0 --input input.fasta --config Nanopore-May2022
 </pre>
 
 <p>
@@ -59,18 +59,21 @@ to achieve maximum performance.
 
 
 <h2 id="QuickStartMacOS">macOS</h2>
+<p>
+If you are on a macOS system with Intel processors, you can use the following commands to get started:
 
 <pre>
 # Download the executable for the latest release.
-curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.8.0/shasta-macOS-11-0.8.0
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.10.0/shasta-macOS-11-Intel-0.10.0
 
 # Grant necessary permissions.
-chmod ugo+x shasta-macOS-11-0.8.0
+chmod ugo+x shasta-macOS-11-Intel-0.10.0
 
 # Run an assembly.
-./shasta-macOS-11-0.8.0 --input input.fasta --config Nanopore-Oct2021
+./shasta-macOS-11-Intel-0.10.0 --input input.fasta --config Nanopore-May2022
 </pre>
 
+If you are on a macOS system with Apple ARM processors, use the same commands, changing the name of the executable to <code>shasta-macOS-11-ARM-0.10.0</code>.
 
 
 <h2 id="QuickStartWindows">Windows</h2>
@@ -90,7 +93,7 @@ of the Shasta assembler:
 <pre>
 curl -O -L https://s3-us-west-2.amazonaws.com/lc2019/shasta/ecoli_test/r94_ec_rad2.181119.60x-10kb.fasta.gz
 gunzip r94_ec_rad2.181119.60x-10kb.fasta.gz
-/path/to/shasta_executable --input r94_ec_rad2.181119.60x-10kb.fasta --config Nanopore-Oct2021
+/path/to/shasta_executable --input r94_ec_rad2.181119.60x-10kb.fasta --config Nanopore-May2022
 </pre>
 The first two commands download and decompress an input fasta file 
 containing Oxford Nanopore reads for <i>E. coli</i>.
