@@ -1385,8 +1385,9 @@ requests a Bayesian algorithm to determine the most likely repeat count.
         r10 reads and the Guppy 3.4.8 base caller.
     <li><code>bonito-0.3.1-a</code> to use a Bayesian model optimized for
         the Bonito 0.3.1 base caller.
-    <li><code>guppy-5.0.7-a</code> to use a Bayesian model optimized for
-        the Guppy 5.0.7 base caller.
+    <li><code>guppy-5.0.7-b</code> to use a Bayesian model optimized for
+        the Guppy 5.0.7 base caller. There is also an older and less accurate model 
+        <code>guppy-5.0.7-a</code>.
   </ul>
   <li>The name of a configuration file
 describing the Bayesian model to be used,
@@ -1415,6 +1416,16 @@ and the reads being assembled.
 Testing also showed that 
 <code>--Assembly.consensusCaller Median</code> is generally inferior to
 <code>--Assembly.consensusCaller Modal</code>.
+
+<p>
+Software to create a new Bayesian model for a new data type is available at
+<a href='https://github.com/rlorigro/runlength_analysis_cpp'>
+https://github.com/rlorigro/runlength_analysis_cpp</a>.
+This creates a configuration file containing the definition of
+the newly created Bayesian model, in a csv format that can be used directly in Shasta
+via 
+<code>--Assembly.consensusCaller Bayesian:fileName</code>.
+
 
 
 
