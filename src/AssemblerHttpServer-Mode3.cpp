@@ -675,6 +675,8 @@ void Assembler::exploreMode3MetaAlignment(
     ::system(command.c_str());
 
     // Display the picture with the alignment.
+    // image-rendering:crisp-edges; is currently supported on Firefox but not Chrome,
+    // so Chrome will display blurry pictures.
     html <<
         "<h3>Alignment matrix</h3>"
         "<p><img "
