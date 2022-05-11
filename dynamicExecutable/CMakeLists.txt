@@ -46,11 +46,6 @@ add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 # It can be removed if Boost is fixed.
 add_definitions(-DBOOST_ALLOW_DEPRECATED_HEADERS)
 
-# Definitions that control what components get built.
-if(BUILD_WITH_HTTP_SERVER)
-    add_definitions(-DSHASTA_HTTP_SERVER)
-endif(BUILD_WITH_HTTP_SERVER)
-
 add_definitions(-DSHASTA_PYTHON_API)
 
 # Source files
