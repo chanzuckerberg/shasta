@@ -9,7 +9,6 @@ using namespace shasta;
 
 
 
-#ifdef SHASTA_HTTP_SERVER
 bool Assembler::createLocalReferenceGraph(
         vector<OrientedReadId>& starts,
         uint32_t maxDistance,           // How far to go from starting oriented read.
@@ -374,7 +373,8 @@ bool Assembler::createLocalAlignmentCandidateGraph(
 
     return true;
 }
-#endif
+
+
 
 void Assembler::computeCandidateTable()
 {

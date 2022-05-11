@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
@@ -1035,5 +1033,3 @@ void Assembler::exploreReadRaw(
 
 }
 
-
-#endif

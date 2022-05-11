@@ -1,7 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
-
-
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "computeLayout.hpp"
@@ -1235,6 +1231,3 @@ void LocalAssemblyGraph::writeGfa(ostream& gfa) const
 
 }
 
-
-
-#endif

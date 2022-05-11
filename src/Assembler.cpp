@@ -64,9 +64,7 @@ Assembler::Assembler(
 
     // In both cases, assemblerInfo, reads, readNames, readRepeatCounts are all open for write.
 
-#ifdef SHASTA_HTTP_SERVER
     fillServerFunctionTable();
-#endif
 }
 
 

@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
@@ -659,4 +657,3 @@ void Assembler::exploreUndirectedReadGraph(
 
 }
 
-#endif

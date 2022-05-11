@@ -203,7 +203,6 @@ namespace shasta {
 
 
 
-#ifdef SHASTA_HTTP_SERVER
 
 #define SHASTA_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
 
@@ -314,7 +313,6 @@ void Assembler::processRequest(
     }
     writeHtmlEnd(html);
 }
-#endif
 
 
 
@@ -414,9 +412,6 @@ function makeAllTablesSelectableByDoubleClick()
 #endif
 }
 
-
-
-#ifdef SHASTA_HTTP_SERVER
 
 
 void Assembler::writeNavigation(ostream& html) const
@@ -577,7 +572,6 @@ void Assembler::exploreSummary(
     writeAssemblySummaryBody(html);
 }
 
-#endif
 
 
 // Access all available assembly data, without throwing exceptions
@@ -1559,9 +1553,6 @@ void Assembler::writeAssemblyIndex(ostream& html) const
 
 
 
-#ifdef SHASTA_HTTP_SERVER
-
-
 void Assembler::blastRead(
     const vector<string>& request,
     ostream& html)
@@ -1799,5 +1790,3 @@ void shasta::writeStrandSelection(
         "</select>";
 
 }
-
-#endif

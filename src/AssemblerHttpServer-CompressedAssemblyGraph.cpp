@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "Assembler.hpp"
 #include "CompressedAssemblyGraph.hpp"
@@ -203,5 +201,3 @@ void Assembler::exploreCompressedAssemblyGraph(
     filesystem::remove(svgFileName);
 
 }
-
-#endif

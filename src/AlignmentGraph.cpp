@@ -130,11 +130,9 @@ void AlignmentGraph::create(
     // Store the alignment info.
     alignmentInfo.create(alignment, uint32_t(markers[0].size()), uint32_t(markers[1].size()));
 
-#ifdef SHASTA_HTTP_SERVER
     if(debug) {
         writeImage(markers[0], markers[1], alignment, 1, 1, "Alignment.png");
     }
-#endif
 }
 
 
@@ -495,8 +493,6 @@ void AlignmentGraph::writeShortestPath(const string& fileName) const
 
 
 
-#ifdef SHASTA_HTTP_SERVER
-
 // Write an image representing the markers and the computed alignment
 // in 2-D ordinal space.
 void AlignmentGraph::writeImage(
@@ -574,5 +570,4 @@ void AlignmentGraph::writeImage(
     // Write it out.
     image.write(fileName);
 }
-#endif
 

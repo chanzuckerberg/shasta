@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
@@ -676,4 +674,3 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     s << "]";
 
 }
-#endif

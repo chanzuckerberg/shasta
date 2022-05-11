@@ -63,10 +63,7 @@ namespace shasta {
         void listCommands();
         void listConfigurations();
         void listConfiguration(const AssemblerOptions&);
-
-#ifdef SHASTA_HTTP_SERVER
         void explore(const AssemblerOptions&);
-#endif
 
         const std::set<string> commands = {
             "assemble",
@@ -175,11 +172,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
         saveBinaryData(assemblerOptions);
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "explore") {
-#ifdef SHASTA_HTTP_SERVER
         explore(assemblerOptions);
-#else
-        throw runtime_error("This Shasta build does not include HTTP server support.");
-#endif
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "createBashCompletionScript") {
         createBashCompletionScript(assemblerOptions);
@@ -1288,7 +1281,6 @@ void shasta::main::cleanupBinaryData(
 
 }
 
-#ifdef SHASTA_HTTP_SERVER
 // Implementation of --command explore.
 void shasta::main::explore(
     const AssemblerOptions& assemblerOptions)
@@ -1376,11 +1368,10 @@ void shasta::main::explore(
         sameUserOnly);
 }
 
-#endif
 
 
 // This creates a bash completion script for the Shasta executable,
-// which makes it esaier to type long option names.
+// which makes it easier to type long option names.
 // To use it:
 // shasta --command createBashCompletionScript; source shastaCompletion.sh
 // Then, press TAB once or twice while editing a Shasta command line
@@ -1392,7 +1383,7 @@ void shasta::main::explore(
 // AND THE ABILITY TO COMPLETE KEYWORDS ONLY AFTER THE OPTION THEY
 // SHOULD BE PRECEDED BY.
 // IF SOMEBODY WITH A GOOD UNDERSTANDING OF BASH COMPLETION SEES THIS,
-// PLESE MAKE IT BETTER AND SUBMIT A PULL REQUEST!
+// PLEASE MAKE IT BETTER AND SUBMIT A PULL REQUEST!
 void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerOptions)
 {
     const string fileName = "shastaCompletion.sh";

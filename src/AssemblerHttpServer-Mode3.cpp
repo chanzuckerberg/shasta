@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 #include "Assembler.hpp"
 #include "mode3.hpp"
 #include "mode3-LocalAssemblyGraph.hpp"
@@ -687,6 +685,3 @@ void Assembler::exploreMode3MetaAlignment(
     html << "\"/>";
 
 }
-
-
-#endif

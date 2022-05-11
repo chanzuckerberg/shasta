@@ -182,10 +182,7 @@ public:
 
 class shasta::Assembler :
     public MultithreadedObject<Assembler>
-#ifdef SHASTA_HTTP_SERVER
-    , public HttpServer
-#endif
-    {
+    , public HttpServer {
 public:
 
 
@@ -2165,8 +2162,6 @@ public:
     static void writeStyle(ostream& html);
 
 
-#ifdef SHASTA_HTTP_SERVER
-
     void writeNavigation(ostream&) const;
     void writeNavigation(
         ostream& html,
@@ -2278,7 +2273,6 @@ public:
     );
     void writeColorPicker(ostream& html, string svgId);
 
-#endif
     void writeMakeAllTablesCopyable(ostream&) const;
 
     // Do bulk sampling of reads and accumulate stats about their alignments

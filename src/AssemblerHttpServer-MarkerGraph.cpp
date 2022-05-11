@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblyGraph.hpp"
@@ -2219,5 +2217,4 @@ void Assembler::exploreMarkerConnectivity(
     // Remove the .svg file.
     filesystem::remove(svgFileName);
 }
-#endif
 

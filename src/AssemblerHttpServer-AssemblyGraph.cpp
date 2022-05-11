@@ -1,5 +1,3 @@
-#ifdef SHASTA_HTTP_SERVER
-
 // Shasta.
 #include "Assembler.hpp"
 #include "AssembledSegment.hpp"
@@ -626,7 +624,3 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
     html << "</table>";
 
 }
-
-
-
-#endif
