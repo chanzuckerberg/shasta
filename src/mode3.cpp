@@ -1149,7 +1149,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
     const uint64_t minCommonReadCount = 6;
     const double maxUnexplainedFraction = 0.2;
-    const uint64_t pairCountPerSegment = 6;
+    const uint64_t pairCountPerSegment = 3;
     const uint64_t maxDistance = 50;
 
     // std::lock_guard<std::mutex> lock(mutex);    // *********** TAKE OUT
