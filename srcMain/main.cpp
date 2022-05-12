@@ -824,8 +824,13 @@ void shasta::main::assemble(
     assembler.storeAssemblyTime(elapsedTime, averageCpuUtilization);
 
     // Store peak memory usage.
-    uint64_t peakMemoryUsage = shasta::getPeakMemoryUsage();
+    uint64_t peakMemoryUsage = getPeakMemoryUsage();
     assembler.storePeakMemoryUsage(peakMemoryUsage);
+
+    // Store other performance information.
+    assembler.assemblerInfo->threadCount = threadCount;
+    assembler.assemblerInfo->virtualCpuCount = std::thread::hardware_concurrency();
+    assembler.assemblerInfo->totalAvailableMemory = getTotalPhysicalMemory();
 
     // Write a summary of read information.
     assembler.writeReadsSummary();

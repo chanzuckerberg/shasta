@@ -1207,9 +1207,15 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << assemblerInfo->assemblyElapsedTimeSeconds/3600. <<
         "<tr><td>Average CPU utilization"
         "<td class=right>" << assemblerInfo->averageCpuUtilization <<
-        "<tr><td>Peak Memory utilization (bytes)"
+        "<tr><td>Peak virtual memory utilization (bytes)"
         "<td class=right>" <<
         assemblerInfo->peakMemoryUsageForSummaryStats() <<
+        "<tr><td>Number of threads used"
+        "<td class=right>" << assemblerInfo->threadCount <<
+        "<tr><td>Total number of virtual CPUs available"
+        "<td class=right>" << assemblerInfo->virtualCpuCount <<
+        "<tr><td>Total physical memory available (bytes)"
+        "<td class=right>" << assemblerInfo->totalAvailableMemory <<
         "</table>"
         ;
 }
@@ -1502,9 +1508,11 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    \"Elapsed time (minutes)\": " << assemblerInfo->assemblyElapsedTimeSeconds/60. << ",\n"
         "    \"Elapsed time (hours)\": " << assemblerInfo->assemblyElapsedTimeSeconds/3600. << ",\n"
         "    \"Average CPU utilization\": " << assemblerInfo->averageCpuUtilization << ",\n"
-        "    \"Peak Memory utilization (bytes)\": " <<
-        assemblerInfo->peakMemoryUsageForSummaryStats() <<
-        "\n"
+        "    \"Peak memory utilization (bytes)\": " <<
+        assemblerInfo->peakMemoryUsageForSummaryStats() << ",\n"
+        "    \"Number of threads used\": " << assemblerInfo->threadCount << ",\n"
+        "    \"Total number of virtual CPUs available\": " << assemblerInfo->virtualCpuCount << ",\n"
+        "    \"Total physical memory available (bytes)\": " << assemblerInfo->totalAvailableMemory << "\n"
         "  }\n"
 
 

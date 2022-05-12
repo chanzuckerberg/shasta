@@ -11,7 +11,11 @@ namespace shasta {
     // Return the name of a timeout command or equivalent.
     string timeoutCommand();
 
+    // Get peak virtual memory utilization of the current process, in bytes.
     uint64_t getPeakMemoryUsage();
+
+    // Get total physical memory available, in bytes.
+    uint64_t getTotalPhysicalMemory();
 }
 
 #endif

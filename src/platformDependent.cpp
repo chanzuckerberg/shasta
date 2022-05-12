@@ -61,3 +61,22 @@ uint64_t shasta::getPeakMemoryUsage() {
 #endif
     return peakMemoryUsage;
 }
+
+
+
+// Get total physical memory available, in bytes.
+uint64_t shasta::getTotalPhysicalMemory()
+{
+#ifdef __linux__
+    ifstream meminfo("/proc/meminfo");
+    string s;
+    uint64_t memoryKb;
+    meminfo >> s >> memoryKb;
+    return 1024 * memoryKb;
+
+#else
+    return 0;
+#endif
+
+}
+

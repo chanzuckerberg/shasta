@@ -168,10 +168,13 @@ public:
     // Mode 2 assembly statistics.
     AssemblyGraph2Statistics assemblyGraph2Statistics;
 
-    // Performance statistics.
+    // Performance information.
     double assemblyElapsedTimeSeconds = 0.;
     double averageCpuUtilization;
     uint64_t peakMemoryUsage = 0ULL;
+    uint64_t threadCount = 0;
+    uint64_t virtualCpuCount = 0;
+    uint64_t totalAvailableMemory = 0;
 
     inline string peakMemoryUsageForSummaryStats() {
         return peakMemoryUsage > 0 ? to_string(peakMemoryUsage) : "Not determined.";
