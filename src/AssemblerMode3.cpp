@@ -40,5 +40,20 @@ void Assembler::accessMode3AssemblyGraph()
 
 void Assembler::analyzeMode3Subgraph(const vector<uint64_t>& segmentIds)
 {
+    SHASTA_ASSERT(assemblyGraph3Pointer);
     assemblyGraph3Pointer->analyzeSubgraph(segmentIds);
 }
+
+
+
+void Assembler::createMode3AssemblyPath(
+    uint64_t segmentId,
+    uint64_t direction,    // 0 = forward, 1 = backward
+    vector<uint64_t>& path // The segmentId's of the path.
+    ) const
+{
+    SHASTA_ASSERT(assemblyGraph3Pointer);
+    assemblyGraph3Pointer->createAssemblyPath(segmentId, direction, path);
+
+}
+

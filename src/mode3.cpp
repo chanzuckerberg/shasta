@@ -1347,3 +1347,14 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
     }
 }
 
+
+
+// Create an assembly path starting at a given segment.
+void AssemblyGraph::createAssemblyPath(
+    uint64_t segmentId,
+    uint64_t direction,    // 0 = forward, 1 = backward
+    vector<uint64_t>& path // The segmentId's of the path.
+    ) const
+{
+    path.clear();
+}

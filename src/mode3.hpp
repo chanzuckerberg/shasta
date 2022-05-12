@@ -383,6 +383,15 @@ public:
 
 
 
+    // Create an assembly path starting at a given segment.
+    void createAssemblyPath(
+        uint64_t segmentId,
+        uint64_t direction,    // 0 = forward, 1 = backward
+        vector<uint64_t>& path // The segmentId's of the path.
+        ) const;
+
+
+
     // Compute link separation given a set of Transitions.
     template<class Container> static double linkSeparation(
         const Container& transitions,
