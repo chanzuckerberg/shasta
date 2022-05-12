@@ -235,6 +235,18 @@ void shasta::main::assemble(
             " specified for --MinHash.version. Must be 0 or 1.");
     }
 
+    // Check assemblerOptions.minHashOptions minimum/maximum bucket size.
+    if( assemblerOptions.minHashOptions.maxBucketSize <=
+        assemblerOptions.minHashOptions.minBucketSize) {
+        throw runtime_error("MinHash maximum bucket size must be greater than minimum bucket size. "
+            "The following values were specified:"
+            " minimum bucket size " +
+            to_string(assemblerOptions.minHashOptions.minBucketSize) +
+            ", maximum bucket size " +
+            to_string(assemblerOptions.minHashOptions.maxBucketSize) + "."
+            );
+    }
+
     // If coverage data was requested, memoryMode should be filesystem,
     // otherwise the coverage data cannot be accessed.
     if(assemblerOptions.assemblyOptions.storeCoverageData) {
