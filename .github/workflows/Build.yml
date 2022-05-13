@@ -36,10 +36,6 @@ jobs:
         path: shasta-docs.tar
     - uses: actions/upload-artifact@master
       with:
-        name: shasta-Linux
-        path: shasta-build/shasta-Ubuntu-20.04/bin/shasta
-    - uses: actions/upload-artifact@master
-      with:
         name: shasta-Ubuntu-20.04.tar
         path: shasta-build/shasta-Ubuntu-20.04.tar
 
