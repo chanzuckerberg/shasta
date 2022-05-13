@@ -159,8 +159,20 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         "<tr><th class=left>Length of marker graph path<td class=centered>" << path.size() <<
         "<tr><th class=left>Average marker graph edge coverage on path<td class=centered>" <<
         assemblyGraph3.segmentCoverage[segmentId] <<
-        "<tr><th class=left>Number of distinct oriented reads on path<td class=centered>" << orientedReads.infos.size() <<
-        "</table>";
+        "<tr><th class=left>Number of distinct oriented reads on path<td class=centered>" << orientedReads.infos.size();
+
+    // Write the incoming and outgoing links.
+    html << "<tr><th class=left>Incoming links<td class=centered>";
+    for(const uint64_t linkId: assemblyGraph3.linksByTarget[segmentId]) {
+        html << "<a href='exploreMode3AssemblyGraphLink?linkId=" << linkId << "'>" << linkId << "</a> ";
+    }
+    html << "<tr><th class=left>Outgoing links<td class=centered>";
+    for(const uint64_t linkId: assemblyGraph3.linksBySource[segmentId]) {
+        html << "<a href='exploreMode3AssemblyGraphLink?linkId=" << linkId << "'>" << linkId << "</a> ";
+    }
+
+
+    html << "</table>";
     html.precision(oldPrecision);
     html.flags(oldFlags);
 
