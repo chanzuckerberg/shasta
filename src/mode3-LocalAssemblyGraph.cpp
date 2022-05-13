@@ -256,6 +256,11 @@ Comparison of read compositions
 <th id='shortDisplayedCell'>
 
 <tr>
+<th class='left'>Jaccard
+<th id='jaccardReferenceCell'>
+<th id='jaccardDisplayedCell'>
+
+<tr>
 <th class='left'>Unexplained
 <th id='unexplainedReferenceCell'>
 <th id='unexplainedDisplayedCell'>
@@ -290,6 +295,9 @@ function onMouseEnterSegment(id, distance, pathLength, coverage, clusterId,
     if(common > 0) {
         document.getElementById('shortReferenceCell').innerHTML = shortReference;
         document.getElementById('shortDisplayedCell').innerHTML = shortDisplayed;
+        jaccard = (common / (common + unexplainedReference + unexplainedDisplayed)).toFixed(2)
+        document.getElementById('jaccardReferenceCell').innerHTML = jaccard;
+        document.getElementById('jaccardDisplayedCell').innerHTML = jaccard;
         document.getElementById('unexplainedReferenceCell').innerHTML = unexplainedReference;
         document.getElementById('unexplainedDisplayedCell').innerHTML = unexplainedDisplayed;
         document.getElementById('unexplainedFractionReferenceCell').innerHTML = 
@@ -312,6 +320,8 @@ function onMouseExitSegment()
     document.getElementById('shortDisplayedCell').innerHTML = '';
     document.getElementById('commonReferenceCell').innerHTML = '';
     document.getElementById('commonDisplayedCell').innerHTML = '';
+    document.getElementById('jaccardReferenceCell').innerHTML = '';
+    document.getElementById('jaccardDisplayedCell').innerHTML = '';
     document.getElementById('unexplainedReferenceCell').innerHTML = '';
     document.getElementById('unexplainedDisplayedCell').innerHTML = '';
     document.getElementById('unexplainedFractionReferenceCell').innerHTML = '';
@@ -608,6 +618,15 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 }
                 const uint64_t hue = uint64_t(std::round(fraction * 120.));
                 color = "hsl(" + to_string(hue) + ",100%, 50%)";
+            } else if(options.segmentColoring == "byJaccard") {
+                const auto& pairInfo = segmentPairInformationTable[v];
+                if(pairInfo.commonCount > 0) {
+                    const double jaccard = pairInfo.jaccard();
+                    const uint64_t hue = uint64_t(std::round(jaccard * 120.));
+                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                } else {
+                    color = "blue";
+                }
             } else if(options.segmentColoring == "byUnexplainedFractionOnReferenceSegment") {
                 const auto& pairInfo = segmentPairInformationTable[v];
                 if(pairInfo.commonCount > 0) {
@@ -1118,6 +1137,12 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<input type=text name=segmentColor size=8 style='text-align:center'"
                 " value='" << segmentColor << "'>"
         "<hr>"
+
+        // Segment coloring by Jaccard similarity with the reference segment.
+        "<input type=radio name=segmentColoring value=byJaccard"
+        << (segmentColoring=="byJaccard" ? " checked=checked" : "") <<
+        ">By Jaccard similarity with reference segment, withotu counting short reads"
+        "<br>"
 
         // Segment coloring by number of common reads with the reference segment.
         "<input type=radio name=segmentColoring value=byCommonReads"

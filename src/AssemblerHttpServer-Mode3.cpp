@@ -463,6 +463,11 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             "<td class=centered>" << segmentPairInformation.unexplainedCount[0] <<
             "<td class=centered>" << segmentPairInformation.unexplainedCount[1] <<
 
+            "<tr title='Jaccard similarity without counting short reads'>"
+            "<th class=left>Jaccard"
+            "<td class=centered>" << segmentPairInformation.jaccard() <<
+            "<td class=centered>" << segmentPairInformation.jaccard() <<
+
             "<tr title='Fraction of oriented reads in this segment that are "
             "unexpectedly missing in the other segment'>"
             "<th class=left>Unexplained fraction"

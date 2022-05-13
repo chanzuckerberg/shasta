@@ -333,6 +333,12 @@ public:
         {
             return max(unexplainedFraction(0), unexplainedFraction(1));
         }
+
+        // Jaccard similarity, without counting the short reads.
+        double jaccard() const
+        {
+            return double(commonCount) / double(commonCount + unexplainedCount[0] + unexplainedCount[1]);
+        }
     };
     void analyzeSegmentPair(
         uint64_t segmentId0,
