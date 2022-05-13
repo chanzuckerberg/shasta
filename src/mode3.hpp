@@ -212,13 +212,26 @@ public:
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksByTarget;
     void createConnectivity();
 
+
+
     // Get the children or parents of a given segment.
-    void getChildren(uint64_t segmentId, vector<uint64_t>&) const;
-    void getParents(uint64_t segmentId, vector<uint64_t>&) const;
+    // Only use links with at least a specified coverage.
+    void getChildren(
+        uint64_t segmentId,
+        uint64_t minimumLinkCoverage,
+        vector<uint64_t>&
+        ) const;
+    void getParents(
+        uint64_t segmentId,
+        uint64_t minimumLinkCoverage,
+        vector<uint64_t>&
+        ) const;
     void getChildrenOrParents(
         uint64_t segmentId,
         uint64_t direction, // 0=forward (children), 1=backward (parents).
-        vector<uint64_t>&) const;
+        uint64_t minimumLinkCoverage,
+        vector<uint64_t>&
+        ) const;
 
 
     // Find descendants of a given segment, up to a given distance in the graph.

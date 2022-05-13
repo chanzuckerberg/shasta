@@ -176,6 +176,22 @@ void AssemblyGraph::computeSegmentCoverage()
         segmentCoverage[segmentId] = float(coverageSum) / float(path.size());
 
     }
+
+
+    // Write a histogram of segment coverage.
+    vector<uint64_t> histogram;
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        const uint64_t coverage = uint64_t(std::round(segmentCoverage[segmentId]));
+        if(coverage >= histogram.size()) {
+            histogram.resize(coverage + 1, 0);
+        }
+        ++histogram[coverage];
+    }
+    ofstream csv("SegmentCoverageHistogram.csv");
+    csv << "Coverage,Frequency\n";
+    for(uint64_t coverage=0; coverage<histogram.size(); coverage++) {
+        csv << coverage << "," << histogram[coverage] << "\n";
+    }
 }
 
 
@@ -664,17 +680,19 @@ void AssemblyGraph::createConnectivity()
 
 
 // Get the children or parents of a given segment.
+// Only use links with at least a specified coverage.
 void AssemblyGraph::getChildrenOrParents(
     uint64_t segmentId,
     uint64_t direction, // 0=forward (children), 1=backward (parents).
+    uint64_t minimumLinkCoverage,
     vector<uint64_t>& childrenOrParents) const
 {
     switch(direction) {
     case 0:
-        getChildren(segmentId, childrenOrParents);
+        getChildren(segmentId, minimumLinkCoverage, childrenOrParents);
         break;
     case 1:
-        getParents(segmentId, childrenOrParents);
+        getParents(segmentId, minimumLinkCoverage, childrenOrParents);
         break;
     default:
         SHASTA_ASSERT(0);
@@ -685,6 +703,7 @@ void AssemblyGraph::getChildrenOrParents(
 
 void AssemblyGraph::getChildren(
     uint64_t segmentId,
+    uint64_t minimumLinkCoverage,
     vector<uint64_t>& children) const
 {
     children.clear();
@@ -698,6 +717,7 @@ void AssemblyGraph::getChildren(
 
 void AssemblyGraph::getParents(
     uint64_t segmentId,
+    uint64_t minimumLinkCoverage,
     vector<uint64_t>& parents) const
 {
     parents.clear();
@@ -1403,8 +1423,8 @@ void AssemblyGraph::createAssemblyPath(
     ) const
 {
     // CONSTANTS TO EXPOSE WHEN CODE STABILIZES.
-    const double unexplainedFractionThresholdForReference = 0.2;
-    const double unexplainedFractionThreshold = 0.2;
+    const uint64_t minimumLinkCoverage = 4;
+    const double minJaccardForReference = 0.8;
 
     const bool debug = true;
     if(debug) {
@@ -1444,7 +1464,13 @@ void AssemblyGraph::createAssemblyPath(
         // Loop over children or parents of segmentId0.
         // For each, compute SegmentPairInformation relative to
         // our current reference segment.
-        getChildrenOrParents(segmentId0, direction, childrenOrParents);
+        getChildrenOrParents(segmentId0, direction, minimumLinkCoverage, childrenOrParents);
+        if(childrenOrParents.empty()) {
+            if(debug) {
+                cout << "There are no children or parents." << endl;
+            }
+            return;
+        }
         segmentPairInformation.resize(childrenOrParents.size());
         for(uint64_t i=0; i<childrenOrParents.size(); i++) {
             const uint64_t segmentId1 = childrenOrParents[i];
@@ -1458,7 +1484,8 @@ void AssemblyGraph::createAssemblyPath(
                 if(segmentPairInformation[i].commonCount == 0) {
                     cout << "no common reads";
                 } else {
-                    cout << "unexplained fractions " <<
+                    cout << "Jaccard " << segmentPairInformation[i].jaccard() <<
+                    ", unexplained fractions " <<
                     segmentPairInformation[i].unexplainedFraction(0) << " " <<
                     segmentPairInformation[i].unexplainedFraction(1);
                 }
@@ -1468,6 +1495,43 @@ void AssemblyGraph::createAssemblyPath(
 
 
 
+
+
+        // Find the child or parent that has the best Jaccard similarity with
+        // the current reference segment.
+        uint64_t iBest = -1;
+        double jaccardBest = -1.;
+        for(uint64_t i=0; i<childrenOrParents.size(); i++) {
+            const double jaccard = segmentPairInformation[i].jaccard();
+            if(jaccard > jaccardBest) {
+                iBest = i;
+                jaccardBest = jaccard;
+            }
+        }
+        if(debug) {
+            cout << "Best Jaccard: segment " << childrenOrParents[iBest] <<
+                ", jaccard " << jaccardBest << endl;
+        }
+
+
+        // Add the best segment to the path.
+        segmentId0 = childrenOrParents[iBest];
+        path.push_back(segmentId0);
+        if(debug) {
+            cout << "Segment " << segmentId0 << " added to the path." << endl;
+        }
+
+        // If good enough, make it a new reference segment.
+        if(jaccardBest > minJaccardForReference) {
+            referenceSegmentId = segmentId0;
+            getOrientedReadsOnSegment(referenceSegmentId, referenceOrientedReads);
+            if(debug) {
+                cout << "Segment " << segmentId0 << " is the new reference segment." << endl;
+            }
+        }
+
+
+#if 0
         // See if any of these children or parents are good enough
         // to become a new reference segment.
         // For this, both unexplained fractions must be low.
@@ -1570,6 +1634,6 @@ void AssemblyGraph::createAssemblyPath(
             }
             return;
         }
-
+#endif
     }
 }
