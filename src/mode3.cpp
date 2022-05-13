@@ -663,6 +663,52 @@ void AssemblyGraph::createConnectivity()
 
 
 
+// Get the children or parents of a given segment.
+void AssemblyGraph::getChildrenOrParents(
+    uint64_t segmentId,
+    uint64_t direction, // 0=forward (children), 1=backward (parents).
+    vector<uint64_t>& childrenOrParents) const
+{
+    switch(direction) {
+    case 0:
+        getChildren(segmentId, childrenOrParents);
+        break;
+    case 1:
+        getParents(segmentId, childrenOrParents);
+        break;
+    default:
+        SHASTA_ASSERT(0);
+    }
+}
+
+
+
+void AssemblyGraph::getChildren(
+    uint64_t segmentId,
+    vector<uint64_t>& children) const
+{
+    children.clear();
+    for(const auto linkId: linksBySource[segmentId]) {
+        const Link& link = links[linkId];
+        children.push_back(link.segmentId1);
+    }
+}
+
+
+
+void AssemblyGraph::getParents(
+    uint64_t segmentId,
+    vector<uint64_t>& parents) const
+{
+    parents.clear();
+    for(const auto linkId: linksByTarget[segmentId]) {
+        const Link& link = links[linkId];
+        parents.push_back(link.segmentId0);
+    }
+}
+
+
+
 void AssemblyGraph::writeGfa(const string& fileName) const
 {
     ofstream gfa(fileName);
@@ -1351,10 +1397,179 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
 
 // Create an assembly path starting at a given segment.
 void AssemblyGraph::createAssemblyPath(
-    uint64_t segmentId,
+    uint64_t startSegmentId,
     uint64_t direction,    // 0 = forward, 1 = backward
     vector<uint64_t>& path // The segmentId's of the path.
     ) const
 {
+    // CONSTANTS TO EXPOSE WHEN CODE STABILIZES.
+    const double unexplainedFractionThresholdForReference = 0.2;
+    const double unexplainedFractionThreshold = 0.2;
+
+    const bool debug = true;
+    if(debug) {
+        cout << "Creating an assembly path starting at segment " << startSegmentId <<
+            ", direction "<< direction << endl;
+    }
+
+    // Start with a path consisting only of startSegmentId.
     path.clear();
+    path.push_back(startSegmentId);
+
+    // The last segment that was added to the path.
+    uint64_t segmentId0 = startSegmentId;
+
+    // Work areas used in the loop below and defined here
+    // to reduce memory allocation activity.
+    vector<uint64_t> childrenOrParents;
+    SegmentOrientedReadInformation referenceOrientedReads;
+    SegmentOrientedReadInformation orientedReads1;
+    vector<SegmentPairInformation> segmentPairInformation;
+    vector<uint64_t> newReferenceCandidates;
+    vector<uint64_t> nextSegmentCandidates;
+
+    // The current reference segment.
+    uint64_t referenceSegmentId = startSegmentId;
+    getOrientedReadsOnSegment(referenceSegmentId, referenceOrientedReads);
+
+    // Main loop. At each step we append one segment to the path.
+    while(true) {
+
+        if(debug) {
+            cout << "Loop iteration begins: "
+                "reference segment " << referenceSegmentId <<
+                ", segmentId0 " << segmentId0 << endl;
+        }
+
+        // Loop over children or parents of segmentId0.
+        // For each, compute SegmentPairInformation relative to
+        // our current reference segment.
+        getChildrenOrParents(segmentId0, direction, childrenOrParents);
+        segmentPairInformation.resize(childrenOrParents.size());
+        for(uint64_t i=0; i<childrenOrParents.size(); i++) {
+            const uint64_t segmentId1 = childrenOrParents[i];
+            getOrientedReadsOnSegment(segmentId1, orientedReads1);
+            analyzeSegmentPair(referenceSegmentId, segmentId1,
+                referenceOrientedReads, orientedReads1,
+                markers, segmentPairInformation[i]);
+
+            if(debug) {
+                cout << "Segment " << segmentId1 << ": ";
+                if(segmentPairInformation[i].commonCount == 0) {
+                    cout << "no common reads";
+                } else {
+                    cout << "unexplained fractions " <<
+                    segmentPairInformation[i].unexplainedFraction(0) << " " <<
+                    segmentPairInformation[i].unexplainedFraction(1);
+                }
+                cout << endl;
+            }
+        }
+
+
+
+        // See if any of these children or parents are good enough
+        // to become a new reference segment.
+        // For this, both unexplained fractions must be low.
+        // That is, the read composition of that segment
+        // would be a subset of the read composition of the reference segment.
+        newReferenceCandidates.clear();
+        for(uint64_t i=0; i<childrenOrParents.size(); i++) {
+            if(segmentPairInformation[i].maximumUnexplainedFraction() < unexplainedFractionThresholdForReference) {
+                newReferenceCandidates.push_back(i);
+            }
+        }
+        if(debug) {
+            if(newReferenceCandidates.empty()) {
+                cout << "No new reference candidates." << endl;
+            } else {
+                cout << "New reference candidates:"<< endl;
+                for(const uint64_t i: newReferenceCandidates) {
+                    cout << " " << childrenOrParents[i] << " " <<
+                        segmentPairInformation[i].unexplainedFraction(0) << " " <<
+                        segmentPairInformation[i].unexplainedFraction(1) << " " << endl;
+                }
+            }
+        }
+
+
+        // If there is a single new reference candidate, make it the new
+        // reference and add it to the path.
+        if(newReferenceCandidates.size() == 1) {
+            referenceSegmentId = childrenOrParents[newReferenceCandidates.front()];
+            getOrientedReadsOnSegment(referenceSegmentId, referenceOrientedReads);
+            path.push_back(referenceSegmentId);
+
+            // Keep going from here.
+            segmentId0 = referenceSegmentId;
+            continue;
+        }
+
+
+
+        if(newReferenceCandidates.size() > 1) {
+            if(debug) {
+                cout << "Multiple new reference candidates found." << endl;
+                return;
+            }
+        }
+
+
+
+        // See if any of these children or parents are good enough
+        // to be added to the path, without becoming a new reference segment.
+        // For this, only the first unexplained fractions must be low.
+        // That is, the read composition of that segment
+        // would be a supersetset of the read composition of the reference segment.
+        nextSegmentCandidates.clear();
+        for(uint64_t i=0; i<childrenOrParents.size(); i++) {
+            if(segmentPairInformation[i].unexplainedFraction(0) < unexplainedFractionThreshold) {
+                nextSegmentCandidates.push_back(i);
+            }
+        }
+        if(debug) {
+            if(nextSegmentCandidates.empty()) {
+                cout << "No new segment candidates." << endl;
+            } else {
+                cout << "New segment candidates:";
+                for(const uint64_t i: nextSegmentCandidates) {
+                    cout << " " << childrenOrParents[i] << " " <<
+                        segmentPairInformation[i].unexplainedFraction(0) << " " <<
+                        segmentPairInformation[i].unexplainedFraction(1) << " " << endl;
+                }
+            }
+        }
+
+
+
+        // If there are no next segment candidates, stop here.
+        // Later we will do better.
+        if(nextSegmentCandidates.empty()) {
+            if(debug) {
+                cout << "No next segment candidates." << endl;
+            }
+            return;
+        }
+
+
+        // If there is a single next segment candidate, add it to the path.
+        if(nextSegmentCandidates.size() == 1) {
+            const uint64_t nextSegmentId = childrenOrParents[nextSegmentCandidates.front()];
+            path.push_back(nextSegmentId);
+            segmentId0 = nextSegmentId;
+            continue;
+        }
+
+
+
+        // If there are multiple next segment candidates, stop here.
+        // Later we will do better,
+        if(nextSegmentCandidates.size() > 1) {
+            if(debug) {
+                cout << "Multiple next segment candidates." << endl;
+            }
+            return;
+        }
+
+    }
 }
