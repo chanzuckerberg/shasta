@@ -708,8 +708,10 @@ void AssemblyGraph::getChildren(
 {
     children.clear();
     for(const auto linkId: linksBySource[segmentId]) {
-        const Link& link = links[linkId];
-        children.push_back(link.segmentId1);
+        if(transitions.size(linkId) >= minimumLinkCoverage) {
+            const Link& link = links[linkId];
+            children.push_back(link.segmentId1);
+        }
     }
 }
 
@@ -722,8 +724,10 @@ void AssemblyGraph::getParents(
 {
     parents.clear();
     for(const auto linkId: linksByTarget[segmentId]) {
-        const Link& link = links[linkId];
-        parents.push_back(link.segmentId0);
+        if(transitions.size(linkId) >= minimumLinkCoverage) {
+            const Link& link = links[linkId];
+            parents.push_back(link.segmentId0);
+        }
     }
 }
 
