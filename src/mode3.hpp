@@ -213,6 +213,16 @@ public:
     void createConnectivity();
 
 
+    // Flag back-segments.
+    // This does not do a full blown search for locally strongly connected components.
+    // A segment is marked as a back-segment if:
+    // - It has only a single incoming link.
+    // - It has a single outgoing link.
+    // - The incoming and outgoing links both connect to/from the same segment.
+    void flagBackSegments();
+    MemoryMapped::Vector<bool> isBackSegment;
+
+
 
     // Get the children or parents of a given segment.
     // Only use links with at least a specified coverage.

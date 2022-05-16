@@ -612,6 +612,7 @@ AssemblyGraph::AssemblyGraph(
     // Create a links between pairs of segments with a sufficient number of transitions.
     createLinks(transitionMap, minCoverage);
     createConnectivity();
+    flagBackSegments();
 
     cout << "The mode 3 assembly graph has " << paths.size() << " segments and " <<
         links.size() << " links." << endl;
@@ -649,6 +650,7 @@ AssemblyGraph::AssemblyGraph(
     accessExistingReadOnly(transitions, "Mode3-Transitions");
     accessExistingReadOnly(linksBySource, "Mode3-LinksBySource");
     accessExistingReadOnly(linksByTarget, "Mode3-LinksByTarget");
+    accessExistingReadOnly(isBackSegment, "Mode3-IsBackSegment");
     accessExistingReadOnly(clusterIds, "Mode3-ClusterIds");
 }
 
@@ -675,6 +677,56 @@ void AssemblyGraph::createConnectivity()
     }
     linksBySource.endPass2();
     linksByTarget.endPass2();
+}
+
+
+
+// Flag back-segments.
+// This does not do a full blown search for locally strongly connected components.
+// A segment is marked as a back-segment if:
+// - It has only a single incoming link.
+// - It has a single outgoing link.
+// - The incoming and outgoing links both connect to/from the same segment.
+void AssemblyGraph::flagBackSegments()
+{
+    const uint64_t segmentCount = paths.size();
+    createNew(isBackSegment, "Mode3-IsBackSegment");
+    isBackSegment.resize(segmentCount);
+
+    uint64_t backSegmentCount = 0;
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+
+        // Initially flag it as not a back-segment.
+        isBackSegment[segmentId] = false;
+
+        // For a back-segment, there must be a single incoming link.
+        const auto incomingLinks = linksByTarget[segmentId];
+        if(incomingLinks.size() != 1) {
+            continue;
+        }
+
+        // For a back-segment, there must be a single outgoing link.
+        const auto outgoingLinks = linksBySource[segmentId];
+        if(outgoingLinks.size() != 1) {
+            continue;
+        }
+
+        // For a back-segment, the incoming and outgoing links
+        // both connect to/from the same segment.
+        const uint64_t incomingLinkId = incomingLinks[0];
+        const uint64_t outgoingLinkId = outgoingLinks[0];
+        const Link& incomingLink = links[incomingLinkId];
+        const Link& outgoingLink = links[outgoingLinkId];
+        if(incomingLink.segmentId0 != outgoingLink.segmentId1) {
+            continue;
+        }
+
+        // Flag it as a back-segment.
+        isBackSegment[segmentId] = true;
+        ++backSegmentCount;
+    }
+
+    cout << "Found " << backSegmentCount << " back-segments." << endl;
 }
 
 
@@ -1438,6 +1490,9 @@ void AssemblyGraph::createAssemblyPath(
 
     // Start with a path consisting only of startSegmentId.
     path.clear();
+    if(isBackSegment[startSegmentId]) {
+        return;
+    }
     path.push_back(startSegmentId);
 
     // The last segment that was added to the path.
@@ -1478,6 +1533,9 @@ void AssemblyGraph::createAssemblyPath(
         segmentPairInformation.resize(childrenOrParents.size());
         for(uint64_t i=0; i<childrenOrParents.size(); i++) {
             const uint64_t segmentId1 = childrenOrParents[i];
+            if(isBackSegment[segmentId1]) {
+                continue;
+            }
             getOrientedReadsOnSegment(segmentId1, orientedReads1);
             analyzeSegmentPair(referenceSegmentId, segmentId1,
                 referenceOrientedReads, orientedReads1,
@@ -1499,18 +1557,22 @@ void AssemblyGraph::createAssemblyPath(
 
 
 
-
-
         // Find the child or parent that has the best Jaccard similarity with
         // the current reference segment.
-        uint64_t iBest = -1;
+        uint64_t iBest = std::numeric_limits<uint64_t>::max();
         double jaccardBest = -1.;
         for(uint64_t i=0; i<childrenOrParents.size(); i++) {
+            if(isBackSegment[childrenOrParents[i]]) {
+                continue;
+            }
             const double jaccard = segmentPairInformation[i].jaccard();
             if(jaccard > jaccardBest) {
                 iBest = i;
                 jaccardBest = jaccard;
             }
+        }
+        if(iBest == std::numeric_limits<uint64_t>::max()) { // Can happen due to back-segments.
+            return;
         }
         if(debug) {
             cout << "Best Jaccard: segment " << childrenOrParents[iBest] <<
