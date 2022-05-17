@@ -434,6 +434,17 @@ void mode3::LocalAssemblyGraph::writeSvg(
     }
 
 
+    std::set<uint64_t> pathSegments;
+    if(options.segmentColoring == "path") {
+        vector<uint64_t> path;
+        assemblyGraph.createAssemblyPath(options.pathStart, options.pathDirection, path);
+        for(const uint64_t segmentId: path) {
+            pathSegments.insert(segmentId);
+        }
+
+    }
+
+
 
     // If coloring by cluster id only some clusters, create a color map
     // for the clusters to be colored.
@@ -664,6 +675,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
                             color = it->second;
                         }
                     }
+                }
+            } else if(options.segmentColoring == "path") {
+                if(pathSegments.find(segmentId) == pathSegments.end()) {
+                    color = "Black";
+                } else {
+                    color = "Green";
                 }
             } else {
                 color = "Black";
@@ -1049,6 +1066,8 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     HttpServer::getParameterValue(request, "greenThreshold", greenThreshold);
     HttpServer::getParameterValue(request, "referenceSegmentId", referenceSegmentId);
     HttpServer::getParameterValue(request, "hashSeed", hashSeed);
+    HttpServer::getParameterValue(request, "pathStart", pathStart);
+    HttpServer::getParameterValue(request, "pathDirection", pathDirection);
 
     string clustersToBeColoredString;
     HttpServer::getParameterValue(request, "clustersToBeColored", clustersToBeColoredString);
@@ -1182,10 +1201,22 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
          for(const uint64_t clusterId: clustersToBeColored) {
              html << clusterId << " ";
          }
-         html <<  "'><br>"
+         html <<  "'><br>";
+
+         // Segment coloring using a path.
+         html <<
+             "<hr>"
+             "<input type=radio name=segmentColoring value=path"
+             << (segmentColoring=="path" ? " checked=checked" : "") <<
+             ">Color an assembly path"
+             "<br>"
+             "Start the path at segment &nbsp;<input type=text name=pathStart size=8 style='text-align:center'"
+                     " value='" << pathStart << "'><br>"
+             "Direction (0=forward, 1=backward) &nbsp;<input type=text name=pathDirection size=8 style='text-align:center'"
+                     " value='" << pathDirection << "'><br>";
 
 
-        "</table>"
+        html << "</table>"
 
 
 

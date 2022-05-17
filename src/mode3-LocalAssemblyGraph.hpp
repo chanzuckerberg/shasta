@@ -107,7 +107,9 @@ public:
         string segmentColor = "Green";  // Only used if segmentColoring is "uniform"
         uint64_t greenThreshold = 0;    // Minimum number of common reads to color green (0=automatic).
         uint64_t referenceSegmentId = 0;// Only used if segmentColoring is "byCommonReads"
-        uint64_t hashSeed = 0;          // Only used if segmentCooring is "byClusterId".
+        uint64_t hashSeed = 0;          // Only used if segmentCooring is "byClusterId"
+        uint64_t pathStart = 0;         // Only used is segmentColoring is "path"
+        uint64_t pathDirection = 0;     // Only used is segmentColoring is "path" (0=forward, 1=backward)
 
         // Clusters to be colored, if coloring by cluster id.
         // If empty, all clusters are colored.
