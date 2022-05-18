@@ -1467,6 +1467,21 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
             csv << "\n";
         }
     }
+
+
+
+    // Gather the snippets by segmentIds.
+    // For each set of segmentids we store the number of supporting reads.
+    std::map<vector<uint64_t>, uint64_t> snippetMap;
+    for(const CompressedPseudoPathSnippet& snippet: snippets) {
+        ++snippetMap[snippet.segmentIds];
+    }
+    for(const auto& p: snippetMap) {
+        const vector<uint64_t>& segmentIds = p.first;
+        cout << p.second << ": ";
+        copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+    }
 }
 
 
