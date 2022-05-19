@@ -1462,8 +1462,10 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
     // Write the snippets.
     {
         ofstream csv("CompressedPseudoPathSnippets.csv");
-        csv << "OrientedReadId,Begin position,SegmentIds\n";
-        for(const CompressedPseudoPathSnippet& snippet: snippets) {
+        csv << "SnippetIndex,OrientedReadId,Begin position,SegmentIds\n";
+        for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
+            const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+            csv << snippetIndex << ",";
             csv << snippet.orientedReadId << ",";
             csv << snippet.beginPosition << ",";
             for(const uint64_t segmentId: snippet.segmentIds) {
@@ -1475,20 +1477,34 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
 
 
 
-    // Gather the snippets by segmentIds.
-    // For each set of segmentids we store the number of supporting reads.
-    std::map<vector<uint64_t>, uint64_t> snippetMap;
-    for(const CompressedPseudoPathSnippet& snippet: snippets) {
-        ++snippetMap[snippet.segmentIds];
+    // Gather the snippets into groups with the same segmentIds.
+    // Key: segmentIds.
+    // Value: vector of indexes into the snippets vector.
+    std::map<vector<uint64_t>, vector<uint64_t> > snippetMap;
+    for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
+        const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+        snippetMap[snippet.segmentIds].push_back(snippetIndex);
     }
-    for(const auto& p: snippetMap) {
+    vector< pair < vector<uint64_t>, vector<uint64_t> > > snippetGroups(snippetMap.size());
+    copy(snippetMap.begin(), snippetMap.end(),snippetGroups.begin());
+    for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+        const auto& p = snippetGroups[snippetGroupIndex];
         const vector<uint64_t>& segmentIds = p.first;
-        cout << p.second << ": ";
+        const vector<uint64_t>& snippetIndexes = p.second;
+        cout << "Snippet group " << snippetGroupIndex <<
+            " has " <<  snippetIndexes.size() << " snippets with " << segmentIds.size() << " segments." << endl;
+        cout << "    Snippets: ";
+        copy(snippetIndexes.begin(), snippetIndexes.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+        cout << "    Segments: ";
         copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
         cout << endl;
     }
 
 
+
+
+#if 0
     // Create a feature matrix that gives, for each snippet, a bit vector
     // of the segments it visits.
     vector< vector<bool> > featureMatrix(snippets.size(), vector<bool>(segmentIds.size(), false));
@@ -1566,7 +1582,7 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
             csv << U[i] << "," << U[i+M] << endl;
         }
     }
-
+#endif
 }
 
 
