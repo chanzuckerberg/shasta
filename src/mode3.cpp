@@ -4,6 +4,7 @@
 #include "findMarkerId.hpp"
 #include "MarkerGraph.hpp"
 #include "orderPairs.hpp"
+#include "shastaLapack.hpp"
 #include "ReadFlags.hpp"
 using namespace shasta;
 using namespace mode3;
@@ -1393,8 +1394,12 @@ void AssemblyGraph::findDescendants(
 
 
 // Analyze a subgraph of the assembly graph.
-void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
+void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) const
 {
+    // Create a sorted version of the segmentIds. We will need it later.
+    vector<uint64_t> segmentIds = unsortedSegmentIds;
+    sort(segmentIds.begin(), segmentIds.end());
+
     // Gather triplets (orientedReadId, position in compressedPseudoPath, segmentId).
     using Triplet = tuple<OrientedReadId, uint64_t, uint64_t>;
     vector<Triplet> triplets;
@@ -1482,6 +1487,86 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& segmentIds) const
         copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
         cout << endl;
     }
+
+
+    // Create a feature matrix that gives, for each snippet, a bit vector
+    // of the segments it visits.
+    vector< vector<bool> > featureMatrix(snippets.size(), vector<bool>(segmentIds.size(), false));
+    for(uint64_t i=0; i<snippets.size(); i++) {
+        const CompressedPseudoPathSnippet& snippet = snippets[i];
+        for(const uint64_t segmentId: snippet.segmentIds) {
+            const auto it = lower_bound(segmentIds.begin(), segmentIds.end(), segmentId);
+            SHASTA_ASSERT(it != segmentIds.end());
+            SHASTA_ASSERT(*it == segmentId);
+            const uint64_t j = it - segmentIds.begin();
+            featureMatrix[i][j] = true;
+        }
+    }
+
+    // Write the feature matrix.
+    {
+        ofstream csv("FeatureMatrix.csv");
+        csv << "OrientedReadId,";
+        for(const uint64_t segmentId: segmentIds) {
+            csv << "S" << segmentId << ",";
+        }
+        csv << "\n";
+        for(uint64_t i=0; i<snippets.size(); i++) {
+            csv << snippets[i].orientedReadId << ",";
+            for(uint64_t j=0; j<segmentIds.size(); j++) {
+                csv << int(featureMatrix[i][j]) << ",";
+            }
+            csv << "\n";
+        }
+    }
+
+
+    // Compute the SVD of the feature matrix,
+    const string JOBU = "A";
+    const string JOBVT = "A";
+    const int M = int(snippets.size());         // Number of rows. one row per snippet.
+    const int N = int(segmentIds.size());       // Number of columns. One column pwer segment.
+    vector<double> A(M*N);                      // Fortran storage (by column).
+    for(uint64_t i=0; i<snippets.size(); i++) {
+        for(uint64_t j=0; j<segmentIds.size(); j++) {
+            A[j*M + i] = featureMatrix[i][j];
+        }
+    }
+    const int LDA = M;
+    vector<double> S(min(M, N));
+    vector<double> U(M*M);
+    const int LDU = M;
+    vector<double> VT(N*N);
+    const int LDVT = N;
+    const int LWORK = 10 * max(M, N);
+    vector<double> WORK(LWORK);
+    int INFO = 0;
+
+    dgesvd_(
+        JOBU.data(), JOBVT.data(),
+        M, N,
+        &A[0], LDA, &S[0], &U[0], LDU, &VT[0], LDVT, &WORK[0], LWORK, INFO);
+    cout << "dgesvd return code " << INFO << endl;
+
+    if(INFO != 0) {
+        return;
+    }
+
+    cout << "Singular values: " << endl;
+    for(const double v: S) {
+        cout << v << endl;
+    }
+
+    // Write the first 2 left eigenvectors (U, of length M).
+    // There is one for each snippet.
+    {
+        ofstream csv("LeftEigenvectors.csv");
+        for(uint64_t i=0; i<snippets.size(); i++) {
+            csv << snippets[i].orientedReadId << ",";
+            csv << U[i] << "," << U[i+M] << endl;
+        }
+    }
+
 }
 
 
