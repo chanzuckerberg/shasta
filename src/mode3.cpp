@@ -6,6 +6,7 @@
 #include "orderPairs.hpp"
 #include "shastaLapack.hpp"
 #include "ReadFlags.hpp"
+#include "SubsetGraph.hpp"
 using namespace shasta;
 using namespace mode3;
 

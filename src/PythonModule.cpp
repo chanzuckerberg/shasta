@@ -21,8 +21,9 @@
 #include "Reads.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
-#include "testSpoa.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
+#include "testSpoa.hpp"
+#include "testSubsetGraph.hpp"
 using namespace shasta;
 
 // Pybind11
@@ -773,6 +774,9 @@ PYBIND11_MODULE(shasta, shastaModule)
         );
     shastaModule.def("testDiploidBayesianPhase",
         testDiploidBayesianPhase
+        );
+    shastaModule.def("testSubsetGraph",
+        testSubsetGraph
         );
 }
 
