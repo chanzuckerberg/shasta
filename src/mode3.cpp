@@ -1504,6 +1504,68 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
 
 
 
+    // Create a subset graph for the groups.
+    using SegmentSubsetGraph = SubsetGraph<uint64_t>;
+    SegmentSubsetGraph subsetGraph;
+    vector<SegmentSubsetGraph::vertex_descriptor> subsetGraphVertices;
+    std::map<SegmentSubsetGraph::vertex_descriptor, uint64_t> indexMap;
+    for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+        const auto& p = snippetGroups[snippetGroupIndex];
+        const vector<uint64_t>& segmentIds = p.first;
+        const SubsetGraph<uint64_t>::vertex_descriptor v = subsetGraph.addVertex(segmentIds);
+        subsetGraphVertices.push_back(v);
+        indexMap.insert(make_pair(v, snippetGroupIndex));
+    }
+    subsetGraph.createEdges();
+
+    // Find the maximal snippet groups.
+    vector<uint64_t> maximalSnippetGroups;
+    for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+        const auto v = subsetGraphVertices[snippetGroupIndex];
+        if(in_degree(v, subsetGraph) == 0) {
+            maximalSnippetGroups.push_back(snippetGroupIndex);
+        }
+    }
+    cout << "Found " << maximalSnippetGroups.size() << " maximal snippet groups:" << endl;
+    for(const uint64_t snippetGroupIndex: maximalSnippetGroups) {
+        const auto& p = snippetGroups[snippetGroupIndex];
+        const vector<uint64_t>& segmentIds = p.first;
+        cout << "Group " << snippetGroupIndex <<
+            " with " << p.second.size() <<
+            " snippets and " << segmentIds.size() << " segments:" << endl;
+        copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+    }
+
+
+    // Write the subset graph in Graphviz format.
+    {
+        ofstream dot("SubsetGraph.dot");
+        dot << "digraph SubsetGraph {\n"
+            "node [shape=rectangle];\n";
+        for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+            const auto& p = snippetGroups[snippetGroupIndex];
+            const vector<uint64_t>& segmentIds = p.first;
+            dot << snippetGroupIndex << " [label=\"Group " << snippetGroupIndex << "\\n" <<
+                p.second.size() << " snippets\\n";
+            for(uint64_t i=0; i<segmentIds.size(); i++) {
+                dot << segmentIds[i];
+                if(i != segmentIds.size()-1) {
+                    dot << "\\n";
+                }
+            }
+            dot << "\"];\n";
+        }
+        BGL_FORALL_EDGES(e, subsetGraph, SegmentSubsetGraph) {
+            const auto v0 = source(e, subsetGraph);
+            const auto v1 = target(e, subsetGraph);
+            dot << indexMap[v0] << "->" << indexMap[v1] << ";\n";
+        }
+        dot << "}\n";
+    }
+
+
+
 
 #if 0
     // Create a feature matrix that gives, for each snippet, a bit vector
