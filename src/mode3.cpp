@@ -1507,8 +1507,9 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
     // Create a subset graph for the groups.
     using SegmentSubsetGraph = SubsetGraph<uint64_t>;
     SegmentSubsetGraph subsetGraph;
-    vector<SegmentSubsetGraph::vertex_descriptor> subsetGraphVertices;
-    std::map<SegmentSubsetGraph::vertex_descriptor, uint64_t> indexMap;
+    using vertex_descriptor = SegmentSubsetGraph::vertex_descriptor;
+    vector<vertex_descriptor> subsetGraphVertices;
+    std::map<vertex_descriptor, uint64_t> indexMap;
     for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
         const auto& p = snippetGroups[snippetGroupIndex];
         const vector<uint64_t>& segmentIds = p.first;
@@ -1517,6 +1518,8 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
         indexMap.insert(make_pair(v, snippetGroupIndex));
     }
     subsetGraph.createEdges();
+
+
 
     // Find the maximal snippet groups.
     vector<uint64_t> maximalSnippetGroups;
@@ -1536,6 +1539,115 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
         copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
         cout << endl;
     }
+
+
+
+    // Find the descendants of each maximal snippet group.
+    // Keep track of which maximal groups each vertex is a descendant of.
+    std::map<vertex_descriptor, vector<vertex_descriptor> > ancestorMap;
+    for(const uint64_t snippetGroupIndex: maximalSnippetGroups) {
+        const vertex_descriptor vStart = subsetGraphVertices[snippetGroupIndex];
+
+        // Do a BFS starting here.
+        std::queue<vertex_descriptor> q;
+        q.push(vStart);
+        std::set<vertex_descriptor> descendants;
+        descendants.insert(vStart);
+        while(not q.empty()) {
+            const vertex_descriptor v0 = q.front();
+            q.pop();
+            BGL_FORALL_OUTEDGES(v0, e01, subsetGraph, SegmentSubsetGraph) {
+                const vertex_descriptor v1 = target(e01, subsetGraph);
+                if(descendants.find(v1) == descendants.end()) {
+                    q.push(v1);
+                    descendants.insert(v1);
+                }
+            }
+        }
+        for(const vertex_descriptor v: descendants) {
+            ancestorMap[v].push_back(vStart);
+        }
+
+        cout << "Descendants of " << snippetGroupIndex << ":" << endl;
+        for(const vertex_descriptor v: descendants) {
+            cout << indexMap[v] << " ";
+        }
+        cout << endl;
+    }
+
+    cout << "Ancestor map:" << endl;
+    for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+        const vertex_descriptor v0 = subsetGraphVertices[snippetGroupIndex];
+        cout << indexMap[v0] << ": ";
+        for(const vertex_descriptor v1: ancestorMap[v0]) {
+            cout << indexMap[v1] << " ";
+        }
+        cout << endl;
+    }
+
+
+
+    // Each maximal snippet group, together with its descendants
+    // that are not also descendants of another snippet group, generates a cluster.
+    std::map<uint64_t, vector<uint64_t> > clusterMap;
+    for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+        const vertex_descriptor v0 = subsetGraphVertices[snippetGroupIndex];
+        const vector<vertex_descriptor>& maximalAncestors = ancestorMap[v0];
+        SHASTA_ASSERT(not maximalAncestors.empty());
+        if(maximalAncestors.size() == 1) {
+            const vertex_descriptor maximalAncestor = maximalAncestors.front();
+            clusterMap[indexMap[maximalAncestor]].push_back(snippetGroupIndex);
+
+        } else {
+            cout << "Snippet group " << indexMap[v0] <<
+                " is ambiguous and was not clustered." << endl;
+        }
+    }
+
+
+    // Gather the clusters.
+    for(const auto& p: clusterMap) {
+        const uint64_t maximalSnippetGroupIndex = p.first;
+        const vector<uint64_t>& cluster = p.second;
+
+        // Compute coverage (total number of snippets) for this cluster.
+        uint64_t coverage = 0;
+        for(const uint64_t snippetGroupIndex: cluster) {
+            coverage += snippetGroups[snippetGroupIndex].second.size();
+        }
+
+        // Compute coverage by segment.
+        std::map<uint64_t, uint64_t> coverageBySegment;
+        for(const uint64_t snippetGroupIndex: cluster) {
+            const auto& p = snippetGroups[snippetGroupIndex];
+            const auto& segmentIds = p.first;
+            const uint64_t snippetCount = p.second.size();
+            for(const uint64_t segmentId: segmentIds) {
+                auto it = coverageBySegment.find(segmentId);
+                if(it == coverageBySegment.end()) {
+                    coverageBySegment.insert(make_pair(segmentId, snippetCount));
+                } else {
+                   it->second += snippetCount;
+                }
+            }
+        }
+
+        cout << "Cluster " << maximalSnippetGroupIndex << ", coverage " << coverage << ": " << endl;
+
+        cout << "    Segments (coverage in parenthesis): ";
+        for(const uint64_t segmentId: snippetGroups[maximalSnippetGroupIndex].first) {
+            cout << segmentId << " (";
+            cout << coverageBySegment[segmentId] << "), ";
+        }
+        cout << endl;
+
+        cout << "    Snippet groups: ";
+        for(const uint64_t snippetGroupIndex: cluster) {
+            cout << snippetGroupIndex << " ";
+        }
+        cout << endl;
+    }
+
 
 
     // Write the subset graph in Graphviz format.
