@@ -147,8 +147,14 @@ public:
         void addFormRows(ostream& html);
     };
     void writeHtml(ostream& html, const SvgOptions&) const;
-    void writeSvg(const string& fileName, const SvgOptions&) const;
-    void writeSvg(ostream&, const SvgOptions&) const;
+    void writeSvg(
+        const string& fileName,
+        const SvgOptions&,
+        vector<mode3::AssemblyGraph::AnalyzeSubgraphClasses::Cluster>&) const;
+    void writeSvg(
+        ostream&,
+        const SvgOptions&,
+        vector<mode3::AssemblyGraph::AnalyzeSubgraphClasses::Cluster>&) const;
     void computeLayout(const SvgOptions&, double timeout);
     void computeSegmentTangents();
     void computeSegmentTangents(vertex_descriptor);

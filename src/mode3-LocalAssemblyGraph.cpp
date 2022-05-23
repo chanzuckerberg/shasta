@@ -150,7 +150,8 @@ void mode3::LocalAssemblyGraph::writeHtml(ostream& html, const SvgOptions& optio
 {
     // Write the svg object.
     html << "<div style='display: inline-block; vertical-align:top'>";
-    writeSvg(html, options);
+    vector<mode3::AssemblyGraph::AnalyzeSubgraphClasses::Cluster> clusters;
+    writeSvg(html, options, clusters);
     html << "</div>";
     addSvgDragAndZoom(html);
 
@@ -385,6 +386,56 @@ function onMouseExitSegment()
 
 
 
+    // Code to display one local cluster at a time, with a button
+    // to cycle through them.
+    if(options.segmentColoring == "byLocalCluster") {
+        html << "<br><button onClick='cycleCluster()'>Cycle clusters</button>";
+        html << "Displaying cluster <span id='currentCluster'></span>";
+        html << "<script>\n";
+        html << "var clusters = [";
+        for(uint64_t i=0; i<clusters.size(); i++) {
+            html << "[";
+            const auto & cluster = clusters[i];
+            for(uint64_t j=0; j<cluster.segments.size(); j++) {
+                html << cluster.segments[j].first;
+                if(j != cluster.segments.size() - 1) {
+                    html << ",";
+                }
+            }
+            html << "]";
+            if(i != clusters.size() -1) {
+                html << ",";
+            }
+        }
+        html << "];\n";
+
+        html << R"stringDelimiter(
+
+        function highlightCluster(clusterId, color)
+        {
+            for(i=0; i<clusters[clusterId].length; i++) {
+                segmentId = clusters[clusterId][i];
+                document.getElementById("Segment-" + segmentId).style.stroke = color;
+            }
+        }
+        var currentCluster = 0;
+        highlightCluster(currentCluster, "Green");
+        document.getElementById("currentCluster").innerHTML = currentCluster;
+        function cycleCluster()
+        {
+            highlightCluster(currentCluster, "Black");
+            currentCluster = currentCluster + 1;
+            if(currentCluster == clusters.length) {
+                currentCluster = 0;
+            }
+            highlightCluster(currentCluster, "Green");
+            document.getElementById("currentCluster").innerHTML = currentCluster;
+        }
+        </script>
+
+        )stringDelimiter";
+    }
+
     // End of side panel.
     html << "</div>";
 
@@ -394,14 +445,17 @@ function onMouseExitSegment()
 
 void mode3::LocalAssemblyGraph::writeSvg(
     const string& fileName,
-    const SvgOptions& options) const
+    const SvgOptions& options,
+    vector<mode3::AssemblyGraph::AnalyzeSubgraphClasses::Cluster>& clusters) const
 {
     ofstream svg(fileName);
-    writeSvg(svg, options);
+    writeSvg(svg, options, clusters);
 }
 void mode3::LocalAssemblyGraph::writeSvg(
     ostream& svg,
-    const SvgOptions& options) const
+    const SvgOptions& options,
+    vector<mode3::AssemblyGraph::AnalyzeSubgraphClasses::Cluster>& clusters
+    ) const
 {
     const LocalAssemblyGraph& localAssemblyGraph = *this;
 
@@ -441,6 +495,22 @@ void mode3::LocalAssemblyGraph::writeSvg(
         for(const uint64_t segmentId: path) {
             pathSegments.insert(segmentId);
         }
+    }
+
+
+
+    // If coloring by local cluster, call mode3::AssemblyGraph::analyzeSubgraph,
+    // passing as input all the segments in the LocalAssemblyGraph
+    // except those at maximum distance.
+    if(options.segmentColoring == "byLocalCluster") {
+        vector<uint64_t> segmentIds;
+        BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
+            const LocalAssemblyGraphVertex& vertex = localAssemblyGraph[v];
+            if(vertex.distance != maxDistance) {
+                segmentIds.push_back(vertex.segmentId);
+            }
+        }
+        assemblyGraph.analyzeSubgraph(segmentIds, clusters, true);
 
     }
 
@@ -1198,10 +1268,18 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
                 " value='" << hashSeed << "'><br>"
         "Only color clusters&nbsp;<input type=text name=clustersToBeColored size=8 style='text-align:center'"
                 " value='";
-         for(const uint64_t clusterId: clustersToBeColored) {
-             html << clusterId << " ";
-         }
-         html <<  "'><br>";
+     for(const uint64_t clusterId: clustersToBeColored) {
+         html << clusterId << " ";
+     }
+     html <<  "'><hr>"
+
+         // Segment coloring by local cluster
+         // (computed by analyzeSubgraph using as input only the segments at
+         // distance less than maxDistance).
+         "<input type=radio name=segmentColoring value=byLocalCluster"
+         << (segmentColoring=="byLocalCluster" ? " checked=checked" : "") <<
+         ">By local cluster"
+         "<br>";
 
          // Segment coloring using a path.
          html <<
