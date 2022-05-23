@@ -410,13 +410,44 @@ public:
     // Analyze a subgraph of the assembly graph.
     void analyzeSubgraph(const vector<uint64_t>& segmentIds) const;
 
-    // A sequence of consecutive positions of the compressed pseudopath
-    // of an oriented read.
-    class CompressedPseudoPathSnippet {
+    // Classes used in analyzeSubgraph.
+    class AnalyzeSubgraphClasses {
     public:
-        OrientedReadId orientedReadId;
-        uint64_t beginPosition; // In the compressed pseudopath for this OrientedReadId.
-        vector<uint64_t> segmentIds;
+
+        // A CompressedPseudoPathSnippet describes a sequence of consecutive positions
+        // of the compressed pseudopath of an oriented read.
+        // An OrientedReadId can have than more one snippet on a given subgraph,
+        // but this is not common. It can happen if the assembly graph contains a cycle.
+        class CompressedPseudoPathSnippet {
+        public:
+
+            // The OrientedReadId this refers to.
+            OrientedReadId orientedReadId;
+
+            // The sequence of segments encountered.
+            vector<uint64_t> segmentIds;
+
+            // The first and last position in the compressed pseudopath for this OrientedReadId.
+            uint64_t firstPosition;
+            uint64_t lastPosition() const
+            {
+                return firstPosition + segmentIds.size() - 1;
+            }
+        };
+
+        // A Cluster is a set of CompressedPseudoPathSnippet's.
+        class Cluster {
+        public:
+            // The snippets in this cluster.
+            vector<CompressedPseudoPathSnippet> snippets;
+
+            // The segments visited by the snippets of this cluster,
+            // each stored with its coverage (number of snippets);
+            vector< pair<uint64_t, uint64_t > > segments;
+
+            // Construct the segments given the snippets.
+            void constructSegments();
+        };
     };
 
 

@@ -1397,6 +1397,9 @@ void AssemblyGraph::findDescendants(
 // Analyze a subgraph of the assembly graph.
 void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) const
 {
+    using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
+    using Cluster = AnalyzeSubgraphClasses::Cluster;
+
     // Create a sorted version of the segmentIds. We will need it later.
     vector<uint64_t> segmentIds = unsortedSegmentIds;
     sort(segmentIds.begin(), segmentIds.end());
@@ -1448,7 +1451,7 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
         // Add a snippet.
         CompressedPseudoPathSnippet snippet;
         snippet.orientedReadId = orientedReadId;
-        snippet.beginPosition = get<1>(triplets[streakBegin]);
+        snippet.firstPosition = get<1>(triplets[streakBegin]);
         for(uint64_t j=streakBegin; j!=streakEnd; ++j) {
             snippet.segmentIds.push_back(get<2>(triplets[j]));
         }
@@ -1463,12 +1466,13 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
     // Write the snippets.
     {
         ofstream csv("CompressedPseudoPathSnippets.csv");
-        csv << "SnippetIndex,OrientedReadId,Begin position,SegmentIds\n";
+        csv << "SnippetIndex,OrientedReadId,First position,LastPosition,SegmentIds\n";
         for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
             const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
             csv << snippetIndex << ",";
             csv << snippet.orientedReadId << ",";
-            csv << snippet.beginPosition << ",";
+            csv << snippet.firstPosition << ",";
+            csv << snippet.lastPosition() << ",";
             for(const uint64_t segmentId: snippet.segmentIds) {
                 csv << segmentId << ",";
             }
@@ -1605,45 +1609,42 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
     }
 
 
-    // Gather the clusters.
+
+    // Gather the snippets in each cluster.
+    vector<Cluster> clusters;
     for(const auto& p: clusterMap) {
-        const uint64_t maximalSnippetGroupIndex = p.first;
-        const vector<uint64_t>& cluster = p.second;
+        clusters.resize(clusters.size() + 1);
+        Cluster& cluster = clusters.back();
 
-        // Compute coverage (total number of snippets) for this cluster.
-        uint64_t coverage = 0;
-        for(const uint64_t snippetGroupIndex: cluster) {
-            coverage += snippetGroups[snippetGroupIndex].second.size();
-        }
+        // Get the snippet groups in this cluster.
+        const vector<uint64_t>& snippetGroupIndexes = p.second;
+        SHASTA_ASSERT(not snippetGroupIndexes.empty());
 
-        // Compute coverage by segment.
-        std::map<uint64_t, uint64_t> coverageBySegment;
-        for(const uint64_t snippetGroupIndex: cluster) {
-            const auto& p = snippetGroups[snippetGroupIndex];
-            const auto& segmentIds = p.first;
-            const uint64_t snippetCount = p.second.size();
-            for(const uint64_t segmentId: segmentIds) {
-                auto it = coverageBySegment.find(segmentId);
-                if(it == coverageBySegment.end()) {
-                    coverageBySegment.insert(make_pair(segmentId, snippetCount));
-                } else {
-                   it->second += snippetCount;
-                }
+        cout << "Cluster " << clusters.size() - 1 << endl;
+        cout << "    Snippet groups:\n    ";
+        copy(snippetGroupIndexes.begin(), snippetGroupIndexes.end(),
+            ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+
+
+        // Loop over the snippet groups in this cluster.
+        for(const uint64_t snippetGroupIndex: snippetGroupIndexes) {
+            const auto& q = snippetGroups[snippetGroupIndex];
+            const vector<uint64_t>& segmentIds = q.first;
+            const vector<uint64_t>& snippetIndexes = q.second;
+
+            // Loop over the snippets in this snippet group.
+            for(const uint64_t snippetIndex: snippetIndexes) {
+                const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+                SHASTA_ASSERT(snippet.segmentIds == segmentIds);
+                cluster.snippets.push_back(snippet);
             }
         }
 
-        cout << "Cluster " << maximalSnippetGroupIndex << ", coverage " << coverage << ": " << endl;
-
-        cout << "    Segments (coverage in parenthesis): ";
-        for(const uint64_t segmentId: snippetGroups[maximalSnippetGroupIndex].first) {
-            cout << segmentId << " (";
-            cout << coverageBySegment[segmentId] << "), ";
-        }
-        cout << endl;
-
-        cout << "    Snippet groups: ";
-        for(const uint64_t snippetGroupIndex: cluster) {
-            cout << snippetGroupIndex << " ";
+        cluster.constructSegments();
+        cout << "    Segments with coverage:\n    ";
+        for(const auto& p: cluster.segments) {
+            cout << p.first << "(" << p.second << ") ";
         }
         cout << endl;
     }
@@ -1758,6 +1759,28 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
         }
     }
 #endif
+}
+
+
+
+void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::constructSegments()
+{
+    // A map with Key=segmentId, value = coverage.
+    std::map<uint64_t, uint64_t> segmentMap;
+
+    for(const CompressedPseudoPathSnippet& snippet: snippets) {
+        for(const uint64_t segmentId: snippet.segmentIds) {
+            auto it = segmentMap.find(segmentId);
+            if(it == segmentMap.end()) {
+                segmentMap.insert(make_pair(segmentId, 1));
+            } else {
+                ++(it->second);
+            }
+        }
+    }
+
+    segments.clear();
+    copy(segmentMap.begin(), segmentMap.end(), back_inserter(segments));
 }
 
 
