@@ -1395,7 +1395,10 @@ void AssemblyGraph::findDescendants(
 
 
 // Analyze a subgraph of the assembly graph.
-void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) const
+void AssemblyGraph::analyzeSubgraph(
+    const vector<uint64_t>& unsortedSegmentIds,
+    vector<AnalyzeSubgraphClasses::Cluster>& clusters,
+    bool debug) const
 {
     using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
     using Cluster = AnalyzeSubgraphClasses::Cluster;
@@ -1418,7 +1421,7 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
     sort(triplets.begin(), triplets.end());
 
     // Write the triplets.
-    {
+    if(debug) {
         ofstream csv("Triplets.csv");
         for(const Triplet& triplet: triplets) {
             csv << get<0>(triplet) << ",";
@@ -1464,7 +1467,7 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
 
 
     // Write the snippets.
-    {
+    if(debug) {
         ofstream csv("CompressedPseudoPathSnippets.csv");
         csv << "SnippetIndex,OrientedReadId,First position,LastPosition,SegmentIds\n";
         for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
@@ -1494,16 +1497,19 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
     copy(snippetMap.begin(), snippetMap.end(),snippetGroups.begin());
     for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
         const auto& p = snippetGroups[snippetGroupIndex];
-        const vector<uint64_t>& segmentIds = p.first;
-        const vector<uint64_t>& snippetIndexes = p.second;
-        cout << "Snippet group " << snippetGroupIndex <<
-            " has " <<  snippetIndexes.size() << " snippets with " << segmentIds.size() << " segments." << endl;
-        cout << "    Snippets: ";
-        copy(snippetIndexes.begin(), snippetIndexes.end(), ostream_iterator<uint64_t>(cout, " "));
-        cout << endl;
-        cout << "    Segments: ";
-        copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
-        cout << endl;
+
+        if(debug) {
+            const vector<uint64_t>& segmentIds = p.first;
+            const vector<uint64_t>& snippetIndexes = p.second;
+            cout << "Snippet group " << snippetGroupIndex <<
+                " has " <<  snippetIndexes.size() << " snippets with " << segmentIds.size() << " segments." << endl;
+            cout << "    Snippets: ";
+            copy(snippetIndexes.begin(), snippetIndexes.end(), ostream_iterator<uint64_t>(cout, " "));
+            cout << endl;
+            cout << "    Segments: ";
+            copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
+            cout << endl;
+        }
     }
 
 
@@ -1533,15 +1539,17 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
             maximalSnippetGroups.push_back(snippetGroupIndex);
         }
     }
-    cout << "Found " << maximalSnippetGroups.size() << " maximal snippet groups:" << endl;
-    for(const uint64_t snippetGroupIndex: maximalSnippetGroups) {
-        const auto& p = snippetGroups[snippetGroupIndex];
-        const vector<uint64_t>& segmentIds = p.first;
-        cout << "Group " << snippetGroupIndex <<
-            " with " << p.second.size() <<
-            " snippets and " << segmentIds.size() << " segments:" << endl;
-        copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
-        cout << endl;
+    if(debug) {
+        cout << "Found " << maximalSnippetGroups.size() << " maximal snippet groups:" << endl;
+        for(const uint64_t snippetGroupIndex: maximalSnippetGroups) {
+            const auto& p = snippetGroups[snippetGroupIndex];
+            const vector<uint64_t>& segmentIds = p.first;
+            cout << "Group " << snippetGroupIndex <<
+                " with " << p.second.size() <<
+                " snippets and " << segmentIds.size() << " segments:" << endl;
+            copy(segmentIds.begin(), segmentIds.end(), ostream_iterator<uint64_t>(cout, " "));
+            cout << endl;
+        }
     }
 
 
@@ -1572,21 +1580,25 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
             ancestorMap[v].push_back(vStart);
         }
 
-        cout << "Descendants of " << snippetGroupIndex << ":" << endl;
-        for(const vertex_descriptor v: descendants) {
-            cout << indexMap[v] << " ";
+        if(debug) {
+            cout << "Descendants of " << snippetGroupIndex << ":" << endl;
+            for(const vertex_descriptor v: descendants) {
+                cout << indexMap[v] << " ";
+            }
+            cout << endl;
         }
-        cout << endl;
     }
 
-    cout << "Ancestor map:" << endl;
-    for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
-        const vertex_descriptor v0 = subsetGraphVertices[snippetGroupIndex];
-        cout << indexMap[v0] << ": ";
-        for(const vertex_descriptor v1: ancestorMap[v0]) {
-            cout << indexMap[v1] << " ";
+    if(debug) {
+        cout << "Ancestor map:" << endl;
+        for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
+            const vertex_descriptor v0 = subsetGraphVertices[snippetGroupIndex];
+            cout << indexMap[v0] << ": ";
+            for(const vertex_descriptor v1: ancestorMap[v0]) {
+                cout << indexMap[v1] << " ";
+            }
+            cout << endl;
         }
-        cout << endl;
     }
 
 
@@ -1603,15 +1615,17 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
             clusterMap[indexMap[maximalAncestor]].push_back(snippetGroupIndex);
 
         } else {
-            cout << "Snippet group " << indexMap[v0] <<
-                " is ambiguous and was not clustered." << endl;
+            if(debug) {
+                cout << "Snippet group " << indexMap[v0] <<
+                    " is ambiguous and was not clustered." << endl;
+            }
         }
     }
 
 
 
     // Gather the snippets in each cluster.
-    vector<Cluster> clusters;
+    clusters.clear();
     for(const auto& p: clusterMap) {
         clusters.resize(clusters.size() + 1);
         Cluster& cluster = clusters.back();
@@ -1620,11 +1634,13 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
         const vector<uint64_t>& snippetGroupIndexes = p.second;
         SHASTA_ASSERT(not snippetGroupIndexes.empty());
 
-        cout << "Cluster " << clusters.size() - 1 << endl;
-        cout << "    Snippet groups:\n    ";
-        copy(snippetGroupIndexes.begin(), snippetGroupIndexes.end(),
-            ostream_iterator<uint64_t>(cout, " "));
-        cout << endl;
+        if(debug) {
+            cout << "Cluster " << clusters.size() - 1 << endl;
+            cout << "    Snippet groups:\n    ";
+            copy(snippetGroupIndexes.begin(), snippetGroupIndexes.end(),
+                ostream_iterator<uint64_t>(cout, " "));
+            cout << endl;
+        }
 
 
         // Loop over the snippet groups in this cluster.
@@ -1642,17 +1658,20 @@ void AssemblyGraph::analyzeSubgraph(const vector<uint64_t>& unsortedSegmentIds) 
         }
 
         cluster.constructSegments();
-        cout << "    Segments with coverage:\n    ";
-        for(const auto& p: cluster.segments) {
-            cout << p.first << "(" << p.second << ") ";
+
+        if(debug) {
+            cout << "    Segments with coverage:\n    ";
+            for(const auto& p: cluster.segments) {
+                cout << p.first << "(" << p.second << ") ";
+            }
+            cout << endl;
         }
-        cout << endl;
     }
 
 
 
     // Write the subset graph in Graphviz format.
-    {
+    if(debug) {
         ofstream dot("SubsetGraph.dot");
         dot << "digraph SubsetGraph {\n"
             "node [shape=rectangle];\n";

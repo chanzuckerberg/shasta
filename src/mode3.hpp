@@ -408,7 +408,6 @@ public:
 
 
     // Analyze a subgraph of the assembly graph.
-    void analyzeSubgraph(const vector<uint64_t>& segmentIds) const;
 
     // Classes used in analyzeSubgraph.
     class AnalyzeSubgraphClasses {
@@ -449,6 +448,10 @@ public:
             void constructSegments();
         };
     };
+    void analyzeSubgraph(
+        const vector<uint64_t>& segmentIds,
+        vector<AnalyzeSubgraphClasses::Cluster>&,
+        bool debug) const;
 
 
 

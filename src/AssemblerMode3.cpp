@@ -41,7 +41,8 @@ void Assembler::accessMode3AssemblyGraph()
 void Assembler::analyzeMode3Subgraph(const vector<uint64_t>& segmentIds)
 {
     SHASTA_ASSERT(assemblyGraph3Pointer);
-    assemblyGraph3Pointer->analyzeSubgraph(segmentIds);
+    vector<mode3::AssemblyGraph::AnalyzeSubgraphClasses::Cluster> clusters;
+    assemblyGraph3Pointer->analyzeSubgraph(segmentIds, clusters, true);
 }
 
 
