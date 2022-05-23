@@ -126,33 +126,5 @@ jobs:
         shasta-build/shasta-Ubuntu-22.04/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta --Reads.noCache
         ls -l ShastaRun/Assembly.fasta
     
-       
 
-  macOS-11-0:
-    runs-on: macos-11
-    steps:
-    - uses: actions/checkout@master
-    - name: Install-prerequisites
-      run: scripts/InstallPrerequisites-macOS.sh
-    - name: Build-macOS-11
-      run: |
-        mkdir shasta-build
-        cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build for macOS-11 newer than release 0.10.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.10.0 for macOS-11 with Intel processors"
-        make VERBOSE=1 -j 2 all
-        make install/strip
-        # See what libraries the executable depends on.
-        otool -L shasta-install/bin/shasta
-    - name: Test-macOS-11
-      run: |
-        brew install gzip
-        gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-install/bin/shasta --config Nanopore-Sep2020 --input tests/TinyTest.fasta
-        ls -l ShastaRun/Assembly.fasta
-    - uses: actions/upload-artifact@master
-      with:
-        name: shasta-macOS-11
-        path: shasta-build/shasta-install/bin/shasta
-       
         
