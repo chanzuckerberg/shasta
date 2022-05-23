@@ -1404,10 +1404,6 @@ void Assembler::alignSequencesInBaseRepresentation(
     const vector<string>& request,
     ostream& html)
 {
-#ifndef __linux__
-    html << "<p>This functionality is only available on Linux.";
-    return;
-#else
 
     html << "<h1>Base-by-base alignment of two sequences</h1>"
         "<p>This page does not use run-length representation of sequences. "
@@ -1726,7 +1722,6 @@ void Assembler::alignSequencesInBaseRepresentation(
     html << png.rdbuf();
     html << "\"/>";
 
-#endif
 }
 
 

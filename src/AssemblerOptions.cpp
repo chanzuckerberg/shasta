@@ -72,11 +72,6 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
     // If version was requested, write the build id and exit.
     if (variablesMap.count("version")) {
         cout << buildId() << endl;
-#ifdef __linux__
-        cout << "Linux version" << endl;
-#else
-        cout << "MacOS version" << endl;
-#endif
         ::exit(0);
     }
 
@@ -165,7 +160,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Command to run. Must be one of: "
         "assemble, saveBinaryData, cleanupBinaryData, explore, createBashCompletionScript")
 
-#ifdef __linux__
         ("memoryMode",
         value<string>(&commandLineOnlyOptions.memoryMode)->
         default_value("anonymous"),
@@ -181,7 +175,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "except for (anonymous, disk).\n"
         "Some combinations require root privilege, which is obtained using sudo "
         "and may result in a password prompting depending on your sudo set up.")
-#endif
 
         ("threads",
         value<uint32_t>(&commandLineOnlyOptions.threadCount)->
@@ -215,16 +208,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         )
         ;
 
-
-    // For reasons not completely understood and that there was no time to investigate,
-    // the only combination that works on MacOS is
-    // "--memoryMode filesystem --memoryBacking disk".
-    // This incurs a performance price but this is not too much of a big deal
-    // as macOS  is only to be used for small test runs.
-#ifndef __linux__
-    commandLineOnlyOptions.memoryMode = "filesystem";
-    commandLineOnlyOptions.memoryBacking = "disk";
-#endif
 }
 
 

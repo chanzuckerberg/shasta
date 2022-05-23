@@ -22,9 +22,7 @@ using namespace shasta;
 #include <unordered_map>
 
 // This is needed for mallopt.
-#ifdef __linux__
 #include <malloc.h>
-#endif
 
 
 
@@ -679,9 +677,7 @@ void Assembler::assemble(
     }
 
     // Attempt to reduce memory fragmentation.
-#ifdef __linux__
     mallopt(M_MMAP_THRESHOLD, 16*1024);
-#endif
 
     // Do all the assemblies.
     cout << "Assembly begins for " << assemblyGraph.edgeLists.size() <<

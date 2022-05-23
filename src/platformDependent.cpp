@@ -7,17 +7,8 @@
 // Return the path to a usable temporary directory, including the final "/".
 std::string shasta::tmpDirectory()
 {
-#ifdef __linux__
-
-    // For Linux, use /dev/shm so the temporary files never go to disk.
+    // Use /dev/shm, so the temporary files never go to disk.
     return "/dev/shm/";
-    
-#else
-
-    // For macOS, use environment variable TMPDIR.
-    return string(::getenv("TMPDIR")) + "/";
-    
-#endif
 }
 
 
@@ -25,21 +16,14 @@ std::string shasta::tmpDirectory()
 // Return the name of a timeout command or equivalent.
 std::string shasta::timeoutCommand()
 {
-#ifdef __linux__
     return "timeout";
-#else
-
-    // For macOS, return gtimeout.
-    // Requires brew install coreutils.
-    return "gtimeout";
-    
-#endif
-    
 }
+
+
 
 uint64_t shasta::getPeakMemoryUsage() {
     uint64_t peakMemoryUsage = 0ULL;
-#ifdef __linux__
+
     ifstream procStats("/proc/self/status");
     if (procStats) {
         string line;
@@ -58,7 +42,7 @@ uint64_t shasta::getPeakMemoryUsage() {
             break;
         }
     }
-#endif
+
     return peakMemoryUsage;
 }
 
