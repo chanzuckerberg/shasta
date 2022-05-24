@@ -1633,15 +1633,7 @@ void AssemblyGraph::analyzeSubgraph(
         // Get the snippet groups in this cluster.
         const vector<uint64_t>& snippetGroupIndexes = p.second;
         SHASTA_ASSERT(not snippetGroupIndexes.empty());
-
-        if(debug) {
-            cout << "Cluster " << clusters.size() - 1 << endl;
-            cout << "    Snippet groups:\n    ";
-            copy(snippetGroupIndexes.begin(), snippetGroupIndexes.end(),
-                ostream_iterator<uint64_t>(cout, " "));
-            cout << endl;
-        }
-
+        cluster.snippetGroupIndexes = snippetGroupIndexes;
 
         // Loop over the snippet groups in this cluster.
         for(const uint64_t snippetGroupIndex: snippetGroupIndexes) {
@@ -1660,6 +1652,11 @@ void AssemblyGraph::analyzeSubgraph(
         cluster.constructSegments();
 
         if(debug) {
+            cout << "Cluster " << clusters.size() - 1 << " coverage " << cluster.snippets.size() << endl;
+            cout << "    Snippet groups:\n    ";
+            copy(snippetGroupIndexes.begin(), snippetGroupIndexes.end(),
+                ostream_iterator<uint64_t>(cout, " "));
+            cout << endl;
             cout << "    Segments with coverage:\n    ";
             for(const auto& p: cluster.segments) {
                 cout << p.first << "(" << p.second << ") ";
@@ -1670,23 +1667,47 @@ void AssemblyGraph::analyzeSubgraph(
 
 
 
+
+
     // Write the subset graph in Graphviz format.
     if(debug) {
+
+        // A vector to contain the cluster that each snippet group
+        // was assigned to, if any.
+        vector<uint64_t> snippetGroupCluster(snippetGroups.size(), std::numeric_limits<uint64_t>::max());
+        for(uint i=0; i<clusters.size(); i++) {
+            const Cluster& cluster = clusters[i];
+            for(const uint64_t snippetGroupIndex: cluster.snippetGroupIndexes) {
+                snippetGroupCluster[snippetGroupIndex] = i;
+            }
+        }
+
         ofstream dot("SubsetGraph.dot");
         dot << "digraph SubsetGraph {\n"
             "node [shape=rectangle];\n";
         for(uint64_t snippetGroupIndex=0; snippetGroupIndex<snippetGroups.size(); snippetGroupIndex++) {
             const auto& p = snippetGroups[snippetGroupIndex];
+            const uint64_t clusterId = snippetGroupCluster[snippetGroupIndex];
             const vector<uint64_t>& segmentIds = p.first;
-            dot << snippetGroupIndex << " [label=\"Group " << snippetGroupIndex << "\\n" <<
-                p.second.size() << " snippets\\n";
+            dot << snippetGroupIndex << " [label=\""
+                "Group " << snippetGroupIndex << "\\n";
+            if(clusterId != std::numeric_limits<uint64_t>::max()) {
+                dot << "Cluster " << clusterId << "\\n";
+            }
+            dot << "Coverage " << p.second.size() << "\\n";
             for(uint64_t i=0; i<segmentIds.size(); i++) {
                 dot << segmentIds[i];
                 if(i != segmentIds.size()-1) {
                     dot << "\\n";
                 }
             }
-            dot << "\"];\n";
+            dot << "\"";
+            if(clusterId != std::numeric_limits<uint64_t>::max()) {
+                dot << " style=filled fillcolor=\"" <<
+                    float(clusterId)/float(clusters.size()) <<
+                    ",0.3,1\"";
+            }
+            dot << "];\n";
         }
         BGL_FORALL_EDGES(e, subsetGraph, SegmentSubsetGraph) {
             const auto v0 = source(e, subsetGraph);
