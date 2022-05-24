@@ -411,6 +411,12 @@ function onMouseExitSegment()
 
         html << R"stringDelimiter(
 
+        function clusterColor(clusterId)
+        {
+            ratio = clusterId / clusters.length;
+            return 'hsl(' + Math.round(360*ratio) + ', 85%, 70%)';
+        }
+
         function highlightCluster(clusterId, color)
         {
             for(i=0; i<clusters[clusterId].length; i++) {
@@ -420,7 +426,7 @@ function onMouseExitSegment()
             }
         }
         var currentCluster = 0;
-        highlightCluster(currentCluster, "Green");
+        highlightCluster(currentCluster, clusterColor(currentCluster));
         document.getElementById("currentCluster").innerHTML = currentCluster;
         function cycleCluster()
         {
@@ -429,7 +435,7 @@ function onMouseExitSegment()
             if(currentCluster == clusters.length) {
                 currentCluster = 0;
             }
-            highlightCluster(currentCluster, "Green");
+            highlightCluster(currentCluster, clusterColor(currentCluster));
             document.getElementById("currentCluster").innerHTML = currentCluster;
         }
         </script>
