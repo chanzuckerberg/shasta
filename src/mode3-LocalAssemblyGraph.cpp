@@ -389,10 +389,13 @@ function onMouseExitSegment()
     // Code to display one local cluster at a time, with a button
     // to cycle through them.
     if(options.segmentColoring == "byLocalCluster") {
-        html << "<br><button onClick='cycleCluster()'>Cycle clusters</button>";
-        html << "Displaying cluster <span id='currentCluster'></span>";
-        html << "<script>\n";
-        html << "var clusters = [";
+        html <<
+            "<br>Found " << clusters.size() << " clusters. "
+            "Displaying cluster <span id='currentCluster'></span>"
+            "<br><button onClick='previousCluster()'>Previous cluster</button>"
+            "<button onClick='nextCluster()'>Next cluster</button>"
+            "<script>\n"
+            "var clusters = [";
         for(uint64_t i=0; i<clusters.size(); i++) {
             html << "[";
             const auto & cluster = clusters[i];
@@ -428,13 +431,23 @@ function onMouseExitSegment()
         var currentCluster = 0;
         highlightCluster(currentCluster, clusterColor(currentCluster));
         document.getElementById("currentCluster").innerHTML = currentCluster;
-        function cycleCluster()
+        function nextCluster()
         {
             highlightCluster(currentCluster, "Black");
             currentCluster = currentCluster + 1;
             if(currentCluster == clusters.length) {
                 currentCluster = 0;
             }
+            highlightCluster(currentCluster, clusterColor(currentCluster));
+            document.getElementById("currentCluster").innerHTML = currentCluster;
+        }
+        function previousCluster()
+        {
+            highlightCluster(currentCluster, "Black");
+            if(currentCluster == 0) {
+                currentCluster = clusters.length;
+            }
+            currentCluster = currentCluster - 1;
             highlightCluster(currentCluster, clusterColor(currentCluster));
             document.getElementById("currentCluster").innerHTML = currentCluster;
         }

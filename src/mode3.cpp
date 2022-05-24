@@ -1677,6 +1677,57 @@ void AssemblyGraph::analyzeSubgraph(
 
 
 
+    // Due to errors in the reads, at this point we can have some
+    // clusters very similar to each other.
+    // Check each pair.
+    // This could be made more efficient.
+    vector<uint64_t> workArea;
+    for(uint64_t i0=0; i0<clusters.size()-1; i0++) {
+        const Cluster& cluster0 = clusters[i0];
+        const vector<uint64_t> segments0 = cluster0.getSegments();
+        for(uint64_t i1=i0+1; i1<clusters.size(); i1++) {
+            const Cluster& cluster1 = clusters[i1];
+            const vector<uint64_t> segments1 = cluster1.getSegments();
+
+            // Intersection.
+            workArea.clear();
+            set_intersection(
+                segments0.begin(), segments0.end(),
+                segments1.begin(), segments1.end(),
+                back_inserter(workArea));
+            const uint64_t intersectionSize = workArea.size();
+
+            // 0 - 1.
+            workArea.clear();
+            set_difference(
+                segments0.begin(), segments0.end(),
+                segments1.begin(), segments1.end(),
+                back_inserter(workArea));
+            const uint64_t difference01 = workArea.size();
+
+            // 1 - 0.
+            workArea.clear();
+            set_difference(
+                segments1.begin(), segments1.end(),
+                segments0.begin(), segments0.end(),
+                back_inserter(workArea));
+            const uint64_t difference10 = workArea.size();
+
+            const uint64_t unionSize = intersectionSize + difference01 + difference10;
+            const double jaccard = double(intersectionSize) / double(unionSize);
+            const double ratio01 = double(difference01) / double(unionSize);
+            const double ratio10 = double(difference10) / double(unionSize);
+
+            cout << i0 << " " << i1 << ": j=";
+            cout << jaccard << ", ratio01=" << ratio01 << ", ratio10=" << ratio10 << endl;
+
+
+
+        }
+    }
+
+
+
 
 
     // Write the subset graph in Graphviz format.
@@ -1844,6 +1895,17 @@ void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::cleanupSegments(uint64_t mi
         }
     }
     segments.swap(newSegments);
+}
+
+
+
+vector<uint64_t> AssemblyGraph::AnalyzeSubgraphClasses::Cluster::getSegments() const
+{
+    vector<uint64_t> v;
+    for(const auto& p: segments) {
+        v.push_back(p.first);
+    }
+    return v;
 }
 
 

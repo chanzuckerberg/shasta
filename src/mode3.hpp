@@ -450,6 +450,7 @@ public:
             // The segments visited by the snippets of this cluster,
             // each stored with its coverage (number of snippets);
             vector< pair<uint64_t, uint64_t > > segments;
+            vector<uint64_t> getSegments() const;
 
             // Remove segments with coverage less than the specified value.
             void cleanupSegments(uint64_t minClusterCoverage);
