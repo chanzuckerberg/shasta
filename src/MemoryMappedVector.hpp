@@ -24,9 +24,7 @@
 // Linux.
 #include <fcntl.h>
 #include <sys/mman.h>
-#ifdef __linux__
 #include <linux/mman.h>
-#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "array.hpp"
@@ -558,11 +556,9 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::createNewAnonymou
 
         // Map it in memory.
         int flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#ifdef __linux__
         if(pageSize == 2*1024*1024) {
             flags |= MAP_HUGETLB | MAP_HUGE_2MB;
         }
-#endif
         void* pointer = ::mmap(0, fileSize,
             PROT_READ | PROT_WRITE, flags,
             -1, 0);
@@ -905,11 +901,8 @@ template<class T> inline void
             // We can only use remap for Linux, and for 4K pages.
             bool useMremap = false;
             void* pointer = 0;
-#ifdef __linux__
             useMremap = (pageSize == 4096);
-#endif
             if(useMremap) {
-#ifdef __linux__
                 pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
                 if(pointer == reinterpret_cast<void*>(-1LL)) {
                     if(errno == ENOMEM) {
@@ -922,17 +915,15 @@ template<class T> inline void
                             + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
                     }
                 }
-#endif
             } else {
 
                 // We cannot use mremap. We have to create a new mapping
                 // and copy the data.
                 int flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#ifdef __linux__
                 if(pageSize == 2*1024*1024) {
                     flags |= MAP_HUGETLB | MAP_HUGE_2MB;
                 }
-#endif
+
                 void* newPointer = ::mmap(0, headerOnStack.fileSize,
                     PROT_READ | PROT_WRITE, flags,
                     -1, 0);
@@ -1048,12 +1039,9 @@ template<class T> inline
     // Remap it.
     // We can only use remap for Linux, and for 4K pages.
     bool useMremap = false;
-#ifdef __linux__
     useMremap = (pageSize == 4096);
-#endif
     void* pointer = 0;
     if(useMremap) {
-#ifdef __linux__
         pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
         if(pointer == reinterpret_cast<void*>(-1LL)) {
             if(errno == ENOMEM) {
@@ -1066,17 +1054,14 @@ template<class T> inline
                     + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
             }
         }
-#endif
     } else {
 
         // We cannot use mremap. We have to create a new mapping
         // and copy the data.
         int flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#ifdef __linux__
         if(pageSize == 2*1024*1024) {
             flags |= MAP_HUGETLB | MAP_HUGE_2MB;
         }
-#endif
         void* newPointer = ::mmap(0, headerOnStack.fileSize,
             PROT_READ | PROT_WRITE, flags,
             -1, 0);

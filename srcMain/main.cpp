@@ -387,7 +387,6 @@ void shasta::main::assemble(
     assemble(assembler, assemblerOptions, inputFileAbsolutePaths);
 
     // Final disclaimer message.
-#ifdef __linux
     if(assemblerOptions.commandLineOnlyOptions.memoryBacking != "2M" &&
         assemblerOptions.commandLineOnlyOptions.memoryMode != "filesystem") {
         cout << "This run used options \"--memoryBacking " << assemblerOptions.commandLineOnlyOptions.memoryBacking <<
@@ -398,12 +397,6 @@ void shasta::main::assemble(
             "Therefore the results of this run should not be used\n"
             "for benchmarking purposes." << endl;
     }
-#else
-    cout << "The macOS version of the Shasta assembler runs at degraded performance.\n";
-    cout << "Use Linux for full performance.\n";
-    cout << "Therefore the results of this run should not be used\n"
-        "for benchmarking purposes." << endl;
-#endif
 
     // Write out the build id again.
     cout << buildId() << endl;

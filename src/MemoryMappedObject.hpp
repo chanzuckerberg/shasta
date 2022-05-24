@@ -19,9 +19,7 @@
 // Linux.
 #include <fcntl.h>
 #include <sys/mman.h>
-#ifdef __linux__
 #include <linux/mman.h>
-#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -350,11 +348,10 @@ template<class T> inline void shasta::MemoryMapped::Object<T>::createNewAnonymou
 
         // Map it in memory.
         int flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#ifdef __linux__
         if(pageSize == 2*1024*1024) {
             flags |= MAP_HUGETLB | MAP_HUGE_2MB;
         }
-#endif
+
         void* pointer = ::mmap(0, fileSize,
             PROT_READ | PROT_WRITE, flags,
             -1, 0);

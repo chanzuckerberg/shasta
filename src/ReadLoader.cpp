@@ -511,14 +511,12 @@ void ReadLoader::allocateBufferAndReadFile()
 
     // If there was failure and we are using noCache, try turning it off.
     // If successful, all done.
-#ifdef __linux__
     if(noCache) {
         cout << "Turning off --Reads.noCache for " << fileName << endl;
         if(readFile(false)) {
             return;
         }
     }
-#endif
 
     // If getting here, nothing worked.
     throw runtime_error("Error reading " + fileName);
@@ -554,11 +552,9 @@ bool ReadLoader::readFile(bool useODirect)
 
     // Set up flags to open the file.
     int flags = O_RDONLY;
-#ifdef __linux__
     if(useODirect) {
         flags |= O_DIRECT;
     }
-#endif
 
     // Open the input file.
     const int fileDescriptor = ::open(fileName.c_str(), flags);

@@ -83,11 +83,7 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
             cout << "Only accepting local connections originating from a process "
                 "owned by the same user running the server." << endl;
             // Also start the default browser and point it to the server.
-#ifdef __linux__
             ::system(("xdg-open http://localhost:" + to_string(port)).c_str());
-#else
-            ::system(("open http://localhost:" + to_string(port)).c_str());
-#endif
         } else {
             cout << "Accepting local connections from any user. "
                 "Connections from the local computer are accepted from any user. "

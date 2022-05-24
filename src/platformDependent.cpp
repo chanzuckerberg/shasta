@@ -1,8 +1,6 @@
 #include "platformDependent.hpp"
-#ifdef __linux__
 #include <stdlib.h>
 #include "fstream.hpp"
-#endif
 
 // Return the path to a usable temporary directory, including the final "/".
 std::string shasta::tmpDirectory()
@@ -51,16 +49,10 @@ uint64_t shasta::getPeakMemoryUsage() {
 // Get total physical memory available, in bytes.
 uint64_t shasta::getTotalPhysicalMemory()
 {
-#ifdef __linux__
     ifstream meminfo("/proc/meminfo");
     string s;
     uint64_t memoryKb;
     meminfo >> s >> memoryKb;
     return 1024 * memoryKb;
-
-#else
-    return 0;
-#endif
-
 }
 
