@@ -416,6 +416,7 @@ function onMouseExitSegment()
             for(i=0; i<clusters[clusterId].length; i++) {
                 segmentId = clusters[clusterId][i];
                 document.getElementById("Segment-" + segmentId).style.stroke = color;
+                document.getElementById("marker" + segmentId).style.fill = color;
             }
         }
         var currentCluster = 0;
@@ -773,7 +774,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             "markerUnits='strokeWidth'\n"
             "markerWidth='0.6' markerHeight='1'\n"
             "orient='auto'>\n"
-            "<path d='M 0 0 L 0.1 0 L 0.6 0.5 L 0.1 1 L 0 1 z' "
+            "<path id='marker" << segmentId << "' d='M 0 0 L 0.1 0 L 0.6 0.5 L 0.1 1 L 0 1 z' "
             "fill='" << color << "' "
             "/>\n"
             "</marker>\n"
