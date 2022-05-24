@@ -5,9 +5,7 @@ project(shastaStaticLibrary)
 add_definitions(-std=c++17)
 
 # Compilation warnings.
-if(NOT MACOS)
-    add_definitions(-Wall -Wconversion -Wno-unused-result -Wno-trigraphs)
-endif(NOT MACOS)
+add_definitions(-Wall -Wconversion -Wno-unused-result -Wno-trigraphs)
 
 # Optimization and debug options.
 if(BUILD_DEBUG)
@@ -49,14 +47,6 @@ file(GLOB SOURCES ../src/*.cpp)
 
 # Include directory.
 include_directories(../src)
-
-# Include directories required on macOS.
-if(MACOS)
-    set(Boost_USE_STATIC_LIBS ON)
-    find_package(Boost REQUIRED COMPONENTS program_options chrono)
-    include_directories(/usr/local/include/)
-    include_directories(${Boost_INCLUDE_DIRS})
-endif(MACOS)
 
 # Define our library.
 add_library(shastaStaticLibrary STATIC ${SOURCES})

@@ -50,54 +50,31 @@ file(GLOB SOURCES ../srcMain/*.cpp)
 # Include directory.
 include_directories(../src)
 
-# Include directories required on macOS.
-if(MACOS)
-    set(Boost_USE_STATIC_LIBS ON)
-    find_package(Boost REQUIRED COMPONENTS program_options chrono)
-    include_directories(/usr/local/include/)
-    include_directories(${Boost_INCLUDE_DIRS})
-endif(MACOS)
-
 # Define our executable.
 add_executable(shastaStaticExecutable ${SOURCES})
 set_target_properties(shastaStaticExecutable PROPERTIES OUTPUT_NAME "shasta")
 
 # Request a static executable.
-# For macOS, this is not supported, and we only link some of the libraries statically.
-if(NOT MACOS)
-    set_target_properties(shastaStaticExecutable PROPERTIES LINK_FLAGS "-static" )
-endif(NOT MACOS)
+set_target_properties(shastaStaticExecutable PROPERTIES LINK_FLAGS "-static" )
 
 # Libraries to link with.
-if(MACOS)
-    find_library(PNG_LIBRARY libpng.a REQUIRED)
-    #find_library(Z_LIBRARY libz.a REQUIRED)
+# For arcane reasons, statically linking with the pthread
+# library on Linux requires "--whole-archive".
+if(X86_64)
     target_link_libraries(
-    shastaStaticExecutable 
-    shastaStaticLibrary
-    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z
-    "-framework Accelerate"
-    pthread)
-else(MACOS)
-    # For arcane reasons, statically linking with the pthread
-    # library on Linux requires "--whole-archive".
-    if(X86_64)
-        target_link_libraries(
-            shastaStaticExecutable
-            shastaStaticLibrary
-            atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
-            lapack blas gfortran quadmath
-            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    else(X86_64)
-        target_link_libraries(
-            shastaStaticExecutable
-            shastaStaticLibrary
-            atomic boost_system boost_program_options boost_chrono spoa png z
-            lapack blas gfortran
-            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    endif(X86_64) 
-    
-endif(MACOS)
+        shastaStaticExecutable
+        shastaStaticLibrary
+        atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
+        lapack blas gfortran quadmath
+        -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
+else(X86_64)
+    target_link_libraries(
+        shastaStaticExecutable
+        shastaStaticLibrary
+        atomic boost_system boost_program_options boost_chrono spoa png z
+        lapack blas gfortran
+        -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
+endif(X86_64) 
   
 # The static executable goes to the bin directory.
 install(TARGETS shastaStaticExecutable DESTINATION shasta-install/bin)
