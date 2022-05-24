@@ -442,10 +442,17 @@ public:
 
             // The snippets in this cluster.
             vector<CompressedPseudoPathSnippet> snippets;
+            uint64_t coverage() const
+            {
+                return snippets.size();
+            }
 
             // The segments visited by the snippets of this cluster,
             // each stored with its coverage (number of snippets);
             vector< pair<uint64_t, uint64_t > > segments;
+
+            // Remove segments with coverage less than the specified value.
+            void cleanupSegments(uint64_t minClusterCoverage);
 
             // Construct the segments given the snippets.
             void constructSegments();

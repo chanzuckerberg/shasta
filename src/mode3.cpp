@@ -1400,6 +1400,9 @@ void AssemblyGraph::analyzeSubgraph(
     vector<AnalyzeSubgraphClasses::Cluster>& clusters,
     bool debug) const
 {
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t minClusterCoverage = 3;
+
     using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
     using Cluster = AnalyzeSubgraphClasses::Cluster;
 
@@ -1650,6 +1653,13 @@ void AssemblyGraph::analyzeSubgraph(
         }
 
         cluster.constructSegments();
+        cluster.cleanupSegments(minClusterCoverage);
+
+        // If coverage on this cluster is too low, discard it.
+        if(cluster.coverage() < minClusterCoverage) {
+            clusters.resize(clusters.size() - 1);
+            continue;
+        }
 
         if(debug) {
             cout << "Cluster " << clusters.size() - 1 << " coverage " << cluster.snippets.size() << endl;
@@ -1821,6 +1831,19 @@ void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::constructSegments()
 
     segments.clear();
     copy(segmentMap.begin(), segmentMap.end(), back_inserter(segments));
+}
+
+
+
+void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::cleanupSegments(uint64_t minClusterCoverage)
+{
+    vector< pair<uint64_t, uint64_t > > newSegments;
+    for(const auto& p: segments) {
+        if(p.second >= minClusterCoverage) {
+            newSegments.push_back(p);
+        }
+    }
+    segments.swap(newSegments);
 }
 
 
