@@ -5,9 +5,7 @@ project(shastaStaticExecutable)
 add_definitions(-std=c++17)
 
 # Compilation warnings.
-if(NOT MACOS)
-    add_definitions(-Wall -Wconversion -Wno-unused-result)
-endif(NOT MACOS)
+add_definitions(-Wall -Wconversion -Wno-unused-result)
 
 # Optimization and debug options.
 if(BUILD_DEBUG)
