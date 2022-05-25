@@ -11,16 +11,20 @@ using namespace shasta;
 using namespace mode3;
 
 // Boost libraries.
+// Include disjoint_sets.hpp first to avoid Boost problems.
+#include <boost/pending/disjoint_sets.hpp>
 #include <boost/icl/discrete_interval.hpp>
 #include <boost/icl/right_open_interval.hpp>
 #include <boost/graph/iteration_macros.hpp>
-#include <boost/pending/disjoint_sets.hpp>
+#include <boost/graph/strong_components.hpp>
 
 // Standard library.
-#include <unordered_set>
+
+#include <bitset>
 #include <map>
 #include <queue>
 #include <set>
+#include <unordered_set>
 
 
 
@@ -1395,7 +1399,7 @@ void AssemblyGraph::findDescendants(
 
 
 // Analyze a subgraph of the assembly graph.
-void AssemblyGraph::analyzeSubgraph(
+void AssemblyGraph::analyzeSubgraph1(
     const vector<uint64_t>& unsortedSegmentIds,
     vector<AnalyzeSubgraphClasses::Cluster>& clusters,
     bool debug) const
@@ -1860,6 +1864,298 @@ void AssemblyGraph::analyzeSubgraph(
         }
     }
 #endif
+}
+
+
+void AssemblyGraph::analyzeSubgraph2(
+    const vector<uint64_t>& segmentIds,
+    vector<AnalyzeSubgraphClasses::Cluster>& clusters,
+    bool debug) const
+{
+    if(segmentIds.size() <= 64) {
+        analyzeSubgraph2Template<64>(segmentIds, clusters, debug);
+    } else if(segmentIds.size() <= 128) {
+        analyzeSubgraph2Template<128>(segmentIds, clusters, debug);
+    } else if(segmentIds.size() <= 192) {
+        analyzeSubgraph2Template<192>(segmentIds, clusters, debug);
+    } else if(segmentIds.size() <= 256) {
+        analyzeSubgraph2Template<256>(segmentIds, clusters, debug);
+    } else {
+        SHASTA_ASSERT(0);
+    }
+}
+
+
+
+template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
+    const vector<uint64_t>& unsortedSegmentIds,
+    vector<AnalyzeSubgraphClasses::Cluster>& clusters,
+    bool debug) const
+{
+    // EXPOSE WHEN CODE STABILIZES.
+    const double fractionThreshold = 0.05;
+
+    using BitVector = std::bitset<N>;
+    using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
+    using SnippetGraph = AnalyzeSubgraphClasses::SnippetGraph;
+    using vertex_descriptor = SnippetGraph::vertex_descriptor;
+
+    // Create a sorted version of the segmentIds. We will need it later.
+    vector<uint64_t> segmentIds = unsortedSegmentIds;
+    sort(segmentIds.begin(), segmentIds.end());
+
+    // Gather triplets (orientedReadId, position in compressedPseudoPath, segmentId).
+    using Triplet = tuple<OrientedReadId, uint64_t, uint64_t>;
+    vector<Triplet> triplets;
+    for(const uint64_t segmentId: segmentIds) {
+        const auto v = segmentCompressedPseudoPathInfo[segmentId];
+        for(const auto& p: v) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t position = p.second;
+            triplets.push_back(Triplet(orientedReadId, position, segmentId));
+        }
+    }
+    sort(triplets.begin(), triplets.end());
+
+    // Write the triplets.
+    if(debug) {
+        ofstream csv("Triplets.csv");
+        for(const Triplet& triplet: triplets) {
+            csv << get<0>(triplet) << ",";
+            csv << get<1>(triplet) << ",";
+            csv << get<2>(triplet) << "\n";
+        }
+    }
+
+
+
+    // Find streaks for the same OrientedReadId where the position
+    // increases by 1 each time.
+    // Each streak generates a CompressedPseudoPathSnippet.
+    vector<CompressedPseudoPathSnippet> snippets;
+    for(uint64_t i=0; i<triplets.size(); /* Increment later */) {
+        const OrientedReadId orientedReadId = get<0>(triplets[i]);
+
+        // Find this streak.
+        uint64_t streakBegin = i;
+        uint64_t streakEnd = streakBegin + 1;
+        for(; streakEnd<triplets.size(); streakEnd++) {
+            if(get<0>(triplets[streakEnd]) != orientedReadId) {
+                break;
+            }
+            if(get<1>(triplets[streakEnd]) != get<1>(triplets[streakEnd-1]) + 1) {
+                break;
+            }
+        }
+
+        // Add a snippet.
+        CompressedPseudoPathSnippet snippet;
+        snippet.orientedReadId = orientedReadId;
+        snippet.firstPosition = get<1>(triplets[streakBegin]);
+        for(uint64_t j=streakBegin; j!=streakEnd; ++j) {
+            snippet.segmentIds.push_back(get<2>(triplets[j]));
+        }
+        snippets.push_back(snippet);
+
+        // Prepare to process the next streak.
+        i = streakEnd;
+    }
+
+
+
+    // Write the snippets.
+    if(debug) {
+        ofstream csv("CompressedPseudoPathSnippets.csv");
+        csv << "SnippetIndex,OrientedReadId,First position,LastPosition,SegmentIds\n";
+        for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
+            const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+            csv << snippetIndex << ",";
+            csv << snippet.orientedReadId << ",";
+            csv << snippet.firstPosition << ",";
+            csv << snippet.lastPosition() << ",";
+            for(const uint64_t segmentId: snippet.segmentIds) {
+                csv << segmentId << ",";
+            }
+            csv << "\n";
+        }
+    }
+
+
+
+    // For each snippet, create a BitVector that describes the segments
+    // the snippet visits.
+    const uint64_t snippetCount = snippets.size();
+    vector<BitVector> bitVectors(snippetCount);
+    vector<uint64_t> bitVectorsPopCount(snippetCount);
+    for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
+        const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+        BitVector& bitVector = bitVectors[snippetIndex];
+
+        for(const uint64_t segmentId: snippet.segmentIds) {
+            auto it = lower_bound(segmentIds.begin(), segmentIds.end(), segmentId);
+            SHASTA_ASSERT(it != segmentIds.end());
+            SHASTA_ASSERT(*it == segmentId);
+            const uint64_t bitIndex = it - segmentIds.begin();
+            bitVector.set(bitIndex);
+        }
+        bitVectorsPopCount[snippetIndex] = bitVector.count();
+    }
+
+
+
+    // Create the SnippetGraph.
+    // A vertex represents a set of snippets and stores
+    // the corresponding snippet indexes.
+    // An edge x->y is created if there is at least one snippet in y
+    // that is an approximate subset of a snippet in x.
+    // We express this condition as |y-x| < fractionThreshold * |y|
+    // We start with one snippet per vertex.
+    SnippetGraph graph;
+    vector<vertex_descriptor> vertexTable;
+    std::map<vertex_descriptor, uint64_t> vertexMap;
+    for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
+        const auto v = add_vertex(vector<uint64_t>(1, snippetIndex), graph);
+        vertexTable.push_back(v);
+        vertexMap.insert(make_pair(v, snippetIndex));
+    }
+    for(uint64_t iy=0; iy<snippetCount; iy++) {
+        const BitVector& y = bitVectors[iy];
+        const uint64_t threshold = uint64_t(std::round(fractionThreshold * double(bitVectorsPopCount[iy])));
+        const vertex_descriptor vy = vertexTable[iy];
+        for(uint64_t ix=0; ix<snippetCount; ix++) {
+            if(ix == iy) {
+                continue;
+            }
+            const BitVector& x = bitVectors[ix];
+
+            // Compute z = y-x.
+            BitVector z = y;
+            z &= (~x);
+
+            if(z.count() <= threshold) {
+                const vertex_descriptor vx = vertexTable[ix];
+                add_edge(vx, vy, graph);
+            }
+        }
+    }
+
+
+
+    // Write out the SnippetGraph.
+    if(debug) {
+        if(debug) {
+            graph.writeGraphviz("SnippetGraph1.dot");
+        }
+    }
+
+
+
+    // Compute strongly connected components of the SnippetGraph.
+    std::map<vertex_descriptor, uint64_t> componentMap;
+    const uint64_t componentCount = boost::strong_components(
+        graph,
+        boost::make_assoc_property_map(componentMap),
+        boost::vertex_index_map(boost::make_assoc_property_map(vertexMap)));
+    cout << "Found " << componentCount << " strongly connected components." << endl;
+
+    // Gather the vertices of each strongly connected component.
+    vector< vector<vertex_descriptor> > components(componentCount);
+    BGL_FORALL_VERTICES_T(v, graph, SnippetGraph) {
+        const uint64_t componentId = componentMap[v];
+        SHASTA_ASSERT(componentId < componentCount);
+        components[componentId].push_back(v);
+    }
+    if(debug) {
+        cout << "Strongly connected components:\n";
+        for(uint64_t componentId=0; componentId<componentCount; componentId++) {
+            cout << componentId << ": ";
+            for(const vertex_descriptor v: components[componentId]) {
+                cout << vertexMap[v] << " ";
+            }
+            cout << "\n";
+        }
+    }
+
+
+
+    // Condense the strongly connected components.
+    // After this, the SnippetGraph is guaranteed to be acyclic.
+    for(const vector<vertex_descriptor>& component: components) {
+        if(component.size() == 1) {
+            continue;
+        }
+
+        // Create a new vertex to represent this component.
+        const auto vNew = add_vertex(graph);
+        vector<uint64_t>& snippetsNew = graph[vNew];
+        for(const vertex_descriptor v: component) {
+            const vector<uint64_t>& snippets = graph[v];
+            SHASTA_ASSERT(snippets.size() == 1);
+            snippetsNew.push_back(snippets.front());
+        }
+
+        // Create the new edges.
+        for(const vertex_descriptor v0: component) {
+
+            // Out-edges.
+            BGL_FORALL_OUTEDGES_T(v0, e01, graph, SnippetGraph) {
+                const vertex_descriptor v1 = target(e01, graph);
+                if(v1 != vNew) {
+                    add_edge(vNew, v1,graph);
+                }
+            }
+
+            // In-edges.
+            BGL_FORALL_INEDGES_T(v0, e10, graph, SnippetGraph) {
+                const vertex_descriptor v1 = source(e10, graph);
+                if(v1 != vNew) {
+                    add_edge(v1, vNew, graph);
+                }
+            }
+        }
+
+        // Remove the old vertices and their edges.
+        const uint64_t nOld = num_vertices(graph);
+        for(const vertex_descriptor v: component) {
+            clear_vertex(v, graph);
+            remove_vertex(v, graph);
+        }
+        cout << "*** " << nOld << " " << num_vertices(graph) << endl;
+    }
+
+
+
+    // Write out the SnippetGraph.
+    if(debug) {
+        graph.writeGraphviz("SnippetGraph2.dot");
+    }
+}
+
+
+
+void AssemblyGraph::AnalyzeSubgraphClasses::SnippetGraph::writeGraphviz(
+    const string& fileName) const
+{
+    const SnippetGraph& graph = *this;
+
+    ofstream dot(fileName);
+    dot << "digraph SnippetGraph{\n"
+        "node [shape=rectangle];\n";
+    BGL_FORALL_VERTICES(v, graph, SnippetGraph) {
+        dot << "\"" << v << "\" [label=\"";
+        const vector<uint64_t>& snippetIndexes = graph[v];
+        for(const uint64_t snippetIndex: snippetIndexes) {
+            dot << snippetIndex << "\\n";
+        }
+        dot << "\"];\n";
+    }
+    BGL_FORALL_EDGES(e, graph, SnippetGraph) {
+        const vertex_descriptor vx = source(e, graph);
+        const vertex_descriptor vy = target(e, graph);
+        dot << "\"" << vx << "\"->\"" << vy << "\";\n";
+    }
+    dot << "}\n";
+
 }
 
 

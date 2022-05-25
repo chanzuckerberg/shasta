@@ -385,7 +385,7 @@ function onMouseExitSegment()
         )stringDelimiter";
 
 
-
+#if 0
     // Code to display one local cluster at a time, with a button
     // to cycle through them.
     if(options.segmentColoring == "byLocalCluster") {
@@ -455,6 +455,7 @@ function onMouseExitSegment()
 
         )stringDelimiter";
     }
+#endif
 
     // End of side panel.
     html << "</div>";
@@ -530,7 +531,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 segmentIds.push_back(vertex.segmentId);
             }
         }
-        assemblyGraph.analyzeSubgraph(segmentIds, clusters, true);
+        assemblyGraph.analyzeSubgraph2(segmentIds, clusters, true);
 
     }
 

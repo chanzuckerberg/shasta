@@ -22,6 +22,9 @@ number of transitions 0->1, we create a link 0->1.
 #include "ReadId.hpp"
 #include "shastaTypes.hpp"
 
+// Boost libraries.
+#include <boost/graph/adjacency_list.hpp>
+
 // Standard library.
 #include "array.hpp"
 #include "unordered_map"
@@ -458,8 +461,33 @@ public:
             // Construct the segments given the snippets.
             void constructSegments();
         };
+
+
+
+        // The SnippetGraph is used by analyzeSubgraph2.
+        // A vertex represents a set of snippets and stores
+        // the corresponding snippet indexes.
+        // An edge x->y is created if there is at least one snippet in y
+        // that is an approximate subset of a snippet in x.
+        using SnippetGraphBaseClass =
+            boost::adjacency_list<boost::setS, boost::listS, boost::bidirectionalS, vector<uint64_t> >;
+        class SnippetGraph : public SnippetGraphBaseClass {
+        public:
+            void writeGraphviz(const string& fileName) const;
+        };
     };
-    void analyzeSubgraph(
+
+
+
+    void analyzeSubgraph1(
+        const vector<uint64_t>& segmentIds,
+        vector<AnalyzeSubgraphClasses::Cluster>&,
+        bool debug) const;
+    void analyzeSubgraph2(
+        const vector<uint64_t>& segmentIds,
+        vector<AnalyzeSubgraphClasses::Cluster>&,
+        bool debug) const;
+    template<uint64_t N> void analyzeSubgraph2Template(
         const vector<uint64_t>& segmentIds,
         vector<AnalyzeSubgraphClasses::Cluster>&,
         bool debug) const;
