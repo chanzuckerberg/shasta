@@ -1894,9 +1894,13 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
 {
     // EXPOSE WHEN CODE STABILIZES.
     const double fractionThreshold = 0.05;
+    const uint64_t minClusterCoverage = 3;
+    const uint64_t minSegmentCoverage = 6;
 
     using BitVector = std::bitset<N>;
     using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
+    using Cluster = AnalyzeSubgraphClasses::Cluster;
+    using SnippetGraphVertex = AnalyzeSubgraphClasses::SnippetGraphVertex;
     using SnippetGraph = AnalyzeSubgraphClasses::SnippetGraph;
     using vertex_descriptor = SnippetGraph::vertex_descriptor;
 
@@ -2014,7 +2018,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
     vector<vertex_descriptor> vertexTable;
     std::map<vertex_descriptor, uint64_t> vertexMap;
     for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
-        const auto v = add_vertex(vector<uint64_t>(1, snippetIndex), graph);
+        const auto v = add_vertex(SnippetGraphVertex(snippetIndex), graph);
         vertexTable.push_back(v);
         vertexMap.insert(make_pair(v, snippetIndex));
     }
@@ -2041,22 +2045,13 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
 
 
 
-    // Write out the SnippetGraph.
-    if(debug) {
-        if(debug) {
-            graph.writeGraphviz("SnippetGraph1.dot");
-        }
-    }
-
-
-
     // Compute strongly connected components of the SnippetGraph.
     std::map<vertex_descriptor, uint64_t> componentMap;
     const uint64_t componentCount = boost::strong_components(
         graph,
         boost::make_assoc_property_map(componentMap),
         boost::vertex_index_map(boost::make_assoc_property_map(vertexMap)));
-    cout << "Found " << componentCount << " strongly connected components." << endl;
+    // cout << "Found " << componentCount << " strongly connected components." << endl;
 
     // Gather the vertices of each strongly connected component.
     vector< vector<vertex_descriptor> > components(componentCount);
@@ -2065,7 +2060,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
         SHASTA_ASSERT(componentId < componentCount);
         components[componentId].push_back(v);
     }
-    if(debug) {
+    if(false) {
         cout << "Strongly connected components:\n";
         for(uint64_t componentId=0; componentId<componentCount; componentId++) {
             cout << componentId << ": ";
@@ -2087,9 +2082,9 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
 
         // Create a new vertex to represent this component.
         const auto vNew = add_vertex(graph);
-        vector<uint64_t>& snippetsNew = graph[vNew];
+        vector<uint64_t>& snippetsNew = graph[vNew].snippetIndexes;
         for(const vertex_descriptor v: component) {
-            const vector<uint64_t>& snippets = graph[v];
+            const vector<uint64_t>& snippets = graph[v].snippetIndexes;
             SHASTA_ASSERT(snippets.size() == 1);
             snippetsNew.push_back(snippets.front());
         }
@@ -2115,20 +2110,126 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
         }
 
         // Remove the old vertices and their edges.
-        const uint64_t nOld = num_vertices(graph);
         for(const vertex_descriptor v: component) {
             clear_vertex(v, graph);
             remove_vertex(v, graph);
         }
-        cout << "*** " << nOld << " " << num_vertices(graph) << endl;
+    }
+
+
+    // Compute which maximal vertices each vertex is a descendant of.
+    std::map<vertex_descriptor, vector<vertex_descriptor> > ancestorMap;
+    uint64_t clusterId = 0;
+    BGL_FORALL_VERTICES_T(v0, graph, SnippetGraph) {
+        if(in_degree(v0, graph) != 0) {
+            continue;   // Not a maximal vertex.
+        }
+        graph.clusterIdMap.insert(make_pair(v0, clusterId++));
+
+        // Find the descendants of this maximal vertex.
+        vector<vertex_descriptor> descendants;
+        graph.findDescendants(v0, descendants);
+
+        // Update the ancestor map.
+        for(const vertex_descriptor v1: descendants) {
+            ancestorMap[v1].push_back(v0);
+        }
+    }
+
+
+
+    // Each maximal vertex generates a cluster consisting of the vertices
+    // that descend from it and from no other maximal vertex.
+    std::map<vertex_descriptor, vector<vertex_descriptor> > clusterMap;
+    vector< vector<vertex_descriptor> > clusterVertices(graph.clusterIdMap.size());
+    uint64_t unclusterVertexCount = 0;
+    BGL_FORALL_VERTICES_T(v1, graph, SnippetGraph) {
+        const vector<vertex_descriptor>& ancestors = ancestorMap[v1];
+        if(ancestors.size() == 1) {
+            const vertex_descriptor v0 = ancestors.front();
+            clusterMap[v0].push_back(v1);
+            const uint64_t clusterId = graph.clusterIdMap[v0];
+            graph[v1].clusterId = clusterId;
+            clusterVertices[clusterId].push_back(v1);
+        } else {
+            ++unclusterVertexCount;
+        }
+    }
+    cout << "Found " << unclusterVertexCount << " unclustered vertices." << endl;
+
+
+
+    // Gather the snippets in each cluster.
+    clusters.clear();
+    clusters.resize(clusterVertices.size());
+    for(uint64_t clusterId=0; clusterId<clusterVertices.size(); clusterId++) {
+        Cluster& cluster = clusters[clusterId];
+
+        for(const vertex_descriptor v: clusterVertices[clusterId]) {
+            const vector<uint64_t>& snippetIndexes = graph[v].snippetIndexes;
+            for(const uint64_t snippetIndex: snippetIndexes) {
+                cluster.snippets.push_back(snippets[snippetIndex]);
+            }
+        }
+        cluster.constructSegments();
+        cluster.cleanupSegments(minSegmentCoverage);
+
+        // If coverage on this cluster is too low, discard it.
+        if(cluster.coverage() < minClusterCoverage) {
+            cout << "Cluster " << clusterId << " should be discarded." << endl;
+        }
+        cout << "Cluster " << clusterId << " has " <<
+            clusterVertices[clusterId].size() << " vertices and " <<
+            cluster.snippets.size() << " snippets." << endl;
+
+        if(debug) {
+            cout << "Cluster " << clusterId << " coverage " << cluster.snippets.size() << endl;
+            cout << "    Segments with coverage:\n    ";
+            for(const auto& p: cluster.segments) {
+                cout << p.first << "(" << p.second << ") ";
+            }
+            cout << endl;
+        }
     }
 
 
 
     // Write out the SnippetGraph.
     if(debug) {
-        graph.writeGraphviz("SnippetGraph2.dot");
+        graph.writeGraphviz("SnippetGraph.dot");
     }
+}
+
+
+
+void AssemblyGraph::AnalyzeSubgraphClasses::SnippetGraph::findDescendants(
+    const vertex_descriptor vStart,
+    vector<vertex_descriptor>& descendants) const
+{
+    const SnippetGraph& graph = *this;
+
+    // Initialize the BFS.
+    std::queue<vertex_descriptor> q;
+    q.push(vStart);
+    std::set<vertex_descriptor> descendantsSet;
+    descendantsSet.insert(vStart);
+
+    // BFS loop.
+    while(not q.empty()) {
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+
+        BGL_FORALL_OUTEDGES(v0, e01, graph, SnippetGraph) {
+            const vertex_descriptor v1 = target(e01, graph);
+            if(descendantsSet.find(v1) == descendantsSet.end()) {
+                q.push(v1);
+                descendantsSet.insert(v1);
+            }
+        }
+    }
+
+    descendants.clear();
+    copy(descendantsSet.begin(), descendantsSet.end(), back_inserter(descendants));
 }
 
 
@@ -2143,11 +2244,19 @@ void AssemblyGraph::AnalyzeSubgraphClasses::SnippetGraph::writeGraphviz(
         "node [shape=rectangle];\n";
     BGL_FORALL_VERTICES(v, graph, SnippetGraph) {
         dot << "\"" << v << "\" [label=\"";
-        const vector<uint64_t>& snippetIndexes = graph[v];
+        const vector<uint64_t>& snippetIndexes = graph[v].snippetIndexes;
         for(const uint64_t snippetIndex: snippetIndexes) {
-            dot << snippetIndex << "\\n";
+            dot << snippetIndex;
+            dot << "\\n";
         }
-        dot << "\"];\n";
+        dot << "\"";
+        const uint64_t clusterId = graph[v].clusterId;
+        if(clusterId != std::numeric_limits<uint64_t>::max()) {
+            dot << " style=filled fillcolor=\"" <<
+                float(clusterId)/float(clusterIdMap.size()) <<
+                ",0.3,1\"";
+        }
+        dot << "];\n";
     }
     BGL_FORALL_EDGES(e, graph, SnippetGraph) {
         const vertex_descriptor vx = source(e, graph);
@@ -2182,11 +2291,11 @@ void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::constructSegments()
 
 
 
-void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::cleanupSegments(uint64_t minClusterCoverage)
+void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::cleanupSegments(uint64_t minSegmentCoverage)
 {
     vector< pair<uint64_t, uint64_t > > newSegments;
     for(const auto& p: segments) {
-        if(p.second >= minClusterCoverage) {
+        if(p.second >= minSegmentCoverage) {
             newSegments.push_back(p);
         }
     }

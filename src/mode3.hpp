@@ -469,10 +469,22 @@ public:
         // the corresponding snippet indexes.
         // An edge x->y is created if there is at least one snippet in y
         // that is an approximate subset of a snippet in x.
+        // Strongly connected components are condensed, so after that
+        //the graph is guaranteed to have no cycles.
+        class SnippetGraphVertex {
+        public:
+            vector<uint64_t> snippetIndexes;
+            uint64_t clusterId = std::numeric_limits<uint64_t>::max();
+            SnippetGraphVertex() {}
+            SnippetGraphVertex(uint64_t snippetIndex) :
+                snippetIndexes(1, snippetIndex) {}
+        };
         using SnippetGraphBaseClass =
-            boost::adjacency_list<boost::setS, boost::listS, boost::bidirectionalS, vector<uint64_t> >;
+            boost::adjacency_list<boost::setS, boost::listS, boost::bidirectionalS, SnippetGraphVertex>;
         class SnippetGraph : public SnippetGraphBaseClass {
         public:
+            std::map<vertex_descriptor, uint64_t> clusterIdMap;
+            void findDescendants(const vertex_descriptor, vector<vertex_descriptor>&) const;
             void writeGraphviz(const string& fileName) const;
         };
     };
