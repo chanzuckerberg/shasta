@@ -391,8 +391,8 @@ function onMouseExitSegment()
         html <<
             "<br>Found " << clusters.size() << " clusters. "
             "Displaying cluster <span id='currentCluster'></span>"
-            "<br><button onClick='previousCluster()'>Previous cluster</button>"
-            "<button onClick='nextCluster()'>Next cluster</button>"
+            "<br><button onClick='previousCluster()'>Previous<br>cluster</button>"
+            "<button onClick='nextCluster()'>Next<br>cluster</button>"
             "<script>\n"
             "var clusters = [";
         for(uint64_t i=0; i<clusters.size(); i++) {
@@ -415,7 +415,7 @@ function onMouseExitSegment()
 
         function clusterColor(clusterId)
         {
-            ratio = clusterId / clusters.length;
+            var ratio = clusterId / clusters.length;
             return 'hsl(' + Math.round(360*ratio) + ', 85%, 70%)';
         }
 

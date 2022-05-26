@@ -483,7 +483,7 @@ public:
             boost::adjacency_list<boost::setS, boost::listS, boost::bidirectionalS, SnippetGraphVertex>;
         class SnippetGraph : public SnippetGraphBaseClass {
         public:
-            std::map<vertex_descriptor, uint64_t> clusterIdMap;
+            uint64_t clusterCount = 0;
             void findDescendants(const vertex_descriptor, vector<vertex_descriptor>&) const;
             void writeGraphviz(const string& fileName) const;
         };
