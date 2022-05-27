@@ -103,38 +103,46 @@ public:
 
 
 
-    // Pseudopaths for all oriented reads.
-    // The pseudopath of an oriented read is the sequence of
-    // marker graph edges it encounters.
-    // For each entry in the pseudopath, the marker graph
-    // edge is identified by the segmentId in the AssemblyGraph
-    // and the edge position in the segment (e. g. the first marker graph edge
-    // in the segment is at position 0).
+    // The marker graph journey of an oriented read is the sequence
+    // of marker graph edges it encounters.
+    // (An oriented read encounters a marker graph edge
+    // if the oriented read appears in the marker intervals for the edge).
+    // The journey on an oriented read is not necessarily
+    // a path in the marker graph because the oriented read
+    // can "skip"  marker graph edges due to errors.
+    // In other places in Shasta, journeys are called "pseudopaths".
+    // We store the journey of each oriented read as a sequence
+    // of MarkerGraphJourneyEntry objects.
+    // The MarkerGraphJourneyEntry identifies a marker graph edge
+    // by the segmentId and position in the segment
+    // (that is, the first marker graph in the segment is at
+    // position 0, and so on).
     // Indexed by OrientedReadId::getValue().
-    // It gets removed when no longer needed.
-    class PseudoPathEntry {
+    // The marker graph journeys are stored temporarily.
+    // They are used to compute assembly graph journeys and then removed.
+    class MarkerGraphJourneyEntry {
     public:
         uint64_t segmentId;
         uint32_t position;
         array<uint32_t, 2> ordinals;
 
-        bool operator<(const PseudoPathEntry& that) const
+        bool operator<(const MarkerGraphJourneyEntry& that) const
         {
             return ordinals[0] < that.ordinals[0];
         }
-        bool operator==(const PseudoPathEntry& that) const
+        bool operator==(const MarkerGraphJourneyEntry& that) const
         {
             return
                 tie(segmentId, position, ordinals) ==
                 tie(that.segmentId, that.position, that.ordinals);
         }
     };
-    MemoryMapped::VectorOfVectors<PseudoPathEntry, uint64_t> pseudoPaths;
-    void computePseudoPaths(size_t threadCount);
-    void computePseudoPathsPass1(size_t threadId);
-    void computePseudoPathsPass2(size_t threadId);
-    void computePseudoPathsPass12(uint64_t pass);
-    void sortPseudoPaths(size_t threadId);
+    MemoryMapped::VectorOfVectors<MarkerGraphJourneyEntry, uint64_t> markerGraphJourneys;
+    void computeMarkerGraphJourneys(size_t threadCount);
+    void computeMarkerGraphJourneysPass1(size_t threadId);
+    void computeMarkerGraphJourneysPass2(size_t threadId);
+    void computeMarkerGraphJourneysPass12(uint64_t pass);
+    void sortMarkerGraphJourneys(size_t threadId);
 
 
 
@@ -150,13 +158,13 @@ public:
 
         // The first and last PseudoPathEntry's that contributed to this
         // CompressedPseudoPathEntry.
-        array<PseudoPathEntry, 2> pseudoPathEntries;
+        array<MarkerGraphJourneyEntry, 2> pseudoPathEntries;
     };
     // Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<CompressedPseudoPathEntry, uint64_t> compressedPseudoPaths;
     void computeCompressedPseudoPaths();
     void computeCompressedPseudoPath(
-        const span<PseudoPathEntry> pseudoPath,
+        const span<MarkerGraphJourneyEntry> pseudoPath,
         vector<CompressedPseudoPathEntry>& compressedPseudoPath);
 
     // Store appearances of segments in compressed pseudopaths.
@@ -169,9 +177,9 @@ public:
     // A pseudopath transition occurs when the pseudopath of an oriented read
     // moves from a segment to a different segment.
     // Transitions are used to create edges in the AssemblyGraph (gfa links).
-    class Transition : public array<PseudoPathEntry, 2> {
+    class Transition : public array<MarkerGraphJourneyEntry, 2> {
     public:
-        Transition(const array<PseudoPathEntry, 2>& x) : array<PseudoPathEntry, 2>(x) {}
+        Transition(const array<MarkerGraphJourneyEntry, 2>& x) : array<MarkerGraphJourneyEntry, 2>(x) {}
         Transition() {}
     };
 
