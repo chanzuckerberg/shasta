@@ -512,15 +512,11 @@ public:
 
 
 
-    void analyzeSubgraph1(
+    void analyzeSubgraph(
         const vector<uint64_t>& segmentIds,
         vector<AnalyzeSubgraphClasses::Cluster>&,
         bool debug) const;
-    void analyzeSubgraph2(
-        const vector<uint64_t>& segmentIds,
-        vector<AnalyzeSubgraphClasses::Cluster>&,
-        bool debug) const;
-    template<uint64_t N> void analyzeSubgraph2Template(
+    template<uint64_t N> void analyzeSubgraphTemplate(
         const vector<uint64_t>& segmentIds,
         vector<AnalyzeSubgraphClasses::Cluster>&,
         bool debug) const;

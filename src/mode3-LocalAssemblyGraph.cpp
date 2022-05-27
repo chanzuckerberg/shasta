@@ -529,7 +529,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 segmentIds.push_back(vertex.segmentId);
             }
         }
-        assemblyGraph.analyzeSubgraph2(segmentIds, clusters, true);
+        assemblyGraph.analyzeSubgraph(segmentIds, clusters, true);
 
     }
 
