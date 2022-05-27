@@ -667,8 +667,8 @@ void Assembler::exploreMode3MetaAlignment(
         orientedReadId0 << " " << orientedReadId1 << "</h1>";
 
     // Access the pseudo-paths, that is the meta-sequences to be aligned.
-    const auto pseudoPath0 = assemblyGraph3.compressedPseudoPaths[orientedReadId0.getValue()];
-    const auto pseudoPath1 = assemblyGraph3.compressedPseudoPaths[orientedReadId1.getValue()];
+    const auto pseudoPath0 = assemblyGraph3.assemblyGraphJourneys[orientedReadId0.getValue()];
+    const auto pseudoPath1 = assemblyGraph3.assemblyGraphJourneys[orientedReadId1.getValue()];
     const int n0 = int(pseudoPath0.size());
     const int n1 = int(pseudoPath1.size());
 

@@ -109,9 +109,9 @@ public:
     // if the oriented read appears in the marker intervals for the edge).
     // The journey on an oriented read is not necessarily
     // a path in the marker graph because the oriented read
-    // can "skip"  marker graph edges due to errors.
+    // can "skip" marker graph edges due to errors.
     // In other places in Shasta, journeys are called "pseudopaths".
-    // We store the journey of each oriented read as a sequence
+    // We store the marker graph journey of each oriented read as a sequence
     // of MarkerGraphJourneyEntry objects.
     // The MarkerGraphJourneyEntry identifies a marker graph edge
     // by the segmentId and position in the segment
@@ -146,26 +146,34 @@ public:
 
 
 
-    // The compressed pseudopath of an oriented read
-    // is the sequence of segmentIds it encounters.
-    // It stores only the first and last PseudoPathEntry
-    // on each segment.
-    // Note a segmentId can appear more than once on the compressed
-    // pseudopath of an oriented read.
-    class CompressedPseudoPathEntry {
+    // The assembly graph journey of an oriented read is the sequence
+    // of assembly graph segments (vertices) it encounters.
+    // The journey on an oriented read is not necessarily
+    // a path in the assembly graph because the oriented read
+    // can "skip" segments due to errors.
+    // We store the assembly graph journey of each oriented read as a sequence
+    // of AssemblyGraphJourneyEntry objects.
+    // The AssemblyGraphJourneyEntry stores the segment and
+    // the first and last MarkerGraphJourneyEntry objects
+    // on ther segment for the given oriented read.
+    // Indexed by OrientedReadId::getValue().
+    // Note a segmentId can appear more than once in the assembly
+    // graph journed of an oriented read. This can happen
+    // if the oriented read "goes around" in a tangle caused by repeats.
+    class AssemblyGraphJourneyEntry {
     public:
         uint64_t segmentId;
 
-        // The first and last PseudoPathEntry's that contributed to this
-        // CompressedPseudoPathEntry.
-        array<MarkerGraphJourneyEntry, 2> pseudoPathEntries;
+        // The first and last MarkerGraphJourneyEntry that contributed to this
+        // AssemblyGraphJourneyEntry.
+        array<MarkerGraphJourneyEntry, 2> markerGraphJourneyEntries;
     };
     // Indexed by OrientedReadId::getValue().
-    MemoryMapped::VectorOfVectors<CompressedPseudoPathEntry, uint64_t> compressedPseudoPaths;
+    MemoryMapped::VectorOfVectors<AssemblyGraphJourneyEntry, uint64_t> assemblyGraphJourneys;
     void computeCompressedPseudoPaths();
     void computeCompressedPseudoPath(
         const span<MarkerGraphJourneyEntry> pseudoPath,
-        vector<CompressedPseudoPathEntry>& compressedPseudoPath);
+        vector<AssemblyGraphJourneyEntry>& compressedPseudoPath);
 
     // Store appearances of segments in compressed pseudopaths.
     // For each segment, store pairs (orientedReadId, position in compressed pseudo path).
