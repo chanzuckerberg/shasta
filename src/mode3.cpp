@@ -595,7 +595,10 @@ AssemblyGraph::AssemblyGraph(
     markerGraph(markerGraph)
 {
     // Minimum number of transitions (oriented reads) to create a link.
-    const uint64_t minCoverage = 2; // EXPOSE WHEN CODE STABILIZES
+    // If this equals 1, then the sequence of segments visited by every
+    // oriented read is a path in the graph.
+    // But that is not desirable because of the extra edges it causes.
+    const uint64_t minCoverage = 3; // EXPOSE WHEN CODE STABILIZES
 
     // Create a segment for each linear chain of marker graph edges.
     createSegmentPaths();
