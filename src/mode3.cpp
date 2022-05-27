@@ -354,12 +354,9 @@ void AssemblyGraph::sortMarkerGraphJourneys(size_t threadId)
 }
 
 
-// The compressed pseudopath of an oriented read
+// The assembly graph journey of an oriented read
 // is the sequence of segmentIds it encounters.
-// For each entry, we also store the average offset
-// of the beginning of the oriented read relative
-// to the beginning of the segment, in markers.
-void AssemblyGraph::computeCompressedPseudoPaths()
+void AssemblyGraph::computeAssemblyGraphJourneys()
 {
     const bool debug = true;
 
@@ -376,7 +373,7 @@ void AssemblyGraph::computeCompressedPseudoPaths()
         const span<MarkerGraphJourneyEntry> markerGraphJourney = markerGraphJourneys[i];
 
         // Compute the assembly graph journey.
-        computeCompressedPseudoPath(markerGraphJourney, compressedPseudoPath);
+        computeAssemblyGraphJourney(markerGraphJourney, compressedPseudoPath);
 
         // Store it.
         assemblyGraphJourneys.appendVector(compressedPseudoPath);
@@ -437,7 +434,7 @@ void AssemblyGraph::computeCompressedPseudoPaths()
 
 
 
-void AssemblyGraph::computeCompressedPseudoPath(
+void AssemblyGraph::computeAssemblyGraphJourney(
     const span<MarkerGraphJourneyEntry> pseudoPath,
     vector<AssemblyGraphJourneyEntry>& compressedPseudoPath)
 {
@@ -469,17 +466,17 @@ void AssemblyGraph::computeCompressedPseudoPath(
 
 
 
-void AssemblyGraph::computeSegmentCompressedPseudoPathInfo()
+void AssemblyGraph::computeAssemblyGraphJourneyInfos()
 {
     const bool debug = true;
 
     const uint64_t segmentCount = paths.size();
     const uint64_t readCount = assemblyGraphJourneys.size()/2;
 
-    createNew(segmentCompressedPseudoPathInfo, "Mode3-SegmentCompressedPseudoPathInfo");
+    createNew(assemblyGraphJourneyInfos, "Mode3-SegmentCompressedPseudoPathInfo");
 
     // Pass 1.
-    segmentCompressedPseudoPathInfo.beginPass1(segmentCount);
+    assemblyGraphJourneyInfos.beginPass1(segmentCount);
     for(ReadId readId=0; readId<readCount; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
@@ -489,13 +486,13 @@ void AssemblyGraph::computeSegmentCompressedPseudoPathInfo()
                 const AssemblyGraphJourneyEntry& compressedPseudoPathEntry =
                     compressedPseudoPath[position];
                 const uint64_t segmentId = compressedPseudoPathEntry.segmentId;
-                segmentCompressedPseudoPathInfo.incrementCount(segmentId);
+                assemblyGraphJourneyInfos.incrementCount(segmentId);
             }
         }
     }
 
     // Pass 2.
-    segmentCompressedPseudoPathInfo.beginPass2();
+    assemblyGraphJourneyInfos.beginPass2();
     for(ReadId readId=0; readId<readCount; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
@@ -505,24 +502,24 @@ void AssemblyGraph::computeSegmentCompressedPseudoPathInfo()
                 const AssemblyGraphJourneyEntry& compressedPseudoPathEntry =
                     compressedPseudoPath[position];
                 const uint64_t segmentId = compressedPseudoPathEntry.segmentId;
-                segmentCompressedPseudoPathInfo.store(segmentId, make_pair(orientedReadId, position));
+                assemblyGraphJourneyInfos.store(segmentId, make_pair(orientedReadId, position));
             }
         }
     }
-    segmentCompressedPseudoPathInfo.endPass2();
+    assemblyGraphJourneyInfos.endPass2();
 
     // Sort.
     for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
-        const auto v = segmentCompressedPseudoPathInfo[segmentId];
+        const auto v = assemblyGraphJourneyInfos[segmentId];
         sort(v.begin(), v.end());
     }
 
 
     if(debug) {
         ofstream csv("SegmentCompressedPseudoPathInfo.csv");
-        csv << "SegmentId,OrientedReadId,Position in compressed pseudopath\n";
+        csv << "SegmentId,OrientedReadId,Position in assembly graph journey\n";
         for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
-            const auto v = segmentCompressedPseudoPathInfo[segmentId];
+            const auto v = assemblyGraphJourneyInfos[segmentId];
             for(const auto& p: v) {
                 csv << segmentId << ",";
                 csv << p.first << ",";
@@ -607,12 +604,12 @@ AssemblyGraph::AssemblyGraph(
     // Keep track of the segment and position each marker graph edge corresponds to.
     computeMarkerGraphEdgeTable(threadCount);
 
-    // Compute pseudopaths of all oriented reads.
-    // We permanently store only the compressed pseudopaths.
+    // Compute marker graphand assembly graph journeys of all oriented reads.
+    // We permanently store only the assembly graph journeys.
     computeMarkerGraphJourneys(threadCount);
-    computeCompressedPseudoPaths();
+    computeAssemblyGraphJourneys();
     markerGraphJourneys.remove();
-    computeSegmentCompressedPseudoPathInfo();
+    computeAssemblyGraphJourneyInfos();
 
     // Find pseudopath transitions and store them keyed by the pair of segments.
     std::map<SegmentPair, Transitions> transitionMap;
@@ -654,7 +651,7 @@ AssemblyGraph::AssemblyGraph(
     accessExistingReadOnly(segmentCoverage, "Mode3-SegmentCoverage");
     accessExistingReadOnly(markerGraphEdgeTable, "Mode3-MarkerGraphEdgeTable");
     accessExistingReadOnly(assemblyGraphJourneys, "Mode3-CompressedPseudoPaths");
-    accessExistingReadOnly(segmentCompressedPseudoPathInfo, "Mode3-SegmentCompressedPseudoPathInfo");
+    accessExistingReadOnly(assemblyGraphJourneyInfos, "Mode3-SegmentCompressedPseudoPathInfo");
     accessExistingReadOnly(links, "Mode3-Links");
     accessExistingReadOnly(transitions, "Mode3-Transitions");
     accessExistingReadOnly(linksBySource, "Mode3-LinksBySource");
@@ -1410,7 +1407,7 @@ void AssemblyGraph::analyzeSubgraph1(
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t minClusterCoverage = 3;
 
-    using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
+    using JourneySnippet = AnalyzeSubgraphClasses::JourneySnippet;
     using Cluster = AnalyzeSubgraphClasses::Cluster;
 
     // Create a sorted version of the segmentIds. We will need it later.
@@ -1421,7 +1418,7 @@ void AssemblyGraph::analyzeSubgraph1(
     using Triplet = tuple<OrientedReadId, uint64_t, uint64_t>;
     vector<Triplet> triplets;
     for(const uint64_t segmentId: segmentIds) {
-        const auto v = segmentCompressedPseudoPathInfo[segmentId];
+        const auto v = assemblyGraphJourneyInfos[segmentId];
         for(const auto& p: v) {
             const OrientedReadId orientedReadId = p.first;
             const uint64_t position = p.second;
@@ -1445,7 +1442,7 @@ void AssemblyGraph::analyzeSubgraph1(
     // Find streaks for the same OrientedReadId where the position
     // increases by 1 each time.
     // Each streak generates a CompressedPseudoPathSnippet.
-    vector<CompressedPseudoPathSnippet> snippets;
+    vector<JourneySnippet> snippets;
     for(uint64_t i=0; i<triplets.size(); /* Increment later */) {
         const OrientedReadId orientedReadId = get<0>(triplets[i]);
 
@@ -1462,7 +1459,7 @@ void AssemblyGraph::analyzeSubgraph1(
         }
 
         // Add a snippet.
-        CompressedPseudoPathSnippet snippet;
+        JourneySnippet snippet;
         snippet.orientedReadId = orientedReadId;
         snippet.firstPosition = get<1>(triplets[streakBegin]);
         for(uint64_t j=streakBegin; j!=streakEnd; ++j) {
@@ -1481,7 +1478,7 @@ void AssemblyGraph::analyzeSubgraph1(
         ofstream csv("CompressedPseudoPathSnippets.csv");
         csv << "SnippetIndex,OrientedReadId,First position,LastPosition,SegmentIds\n";
         for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
-            const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+            const JourneySnippet& snippet = snippets[snippetIndex];
             csv << snippetIndex << ",";
             csv << snippet.orientedReadId << ",";
             csv << snippet.firstPosition << ",";
@@ -1500,7 +1497,7 @@ void AssemblyGraph::analyzeSubgraph1(
     // Value: vector of indexes into the snippets vector.
     std::map<vector<uint64_t>, vector<uint64_t> > snippetMap;
     for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
-        const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+        const JourneySnippet& snippet = snippets[snippetIndex];
         snippetMap[snippet.segmentIds].push_back(snippetIndex);
     }
     vector< pair < vector<uint64_t>, vector<uint64_t> > > snippetGroups(snippetMap.size());
@@ -1653,7 +1650,7 @@ void AssemblyGraph::analyzeSubgraph1(
 
             // Loop over the snippets in this snippet group.
             for(const uint64_t snippetIndex: snippetIndexes) {
-                const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+                const JourneySnippet& snippet = snippets[snippetIndex];
                 SHASTA_ASSERT(snippet.segmentIds == segmentIds);
                 cluster.snippets.push_back(snippet);
             }
@@ -1909,7 +1906,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
     const uint64_t minSegmentCoverage = 6;
 
     using BitVector = std::bitset<N>;
-    using CompressedPseudoPathSnippet = AnalyzeSubgraphClasses::CompressedPseudoPathSnippet;
+    using JourneySnippet = AnalyzeSubgraphClasses::JourneySnippet;
     using Cluster = AnalyzeSubgraphClasses::Cluster;
     using SnippetGraphVertex = AnalyzeSubgraphClasses::SnippetGraphVertex;
     using SnippetGraph = AnalyzeSubgraphClasses::SnippetGraph;
@@ -1923,7 +1920,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
     using Triplet = tuple<OrientedReadId, uint64_t, uint64_t>;
     vector<Triplet> triplets;
     for(const uint64_t segmentId: segmentIds) {
-        const auto v = segmentCompressedPseudoPathInfo[segmentId];
+        const auto v = assemblyGraphJourneyInfos[segmentId];
         for(const auto& p: v) {
             const OrientedReadId orientedReadId = p.first;
             const uint64_t position = p.second;
@@ -1947,7 +1944,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
     // Find streaks for the same OrientedReadId where the position
     // increases by 1 each time.
     // Each streak generates a CompressedPseudoPathSnippet.
-    vector<CompressedPseudoPathSnippet> snippets;
+    vector<JourneySnippet> snippets;
     for(uint64_t i=0; i<triplets.size(); /* Increment later */) {
         const OrientedReadId orientedReadId = get<0>(triplets[i]);
 
@@ -1964,7 +1961,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
         }
 
         // Add a snippet.
-        CompressedPseudoPathSnippet snippet;
+        JourneySnippet snippet;
         snippet.orientedReadId = orientedReadId;
         snippet.firstPosition = get<1>(triplets[streakBegin]);
         for(uint64_t j=streakBegin; j!=streakEnd; ++j) {
@@ -1983,7 +1980,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
         ofstream csv("CompressedPseudoPathSnippets.csv");
         csv << "SnippetIndex,OrientedReadId,First position,LastPosition,SegmentIds\n";
         for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
-            const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+            const JourneySnippet& snippet = snippets[snippetIndex];
             csv << snippetIndex << ",";
             csv << snippet.orientedReadId << ",";
             csv << snippet.firstPosition << ",";
@@ -2003,7 +2000,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraph2Template(
     vector<BitVector> bitVectors(snippetCount);
     vector<uint64_t> bitVectorsPopCount(snippetCount);
     for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
-        const CompressedPseudoPathSnippet& snippet = snippets[snippetIndex];
+        const JourneySnippet& snippet = snippets[snippetIndex];
         BitVector& bitVector = bitVectors[snippetIndex];
 
         for(const uint64_t segmentId: snippet.segmentIds) {
@@ -2299,7 +2296,7 @@ void AssemblyGraph::AnalyzeSubgraphClasses::Cluster::constructSegments()
     // A map with Key=segmentId, value = coverage.
     std::map<uint64_t, uint64_t> segmentMap;
 
-    for(const CompressedPseudoPathSnippet& snippet: snippets) {
+    for(const JourneySnippet& snippet: snippets) {
         for(const uint64_t segmentId: snippet.segmentIds) {
             auto it = segmentMap.find(segmentId);
             if(it == segmentMap.end()) {

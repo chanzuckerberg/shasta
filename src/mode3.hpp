@@ -96,7 +96,7 @@ public:
     // For each marker graph edge, store in the marker graph edge table
     // the corresponding segment id and position in the path, if any.
     // Indexed by the edge id in the marker graph.
-    // This is needed when computing pseudopaths.
+    // This is needed when computing assembly graph journeys.
     MemoryMapped::Vector< pair<uint64_t, uint32_t> > markerGraphEdgeTable;
     void computeMarkerGraphEdgeTable(size_t threadCount);
     void computeMarkerGraphEdgeTableThreadFunction(size_t threadId);
@@ -170,28 +170,30 @@ public:
     };
     // Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<AssemblyGraphJourneyEntry, uint64_t> assemblyGraphJourneys;
-    void computeCompressedPseudoPaths();
-    void computeCompressedPseudoPath(
-        const span<MarkerGraphJourneyEntry> pseudoPath,
-        vector<AssemblyGraphJourneyEntry>& compressedPseudoPath);
+    void computeAssemblyGraphJourneys();
+    void computeAssemblyGraphJourney(
+        const span<MarkerGraphJourneyEntry> markerGraphJourney,
+        vector<AssemblyGraphJourneyEntry>& assemblyGraphJourney);
 
-    // Store appearances of segments in compressed pseudopaths.
-    // For each segment, store pairs (orientedReadId, position in compressed pseudo path).
-    MemoryMapped::VectorOfVectors<pair<OrientedReadId, uint64_t>, uint64_t> segmentCompressedPseudoPathInfo;
-    void computeSegmentCompressedPseudoPathInfo();
+    // Store appearances of segments in assembly graph journeys.
+    // For each segment, store pairs (orientedReadId, position in assembly graph journey).
+    // Indexed by the segmentId.
+    MemoryMapped::VectorOfVectors<pair<OrientedReadId, uint64_t>, uint64_t>
+        assemblyGraphJourneyInfos;
+    void computeAssemblyGraphJourneyInfos();
 
 
 
-    // A pseudopath transition occurs when the pseudopath of an oriented read
-    // moves from a segment to a different segment.
+    // A transition is a sequence of two consecutive positions
+    // in the assembly graph journey of an oriented reads.
+    // In other words, it describes the transition of an oriented read
+    // from a segment to the next segment it encounters.
     // Transitions are used to create edges in the AssemblyGraph (gfa links).
     class Transition : public array<MarkerGraphJourneyEntry, 2> {
     public:
         Transition(const array<MarkerGraphJourneyEntry, 2>& x) : array<MarkerGraphJourneyEntry, 2>(x) {}
         Transition() {}
     };
-
-    // Find pseudopath transitions and store them keyed by the pair of segments.
     using SegmentPair = pair<uint64_t, uint64_t>;
     using Transitions = vector< pair<OrientedReadId, Transition> >;
     std::map<SegmentPair, Transitions> transitionMap;
@@ -432,11 +434,11 @@ public:
     class AnalyzeSubgraphClasses {
     public:
 
-        // A CompressedPseudoPathSnippet describes a sequence of consecutive positions
-        // of the compressed pseudopath of an oriented read.
-        // An OrientedReadId can have than more one snippet on a given subgraph,
+        // A JourneySnippet describes a sequence of consecutive positions
+        // of the assembly graph journey of an oriented read.
+        // An OrientedReadId can have than more one JourneySnippet in a given subgraph,
         // but this is not common. It can happen if the assembly graph contains a cycle.
-        class CompressedPseudoPathSnippet {
+        class JourneySnippet {
         public:
 
             // The OrientedReadId this refers to.
@@ -445,7 +447,8 @@ public:
             // The sequence of segments encountered.
             vector<uint64_t> segmentIds;
 
-            // The first and last position in the compressed pseudopath for this OrientedReadId.
+            // The first and last position of this snippet
+            // in the assembly graph journey of this OrientedReadId.
             uint64_t firstPosition;
             uint64_t lastPosition() const
             {
@@ -453,14 +456,16 @@ public:
             }
         };
 
-        // A Cluster is a set of CompressedPseudoPathSnippet's.
+        // A Cluster is a set of JourneySnippet's.
+        // It describes a group of snippets that follow similar paths in
+        // a subgraph of the assembly graph.
         class Cluster {
         public:
             // The snippet groups in this cluster.
             vector<uint64_t> snippetGroupIndexes;
 
             // The snippets in this cluster.
-            vector<CompressedPseudoPathSnippet> snippets;
+            vector<JourneySnippet> snippets;
             uint64_t coverage() const
             {
                 return snippets.size();
@@ -540,15 +545,15 @@ public:
 
         for(const pair<OrientedReadId, Transition>& p: transitions) {
             const Transition& transition = p.second;
-            const auto& pseudoPathEntry0 = transition[0];
-            const auto& pseudoPathEntry1 = transition[1];
+            const MarkerGraphJourneyEntry& entry0 = transition[0];
+            const MarkerGraphJourneyEntry& entry1 = transition[1];
 
-            SHASTA_ASSERT(pseudoPathEntry1.ordinals[0] >= pseudoPathEntry0.ordinals[1]);
+            SHASTA_ASSERT(entry1.ordinals[0] >= entry0.ordinals[1]);
 
             const int64_t linkSeparation =
-                int64_t(pseudoPathEntry1.ordinals[0] - pseudoPathEntry0.ordinals[1]) -
-                int64_t(pathLength0 - 1 - pseudoPathEntry0.position) -
-                int64_t(pseudoPathEntry1.position);
+                int64_t(entry1.ordinals[0] - entry0.ordinals[1]) -
+                int64_t(pathLength0 - 1 - entry0.position) -
+                int64_t(entry1.position);
             averageLinkSeparation += double(linkSeparation);
         }
         averageLinkSeparation /= double(transitions.size());
