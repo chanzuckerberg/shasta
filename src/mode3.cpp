@@ -202,10 +202,6 @@ void AssemblyGraph::computeSegmentCoverage()
 
 
 
-// For each marker graph edge, store in the marker graph edge table
-// the corresponding (segment)
-// and position in the path, if any.
-// This is needed when computing pseudopaths.
 void AssemblyGraph::computeMarkerGraphEdgeTable(size_t threadCount)
 {
 
@@ -255,7 +251,7 @@ void AssemblyGraph::computeMarkerGraphJourneys(size_t threadCount)
 {
     const bool debug = true;
 
-    createNew(markerGraphJourneys, "tmp-mode3-PseudoPaths-1");
+    createNew(markerGraphJourneys, "tmp-mode3-MarkerGraphJourneys");
 
     uint64_t batchSize = 1000;
     markerGraphJourneys.beginPass1(markers.size());
@@ -271,13 +267,13 @@ void AssemblyGraph::computeMarkerGraphJourneys(size_t threadCount)
     runThreads(&AssemblyGraph::sortMarkerGraphJourneys, threadCount);
 
     if(debug) {
-        ofstream csv("PseudoPaths.csv");
+        ofstream csv("MarkerGraphJourneys.csv");
         csv << "OrientedReadId,SegmentId,Position,ordinal0,Ordinal1\n";
         for(uint64_t i=0; i<markers.size(); i++) {
             const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(i));
-            const auto pseudoPath = markerGraphJourneys[i];
-            for(uint64_t position=0; position<pseudoPath.size(); position++) {
-                const auto& entry = pseudoPath[position];
+            const auto markerGraphJourney = markerGraphJourneys[i];
+            for(uint64_t position=0; position<markerGraphJourney.size(); position++) {
+                const MarkerGraphJourneyEntry& entry = markerGraphJourney[position];
                 csv << orientedReadId << ",";
                 csv << entry.segmentId << ",";
                 csv << entry.position << ",";
@@ -327,11 +323,11 @@ void AssemblyGraph::computeMarkerGraphJourneysPass12(uint64_t pass)
                 if(pass == 1) {
                     markerGraphJourneys.incrementCountMultithreaded(orientedReadId.getValue());
                 } else {
-                    MarkerGraphJourneyEntry pseudoPathEntry;
-                    pseudoPathEntry.segmentId = segmentId;
-                    pseudoPathEntry.position = position;
-                    pseudoPathEntry.ordinals = markerInterval.ordinals;
-                    markerGraphJourneys.storeMultithreaded(orientedReadId.getValue(), pseudoPathEntry);
+                    MarkerGraphJourneyEntry markerGraphJourneyEntry;
+                    markerGraphJourneyEntry.segmentId = segmentId;
+                    markerGraphJourneyEntry.position = position;
+                    markerGraphJourneyEntry.ordinals = markerInterval.ordinals;
+                    markerGraphJourneys.storeMultithreaded(orientedReadId.getValue(), markerGraphJourneyEntry);
                 }
             }
         }
@@ -347,8 +343,8 @@ void AssemblyGraph::sortMarkerGraphJourneys(size_t threadId)
 
         // Loop over marker graph edges assigned to this batch.
         for(uint64_t i=begin; i!=end; ++i) {
-            auto pseudoPath = markerGraphJourneys[i];
-            sort(pseudoPath.begin(), pseudoPath.end());
+            auto markerGraphJourney = markerGraphJourneys[i];
+            sort(markerGraphJourney.begin(), markerGraphJourney.end());
         }
     }
 }
@@ -360,11 +356,11 @@ void AssemblyGraph::computeAssemblyGraphJourneys()
 {
     const bool debug = true;
 
-    // Initialize the compressed pseudopaths.
-    createNew(assemblyGraphJourneys, "Mode3-CompressedPseudoPaths");
+    // Initialize the assembly graph journeys.
+    createNew(assemblyGraphJourneys, "Mode3-AssemblyGraphJourneys");
 
     // Work vector defined outside the loop to reduce memory allocation overhead.
-    vector<AssemblyGraphJourneyEntry> compressedPseudoPath;
+    vector<AssemblyGraphJourneyEntry> assemblyGraphJourney;
 
     // Loop over all oriented reads.
     for(uint64_t i=0; i<markerGraphJourneys.size(); i++) {
@@ -373,25 +369,25 @@ void AssemblyGraph::computeAssemblyGraphJourneys()
         const span<MarkerGraphJourneyEntry> markerGraphJourney = markerGraphJourneys[i];
 
         // Compute the assembly graph journey.
-        computeAssemblyGraphJourney(markerGraphJourney, compressedPseudoPath);
+        computeAssemblyGraphJourney(markerGraphJourney, assemblyGraphJourney);
 
         // Store it.
-        assemblyGraphJourneys.appendVector(compressedPseudoPath);
+        assemblyGraphJourneys.appendVector(assemblyGraphJourney);
     }
 
 
 
     // Write them out.
     if(debug) {
-        ofstream csv("CompressedPseudoPaths.csv");
-        for(uint64_t i=0; i<markerGraphJourneys.size(); i++) {
+        ofstream csv("AssemblyGraphJourneys.csv");
+        for(uint64_t i=0; i<assemblyGraphJourneys.size(); i++) {
             const ReadId readId = ReadId(i >> 1);
             const Strand strand = i & 1;
             const OrientedReadId orientedReadId(readId, strand);
-            const span<AssemblyGraphJourneyEntry> compressedPseudoPath = assemblyGraphJourneys[i];
+            const span<AssemblyGraphJourneyEntry> assemblyGraphJourney = assemblyGraphJourneys[i];
 
             csv << orientedReadId << ",";
-            for(const AssemblyGraphJourneyEntry entry: compressedPseudoPath) {
+            for(const AssemblyGraphJourneyEntry entry: assemblyGraphJourney) {
                 csv << entry.segmentId << ",";
             }
             csv << endl;
@@ -402,7 +398,7 @@ void AssemblyGraph::computeAssemblyGraphJourneys()
 
     // Write them out again, with more details.
     if(debug) {
-        ofstream csv("CompressedPseudoPathsDetails.csv");
+        ofstream csv("AssemblyGraphJourneysDetails.csv");
         csv << "OrientedReadId,Position,SegmentId,"
             "First position,First ordinal0,First ordinal1,"
             "Last position,Last ordinal0,Last ordinal1\n";
@@ -410,10 +406,10 @@ void AssemblyGraph::computeAssemblyGraphJourneys()
             const ReadId readId = ReadId(i >> 1);
             const Strand strand = i & 1;
             const OrientedReadId orientedReadId(readId, strand);
-            const span<AssemblyGraphJourneyEntry> compressedPseudoPath = assemblyGraphJourneys[i];
+            const span<AssemblyGraphJourneyEntry> assemblyGraphJourney = assemblyGraphJourneys[i];
 
-            for(uint64_t position=0; position<compressedPseudoPath.size(); position++) {
-                const AssemblyGraphJourneyEntry& entry = compressedPseudoPath[position];
+            for(uint64_t position=0; position<assemblyGraphJourney.size(); position++) {
+                const AssemblyGraphJourneyEntry& entry = assemblyGraphJourney[position];
                 const MarkerGraphJourneyEntry& first = entry.markerGraphJourneyEntries[0];
                 const MarkerGraphJourneyEntry& last = entry.markerGraphJourneyEntries[1];
                 csv << orientedReadId << ",";
@@ -435,29 +431,33 @@ void AssemblyGraph::computeAssemblyGraphJourneys()
 
 
 void AssemblyGraph::computeAssemblyGraphJourney(
-    const span<MarkerGraphJourneyEntry> pseudoPath,
-    vector<AssemblyGraphJourneyEntry>& compressedPseudoPath)
+    const span<MarkerGraphJourneyEntry> markerGraphJourney,
+    vector<AssemblyGraphJourneyEntry>& assemblyGraphJourney)
 {
     // Start with an empty compressed pseudopath.
-    compressedPseudoPath.clear();
+    assemblyGraphJourney.clear();
 
-    // Loop over the pseudopath.
-    for(uint32_t i=0; i<pseudoPath.size(); /* Increment later */) {
-        const MarkerGraphJourneyEntry& pseudoPathEntry = pseudoPath[i];
-        const uint64_t segmentId = pseudoPathEntry.segmentId;
+    // Loop over the marker graph journey, looking for places
+    // where the segmentId changes.
+    for(uint32_t i=0; i<markerGraphJourney.size(); /* Increment later */) {
+        const MarkerGraphJourneyEntry& markerGraphJourneyEntry = markerGraphJourney[i];
+        const uint64_t segmentId = markerGraphJourneyEntry.segmentId;
 
         // Move to the end of the streak of pseudoPath entries with the same segmentId.
         const uint32_t streakBegin = i;
         uint32_t streakEnd = streakBegin + 1;
-        for(; streakEnd<pseudoPath.size() and (pseudoPath[streakEnd].segmentId == segmentId); streakEnd++) {
+        for(;
+            streakEnd<markerGraphJourney.size() and
+            (markerGraphJourney[streakEnd].segmentId == segmentId);
+            streakEnd++) {
         }
 
-        // Store this segmentId in the compressed pseudopath.
-        AssemblyGraphJourneyEntry compressedPseudoPathEntry;
-        compressedPseudoPathEntry.segmentId = segmentId;
-        compressedPseudoPathEntry.markerGraphJourneyEntries[0] = pseudoPath[streakBegin];
-        compressedPseudoPathEntry.markerGraphJourneyEntries[1] = pseudoPath[streakEnd - 1];
-        compressedPseudoPath.push_back(compressedPseudoPathEntry);
+        // Store this segmentId in the assembly graph journey.
+        AssemblyGraphJourneyEntry assemblyGraphJourneyEntry;
+        assemblyGraphJourneyEntry.segmentId = segmentId;
+        assemblyGraphJourneyEntry.markerGraphJourneyEntries[0] = markerGraphJourney[streakBegin];
+        assemblyGraphJourneyEntry.markerGraphJourneyEntries[1] = markerGraphJourney[streakEnd - 1];
+        assemblyGraphJourney.push_back(assemblyGraphJourneyEntry);
 
         // Prepare to handle the next segment.
         i = streakEnd;
@@ -473,7 +473,7 @@ void AssemblyGraph::computeAssemblyGraphJourneyInfos()
     const uint64_t segmentCount = paths.size();
     const uint64_t readCount = assemblyGraphJourneys.size()/2;
 
-    createNew(assemblyGraphJourneyInfos, "Mode3-SegmentCompressedPseudoPathInfo");
+    createNew(assemblyGraphJourneyInfos, "Mode3-AssemblyGraphJourneyInfos");
 
     // Pass 1.
     assemblyGraphJourneyInfos.beginPass1(segmentCount);
@@ -650,8 +650,8 @@ AssemblyGraph::AssemblyGraph(
     accessExistingReadOnly(paths, "Mode3-Paths");
     accessExistingReadOnly(segmentCoverage, "Mode3-SegmentCoverage");
     accessExistingReadOnly(markerGraphEdgeTable, "Mode3-MarkerGraphEdgeTable");
-    accessExistingReadOnly(assemblyGraphJourneys, "Mode3-CompressedPseudoPaths");
-    accessExistingReadOnly(assemblyGraphJourneyInfos, "Mode3-SegmentCompressedPseudoPathInfo");
+    accessExistingReadOnly(assemblyGraphJourneys, "Mode3-AssemblyGraphJourneys");
+    accessExistingReadOnly(assemblyGraphJourneyInfos, "Mode3-AssemblyGraphJourneyInfos");
     accessExistingReadOnly(links, "Mode3-Links");
     accessExistingReadOnly(transitions, "Mode3-Transitions");
     accessExistingReadOnly(linksBySource, "Mode3-LinksBySource");
