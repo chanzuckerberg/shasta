@@ -35,12 +35,88 @@ number of transitions 0->1, we create a link 0->1.
 namespace shasta {
     namespace mode3 {
         class AssemblyGraph;
+        class AssemblyGraphJourneyEntry;
+        class MarkerGraphJourneyEntry;
+        class AssemblyGraphJourneyInterval;
     }
 
     // Some forward declarations of classes in the shasta namespace.
     class CompressedMarker;
     class MarkerGraph;
 }
+
+
+
+// The marker graph journey of an oriented read is the sequence
+// of marker graph edges it encounters.
+// (An oriented read encounters a marker graph edge
+// if the oriented read appears in the marker intervals for the edge).
+// The marker graph journey of an oriented read is not necessarily
+// a path in the marker graph because the oriented read
+// can "skip" marker graph edges due to errors.
+// In other places in Shasta, journeys are called "pseudopaths".
+// We describe the marker graph journey of each oriented read as a sequence
+// of MarkerGraphJourneyEntry objects.
+// The MarkerGraphJourneyEntry identifies a marker graph edge
+// by the segmentId  in the assembly graph and the position in that segment
+// (that is, the first marker graph in the segment is at
+// position 0, and so on).
+class shasta::mode3::MarkerGraphJourneyEntry {
+public:
+    uint64_t segmentId;
+    uint32_t position;
+    array<uint32_t, 2> ordinals;
+
+    bool operator<(const MarkerGraphJourneyEntry& that) const
+    {
+        return ordinals[0] < that.ordinals[0];
+    }
+    bool operator==(const MarkerGraphJourneyEntry& that) const
+    {
+        return
+            tie(segmentId, position, ordinals) ==
+            tie(that.segmentId, that.position, that.ordinals);
+    }
+};
+
+
+
+// The assembly graph journey of an oriented read is the sequence
+// of assembly graph segments (vertices) it encounters.
+// The journey on an oriented read is not necessarily
+// a path in the assembly graph because the oriented read
+// can "skip" segments due to errors.
+// We store the assembly graph journey of each oriented read as a sequence
+// of AssemblyGraphJourneyEntry objects.
+// The AssemblyGraphJourneyEntry stores the segment id and
+// the first and last MarkerGraphJourneyEntry objects
+// on the segment for the given oriented read.
+// Indexed by OrientedReadId::getValue().
+// Note a segmentId can appear more than once in the assembly
+// graph journey of an oriented read. This can happen
+// if the oriented read "goes around" in a tangle caused by repeats.
+class shasta::mode3::AssemblyGraphJourneyEntry {
+public:
+    uint64_t segmentId;
+
+    // The first and last MarkerGraphJourneyEntry that contributed to this
+    // AssemblyGraphJourneyEntry.
+    array<MarkerGraphJourneyEntry, 2> markerGraphJourneyEntries;
+};
+
+
+
+// A portion of the assembly graph journey of an oriented read.
+class shasta::mode3::AssemblyGraphJourneyInterval {
+public:
+
+    OrientedReadId orientedReadId;
+
+    // The first and last position in the assembly graph journey
+    // for this oriented read.
+    uint64_t first;
+    uint64_t last;
+};
 
 
 
@@ -103,40 +179,9 @@ public:
 
 
 
-    // The marker graph journey of an oriented read is the sequence
-    // of marker graph edges it encounters.
-    // (An oriented read encounters a marker graph edge
-    // if the oriented read appears in the marker intervals for the edge).
-    // The journey on an oriented read is not necessarily
-    // a path in the marker graph because the oriented read
-    // can "skip" marker graph edges due to errors.
-    // In other places in Shasta, journeys are called "pseudopaths".
-    // We store the marker graph journey of each oriented read as a sequence
-    // of MarkerGraphJourneyEntry objects.
-    // The MarkerGraphJourneyEntry identifies a marker graph edge
-    // by the segmentId and position in the segment
-    // (that is, the first marker graph in the segment is at
-    // position 0, and so on).
+    // The marker graph journeys of all oriented reads.
     // Indexed by OrientedReadId::getValue().
-    // The marker graph journeys are stored temporarily.
-    // They are used to compute assembly graph journeys and then removed.
-    class MarkerGraphJourneyEntry {
-    public:
-        uint64_t segmentId;
-        uint32_t position;
-        array<uint32_t, 2> ordinals;
-
-        bool operator<(const MarkerGraphJourneyEntry& that) const
-        {
-            return ordinals[0] < that.ordinals[0];
-        }
-        bool operator==(const MarkerGraphJourneyEntry& that) const
-        {
-            return
-                tie(segmentId, position, ordinals) ==
-                tie(that.segmentId, that.position, that.ordinals);
-        }
-    };
+    // This is only stored temporarily and used to compute assembly graph journeys.
     MemoryMapped::VectorOfVectors<MarkerGraphJourneyEntry, uint64_t> markerGraphJourneys;
     void computeMarkerGraphJourneys(size_t threadCount);
     void computeMarkerGraphJourneysPass1(size_t threadId);
@@ -146,28 +191,7 @@ public:
 
 
 
-    // The assembly graph journey of an oriented read is the sequence
-    // of assembly graph segments (vertices) it encounters.
-    // The journey on an oriented read is not necessarily
-    // a path in the assembly graph because the oriented read
-    // can "skip" segments due to errors.
-    // We store the assembly graph journey of each oriented read as a sequence
-    // of AssemblyGraphJourneyEntry objects.
-    // The AssemblyGraphJourneyEntry stores the segment and
-    // the first and last MarkerGraphJourneyEntry objects
-    // on ther segment for the given oriented read.
-    // Indexed by OrientedReadId::getValue().
-    // Note a segmentId can appear more than once in the assembly
-    // graph journed of an oriented read. This can happen
-    // if the oriented read "goes around" in a tangle caused by repeats.
-    class AssemblyGraphJourneyEntry {
-    public:
-        uint64_t segmentId;
-
-        // The first and last MarkerGraphJourneyEntry that contributed to this
-        // AssemblyGraphJourneyEntry.
-        array<MarkerGraphJourneyEntry, 2> markerGraphJourneyEntries;
-    };
+    // The assembly graph journeys of all oriented reads.
     // Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<AssemblyGraphJourneyEntry, uint64_t> assemblyGraphJourneys;
     void computeAssemblyGraphJourneys();

@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "mode3.hpp"
+#include "mode3-PathGraph.hpp"
 #include "Reads.hpp"
 using namespace shasta;
 using namespace mode3;
@@ -56,6 +57,17 @@ vector<uint64_t> Assembler::createMode3AssemblyPath(
     vector<uint64_t> path;
     assemblyGraph3Pointer->createAssemblyPath(segmentId, direction, path);
     return path;
+
+}
+
+
+
+void Assembler::createMode3PathGraph()
+{
+    SHASTA_ASSERT(assemblyGraph3Pointer);
+    const mode3::AssemblyGraph& assemblyGraph = *assemblyGraph3Pointer;
+
+    mode3::PathGraph pathGraph(assemblyGraph);
 
 }
 

@@ -2419,6 +2419,7 @@ public:
     vector<uint64_t> createMode3AssemblyPath(
         uint64_t segmentId,
         uint64_t direction) const;
+    void createMode3PathGraph();
 
 
 
