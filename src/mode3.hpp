@@ -457,8 +457,6 @@ public:
         };
 
         // A Cluster is a set of JourneySnippet's.
-        // It describes a group of snippets that follow similar paths in
-        // a subgraph of the assembly graph.
         class Cluster {
         public:
             // The snippet groups in this cluster.

@@ -429,11 +429,13 @@ void AssemblyGraph::computeAssemblyGraphJourneys()
 
 
 
+// Given the marker graph journey of an oriented read,
+// find the corresponding assembly graph journey.
 void AssemblyGraph::computeAssemblyGraphJourney(
     const span<MarkerGraphJourneyEntry> markerGraphJourney,
     vector<AssemblyGraphJourneyEntry>& assemblyGraphJourney)
 {
-    // Start with an empty compressed pseudopath.
+    // Start with an empty journey.
     assemblyGraphJourney.clear();
 
     // Loop over the marker graph journey, looking for places
@@ -442,7 +444,7 @@ void AssemblyGraph::computeAssemblyGraphJourney(
         const MarkerGraphJourneyEntry& markerGraphJourneyEntry = markerGraphJourney[i];
         const uint64_t segmentId = markerGraphJourneyEntry.segmentId;
 
-        // Move to the end of the streak of pseudoPath entries with the same segmentId.
+        // Move to the end of the streak with the same segmentId.
         const uint32_t streakBegin = i;
         uint32_t streakEnd = streakBegin + 1;
         for(;
@@ -479,13 +481,11 @@ void AssemblyGraph::computeAssemblyGraphJourneyInfos()
     for(ReadId readId=0; readId<readCount; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const auto compressedPseudoPath = assemblyGraphJourneys[orientedReadId.getValue()];
+            const auto assemblyGraphJourney = assemblyGraphJourneys[orientedReadId.getValue()];
 
-            for(uint64_t position=0; position<compressedPseudoPath.size(); position++) {
-                const AssemblyGraphJourneyEntry& compressedPseudoPathEntry =
-                    compressedPseudoPath[position];
-                const uint64_t segmentId = compressedPseudoPathEntry.segmentId;
-                assemblyGraphJourneyInfos.incrementCount(segmentId);
+            for(uint64_t position=0; position<assemblyGraphJourney.size(); position++) {
+                const AssemblyGraphJourneyEntry& entry = assemblyGraphJourney[position];
+                assemblyGraphJourneyInfos.incrementCount(entry.segmentId);
             }
         }
     }
@@ -495,13 +495,11 @@ void AssemblyGraph::computeAssemblyGraphJourneyInfos()
     for(ReadId readId=0; readId<readCount; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const auto compressedPseudoPath = assemblyGraphJourneys[orientedReadId.getValue()];
+            const auto assemblyGraphJourney = assemblyGraphJourneys[orientedReadId.getValue()];
 
-            for(uint64_t position=0; position<compressedPseudoPath.size(); position++) {
-                const AssemblyGraphJourneyEntry& compressedPseudoPathEntry =
-                    compressedPseudoPath[position];
-                const uint64_t segmentId = compressedPseudoPathEntry.segmentId;
-                assemblyGraphJourneyInfos.store(segmentId, make_pair(orientedReadId, position));
+            for(uint64_t position=0; position<assemblyGraphJourney.size(); position++) {
+                const AssemblyGraphJourneyEntry& entry = assemblyGraphJourney[position];
+                assemblyGraphJourneyInfos.store(entry.segmentId, make_pair(orientedReadId, position));
             }
         }
     }
@@ -515,7 +513,7 @@ void AssemblyGraph::computeAssemblyGraphJourneyInfos()
 
 
     if(debug) {
-        ofstream csv("SegmentCompressedPseudoPathInfo.csv");
+        ofstream csv("SegmentJourneyInfo.csv");
         csv << "SegmentId,OrientedReadId,Position in assembly graph journey\n";
         for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
             const auto v = assemblyGraphJourneyInfos[segmentId];
@@ -537,11 +535,11 @@ void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions>& transiti
     for(ReadId readId=0; readId<assemblyGraphJourneys.size()/2; readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const auto compressedPseudoPath = assemblyGraphJourneys[orientedReadId.getValue()];
+            const auto journey = assemblyGraphJourneys[orientedReadId.getValue()];
 
-            for(uint64_t i=1; i<compressedPseudoPath.size(); i++) {
-                const auto& previous = compressedPseudoPath[i-1];
-                const auto& current = compressedPseudoPath[i];
+            for(uint64_t i=1; i<journey.size(); i++) {
+                const auto& previous = journey[i-1];
+                const auto& current = journey[i];
                 SHASTA_ASSERT(previous.segmentId != current.segmentId);
 
                 const SegmentPair segmentPair = make_pair(previous.segmentId, current.segmentId);
@@ -610,7 +608,8 @@ AssemblyGraph::AssemblyGraph(
     markerGraphJourneys.remove();
     computeAssemblyGraphJourneyInfos();
 
-    // Find pseudopath transitions and store them keyed by the pair of segments.
+    // Find transitions from segment to segment in the marker graph
+    // journeys of all oriented reads, and store them keyed by the pair of segments.
     std::map<SegmentPair, Transitions> transitionMap;
     findTransitions(transitionMap);
 
@@ -1222,55 +1221,6 @@ void AssemblyGraph::clusterSegmentsThreadFunction1(size_t threadId)
 
 
 
-#if 0
-void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t segmentId0)
-{
-    // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
-    const uint64_t minCommonReadCount = 6;
-    const double maxUnexplainedFraction = 0.1;
-
-    // Loop over oriented reads in segmentId0.
-    std::unordered_set<uint64_t> segmentId1s;
-    for(const auto& info: segmentOrientedReadInformation[segmentId0].infos) {
-        const OrientedReadId orientedReadId = info.orientedReadId;
-
-
-        // Loop over the compressed pseudopath of this oriented read.
-        const span<uint64_t> compressedPseudoPath = compressedPseudoPaths[orientedReadId.getValue()];
-        for(const uint64_t segmentId1: compressedPseudoPath) {
-
-            // Find each pair once.
-            if(segmentId1 <= segmentId0) {
-                continue;
-            }
-            segmentId1s.insert(segmentId1);
-        }
-    }
-
-
-
-    // Check the pairs (segmentId0, segmentId1) we found.
-    for(const uint64_t segmentId1: segmentId1s) {
-        SegmentPairInformation info;
-        analyzeSegmentPair(segmentId0, segmentId1,
-            segmentOrientedReadInformation[segmentId0],
-            segmentOrientedReadInformation[segmentId1],
-            markers, info);
-        if(info.commonCount < minCommonReadCount) {
-            continue;
-        }
-        if(info.maximumUnexplainedFraction() > maxUnexplainedFraction) {
-            continue;
-        }
-
-        // Store it.
-        clusterSegmentsData.threadPairs[threadId].push_back(make_pair(segmentId0, segmentId1));
-    }
-}
-#else
-
-
-
 void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
 {
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
@@ -1351,7 +1301,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
         }
     }
 }
-#endif
+
 
 
 // Find descendants of a given segment, up to a given distance in the graph.
@@ -1446,7 +1396,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraphTemplate(
     vector<uint64_t> segmentIds = unsortedSegmentIds;
     sort(segmentIds.begin(), segmentIds.end());
 
-    // Gather triplets (orientedReadId, position in compressedPseudoPath, segmentId).
+    // Gather triplets (orientedReadId, position in assembly graph journey, segmentId).
     using Triplet = tuple<OrientedReadId, uint64_t, uint64_t>;
     vector<Triplet> triplets;
     for(const uint64_t segmentId: segmentIds) {
@@ -1473,7 +1423,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraphTemplate(
 
     // Find streaks for the same OrientedReadId where the position
     // increases by 1 each time.
-    // Each streak generates a CompressedPseudoPathSnippet.
+    // Each streak generates a JourneySnippet.
     vector<JourneySnippet> snippets;
     for(uint64_t i=0; i<triplets.size(); /* Increment later */) {
         const OrientedReadId orientedReadId = get<0>(triplets[i]);
@@ -1507,7 +1457,7 @@ template<uint64_t N> void AssemblyGraph::analyzeSubgraphTemplate(
 
     // Write the snippets.
     if(debug) {
-        ofstream csv("CompressedPseudoPathSnippets.csv");
+        ofstream csv("JourneySnippets.csv");
         csv << "SnippetIndex,OrientedReadId,First position,LastPosition,SegmentIds\n";
         for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
             const JourneySnippet& snippet = snippets[snippetIndex];
