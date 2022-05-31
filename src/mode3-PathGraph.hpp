@@ -35,7 +35,6 @@ namespace shasta {
 
 
 
-
 // Each vertex of the PathGraph describes a path
 // in the mode3::AssemblyGraph.
 class shasta::mode3::PathGraphVertex {
@@ -48,7 +47,7 @@ public:
     // We also store the portions of the assembly graph journeys
     // that visit this path.
     // Note that an oriented read can have more than one
-    // (e. g. if ti goes around in a cycle).
+    // (e. g. if it goes around in a cycle).
     vector<AssemblyGraphJourneyInterval> journeyIntervals;
 
     // The vertex id is only used to help keep track of vertices
@@ -60,6 +59,7 @@ public:
 
 class shasta::mode3::PathGraphEdge {
 public:
+    uint64_t coverage = 0;
 };
 
 
@@ -72,13 +72,23 @@ public:
     // Create the PathGraph from the AssemblyGraph.
     PathGraph(const AssemblyGraph&);
 
+private:
+
+    // The AssemblyGraph this PathGraph refers to.
+    const AssemblyGraph& assemblyGraph;
+
     // Initial creation of the vertices.
     // Start with a single segment for each vertex
     // (that is, paths of length 1).
     void createVertices();
 
-    const AssemblyGraph& assemblyGraph;
+    // Recreate all edges from scratch, using only the
+    // information stored in the vertices.
+    void createEdges(uint64_t minCoverage);
 
+    // The id of the next vertex to be added.
+    // Vertex ids are only used to help keep track of vertices
+    // for testing and debugging.
     uint64_t nextVertexId = 0;
 };
 

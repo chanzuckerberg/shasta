@@ -1,7 +1,13 @@
+// Shasta.
 #include "mode3-PathGraph.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 using namespace mode3;
 
+// Boost libraries.
+#include <boost/graph/iteration_macros.hpp>
+
+// Standard library.
 #include "iostream.hpp"
 
 
@@ -13,11 +19,14 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     MultithreadedObject<PathGraph>(*this),
     assemblyGraph(assemblyGraph)
 {
+    const uint64_t minCoverage = 3; // EXPOSE WHEN CODE STABILIZES
+
     PathGraph& pathGraph = *this;
 
     createVertices();
+    createEdges(minCoverage);
     cout << "The initial path graph has " << num_vertices(pathGraph) <<
-        " vertices." << endl;
+        " vertices and " << num_edges(pathGraph) << " edges." << endl;
 }
 
 
@@ -56,3 +65,59 @@ void PathGraph::createVertices() {
     }
 
 }
+
+
+
+// Recreate all edges from scratch, using only the
+// information stored in the vertices.
+void PathGraph::createEdges(uint64_t minCoverage)
+{
+    PathGraph& pathGraph = *this;
+
+    // Gather AssemblyGraphJourneyInterval's for all oriented reads.
+    vector< vector<pair<AssemblyGraphJourneyInterval, vertex_descriptor> > >
+        journeyIntervals(2 * assemblyGraph.readCount());
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        for(const AssemblyGraphJourneyInterval& interval: pathGraph[v].journeyIntervals) {
+            journeyIntervals[interval.orientedReadId.getValue()].push_back(
+                make_pair(interval, v));
+        }
+    }
+    for(auto& v: journeyIntervals) {
+        sort(v.begin(), v.end(),
+            OrderPairsByFirstOnly<AssemblyGraphJourneyInterval, vertex_descriptor>());
+    }
+
+
+    // Create the edges.
+    for(const auto& orientedReadJourneyIntervals: journeyIntervals) {
+
+        for(uint64_t i=1; i<orientedReadJourneyIntervals.size(); i++) {
+            const vertex_descriptor v0 = orientedReadJourneyIntervals[i-1].second;
+            const vertex_descriptor v1 = orientedReadJourneyIntervals[i  ].second;
+
+            edge_descriptor e;
+            bool edgeExists = false;
+            tie(e, edgeExists) = edge(v0, v1, pathGraph);
+            if(not edgeExists) {
+                tie(e, edgeExists) = add_edge(v0, v1, pathGraph);
+                SHASTA_ASSERT(edgeExists);
+            }
+            ++pathGraph[e].coverage;
+        }
+    }
+
+
+
+    // Remove the low coverage edges.
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+        if(pathGraph[e].coverage < minCoverage) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, pathGraph);
+    }
+}
+

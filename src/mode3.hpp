@@ -116,6 +116,11 @@ public:
     // for this oriented read.
     uint64_t first;
     uint64_t last;
+
+    bool operator<(const AssemblyGraphJourneyInterval& that) const
+    {
+        return first < that.first;
+    }
 };
 
 
@@ -157,6 +162,11 @@ public:
     // References to Assembler objects.
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
+
+    uint64_t readCount() const
+    {
+        return markers.size() / 2;
+    }
 
     // Each  linear chain of marker graph edges generates a segment.
     // The marker graph path corresponding to each segment is stored
