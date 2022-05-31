@@ -459,8 +459,6 @@ public:
         // A Cluster is a set of JourneySnippet's.
         class Cluster {
         public:
-            // The snippet groups in this cluster.
-            vector<uint64_t> snippetGroupIndexes;
 
             // The snippets in this cluster.
             vector<JourneySnippet> snippets;
