@@ -24,6 +24,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     // HARDWIRED CONSTANTS TO BE EXPOSED WHEN CODE STABILIZES.
     const uint64_t minCoverage = 3;
     const uint64_t partitionMaxDistance = 10;
+    const uint64_t minSubgraphSize = 8;
 
     PathGraph& pathGraph = *this;
 
@@ -33,7 +34,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
 
     // Partition the PathGraph into subgraphs.
-    partition(partitionMaxDistance);
+    partition(partitionMaxDistance, minSubgraphSize);
     writeGfa("PathGraph");
 }
 
@@ -132,7 +133,9 @@ void PathGraph::createEdges(uint64_t minCoverage)
 
 
 // Partition the PathGraph into subgraphs.
-void PathGraph::partition(uint64_t maxDistance)
+void PathGraph::partition(
+    uint64_t maxDistance,
+    uint64_t minSubgraphSize)
 {
     PathGraph& pathGraph = *this;
 
@@ -174,10 +177,75 @@ void PathGraph::partition(uint64_t maxDistance)
         }
     }
 
-    // Gather the vertices in each subgraph.
-    gatherSubgraphs();
-    const uint64_t subgraphCount = subgraphs.size();
-    cout << "Partitioned the path graph into " << subgraphCount << " subgraphs." << endl;
+
+
+    // Combine small subgraphs with adjacent subgraphs, if possible.
+    // This can leave subgraphs with size 0, but we don't worry about that.
+    while(true) {
+
+        // Gather the subgraphs based on the current settings of
+        // the vertices subgraphId.
+        gatherSubgraphs();
+
+        // Find the small subgraphs.
+        std::set<uint64_t> smallSubgraphs;
+        for(uint64_t subgraphId=0; subgraphId<subgraphs.size(); subgraphId++) {
+            const vector<vertex_descriptor>& subgraph = subgraphs[subgraphId];
+            const uint64_t subgraphSize = subgraph.size();
+            if((subgraphSize != 0) and (subgraph.size() < minSubgraphSize)) {
+                smallSubgraphs.insert(subgraphId);
+            }
+        }
+
+
+
+        // Try and merge small subgraphs with adjacent subgraphs.
+
+        // Loop over small subgraphs.
+        bool changesWereMade = false;
+        for(uint64_t subgraphId0: smallSubgraphs) {
+            const vector<vertex_descriptor>& subgraph0 = subgraphs[subgraphId0];
+            const uint64_t subgraph0Size = subgraph0.size();
+            SHASTA_ASSERT(subgraph0Size < minSubgraphSize);
+
+            // Find adjacent subgraphs and their sizes.
+            vector< pair<uint64_t, uint64_t> > adjacentSubgraphsTable; // (size, subgraphId) of adjacent.
+            for(const vertex_descriptor v0: subgraph0) {
+                BGL_FORALL_OUTEDGES(v0, e, pathGraph, PathGraph) {
+                    const vertex_descriptor v1 = target(e, pathGraph);
+                    const uint64_t subgraphId1 = pathGraph[v1].subgraphId;
+                    if(subgraphId1 != subgraphId0){
+                        adjacentSubgraphsTable.push_back(make_pair(subgraphs[subgraphId1].size(), subgraphId1));
+                    }
+                }
+                BGL_FORALL_INEDGES(v0, e, pathGraph, PathGraph) {
+                    const vertex_descriptor v1 = source(e, pathGraph);
+                    const uint64_t subgraphId1 = pathGraph[v1].subgraphId;
+                    if(subgraphId1 != subgraphId0){
+                        adjacentSubgraphsTable.push_back(make_pair(subgraphs[subgraphId1].size(), subgraphId1));
+                    }
+                }
+            }
+            sort(adjacentSubgraphsTable.begin(), adjacentSubgraphsTable.end());
+
+            // Merge it with the smallest adjacent subgraph.
+            const uint64_t subgraphId1 = adjacentSubgraphsTable.front().second;
+            smallSubgraphs.erase(subgraphId1);
+            for(const vertex_descriptor v0: subgraph0) {
+                pathGraph[v0].subgraphId = subgraphId1;
+            }
+            changesWereMade = true;
+        }
+
+        if(not changesWereMade) {
+            break;
+        }
+    }
+
+
+
+    // Subgraph statistics.
+    cout << "Partitioned the path graph into " << subgraphs.size() << " subgraphs." << endl;
     histogramSubgraphs();
 
     // Count the edges across subgraphs.

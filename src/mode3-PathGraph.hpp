@@ -102,10 +102,13 @@ private:
     uint64_t nextVertexId = 0;
 
     // Partition the PathGraph into subgraphs.
-    void partition(uint64_t maxDistance);
+    void partition(
+        uint64_t maxDistance,
+        uint64_t minSubgraphSize);
     static const uint64_t noSubgraph = std::numeric_limits<uint64_t>::max();
 
     // Gather subgraphs using the subgraphId stored in each vertex.
+    // A subgraph can have size 0, and in that case it should be ignored.
     void gatherSubgraphs();
     void histogramSubgraphs();
     vector< vector<vertex_descriptor> > subgraphs;
