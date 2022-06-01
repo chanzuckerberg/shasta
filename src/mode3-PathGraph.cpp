@@ -9,6 +9,7 @@ using namespace mode3;
 
 // Standard library.
 #include "iostream.hpp"
+#include <queue>
 
 
 
@@ -19,7 +20,9 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     MultithreadedObject<PathGraph>(*this),
     assemblyGraph(assemblyGraph)
 {
-    const uint64_t minCoverage = 3; // EXPOSE WHEN CODE STABILIZES
+    // HARDWIRED CONSTANTS TO BE EXPOSED WHEN CODE STABILIZES.
+    const uint64_t minCoverage = 3;
+    const uint64_t partitionMaxDistance = 10;
 
     PathGraph& pathGraph = *this;
 
@@ -27,6 +30,9 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     createEdges(minCoverage);
     cout << "The initial path graph has " << num_vertices(pathGraph) <<
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
+
+    // Partition the PathGraph into subgraphs.
+    partition(partitionMaxDistance);
 }
 
 
@@ -120,4 +126,94 @@ void PathGraph::createEdges(uint64_t minCoverage)
         boost::remove_edge(e, pathGraph);
     }
 }
+
+
+
+// Partition the PathGraph into subgraphs.
+void PathGraph::partition(uint64_t maxDistance)
+{
+    PathGraph& pathGraph = *this;
+
+    // Mark all vertices as not assigned to any partition.
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        pathGraph[v].subgraphId = noSubgraph;
+    }
+
+    // Simple iteration to begin, but we can do better.
+    uint64_t subgraphId = 0;
+    vector<vertex_descriptor> boundaryVertices;
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        if(pathGraph[v].subgraphId == noSubgraph) {
+            partitionIteration(v, maxDistance, subgraphId++, boundaryVertices);
+        }
+    }
+
+    cout << "Partitioned the path graph into " << subgraphId << " subgraphs." << endl;
+}
+
+
+
+// A partition iteration does a single BFS starting at v.
+// It moves forward from v, avoiding vertices already
+// assigned to a subgraph, and up to maxDistance from v.
+// It also returns the boundaryVertices, that is the
+// vertices found in the process that are at distance maxDistance+1
+// from v and are not yet assigned to a subgraph.
+// These can then used as starting points new partition iterations.
+void PathGraph::partitionIteration(
+    vertex_descriptor v,
+    uint64_t maxDistance,
+    uint64_t subgraphId,
+    vector<vertex_descriptor>& boundaryVertices)
+{
+    PathGraph& pathGraph = *this;
+
+    boundaryVertices.clear();
+
+    // Initialize the BFS.
+    std::queue<vertex_descriptor> q;
+    q.push(v);
+    PathGraphVertex& vertex = pathGraph[v];
+    SHASTA_ASSERT(vertex.subgraphId == noSubgraph);
+    vertex.subgraphId = subgraphId;
+    vertex.distance = 0;
+
+    // BFS loop.
+    while(not q.empty()) {
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+
+        const uint64_t distance0 = pathGraph[v0].distance;
+        const uint64_t distance1 = distance0 + 1;
+        SHASTA_ASSERT(distance0 <= maxDistance);
+
+        // Loop over edges starting at v0.
+        BGL_FORALL_OUTEDGES(v0, e01, pathGraph, PathGraph) {
+            const vertex_descriptor v1 = target(e01, pathGraph);
+            PathGraphVertex& vertex1 = pathGraph[v1];
+
+            // If v1 is already in a subgraph, skip it.
+            if(vertex1.subgraphId != noSubgraph) {
+                continue;
+            }
+
+            // Assign v1 to this subgraph, if it is within maxDistance.
+            if(distance1 <= maxDistance) {
+                vertex1.subgraphId = subgraphId;
+                vertex1.distance = distance1;
+            }
+
+            // Queue it or add it to the boundary vertices.
+            if(distance1 <= maxDistance) {
+                q.push(v1);
+            } else {
+                SHASTA_ASSERT(distance1 == maxDistance + 1);
+                boundaryVertices.push_back(v1);
+            }
+
+        }
+
+    }
+}
+
 

@@ -16,6 +16,7 @@ a path in the mode3::AssemblyGraph.
 #include <boost/graph/adjacency_list.hpp>
 
 // Standara libraries.
+#include <limits>
 #include "vector.hpp"
 
 namespace shasta {
@@ -53,6 +54,13 @@ public:
     // The vertex id is only used to help keep track of vertices
     // for testing and debugging.
     uint64_t id;
+
+    // The partition this vertex was assigned to.
+    uint64_t subgraphId = std::numeric_limits<uint64_t>::max();
+
+    // Distance from the start vertex of the BFS.
+    // Only used during the BFS.
+    uint64_t distance = 0;
 };
 
 
@@ -90,6 +98,24 @@ private:
     // Vertex ids are only used to help keep track of vertices
     // for testing and debugging.
     uint64_t nextVertexId = 0;
+
+    // Partition the PathGraph into subgraphs.
+    void partition(uint64_t maxDistance);
+    vector< vector<vertex_descriptor> > subgraphs;
+    static const uint64_t noSubgraph = std::numeric_limits<uint64_t>::max();
+
+    // A partition iteration does a single BFS starting at v.
+    // It moves forward from v, avoiding vertices already
+    // assigned to a subgraph, and up to maxDistance from v.
+    // It also returns the boundaryVertices, that is the
+    // vertices found in the process that are at distance maxDistance+1
+    // from v and are nto yet assigned to a subgraph.
+    // These can then used as starting points new partition iterations.
+    void partitionIteration(
+        vertex_descriptor v,
+        uint64_t maxDistance,
+        uint64_t subgraphId,
+        vector<vertex_descriptor>& boundaryVertices);
 };
 
 #endif
