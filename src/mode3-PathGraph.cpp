@@ -174,25 +174,22 @@ void PathGraph::partition(uint64_t maxDistance)
         }
     }
 
+    // Gather the vertices in each subgraph.
+    gatherSubgraphs();
+    const uint64_t subgraphCount = subgraphs.size();
+    cout << "Partitioned the path graph into " << subgraphCount << " subgraphs." << endl;
+    histogramSubgraphs();
 
-    const uint64_t subgraphCount = subgraphId;
-
-
-    // Gather the subgraphs.
-    vector< vector<vertex_descriptor> > subgraphs(subgraphCount);
-    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
-        const uint64_t subgraphId = pathGraph[v].subgraphId;
-        if(subgraphId != noSubgraph) {
-            subgraphs[subgraphId].push_back(v);
+    // Count the edges across subgraphs.
+    uint64_t crossEdgeCount = 0;
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+        const vertex_descriptor v0 = source(e, pathGraph);
+        const vertex_descriptor v1 = target(e, pathGraph);
+        if(pathGraph[v0].subgraphId != pathGraph[v1].subgraphId) {
+            ++crossEdgeCount;
         }
     }
-    uint64_t vertexCountInSubgraphs = 0;
-    for(const vector<vertex_descriptor>& subgraph: subgraphs) {
-        vertexCountInSubgraphs += subgraph.size();
-    }
-    SHASTA_ASSERT(vertexCountInSubgraphs == num_vertices(pathGraph));
-
-    cout << "Partitioned the path graph into " << subgraphCount << " subgraphs." << endl;
+    cout << "Number of edges across subgraphs is " << crossEdgeCount << endl;
 }
 
 
@@ -259,6 +256,50 @@ void PathGraph::partitionIteration(
 
     }
 }
+
+
+
+// Gather subgraphs using the subgraphId stored in each vertex.
+void PathGraph::gatherSubgraphs()
+{
+    PathGraph& pathGraph = *this;
+
+    subgraphs.clear();
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        const uint64_t subgraphId = pathGraph[v].subgraphId;
+        SHASTA_ASSERT(subgraphId != noSubgraph);
+
+        if(subgraphId >= subgraphs.size()) {
+            subgraphs.resize(subgraphId + 1);
+        }
+
+        subgraphs[subgraphId].push_back(v);
+    }
+}
+
+
+
+void PathGraph::histogramSubgraphs()
+{
+    vector<uint64_t> histogram;
+    for(const vector<vertex_descriptor>& subgraph: subgraphs) {
+        const uint64_t subgraphSize = subgraph.size();
+        if(subgraphSize >= histogram.size()) {
+            histogram.resize(subgraphSize + 1, 0);
+        }
+        ++histogram[subgraphSize];
+    }
+
+    ofstream csv("PathGraphSubgraphHistogram.csv");
+    csv << "Size,Frequency,Vertices\n";
+    for(uint64_t subgraphSize=0; subgraphSize<histogram.size(); subgraphSize++) {
+        const uint64_t frequency = histogram[subgraphSize];
+        csv << subgraphSize << ",";
+        csv << frequency << ",";
+        csv << subgraphSize*frequency << "\n";
+    }
+}
+
 
 
 

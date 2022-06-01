@@ -103,8 +103,12 @@ private:
 
     // Partition the PathGraph into subgraphs.
     void partition(uint64_t maxDistance);
-    vector< vector<vertex_descriptor> > subgraphs;
     static const uint64_t noSubgraph = std::numeric_limits<uint64_t>::max();
+
+    // Gather subgraphs using the subgraphId stored in each vertex.
+    void gatherSubgraphs();
+    void histogramSubgraphs();
+    vector< vector<vertex_descriptor> > subgraphs;
 
     // A partition iteration does a single BFS starting at v.
     // It moves forward from v, avoiding vertices already
