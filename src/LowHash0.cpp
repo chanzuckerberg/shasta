@@ -1,5 +1,6 @@
 // Shasta.
 #include "LowHash0.hpp"
+#include "MurmurHash2.hpp"
 #include "performanceLog.hpp"
 #include "ReadFlags.hpp"
 #include "timestamp.hpp"

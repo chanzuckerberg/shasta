@@ -309,7 +309,7 @@ public:
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
-    MarkerGraph::VertexId getGlobalMarkerGraphVertex(
+    MarkerGraphVertexId getGlobalMarkerGraphVertex(
         ReadId,
         Strand,
         uint32_t ordinal) const;
@@ -1302,9 +1302,9 @@ private:
     // The next VertexId can be invalidVertexId if the oriented read has no vertices
     // past the starting VertexId.
     void findNextMarkerGraphVertices(
-        MarkerGraph::VertexId,
+        MarkerGraphVertexId,
         uint32_t maxSkip,
-        vector<MarkerGraph::VertexId>&) const;
+        vector<MarkerGraphVertexId>&) const;
 
 
 
@@ -1577,16 +1577,16 @@ private:
         vector< pair<OrientedReadId, uint32_t> >&) const;
 
     void getGlobalMarkerGraphVertexChildren(
-        MarkerGraph::VertexId,
-        vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >&,
-        vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
+        MarkerGraphVertexId,
+        vector< pair<MarkerGraphVertexId, vector<MarkerInterval> > >&,
+        vector< pair<MarkerGraphVertexId, MarkerInterval> >& workArea
         ) const;
 
     // Given two marker graph vertices, get the marker intervals
     // that a possible edge between the two vertices would have.
     void getMarkerIntervals(
-        MarkerGraph::VertexId,
-        MarkerGraph::VertexId,
+        MarkerGraphVertexId,
+        MarkerGraphVertexId,
         vector<MarkerInterval>&
         ) const;
 

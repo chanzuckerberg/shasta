@@ -8,6 +8,7 @@
 #include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "MarkerConnectivityGraph.hpp"
+#include "MurmurHash2.hpp"
 #include "platformDependent.hpp"
 using namespace shasta;
 

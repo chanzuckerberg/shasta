@@ -2,6 +2,7 @@
 #include "LowHash1.hpp"
 #include "AlignmentCandidates.hpp"
 #include "Marker.hpp"
+#include "MurmurHash2.hpp"
 using namespace shasta;
 
 // Standad library.

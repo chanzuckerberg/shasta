@@ -4,13 +4,10 @@
 #define SHASTA_MEMORY_MAPPED_VECTOR_HPP
 
 // Shasta.
-#include "SHASTA_ASSERT.hpp"
+#include "array.hpp"
 #include "filesystem.hpp"
-#include "MurmurHash2.hpp"
 #include "touchMemory.hpp"
-
-// Boost libraries.
-#include <boost/lexical_cast.hpp>
+#include "SHASTA_ASSERT.hpp"
 
 // Standard libraries.
 #include <cstring>
@@ -27,7 +24,7 @@
 #include <linux/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "array.hpp"
+#include <unistd.h>
 
 
 // Forward declarations.
@@ -420,7 +417,7 @@ template<class T> inline int shasta::MemoryMapped::Vector<T>::openExisting(const
         name.c_str(),
         readWriteAccess ? O_RDWR : O_RDONLY);
     if(fileDescriptor == -1) {
-        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+        throw runtime_error("Error " + to_string(errno)
             + " opening MemoryMapped::Vector " + name + ": " + string(strerror(errno)));
     }
     return fileDescriptor;
@@ -452,7 +449,7 @@ template<class T> inline void* shasta::MemoryMapped::Vector<T>::map(int fileDesc
                 "This assembly requires more memory than available.\n"
                 "Rerun on a larger machine.");
         } else {
-            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+            throw runtime_error("Error " + to_string(errno)
                 + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
         }
     }
@@ -569,7 +566,7 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::createNewAnonymou
                     "This assembly requires more memory than available.\n"
                     "Rerun on a larger machine.");
             } else {
-                throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                throw runtime_error("Error " + to_string(errno)
                     + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
             }
         }
@@ -719,7 +716,7 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::unmapAnonymous()
 
     const int munmapReturnCode = ::munmap(header, header->fileSize);
     if(munmapReturnCode == -1) {
-        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+        throw runtime_error("Error " + to_string(errno)
             + " unmapping MemoryMapped::Vector: " + string(strerror(errno)));
     }
 
@@ -911,7 +908,7 @@ template<class T> inline void
                             "This assembly requires more memory than available.\n"
                             "Rerun on a larger machine.");
                     } else {
-                        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                        throw runtime_error("Error " + to_string(errno)
                             + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
                     }
                 }
@@ -934,7 +931,7 @@ template<class T> inline void
                             "This assembly requires more memory than available.\n"
                             "Rerun on a larger machine.");
                     } else {
-                        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                        throw runtime_error("Error " + to_string(errno)
                             + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
                     }
                 }
@@ -1050,7 +1047,7 @@ template<class T> inline
                     "This assembly requires more memory than available.\n"
                     "Rerun on a larger machine.");
             } else {
-                throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                throw runtime_error("Error " + to_string(errno)
                     + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
             }
         }
@@ -1072,7 +1069,7 @@ template<class T> inline
                     "This assembly requires more memory than available.\n"
                     "Rerun on a larger machine.");
             } else {
-                throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                throw runtime_error("Error " + to_string(errno)
                     + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
             }
         }

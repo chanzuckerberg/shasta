@@ -4,6 +4,7 @@
 #include "deduplicate.hpp"
 #include "findLinearChains.hpp"
 #include "html.hpp"
+#include "MurmurHash2.hpp"
 #include "platformDependent.hpp"
 #include "Reads.hpp"
 #include "runCommandWithTimeout.hpp"
