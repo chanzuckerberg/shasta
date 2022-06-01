@@ -33,6 +33,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
 
     // Partition the PathGraph into subgraphs.
     partition(partitionMaxDistance);
+    writeGfa("PathGraph");
 }
 
 
@@ -217,3 +218,50 @@ void PathGraph::partitionIteration(
 }
 
 
+
+void PathGraph::writeGfa(const string& baseName) const
+{
+    const PathGraph& pathGraph = *this;
+
+    // Open the gfa and write the header.
+    ofstream gfa(baseName + ".gfa");
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Open the csv and write the header.
+    ofstream csv(baseName + ".csv");
+    csv << "Segment,Color,SubgraphId\n";
+
+    // Write each vertex as a segment.
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        gfa <<
+            "S\t" <<
+            pathGraph[v].id << "\t" // Segment name
+            "*"                     // Segment length
+            "\n";
+
+        const uint64_t subgraphId = pathGraph[v].subgraphId;
+        const uint64_t r = MurmurHash2(&subgraphId,  sizeof(subgraphId),  231) &255;
+        const uint64_t g = MurmurHash2(&subgraphId,  sizeof(subgraphId),  233) &255;
+        const uint64_t b = MurmurHash2(&subgraphId,  sizeof(subgraphId),  235) &255;
+        std::ostringstream color;
+        color.fill('0');
+        color << "#";
+        color << hex << std::setw(2) << r;
+        color << hex << std::setw(2) << g;
+        color << hex << std::setw(2) << b;
+
+        csv << pathGraph[v].id << "," << color.str() << "," << subgraphId << "\n";
+
+    }
+
+    // Write each edge as a link.
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+        const vertex_descriptor v0 = source(e, pathGraph);
+        const vertex_descriptor v1 = target(e, pathGraph);
+        gfa <<
+            "L\t" <<
+            pathGraph[v0].id << "\t+\t" <<
+            pathGraph[v1].id << "\t+\t0M\n";
+    }
+
+}

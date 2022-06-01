@@ -80,6 +80,8 @@ public:
     // Create the PathGraph from the AssemblyGraph.
     PathGraph(const AssemblyGraph&);
 
+    void writeGfa(const string& baseName) const;
+
 private:
 
     // The AssemblyGraph this PathGraph refers to.
