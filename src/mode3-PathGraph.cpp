@@ -10,6 +10,7 @@ using namespace mode3;
 // Standard library.
 #include "iostream.hpp"
 #include <queue>
+#include <stack>
 
 
 
@@ -140,16 +141,58 @@ void PathGraph::partition(uint64_t maxDistance)
         pathGraph[v].subgraphId = noSubgraph;
     }
 
-    // Simple iteration to begin, but we can do better.
-    uint64_t subgraphId = 0;
+    // Start at all vertices with zero in-degree,
+    // plus the boundary vertices we find that way.
     vector<vertex_descriptor> boundaryVertices;
+    std::stack<vertex_descriptor> s;
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        if(in_degree(v, pathGraph) == 0) {
+            s.push(v);
+        }
+    }
+    uint64_t subgraphId = 0;
+    while(not s.empty()) {
+        const vertex_descriptor v = s.top();
+        s.pop();
+
+        if(pathGraph[v].subgraphId == noSubgraph) {
+            partitionIteration(v, maxDistance, subgraphId++, boundaryVertices);
+            for(const vertex_descriptor v: boundaryVertices) {
+                s.push(v);
+            }
+        }
+    }
+
+
+
+    // In exceptional cases, the above procedure might not assign all
+    // vertices to a subgraph.
+    // This code takes care of that.
     BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
         if(pathGraph[v].subgraphId == noSubgraph) {
             partitionIteration(v, maxDistance, subgraphId++, boundaryVertices);
         }
     }
 
-    cout << "Partitioned the path graph into " << subgraphId << " subgraphs." << endl;
+
+    const uint64_t subgraphCount = subgraphId;
+
+
+    // Gather the subgraphs.
+    vector< vector<vertex_descriptor> > subgraphs(subgraphCount);
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        const uint64_t subgraphId = pathGraph[v].subgraphId;
+        if(subgraphId != noSubgraph) {
+            subgraphs[subgraphId].push_back(v);
+        }
+    }
+    uint64_t vertexCountInSubgraphs = 0;
+    for(const vector<vertex_descriptor>& subgraph: subgraphs) {
+        vertexCountInSubgraphs += subgraph.size();
+    }
+    SHASTA_ASSERT(vertexCountInSubgraphs == num_vertices(pathGraph));
+
+    cout << "Partitioned the path graph into " << subgraphCount << " subgraphs." << endl;
 }
 
 
@@ -239,18 +282,25 @@ void PathGraph::writeGfa(const string& baseName) const
             "*"                     // Segment length
             "\n";
 
-        const uint64_t subgraphId = pathGraph[v].subgraphId;
-        const uint64_t r = MurmurHash2(&subgraphId,  sizeof(subgraphId),  231) &255;
-        const uint64_t g = MurmurHash2(&subgraphId,  sizeof(subgraphId),  233) &255;
-        const uint64_t b = MurmurHash2(&subgraphId,  sizeof(subgraphId),  235) &255;
-        std::ostringstream color;
-        color.fill('0');
-        color << "#";
-        color << hex << std::setw(2) << r;
-        color << hex << std::setw(2) << g;
-        color << hex << std::setw(2) << b;
 
-        csv << pathGraph[v].id << "," << color.str() << "," << subgraphId << "\n";
+        // Color based on the subgraphId.
+        const uint64_t subgraphId = pathGraph[v].subgraphId;
+        string color = "LightGrey";
+        if(subgraphId != noSubgraph) {
+            const uint64_t r = MurmurHash2(&subgraphId,  sizeof(subgraphId),  231) &255;
+            const uint64_t g = MurmurHash2(&subgraphId,  sizeof(subgraphId),  233) &255;
+            const uint64_t b = MurmurHash2(&subgraphId,  sizeof(subgraphId),  235) &255;
+
+            std::ostringstream s;
+            s.fill('0');
+            s << "#";
+            s << hex << std::setw(2) << r;
+            s << hex << std::setw(2) << g;
+            s << hex << std::setw(2) << b;
+            color = s.str();
+        }
+
+        csv << pathGraph[v].id << "," << color << "," << subgraphId << "\n";
 
     }
 
