@@ -15,6 +15,7 @@ using namespace shasta;
 
 // Standard libraries.
 #include "chrono.hpp"
+#include <filesystem>
 #include "iterator.hpp"
 #include "tuple.hpp"
 
@@ -1011,7 +1012,7 @@ void Assembler::writeAlignmentDetails() const
     string directoryName = "Alignments/";
     string header = "kmerId,ordinal0,ordinal1,rlePosition0,rlePosition1,";
 
-    filesystem::createDirectory(directoryName);
+    SHASTA_ASSERT(std::filesystem::create_directory(directoryName));
 
     for (uint32_t alignmentIndex=0; alignmentIndex<alignmentData.size(); alignmentIndex++){
         // Access the stored information we have about this alignment.

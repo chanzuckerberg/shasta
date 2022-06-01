@@ -1,34 +1,11 @@
 #ifndef SHASTA_FILESYSTEM_HPP
 #define SHASTA_FILESYSTEM_HPP
 
-/*******************************************************************************
-
-Replacement for some basic functionality available in boost::filesystem
-and std::filesystem.
-
-We don't want to use boost::filesystem to avoid introducing a runtime
-dependency on boost libraries.
-
-We don't want to use std::filesystem because it is only available in C++17,
-and gcc support for C++17 is still limited (particularly with gcc 4.8
-which is the version used in CentOS 7).
-
-*******************************************************************************/
-
 #include "string.hpp"
 #include "vector.hpp"
 
 namespace shasta {
     namespace filesystem {
-
-        // Create a directory. In case of failure, throw an exception.
-        void createDirectory(const string&);
-
-        // Return the current directory.
-        string getCurrentDirectory();
-
-        // Change the current directory.
-        void changeDirectory(const string&);
 
         // Remove the specified path. In case of failure, throw an exception.
         void remove(const string&);

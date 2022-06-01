@@ -28,38 +28,6 @@ using namespace shasta;
 #include <filesystem>
 
 
-// Create a directory. In case of failure, throw an exception.
-void shasta::filesystem::createDirectory(const string& path)
-{
-
-    if(::mkdir(path.c_str(), 0777) == -1) {
-        throw runtime_error("Unable to create directory " + path);
-    }
-}
-
-
-
-// Return the current directory.
-string shasta::filesystem::getCurrentDirectory()
-{
-    const size_t bufferSize = PATH_MAX;
-    array<char, bufferSize> buffer;
-    ::getcwd(buffer.data(), bufferSize);
-    return string(buffer.data());
-}
-
-
-
-// Change the current directory.
-void shasta::filesystem::changeDirectory(const string& path)
-{
-    if(::chdir(path.c_str()) == -1) {
-        throw runtime_error("Unable to change directory to " + path);
-    }
-
-}
-
-
 
 // Remove the specified path. In case of failure, throw an exception.
 void shasta::filesystem::remove(const string& path)

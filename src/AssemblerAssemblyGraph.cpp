@@ -16,6 +16,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include <filesystem>
 #include "iterator.hpp"
 #include <numeric>
 #include <queue>
@@ -673,7 +674,7 @@ void Assembler::assemble(
 
     // Create the Coverage directory, if necessary.
     if(assembleData.storeCoverageDataCsvLengthThreshold > 0) {
-        filesystem::createDirectory("Coverage");
+        SHASTA_ASSERT(std::filesystem::create_directory("Coverage"));
     }
 
     // Attempt to reduce memory fragmentation.

@@ -320,11 +320,11 @@ void shasta::main::assemble(
                 "Empty it for reuse or use --assemblyDirectory to specify a different assembly directory.");
         }
     } else {
-        filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+        SHASTA_ASSERT(std::filesystem::create_directory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory));
     }
 
     // Make the assembly directory current.
-    filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    std::filesystem::current_path(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
 
     // Open the performance log.
     openPerformanceLog("performance.log");
@@ -453,7 +453,7 @@ void shasta::main::setupRunDirectory(
 
             // Binary files on disk.
             // This does not require root privilege.
-            filesystem::createDirectory("Data");
+            SHASTA_ASSERT(std::filesystem::create_directory("Data"));
             dataDirectory = "Data/";
             pageSize = 4096;
 
@@ -463,7 +463,7 @@ void shasta::main::setupRunDirectory(
             // (filesystem in memory backed by 4K pages).
             // This requires root privilege, which is obtained using sudo
             // and may result in a password prompting depending on sudo set up.
-            filesystem::createDirectory("Data");
+            SHASTA_ASSERT(std::filesystem::create_directory("Data"));
             dataDirectory = "Data/";
             pageSize = 4096;
             const string command = "sudo mount -t tmpfs -o size=0 tmpfs Data";
@@ -480,7 +480,7 @@ void shasta::main::setupRunDirectory(
             // This requires root privilege, which is obtained using sudo
             // and may result in a password prompting depending on sudo set up.
             setupHugePages();
-            filesystem::createDirectory("Data");
+            SHASTA_ASSERT(std::filesystem::create_directory("Data"));
             dataDirectory = "Data/";
             pageSize = 2 * 1024 * 1024;
             const uid_t userId = ::getuid();
@@ -1277,7 +1277,7 @@ void shasta::main::cleanupBinaryData(
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
     if(std::filesystem::exists(dataOnDiskDirectory)) {
-        filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+        std::filesystem::current_path(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
         const string command = "ln -s DataOnDisk Data";
         ::system(command.c_str());
     }
@@ -1302,7 +1302,7 @@ void shasta::main::explore(
     }
 
     // Go to the assembly directory.
-    filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    std::filesystem::current_path(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     
     // Check that we have the binary data. 
     if(!std::filesystem::exists("Data")) {
