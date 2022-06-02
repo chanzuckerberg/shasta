@@ -1108,21 +1108,9 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::unreserve()
 // Make a copy of the Vector.
 template<class T> inline void shasta::MemoryMapped::Vector<T>::makeCopy(
     Vector<T>& copy, const string& newName) const
-    {
+{
     copy.createNew(newName, size());
     std::copy(begin(), end(), copy.begin());
-}
-
-// Return a hash function of the stored data.
-// Can be used to check for integrity.
-template<class T> inline uint64_t shasta::MemoryMapped::Vector<T>::hash() const
-{
-    // The second argument to MurmurHash64A is a 4-byte integer.
-    // Sooner or later we will have to deal with this.
-    // For now we just check that there is no overflow.
-    const uint64_t byteCount = size()*sizeof(T);
-    SHASTA_ASSERT(byteCount <= uint64_t(std::numeric_limits<int>::max()));
-    return MurmurHash64A(begin(), int(byteCount), 231);
 }
 
 template<class T> inline void shasta::MemoryMapped::Vector<T>::rename(const string& newFileName)
