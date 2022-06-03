@@ -24,6 +24,7 @@ namespace shasta {
         class PathGraph;
         class PathGraphVertex;
         class PathGraphEdge;
+        class PathGraphOrderVertices;
 
         using PathGraphBaseClass = boost::adjacency_list<
             boost::listS,
@@ -46,10 +47,13 @@ public:
     vector<uint64_t> path;
 
     // We also store the portions of the assembly graph journeys
-    // that visit this path.
+    // for the oriented reads that are believed to follow this path.
     // Note that an oriented read can have more than one
     // (e. g. if it goes around in a cycle).
-    vector<AssemblyGraphJourneyInterval> journeyIntervals;
+    // The second item in the pair is the ordinal
+    // of this vertex in the path graph journey of the oriented read.
+    // It is filled in by computeJourneys.
+    vector<pair<AssemblyGraphJourneyInterval, uint64_t> > journeyIntervals;
 
     // The vertex id is only used to help keep track of vertices
     // for testing and debugging.
@@ -101,6 +105,13 @@ private:
     // for testing and debugging.
     uint64_t nextVertexId = 0;
 
+    // The journeys of all oriented reads in the PathGraph.
+    // The journey of an oriented read in the PathGraph is
+    // a sequence of vertex descriptors which is not necessarily a path.
+    // Indexed by OrientedReadId::getValue();
+    vector< vector<vertex_descriptor> > journeys;
+    void computeJourneys();
+
     // Partition the PathGraph into subgraphs.
     void partition(
         uint64_t maxDistance,
@@ -125,6 +136,39 @@ private:
         uint64_t maxDistance,
         uint64_t subgraphId,
         vector<vertex_descriptor>& boundaryVertices);
+
+
+
+    // Detangling of a subgraph.
+    void detangleSubgraph(
+        uint64_t subgraphId,
+        bool debug
+    );
+    template<uint64_t N> void detangleSubgraphTemplate(
+        const vector<vertex_descriptor>& subgraph,
+        bool debug
+    );
 };
+
+
+
+// Class used to order/sort PathGraph vertex descriptors
+// by increasing vertex id.
+class shasta::mode3::PathGraphOrderVertices
+{
+public:
+    PathGraphOrderVertices(const PathGraph& pathGraph) :
+        pathGraph(pathGraph) {}
+    const PathGraph& pathGraph;
+
+    bool operator()(
+        PathGraph::vertex_descriptor v0,
+        PathGraph::vertex_descriptor v1) const
+    {
+        return pathGraph[v0].id < pathGraph[v1].id;
+    }
+};
+
+
 
 #endif

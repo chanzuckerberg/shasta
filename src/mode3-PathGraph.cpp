@@ -33,9 +33,16 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     cout << "The initial path graph has " << num_vertices(pathGraph) <<
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
 
+    computeJourneys();
+
     // Partition the PathGraph into subgraphs.
     partition(partitionMaxDistance, minSubgraphSize);
     writeGfa("PathGraph");
+
+    uint64_t subgraphId;
+    cout << "Enter a subgraph to detangle:" << endl;
+    cin >> subgraphId;
+    detangleSubgraph(subgraphId, true);
 }
 
 
@@ -69,7 +76,8 @@ void PathGraph::createVertices() {
             interval.orientedReadId = orientedReadId;
             interval.first = position;
             interval.last = position;
-            vertex.journeyIntervals.push_back(interval);
+            vertex.journeyIntervals.push_back(
+                make_pair(interval, std::numeric_limits<uint64_t>::max()));
         }
     }
 
@@ -87,7 +95,8 @@ void PathGraph::createEdges(uint64_t minCoverage)
     vector< vector<pair<AssemblyGraphJourneyInterval, vertex_descriptor> > >
         journeyIntervals(2 * assemblyGraph.readCount());
     BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
-        for(const AssemblyGraphJourneyInterval& interval: pathGraph[v].journeyIntervals) {
+        for(const auto& p: pathGraph[v].journeyIntervals) {
+            const AssemblyGraphJourneyInterval& interval = p.first;
             journeyIntervals[interval.orientedReadId.getValue()].push_back(
                 make_pair(interval, v));
         }
@@ -96,7 +105,6 @@ void PathGraph::createEdges(uint64_t minCoverage)
         sort(v.begin(), v.end(),
             OrderPairsByFirstOnly<AssemblyGraphJourneyInterval, vertex_descriptor>());
     }
-
 
     // Create the edges.
     for(const auto& orientedReadJourneyIntervals: journeyIntervals) {
@@ -127,6 +135,64 @@ void PathGraph::createEdges(uint64_t minCoverage)
     }
     for(const edge_descriptor e: edgesToBeRemoved) {
         boost::remove_edge(e, pathGraph);
+    }
+}
+
+
+
+// Compute the journeys of all oriented reads in the PathGraph.
+// The journey of an oriented read in the PathGraph is
+// a sequence of vertex descriptors which is not necessarily a path.
+// Indexed by OrientedReadId::getValue();
+void PathGraph::computeJourneys()
+{
+    PathGraph& pathGraph = *this;
+    const ReadId readCount = ReadId(assemblyGraph.readCount());
+
+    // First create, for each oriented read, a vector
+    // of pairs (AssemblyGraphJourneyInterval, vertex_descriptor).
+    vector< vector< pair<AssemblyGraphJourneyInterval, vertex_descriptor> > >
+        journeyTable(2 * readCount);
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        for(const auto& p: pathGraph[v].journeyIntervals) {
+            const AssemblyGraphJourneyInterval& journeyInterval = p.first;
+            journeyTable[journeyInterval.orientedReadId.getValue()].push_back(make_pair(journeyInterval, v));
+        }
+    }
+
+    // Sort them and sanity check.
+    for(vector< pair<AssemblyGraphJourneyInterval, vertex_descriptor> >& v: journeyTable) {
+        sort(v.begin(), v.end());
+
+        // Sanity check.
+        if(v.size() > 1) {
+            for(uint64_t i=1; i<v.size(); i++) {
+                const AssemblyGraphJourneyInterval& previous = v[i-1].first;
+                const AssemblyGraphJourneyInterval& current = v[i].first;
+                SHASTA_ASSERT(previous.last < current.first);
+            }
+        }
+    }
+
+
+    // Store what we got.
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        pathGraph[v].journeyIntervals.clear();
+    }
+    journeys.clear();
+    journeys.resize(2 * readCount);
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const uint64_t index = orientedReadId.getValue();
+            for(uint64_t position=0; position<journeyTable[index].size(); position++) {
+                const auto& p = journeyTable[index][position];
+                const AssemblyGraphJourneyInterval& interval = p.first;
+                const vertex_descriptor v = p.second;
+                journeys[index].push_back(v);
+                pathGraph[v].journeyIntervals.push_back(make_pair(interval, position));
+            }
+        }
     }
 }
 
@@ -240,6 +306,12 @@ void PathGraph::partition(
         if(not changesWereMade) {
             break;
         }
+    }
+
+
+    // Sort the vertex descriptors in each subgraph.
+    for(vector<vertex_descriptor>& subgraph: subgraphs) {
+        sort(subgraph.begin(), subgraph.end(), PathGraphOrderVertices(pathGraph));
     }
 
 
@@ -422,5 +494,64 @@ void PathGraph::writeGfa(const string& baseName) const
             pathGraph[v0].id << "\t+\t" <<
             pathGraph[v1].id << "\t+\t0M\n";
     }
+
+}
+
+
+
+// Detangling of a subgraph.
+void PathGraph::detangleSubgraph(
+    uint64_t subgraphId,
+    bool debug
+)
+{
+    const vector<vertex_descriptor>& subgraph = subgraphs[subgraphId];
+
+    // Call the templated function appropriate for the
+    // size of this subgraph. This way we use the shortest possible
+    // bitmap (with size multiple of 64).
+    if(subgraph.size() <= 64) {
+        detangleSubgraphTemplate<64>(subgraph, debug);
+    } else if(subgraph.size() <= 128) {
+        detangleSubgraphTemplate<128>(subgraph, debug);
+    } else if(subgraph.size() <= 192) {
+        detangleSubgraphTemplate<192>(subgraph, debug);
+    } else if(subgraph.size() <= 256) {
+        detangleSubgraphTemplate<256>(subgraph, debug);
+    } else if(subgraph.size() <= 320) {
+        detangleSubgraphTemplate<320>(subgraph, debug);
+    } else if(subgraph.size() <= 384) {
+        detangleSubgraphTemplate<384>(subgraph, debug);
+    } else if(subgraph.size() <= 448) {
+        detangleSubgraphTemplate<448>(subgraph, debug);
+    } else if(subgraph.size() <= 512) {
+        detangleSubgraphTemplate<512>(subgraph, debug);
+    } else {
+        SHASTA_ASSERT(0);
+    }
+}
+
+
+
+template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
+    const vector<vertex_descriptor>& subgraph,
+    bool debug
+)
+{
+    const PathGraph& pathGraph = *this;
+
+    // The bitmap type used to store which vertices are visited
+    // by each journey snippet.
+    // using BitVector = std::bitset<N>;
+
+    if(debug) {
+        cout << "Detangling a PathGraph subgraph consisting of the following " <<
+            subgraph.size() << " vertices:" << endl;
+        for(const vertex_descriptor v: subgraph) {
+            cout << pathGraph[v].id << " ";
+        }
+        cout << endl;
+    }
+
 
 }

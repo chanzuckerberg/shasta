@@ -27,6 +27,7 @@ number of transitions 0->1, we create a link 0->1.
 
 // Standard library.
 #include "array.hpp"
+#include "tuple.hpp"
 #include "unordered_map"
 #include "vector.hpp"
 
@@ -117,10 +118,12 @@ public:
     uint64_t first;
     uint64_t last;
 
+
     bool operator<(const AssemblyGraphJourneyInterval& that) const
     {
-        return first < that.first;
+        return tie(orientedReadId, first) < tie(that.orientedReadId, that.first);
     }
+
 };
 
 
