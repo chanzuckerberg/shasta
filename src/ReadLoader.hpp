@@ -1,8 +1,7 @@
 #ifndef SHASTA_READ_LOADER_HPP
 #define SHASTA_READ_LOADER_HPP
 
-// shasta
-#include "PalindromeQuality.hpp"
+// Shasta
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"
