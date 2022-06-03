@@ -5,13 +5,13 @@
 
 // Shasta.
 #include "SHASTA_ASSERT.hpp"
-#include "filesystem.hpp"
 #include "touchMemory.hpp"
 
 // Standard libraries.
 #include "array.hpp"
 #include <cstring>
 #include "cstddef.hpp"
+#include <filesystem>
 #include "iostream.hpp"
 #include "stdexcept.hpp"
 #include "string.hpp"
@@ -501,7 +501,7 @@ template<class T> inline void shasta::MemoryMapped::Object<T>::remove()
 {
     const string savedFileName = fileName;
     close();    // This forgets the fileName.
-    filesystem::remove(savedFileName);
+    std::filesystem::remove(savedFileName);
 }
 
 

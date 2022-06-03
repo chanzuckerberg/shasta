@@ -29,16 +29,6 @@ using namespace shasta;
 
 
 
-// Remove the specified path. In case of failure, throw an exception.
-void shasta::filesystem::remove(const string& path)
-{
-    if(::unlink(path.c_str()) == -1) {
-        throw runtime_error("Unable to remove " + path);
-    }
-}
-
-
-
 // Move (rename). In case of failure, throw an exception.
 void shasta::filesystem::move(const string& oldPath, const string& newPath)
 {

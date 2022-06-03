@@ -23,6 +23,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include <filesystem>
 #include "iterator.hpp"
 #include <queue>
 
@@ -130,7 +131,7 @@ void Assembler::exploreMarkerGraph(
         const int exitStatus = WEXITSTATUS(commandStatus);
         if(exitStatus == 124) {
             html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            filesystem::remove(dotFileName);
+            std::filesystem::remove(dotFileName);
             return;
         }
         else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
@@ -145,7 +146,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    std::filesystem::remove(dotFileName);
 
 
 
@@ -284,7 +285,7 @@ void Assembler::exploreMarkerGraph(
     svgFile.close();
 
     // Remove the .svg file.
-    filesystem::remove(svgFileName);
+    std::filesystem::remove(svgFileName);
 
     // Scale to desired size, then make it visible.
     html <<
@@ -2177,7 +2178,7 @@ void Assembler::exploreMarkerConnectivity(
         const int exitStatus = WEXITSTATUS(commandStatus);
         if(exitStatus == 124) {
             html << "<p>Timeout for graph layout exceeded.";
-            filesystem::remove(dotFileName);
+            std::filesystem::remove(dotFileName);
             return;
         }
         else if(exitStatus!=0) {
@@ -2192,7 +2193,7 @@ void Assembler::exploreMarkerConnectivity(
     }
 
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    std::filesystem::remove(dotFileName);
 
     // Buttons to resize the svg locally.
     const int sizePixels = 800;
@@ -2216,6 +2217,6 @@ void Assembler::exploreMarkerConnectivity(
         "</script>";
 
     // Remove the .svg file.
-    filesystem::remove(svgFileName);
+    std::filesystem::remove(svgFileName);
 }
 

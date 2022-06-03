@@ -7,9 +7,6 @@
 namespace shasta {
     namespace filesystem {
 
-        // Remove the specified path. In case of failure, throw an exception.
-        void remove(const string&);
-
         // Move (rename). In case of failure, throw an exception.
         void move(const string& oldPath, const string& newPath);
 

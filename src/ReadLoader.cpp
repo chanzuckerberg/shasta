@@ -1,6 +1,7 @@
 // Shasta.
 #include "ReadLoader.hpp"
 #include "computeRunLengthRepresentation.hpp"
+#include "filesystem.hpp"
 #include "performanceLog.hpp"
 #include "splitRange.hpp"
 using namespace shasta;

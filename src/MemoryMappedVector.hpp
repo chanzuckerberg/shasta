@@ -5,7 +5,6 @@
 
 // Shasta.
 #include "array.hpp"
-#include "filesystem.hpp"
 #include "touchMemory.hpp"
 #include "SHASTA_ASSERT.hpp"
 
@@ -13,6 +12,7 @@
 #include <cstring>
 #include "algorithm"
 #include "cstddef.hpp"
+#include <filesystem>
 #include "iostream.hpp"
 #include "stdexcept.hpp"
 #include "string.hpp"
@@ -746,7 +746,7 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::remove()
     } else {
         const string savedFileName = fileName;
         close();    // This forgets the fileName.
-        filesystem::remove(savedFileName);
+        std::filesystem::remove(savedFileName);
     }
 }
 
@@ -1123,7 +1123,7 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::rename(const stri
         const string oldFileName = fileName;
         const bool writeAccess = isOpenWithWriteAccess;
         close();
-        filesystem::move(oldFileName, newFileName);
+        std::filesystem::rename(oldFileName, newFileName);
         accessExisting(newFileName, writeAccess);
     }
 }

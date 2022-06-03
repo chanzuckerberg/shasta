@@ -14,6 +14,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include <filesystem>
 
 
 
@@ -89,11 +90,11 @@ void Assembler::exploreAssemblyGraph(
         const int exitStatus = WEXITSTATUS(commandStatus);
         if(exitStatus == 124) {
             html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            filesystem::remove(dotFileName);
+            std::filesystem::remove(dotFileName);
             return;
         }
         else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-            filesystem::remove(dotFileName);
+            std::filesystem::remove(dotFileName);
             throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
         }
     } else if(WIFSIGNALED(commandStatus)) {
@@ -105,7 +106,7 @@ void Assembler::exploreAssemblyGraph(
     }
 
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    std::filesystem::remove(dotFileName);
 
     // Buttons to resize the svg locally.
     html << "<br>";
@@ -119,7 +120,7 @@ void Assembler::exploreAssemblyGraph(
     svgFile.close();
 
     // Remove the .svg file.
-    filesystem::remove(svgFileName);
+    std::filesystem::remove(svgFileName);
 
     // Scale to desired size, then make it visible.
     html <<

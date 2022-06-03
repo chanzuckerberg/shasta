@@ -2,9 +2,9 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblyGraph.hpp"
+#include "filesystem.hpp"
 #include "Coverage.hpp"
 #include "buildId.hpp"
-#include "filesystem.hpp"
 #include "platformDependent.hpp"
 #include "Reads.hpp"
 using namespace shasta;
@@ -525,7 +525,7 @@ void Assembler::writePngToHtml(
     html << "\"/>";
 
     // Remove the base64 file.
-    filesystem::remove(base64FileName);
+    std::filesystem::remove(base64FileName);
 
 }
 
@@ -1770,9 +1770,9 @@ void Assembler::blastRead(
 
 
     // Remove the files we created.
-    filesystem::remove(fastaFileName);
-    filesystem::remove(blastOutputFileName);
-    filesystem::remove(blastErrFileName);
+    std::filesystem::remove(fastaFileName);
+    std::filesystem::remove(blastOutputFileName);
+    std::filesystem::remove(blastErrFileName);
 }
 
 

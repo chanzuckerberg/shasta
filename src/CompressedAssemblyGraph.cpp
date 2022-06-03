@@ -20,6 +20,7 @@ using namespace shasta;
 #include <boost/uuid/uuid_io.hpp>
 
 // Standard library.
+#include <filesystem>
 #include "fstream.hpp"
 #include "vector.hpp"
 
@@ -956,7 +957,7 @@ void CompressedAssemblyGraph::computeVertexLayout(
             to_string(returnCode) +
             ". The failing command was: " + command);
     }
-    filesystem::remove(dotFileName);
+    std::filesystem::remove(dotFileName);
 
     // Map vertex ids to vertex descriptors.
     std::map<uint64_t, vertex_descriptor> vertexMap;
@@ -1008,7 +1009,7 @@ void CompressedAssemblyGraph::computeVertexLayout(
         vertexPositions.insert(make_pair(v, x));
     }
     plainFile.close();
-    filesystem::remove(plainFileName);
+    std::filesystem::remove(plainFileName);
 }
 
 

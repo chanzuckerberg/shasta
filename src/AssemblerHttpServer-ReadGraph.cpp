@@ -394,9 +394,9 @@ void Assembler::exploreUndirectedReadGraph(
         }
 
         // Remove the files we created.
-        filesystem::remove(fastaFileName);
-        filesystem::remove(blastOutputFileName);
-        filesystem::remove(blastErrFileName);
+        std::filesystem::remove(fastaFileName);
+        std::filesystem::remove(blastOutputFileName);
+        std::filesystem::remove(blastErrFileName);
 
         // Now store the alignments as additional text in the vertices tooltips.
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {

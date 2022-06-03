@@ -34,7 +34,6 @@ v x y
 
 
 // Shasta.
-#include "filesystem.hpp"
 #include "platformDependent.hpp"
 #include "runCommandWithTimeout.hpp"
 #include "SHASTA_ASSERT.hpp"
@@ -50,9 +49,11 @@ v x y
 
 // Standard library.
 #include "array.hpp"
+#include <filesystem>
 #include "fstream.hpp"
 #include <map>
 #include "utility.hpp"
+#include "vector.hpp"
 
 
 namespace shasta {
@@ -149,7 +150,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraph
     bool signalOccurred = false;
     int returnCode = 0;
     runCommandWithTimeout(command, timeout, timeoutTriggered, signalOccurred, returnCode);
-    filesystem::remove(dotFileName);
+    std::filesystem::remove(dotFileName);
     if(signalOccurred) {
         return ComputeLayoutReturnCode::Signal;
     }
@@ -200,7 +201,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraph
         positionMap.insert(make_pair(v, x));
     }
     plainFile.close();
-    filesystem::remove(plainFileName);
+    std::filesystem::remove(plainFileName);
 
     return ComputeLayoutReturnCode::Success;
 
@@ -265,7 +266,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutCusto
     if(returnCode!=0 ) {
         return ComputeLayoutReturnCode::Error;
     }
-    filesystem::remove(inputFileName);
+    std::filesystem::remove(inputFileName);
 
 
 
@@ -282,7 +283,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutCusto
 
     }
     outputFile.clear();
-    filesystem::remove(outputFileName);
+    std::filesystem::remove(outputFileName);
 
 
 

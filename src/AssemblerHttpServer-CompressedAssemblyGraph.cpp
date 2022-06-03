@@ -12,6 +12,7 @@ using namespace shasta;
 #include <boost/uuid/uuid_io.hpp>
 
 // Standard library.
+#include <filesystem>
 #include <map>
 
 void Assembler::exploreCompressedAssemblyGraph(
@@ -190,7 +191,7 @@ void Assembler::exploreCompressedAssemblyGraph(
             ". The failing Command was: <code>" << command << "</code>";
         return;
     }
-    filesystem::remove(dotFileName);
+    std::filesystem::remove(dotFileName);
 
 
     // Display the graph.
@@ -198,6 +199,6 @@ void Assembler::exploreCompressedAssemblyGraph(
     ifstream svgFile(svgFileName);
     html << svgFile.rdbuf();
     svgFile.close();
-    filesystem::remove(svgFileName);
+    std::filesystem::remove(svgFileName);
 
 }
