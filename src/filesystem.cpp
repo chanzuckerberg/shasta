@@ -29,37 +29,6 @@ using namespace shasta;
 
 
 
-// Move (rename). In case of failure, throw an exception.
-void shasta::filesystem::move(const string& oldPath, const string& newPath)
-{
-    if(not std::filesystem::exists(oldPath)) {
-        throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath +
-            " because " + oldPath + " does not exist.");
-
-    }
-    if(std::filesystem::exists(newPath)) {
-        throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath +
-            " because " + newPath + " already exists.");
-
-    }
-    if(::rename(oldPath.c_str(), newPath.c_str()) != 0) {
-        throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath);
-    }
-}
-
-
-
-// Copy a file.
-void shasta::filesystem::copy(const string& input, const string& output)
-{
-    const string command = "cp " + input + " " + output;
-    if(::system(command.c_str()) != 0) {
-        throw runtime_error("Error executing command " + command);
-    }
-}
-
-
-
 // Return the contents of a directory. In case of failure, throw an exception.
 vector<string> shasta::filesystem::directoryContents(const string& path)
 {
@@ -124,42 +93,6 @@ string shasta::filesystem::extension(const string& path)
 
 
 
-// Return everything up to the last dot following the last dash of a path.
-// If there is no dot following the last dash, throw an exception.
-string shasta::filesystem::fileName(const string& path)
-{
-    // If the path is empty, throw an exception.
-    if(path.empty()) {
-        throw runtime_error("Cannot extract file name of empty path.");
-    }
-
-    // Loop backward beginning at the end.
-    size_t i = path.size()-1;
-    while(true) {
-        const char c = path[i];
-
-        // If we find a slash before a dot (looping from the end), there is no extension.
-        if(c == '/') {
-            throw runtime_error("Cannot extract file name from  path " + path);
-        }
-
-        // If we find a dot, return everything that precedes it.
-        if(c == '.') {
-            return path.substr(0, i);
-        }
-
-        // If we reached the beginning of the string, there is no extension.
-        if(i==0) {
-            throw runtime_error("Cannot extract file name from  path " + path);
-        }
-
-        // Check the previous character.
-        --i;
-    }
-}
-
-
-
 // Find the absolute path.
 string shasta::filesystem::getAbsolutePath(const string& path)
 {
@@ -168,6 +101,7 @@ string shasta::filesystem::getAbsolutePath(const string& path)
     ::realpath(path.c_str(), buffer.data());
     return string(buffer.data());
 }
+
 
 
 string shasta::filesystem::executablePath() {
