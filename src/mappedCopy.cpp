@@ -16,6 +16,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 // This can be used to copy a file to the huge page filesystem.
 // The regular cp command does not work (but it works to copy
