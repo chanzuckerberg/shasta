@@ -42,7 +42,6 @@ v x y
 #include <boost/algorithm/string.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -188,7 +187,7 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraph
         // Get the vertex id.
         const string& vertexName = tokens[1];
         SHASTA_ASSERT(not vertexName.empty());
-        const uint64_t vertexId = boost::lexical_cast<uint64_t>(vertexName);
+        const uint64_t vertexId = std::stoul(vertexName);
 
         // Get the corresponding vertex descriptor.
         SHASTA_ASSERT(vertexId < vertexVector.size());
@@ -196,8 +195,8 @@ template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayoutGraph
 
         // Store it in the layout.
         array<double, 2> x;
-        x[0] = boost::lexical_cast<double>(tokens[2]);
-        x[1] = boost::lexical_cast<double>(tokens[3]);
+        x[0] = std::stod(tokens[2]);
+        x[1] = std::stod(tokens[3]);
         positionMap.insert(make_pair(v, x));
     }
     plainFile.close();

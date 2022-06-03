@@ -1,21 +1,28 @@
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-#include <stdexcept>
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <utility>
-#include <vector>
-#include <string>
-#include <cstdio>
-#include <array>
-#include <cmath>
-#include <map>
+
+// Shasta
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "Coverage.hpp"
 #include "ConsensusCaller.hpp"
 using namespace shasta;
+
+// Boost libraries.
+#include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
+
+// Standard library,
+#include <array>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include "iostream.hpp"
+#include "fstream.hpp"
+#include <map>
+#include "stdexcept.hpp"
+#include "string.hpp"
+#include "utility.hpp"
+#include "vector.hpp"
+
+
 
 using Separator = boost::char_separator<char>;
 using Tokenizer = boost::tokenizer<Separator>;
@@ -518,8 +525,8 @@ void shasta::testSimpleBayesianConsensusCaller(
         // Add it to our Coverage object.
         const char baseCharacter = tokens[0][0];
         coverage.addRead(AlignedBase::fromCharacter(baseCharacter),
-            boost::lexical_cast<int>(tokens[1]),
-            boost::lexical_cast<int>(tokens[2]));
+            std::stoi(tokens[1]),
+            std::stoi(tokens[2]));
     }
 
 

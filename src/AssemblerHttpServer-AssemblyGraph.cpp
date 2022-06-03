@@ -427,13 +427,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
         }
 
         // Extract the edge id.
-        AssemblyGraph::EdgeId edgeId;
-        try {
-            edgeId = boost::lexical_cast<AssemblyGraph::EdgeId>(edgeString);
-        } catch(const boost::bad_lexical_cast&) {
-            html << "<br>Invalid assembly graph edge id " << token;
-            return;
-        }
+        const AssemblyGraph::EdgeId edgeId = std::stoul(edgeString);
 
         // Check that it is a valid assembly graph edge id.
         if(edgeId >= assemblyGraph.edges.size()) {

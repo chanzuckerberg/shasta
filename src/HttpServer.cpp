@@ -510,7 +510,7 @@ size_t PostData::getContentLength() const
     if(it == headers.end()) {
         throw runtime_error("POST request without content length is not supported.");
     }
-    return lexical_cast<size_t>(it->second);
+    return std::stoul(it->second);
 
 }
 

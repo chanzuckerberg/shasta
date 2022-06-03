@@ -45,11 +45,7 @@ void Assembler::exploreReadRle(
     getParameterValues(request, "highlightMarker", highlightedMarkerStrings);
     std::set<uint32_t> highlightedMarkers;
     for(const string& s: highlightedMarkerStrings) {
-        try {
-            highlightedMarkers.insert(boost::lexical_cast<uint32_t>(s));
-        } catch(std::exception&) {
-            // Ignore.
-        }
+        highlightedMarkers.insert(uint32_t(std::stoi(s)));
     }
 
     // Get the arguments to select what to display.

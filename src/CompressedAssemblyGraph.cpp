@@ -14,7 +14,6 @@ using namespace shasta;
 // Boost libraries.
 #include <boost/algorithm/string.hpp>
 #include <boost/graph/iteration_macros.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -996,7 +995,7 @@ void CompressedAssemblyGraph::computeVertexLayout(
             continue;
         }
         // Get the vertex id.
-        const uint64_t vertexId = boost::lexical_cast<uint64_t>(vertexName);
+        const uint64_t vertexId = std::stoul(vertexName);
 
         // Get the corresponding vertex descriptor.
         const auto it = vertexMap.find(vertexId);
@@ -1004,8 +1003,8 @@ void CompressedAssemblyGraph::computeVertexLayout(
 
         // Store it in the layout.
         array<double, 2> x;
-        x[0] = boost::lexical_cast<double>(tokens[2]);
-        x[1] = boost::lexical_cast<double>(tokens[3]);
+        x[0] = std::stod(tokens[2]);
+        x[1] = std::stod(tokens[3]);
         vertexPositions.insert(make_pair(v, x));
     }
     plainFile.close();
