@@ -337,7 +337,7 @@ void PathGraph::partition(
 
     // Sort the vertex descriptors in each subgraph.
     for(vector<vertex_descriptor>& subgraph: subgraphs) {
-        sort(subgraph.begin(), subgraph.end(), PathGraphOrderVertices(pathGraph));
+        sort(subgraph.begin(), subgraph.end(), PathGraphOrderVerticesById(pathGraph));
     }
 
 
@@ -579,7 +579,8 @@ void PathGraph::detangleSubgraph(
 }
 
 
-
+// This code is similar to mode3::AssemblyGraph::analyzeSubgraphTemplate
+// but it operates on a subgraph of the PathGraph, not of the AssemblyGraph.
 template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     const vector<vertex_descriptor>& subgraph,
     bool debug
@@ -589,7 +590,8 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
 
     // The bitmap type used to store which vertices are visited
     // by each journey snippet.
-    // using BitVector = std::bitset<N>;
+    using BitVector = std::bitset<N>;
+    SHASTA_ASSERT(subgraph.size() <= N);
 
     if(debug) {
         cout << "Detangling a PathGraph subgraph consisting of the following " <<
@@ -600,5 +602,109 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
         cout << endl;
     }
 
+    // Sanity check: we expect the vertices in the subgraph to be sorted by vertex id.
+    SHASTA_ASSERT(std::is_sorted(subgraph.begin(), subgraph.end(),
+        PathGraphOrderVerticesById(pathGraph)));
 
+    // For vertices in the subgraph, gather triplets
+    // (orientedReadId, position in path graph journey, vertex_descriptor).
+    using Triplet = tuple<OrientedReadId, uint64_t, vertex_descriptor>;
+    vector<Triplet> triplets;
+    for(const vertex_descriptor v: subgraph) {
+        const PathGraphVertex& vertex = pathGraph[v];
+
+        // Loop over oriented reads that visit this vertex.
+        for(const pair<AssemblyGraphJourneyInterval, uint64_t>& p: vertex.journeyIntervals) {
+            const AssemblyGraphJourneyInterval& assemblyGraphJourneyInterval = p.first;
+            const uint64_t position = p.second;
+            const OrientedReadId orientedReadId = assemblyGraphJourneyInterval.orientedReadId;
+            triplets.push_back(Triplet(orientedReadId, position, v));
+        }
+    }
+    sort(triplets.begin(), triplets.end());
+
+    // Write the triplets.
+    if(debug) {
+        ofstream csv("Triplets.csv");
+        for(const Triplet& triplet: triplets) {
+            csv << get<0>(triplet) << ",";
+            csv << get<1>(triplet) << ",";
+            csv << pathGraph[get<2>(triplet)].id << "\n";
+        }
+    }
+
+
+
+    // Find streaks for the same OrientedReadId where the position
+    // increases by 1 each time.
+    // Each streak generates a PathGraphJourneySnippet.
+    vector<PathGraphJourneySnippet> snippets;
+    for(uint64_t i=0; i<triplets.size(); /* Increment later */) {
+        const OrientedReadId orientedReadId = get<0>(triplets[i]);
+
+        // Find this streak.
+        uint64_t streakBegin = i;
+        uint64_t streakEnd = streakBegin + 1;
+        for(; streakEnd<triplets.size(); streakEnd++) {
+            if(get<0>(triplets[streakEnd]) != orientedReadId) {
+                break;
+            }
+            if(get<1>(triplets[streakEnd]) != get<1>(triplets[streakEnd-1]) + 1) {
+                break;
+            }
+        }
+
+        // Add a snippet.
+        PathGraphJourneySnippet snippet;
+        snippet.orientedReadId = orientedReadId;
+        snippet.firstPosition = get<1>(triplets[streakBegin]);
+        for(uint64_t j=streakBegin; j!=streakEnd; ++j) {
+            snippet.vertices.push_back(get<2>(triplets[j]));
+        }
+        snippets.push_back(snippet);
+
+        // Prepare to process the next streak.
+        i = streakEnd;
+    }
+
+
+
+
+    // Write the snippets.
+    if(debug) {
+        ofstream csv("PathGraphJourneySnippets.csv");
+        csv << "SnippetIndex,OrientedReadId,First position,LastPosition,Vertices\n";
+        for(uint64_t snippetIndex=0; snippetIndex<snippets.size(); snippetIndex++) {
+            const PathGraphJourneySnippet& snippet = snippets[snippetIndex];
+            csv << snippetIndex << ",";
+            csv << snippet.orientedReadId << ",";
+            csv << snippet.firstPosition << ",";
+            csv << snippet.lastPosition() << ",";
+            for(const vertex_descriptor v: snippet.vertices) {
+                csv << pathGraph[v].id << ",";
+            }
+            csv << "\n";
+        }
+    }
+
+
+
+    // For each snippet, create a BitVector that describes the segments
+    // the snippet visits.
+    const uint64_t snippetCount = snippets.size();
+    vector<BitVector> bitVectors(snippetCount);
+    vector<uint64_t> bitVectorsPopCount(snippetCount);  // The number of bits set in each of the bit vectors.
+    for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
+        const PathGraphJourneySnippet& snippet = snippets[snippetIndex];
+        BitVector& bitVector = bitVectors[snippetIndex];
+
+        for(const vertex_descriptor v: snippet.vertices) {
+            auto it = lower_bound(subgraph.begin(), subgraph.end(), v, PathGraphOrderVerticesById(pathGraph));
+            SHASTA_ASSERT(it != subgraph.end());
+            SHASTA_ASSERT(*it == v);
+            const uint64_t bitIndex = it - subgraph.begin();
+            bitVector.set(bitIndex);
+        }
+        bitVectorsPopCount[snippetIndex] = bitVector.count();
+    }
 }

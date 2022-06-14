@@ -24,7 +24,8 @@ namespace shasta {
         class PathGraph;
         class PathGraphVertex;
         class PathGraphEdge;
-        class PathGraphOrderVertices;
+        class PathGraphOrderVerticesById;
+        class PathGraphJourneySnippet;
 
         using PathGraphBaseClass = boost::adjacency_list<
             boost::listS,
@@ -34,6 +35,30 @@ namespace shasta {
 
     }
 }
+
+
+
+// A PathGraphJourneySnippet describes a sequence of consecutive positions
+// of the path graph journey of an oriented read.
+// An OrientedReadId can have than more one PathGraphJourneySnippet in a given subgraph,
+// but this is not common. It can happen if the PathGraph contains a cycle.
+class shasta::mode3::PathGraphJourneySnippet {
+public:
+
+    // The OrientedReadId this refers to.
+    OrientedReadId orientedReadId;
+
+    // The sequence of vertices encountered.
+    vector<PathGraphBaseClass::vertex_descriptor> vertices;
+
+    // The first and last position of this snippet
+    // in the path graph journey of this OrientedReadId.
+    uint64_t firstPosition;
+    uint64_t lastPosition() const
+    {
+        return firstPosition + vertices.size() - 1;
+    }
+};
 
 
 
@@ -162,10 +187,9 @@ private:
 
 // Class used to order/sort PathGraph vertex descriptors
 // by increasing vertex id.
-class shasta::mode3::PathGraphOrderVertices
-{
+class shasta::mode3::PathGraphOrderVerticesById {
 public:
-    PathGraphOrderVertices(const PathGraph& pathGraph) :
+    PathGraphOrderVerticesById(const PathGraph& pathGraph) :
         pathGraph(pathGraph) {}
     const PathGraph& pathGraph;
 
