@@ -84,7 +84,14 @@ public:
     // Create the PathGraph from the AssemblyGraph.
     PathGraph(const AssemblyGraph&);
 
+    // This writes a GFA representation of the PathGraph,
+    // with one GFA segment per vertex.
+    // It also writes an accompanying csv file that can be loaded in Bandage.
     void writeGfa(const string& baseName) const;
+
+    // This writes a detailed csv file containing the path corresponding
+    // to each vertex.
+    void writeCsvDetailed(const string& fileName) const;
 
 private:
 
@@ -111,6 +118,7 @@ private:
     // Indexed by OrientedReadId::getValue();
     vector< vector<vertex_descriptor> > journeys;
     void computeJourneys();
+    void writeJourneys(const string& fileName) const;
 
     // Partition the PathGraph into subgraphs.
     void partition(

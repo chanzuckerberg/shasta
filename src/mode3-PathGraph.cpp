@@ -34,10 +34,12 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
 
     computeJourneys();
+    writeJourneys("PathGraphJourneys.csv");
 
     // Partition the PathGraph into subgraphs.
     partition(partitionMaxDistance, minSubgraphSize);
     writeGfa("PathGraph");
+    writeCsvDetailed("PathGraphDetailed.csv");
 
     uint64_t subgraphId;
     cout << "Enter a subgraph to detangle:" << endl;
@@ -192,6 +194,30 @@ void PathGraph::computeJourneys()
                 journeys[index].push_back(v);
                 pathGraph[v].journeyIntervals.push_back(make_pair(interval, position));
             }
+        }
+    }
+}
+
+
+
+void PathGraph::writeJourneys(const string& fileName) const
+{
+    const PathGraph& pathGraph = *this;
+    ofstream csv(fileName);
+
+    // Loop over all oriented reads.
+    const ReadId readCount = ReadId(assemblyGraph.readCount());
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            csv << orientedReadId << ",";
+
+            // Write the journey of this oriented read in the PathGraph.
+            const auto journey = journeys[orientedReadId.getValue()];
+            for(const vertex_descriptor v: journey) {
+                csv << pathGraph[v].id << ",";
+            }
+            csv << "\n";
         }
     }
 }
@@ -453,9 +479,11 @@ void PathGraph::writeGfa(const string& baseName) const
 
     // Open the csv and write the header.
     ofstream csv(baseName + ".csv");
-    csv << "Segment,Color,SubgraphId\n";
+    csv << "PathGraph-VertexId,Color,SubgraphId\n";
 
-    // Write each vertex as a segment.
+    // Write each vertex as a segment in the gfa.
+    // Note these segments are different from assembly graph segments:
+    // here each segment represents a vertex of the path graph.
     BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
         gfa <<
             "S\t" <<
@@ -495,6 +523,25 @@ void PathGraph::writeGfa(const string& baseName) const
             pathGraph[v1].id << "\t+\t0M\n";
     }
 
+}
+
+
+
+void PathGraph::writeCsvDetailed(const string& fileName) const
+{
+    const PathGraph& pathGraph = *this;
+    ofstream csv(fileName);
+    csv << "PathGraph-VertexId,SubgraphId,SegmentId\n";
+
+    // Loop over vertices of the PathGraph.
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        const PathGraphVertex& vertex = pathGraph[v];
+
+        // Write the AssemblyGraph path corresponding to this vertex.
+        for(const uint64_t segmentId: vertex.path) {
+            csv << vertex.id << "," << vertex.subgraphId << "," << segmentId << "\n";
+        }
+    }
 }
 
 
