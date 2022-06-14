@@ -26,12 +26,17 @@ namespace shasta {
         class PathGraphEdge;
         class PathGraphOrderVerticesById;
         class PathGraphJourneySnippet;
+        class PathGraphJourneySnippetCluster;
+        class SnippetGraph;
+        class SnippetGraphVertex;
 
         using PathGraphBaseClass = boost::adjacency_list<
             boost::listS,
             boost::listS,
             boost::bidirectionalS,
             PathGraphVertex, PathGraphEdge>;
+        using SnippetGraphBaseClass =
+            boost::adjacency_list<boost::setS, boost::listS, boost::bidirectionalS, SnippetGraphVertex>;
 
     }
 }
@@ -58,6 +63,54 @@ public:
     {
         return firstPosition + vertices.size() - 1;
     }
+};
+
+
+
+class shasta::mode3::PathGraphJourneySnippetCluster {
+public:
+
+    // The snippets in this cluster.
+    vector<PathGraphJourneySnippet> snippets;
+    uint64_t coverage() const
+    {
+        return snippets.size();
+    }
+
+    // The PathGraph vertices visited by the snippets of this cluster,
+    // each stored with its coverage (number of snippets);
+    vector< pair<PathGraphBaseClass::vertex_descriptor, uint64_t > > vertices;
+    vector<PathGraphBaseClass::vertex_descriptor> getVertices() const;
+
+    // Remove vertices with coverage less than the specified value.
+    void cleanupVertices(uint64_t minClusterCoverage);
+
+    // Construct the vertices given the snippets.
+    void constructVertices();
+};
+
+
+
+// The SnippetGraph is used by PathGraph::detangleSubgraph.
+// A vertex represents a set of snippets and stores
+// the corresponding snippet indexes.
+// An edge x->y is created if there is at least one snippet in y
+// that is an approximate subset of a snippet in x.
+// Strongly connected components are condensed, so after that
+// the graph is guaranteed to have no cycles.
+class shasta::mode3::SnippetGraphVertex {
+    public:
+        vector<uint64_t> snippetIndexes;
+        uint64_t clusterId = std::numeric_limits<uint64_t>::max();
+        SnippetGraphVertex() {}
+        SnippetGraphVertex(uint64_t snippetIndex) :
+            snippetIndexes(1, snippetIndex) {}
+    };
+class shasta::mode3::SnippetGraph : public SnippetGraphBaseClass {
+public:
+    uint64_t clusterCount = 0;
+    void findDescendants(const vertex_descriptor, vector<vertex_descriptor>&) const;
+    void writeGraphviz(const string& fileName) const;
 };
 
 

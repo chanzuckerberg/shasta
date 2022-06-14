@@ -6,6 +6,7 @@ using namespace mode3;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/graph/strong_components.hpp>
 
 // Standard library.
 #include "iostream.hpp"
@@ -586,6 +587,11 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     bool debug
 )
 {
+    // EXPOSE WHEN CODE STABILIZES.
+    const double fractionThreshold = 0.05;
+    const uint64_t minVertexCoverage = 6;
+    const uint64_t minClusterCoverage = 6;
+
     const PathGraph& pathGraph = *this;
 
     // The bitmap type used to store which vertices are visited
@@ -707,4 +713,329 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
         }
         bitVectorsPopCount[snippetIndex] = bitVector.count();
     }
+
+
+
+    // Create the SnippetGraph.
+    // A vertex represents a set of snippets and stores
+    // the corresponding snippet indexes.
+    // An edge x->y is created if there is at least one snippet in y
+    // that is an approximate subset of a snippet in x.
+    // We express this condition as |y-x| < fractionThreshold * |y|
+    // We start with one snippet per vertex.
+    SnippetGraph snippetGraph;
+    vector<SnippetGraph::vertex_descriptor> vertexTable;
+    std::map<SnippetGraph::vertex_descriptor, uint64_t> vertexMap;
+    for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
+        const auto v = add_vertex(SnippetGraphVertex(snippetIndex), snippetGraph);
+        vertexTable.push_back(v);
+        vertexMap.insert(make_pair(v, snippetIndex));
+    }
+    for(uint64_t iy=0; iy<snippetCount; iy++) {
+        const BitVector& y = bitVectors[iy];
+        const uint64_t threshold = uint64_t(std::round(fractionThreshold * double(bitVectorsPopCount[iy])));
+        const SnippetGraph::vertex_descriptor vy = vertexTable[iy];
+        for(uint64_t ix=0; ix<snippetCount; ix++) {
+            if(ix == iy) {
+                continue;
+            }
+            const BitVector& x = bitVectors[ix];
+
+            // Compute z = y-x.
+            BitVector z = y;
+            z &= (~x);
+
+            if(z.count() <= threshold) {
+                const SnippetGraph::vertex_descriptor vx = vertexTable[ix];
+                add_edge(vx, vy, snippetGraph);
+            }
+        }
+    }
+
+
+
+    // Compute strongly connected components of the SnippetGraph.
+    std::map<SnippetGraph::vertex_descriptor, uint64_t> componentMap;
+    const uint64_t componentCount = boost::strong_components(
+        snippetGraph,
+        boost::make_assoc_property_map(componentMap),
+        boost::vertex_index_map(boost::make_assoc_property_map(vertexMap)));
+    // cout << "Found " << componentCount << " strongly connected components." << endl;
+
+    // Gather the vertices of each strongly connected component.
+    vector< vector<SnippetGraph::vertex_descriptor> > components(componentCount);
+    BGL_FORALL_VERTICES_T(v, snippetGraph, SnippetGraph) {
+        const uint64_t componentId = componentMap[v];
+        SHASTA_ASSERT(componentId < componentCount);
+        components[componentId].push_back(v);
+    }
+    if(false) {
+        cout << "Strongly connected components:\n";
+        for(uint64_t componentId=0; componentId<componentCount; componentId++) {
+            cout << componentId << ": ";
+            for(const SnippetGraph::vertex_descriptor v: components[componentId]) {
+                cout << vertexMap[v] << " ";
+            }
+            cout << "\n";
+        }
+    }
+
+
+
+    // Condense the strongly connected components.
+    // After this, the SnippetGraph is guaranteed to be acyclic.
+    for(const vector<SnippetGraph::vertex_descriptor>& component: components) {
+        if(component.size() == 1) {
+            continue;
+        }
+
+        // Create a new vertex to represent this component.
+        const auto vNew = add_vertex(snippetGraph);
+        vector<uint64_t>& snippetsNew = snippetGraph[vNew].snippetIndexes;
+        for(const vertex_descriptor v: component) {
+            const vector<uint64_t>& snippets = snippetGraph[v].snippetIndexes;
+            SHASTA_ASSERT(snippets.size() == 1);
+            snippetsNew.push_back(snippets.front());
+        }
+
+        // Create the new edges.
+        for(const vertex_descriptor v0: component) {
+
+            // Out-edges.
+            BGL_FORALL_OUTEDGES_T(v0, e01, snippetGraph, SnippetGraph) {
+                const vertex_descriptor v1 = target(e01, snippetGraph);
+                if(v1 != vNew) {
+                    add_edge(vNew, v1, snippetGraph);
+                }
+            }
+
+            // In-edges.
+            BGL_FORALL_INEDGES_T(v0, e10, snippetGraph, SnippetGraph) {
+                const vertex_descriptor v1 = source(e10, snippetGraph);
+                if(v1 != vNew) {
+                    add_edge(v1, vNew, snippetGraph);
+                }
+            }
+        }
+
+        // Remove the old vertices and their edges.
+        for(const vertex_descriptor v: component) {
+            clear_vertex(v, snippetGraph);
+            remove_vertex(v, snippetGraph);
+        }
+    }
+
+
+
+    // Compute which maximal vertices each vertex is a descendant of.
+    std::map<SnippetGraph::vertex_descriptor, vector<SnippetGraph::vertex_descriptor> > ancestorMap;
+    BGL_FORALL_VERTICES_T(v0, snippetGraph, SnippetGraph) {
+        if(in_degree(v0, snippetGraph) != 0) {
+            continue;   // Not a maximal vertex.
+        }
+
+        // Find the descendants of this maximal vertex.
+        vector<vertex_descriptor> descendants;
+        snippetGraph.findDescendants(v0, descendants);
+
+        // Update the ancestor map.
+        for(const vertex_descriptor v1: descendants) {
+            ancestorMap[v1].push_back(v0);
+        }
+    }
+
+
+
+    // Each maximal vertex generates a cluster consisting of the vertices
+    // that descend from it and from no other maximal vertex.
+    // Gather the vertices in each cluster.
+    std::map<SnippetGraph::vertex_descriptor, vector<SnippetGraph::vertex_descriptor> > clusterMap;
+    uint64_t unclusterVertexCount = 0;
+    BGL_FORALL_VERTICES_T(v1, snippetGraph, SnippetGraph) {
+        const vector<SnippetGraph::vertex_descriptor>& ancestors = ancestorMap[v1];
+        if(ancestors.size() == 1) {
+            const vertex_descriptor v0 = ancestors.front();
+            clusterMap[v0].push_back(v1);
+        } else {
+            ++unclusterVertexCount;
+        }
+    }
+    cout << "Found " << unclusterVertexCount << " unclustered vertices." << endl;
+
+
+
+
+    // Gather the snippets in each cluster.
+    vector<PathGraphJourneySnippetCluster> clusters;
+    for(const auto& p: clusterMap) {
+        const vector<SnippetGraph::vertex_descriptor>& clusterVertices = p.second;
+        clusters.resize(clusters.size() + 1);
+        PathGraphJourneySnippetCluster& cluster = clusters.back();
+
+        vector<uint64_t> clusterSnippetIndexes; // Only used for debug output.
+        for(const SnippetGraph::vertex_descriptor v: clusterVertices) {
+            const vector<uint64_t>& snippetIndexes = snippetGraph[v].snippetIndexes;
+            for(const uint64_t snippetIndex: snippetIndexes) {
+                cluster.snippets.push_back(snippets[snippetIndex]);
+                clusterSnippetIndexes.push_back(snippetIndex);
+            }
+        }
+        cluster.constructVertices();
+        cluster.cleanupVertices(minVertexCoverage);
+        cout << "Found a cluster candidate with " <<
+            clusterVertices.size() << " vertices and " <<
+            cluster.snippets.size() << " snippets:" << endl;
+        for(const uint64_t snippetIndex: clusterSnippetIndexes) {
+            cout << snippetIndex << " ";
+        }
+        cout << endl;
+
+        // If coverage on this cluster is too low, discard it.
+        if(cluster.coverage() < minClusterCoverage) {
+            clusters.resize(clusters.size() - 1);
+            cout << "This cluster candidate was discarded because of low coverage." << endl;
+            continue;
+        }
+
+        // This cluster will be stored and is assigned this clusterId;
+        const uint64_t clusterId = clusters.size() - 1;
+
+        if(debug) {
+
+            cout << "This cluster was stored as cluster " << clusterId << endl;
+            cout << "Vertex(coverage) for this cluster:\n";
+            for(const auto& p: cluster.vertices) {
+                cout << pathGraph[p.first].id << "(" << p.second << ") ";
+            }
+            cout << endl;
+        }
+
+        // Mark the vertices of this cluster.
+        for(const SnippetGraph::vertex_descriptor v: clusterVertices) {
+            snippetGraph[v].clusterId = clusterId;
+        }
+    }
+    snippetGraph.clusterCount = clusters.size();
+
+
+
+
+    // Write out the SnippetGraph.
+    if(debug) {
+        snippetGraph.writeGraphviz("SnippetGraph.dot");
+    }
 }
+
+
+
+void SnippetGraph::findDescendants(
+    const vertex_descriptor vStart,
+    vector<vertex_descriptor>& descendants) const
+{
+    const SnippetGraph& graph = *this;
+
+    // Initialize the BFS.
+    std::queue<vertex_descriptor> q;
+    q.push(vStart);
+    std::set<vertex_descriptor> descendantsSet;
+    descendantsSet.insert(vStart);
+
+    // BFS loop.
+    while(not q.empty()) {
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+
+        BGL_FORALL_OUTEDGES(v0, e01, graph, SnippetGraph) {
+            const vertex_descriptor v1 = target(e01, graph);
+            if(descendantsSet.find(v1) == descendantsSet.end()) {
+                q.push(v1);
+                descendantsSet.insert(v1);
+            }
+        }
+    }
+
+    descendants.clear();
+    copy(descendantsSet.begin(), descendantsSet.end(), back_inserter(descendants));
+}
+
+
+
+void SnippetGraph::writeGraphviz(
+    const string& fileName) const
+{
+    const SnippetGraph& graph = *this;
+
+    ofstream dot(fileName);
+    dot << "digraph SnippetGraph{\n"
+        "node [shape=rectangle];\n";
+    BGL_FORALL_VERTICES(v, graph, SnippetGraph) {
+        dot << "\"" << v << "\" [label=\"";
+        const vector<uint64_t>& snippetIndexes = graph[v].snippetIndexes;
+        for(const uint64_t snippetIndex: snippetIndexes) {
+            dot << snippetIndex;
+            dot << "\\n";
+        }
+        dot << "\"";
+        const uint64_t clusterId = graph[v].clusterId;
+        if(clusterId != std::numeric_limits<uint64_t>::max()) {
+            dot << " style=filled fillcolor=\"" <<
+                float(clusterId)/float(clusterCount) <<
+                ",0.3,1\"";
+        }
+        dot << "];\n";
+    }
+    BGL_FORALL_EDGES(e, graph, SnippetGraph) {
+        const vertex_descriptor vx = source(e, graph);
+        const vertex_descriptor vy = target(e, graph);
+        dot << "\"" << vx << "\"->\"" << vy << "\";\n";
+    }
+    dot << "}\n";
+
+}
+
+
+
+vector<PathGraphBaseClass::vertex_descriptor> PathGraphJourneySnippetCluster::getVertices() const
+{
+    vector<PathGraphBaseClass::vertex_descriptor> v;
+    for(const auto& p: vertices) {
+        v.push_back(p.first);
+    }
+    return v;
+}
+
+
+
+void PathGraphJourneySnippetCluster::cleanupVertices(uint64_t minVertexCoverage)
+{
+    vector< pair<PathGraphBaseClass::vertex_descriptor, uint64_t > > newVertices;
+    for(const auto& p: vertices) {
+        if(p.second >= minVertexCoverage) {
+            newVertices.push_back(p);
+        }
+    }
+    vertices.swap(newVertices);
+}
+
+
+
+void PathGraphJourneySnippetCluster::constructVertices()
+{
+    // A map with Key=vertex_descriptor, value = coverage.
+    std::map<PathGraphBaseClass::vertex_descriptor, uint64_t> vertexMap;
+
+    for(const PathGraphJourneySnippet& snippet: snippets) {
+        for(const PathGraphBaseClass::vertex_descriptor v: snippet.vertices) {
+            auto it = vertexMap.find(v);
+            if(it == vertexMap.end()) {
+                vertexMap.insert(make_pair(v, 1));
+            } else {
+                ++(it->second);
+            }
+        }
+    }
+
+    vertices.clear();
+    copy(vertexMap.begin(), vertexMap.end(), back_inserter(vertices));
+}
+
