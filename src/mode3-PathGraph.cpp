@@ -880,7 +880,7 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
                 clusterSnippetIndexes.push_back(snippetIndex);
             }
         }
-        cluster.constructVertices();
+        cluster.constructVertices(pathGraph);
         cluster.cleanupVertices(minVertexCoverage);
         cout << "Found a cluster candidate with " <<
             clusterVertices.size() << " vertices and " <<
@@ -1019,10 +1019,11 @@ void PathGraphJourneySnippetCluster::cleanupVertices(uint64_t minVertexCoverage)
 
 
 
-void PathGraphJourneySnippetCluster::constructVertices()
+void PathGraphJourneySnippetCluster::constructVertices(const PathGraph& pathGraph)
 {
     // A map with Key=vertex_descriptor, value = coverage.
-    std::map<PathGraphBaseClass::vertex_descriptor, uint64_t> vertexMap;
+    auto vertexMap = std::map<PathGraphBaseClass::vertex_descriptor, uint64_t, PathGraphOrderVerticesById>(
+        PathGraphOrderVerticesById(pathGraph));
 
     for(const PathGraphJourneySnippet& snippet: snippets) {
         for(const PathGraphBaseClass::vertex_descriptor v: snippet.vertices) {

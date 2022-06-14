@@ -86,7 +86,7 @@ public:
     void cleanupVertices(uint64_t minClusterCoverage);
 
     // Construct the vertices given the snippets.
-    void constructVertices();
+    void constructVertices(const PathGraph&);
 };
 
 
