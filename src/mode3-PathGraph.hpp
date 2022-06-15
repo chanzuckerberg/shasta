@@ -234,6 +234,14 @@ private:
         const vector<vertex_descriptor>& subgraph,
         bool debug
     );
+
+
+    // Given a PathGraphJourneySnippetCluster, find a plausible
+    // path for it in the PathGraph.
+    void findClusterPath(
+        const PathGraphJourneySnippetCluster&,
+        vector<vertex_descriptor>& path,
+        ostream&) const;
 };
 
 

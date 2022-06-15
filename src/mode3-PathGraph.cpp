@@ -924,6 +924,16 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     if(debug) {
         snippetGraph.writeGraphviz("SnippetGraph.dot");
     }
+
+
+
+    // Find the path for each cluster.
+    cout << "Kept " << clusters.size() << " clusters." << endl;
+    for(uint64_t clusterId=0; clusterId<clusters.size(); clusterId++) {
+        vector<vertex_descriptor> path;
+        ofstream graphOut("Cluster-" + to_string(clusterId) + ".dot");
+        findClusterPath(clusters[clusterId], path, graphOut);
+    }
 }
 
 
@@ -1040,3 +1050,84 @@ void PathGraphJourneySnippetCluster::constructVertices(const PathGraph& pathGrap
     copy(vertexMap.begin(), vertexMap.end(), back_inserter(vertices));
 }
 
+
+
+// Given a PathGraphJourneySnippetCluster, find a plausible
+// path for it in the PathGraph.
+void PathGraph::findClusterPath(
+    const PathGraphJourneySnippetCluster& cluster,
+    vector<vertex_descriptor>& path,
+    ostream& graphOut) const
+{
+    const PathGraph& pathGraph = *this;
+    const bool debug = true;
+    path.clear();
+
+    // Map vertex descriptors to indexes in cluster.vertices.
+    std::map<vertex_descriptor, uint64_t> vertexMap;
+    for(uint64_t i=0; i<cluster.vertices.size(); i++) {
+        const vertex_descriptor v = cluster.vertices[i].first;
+        vertexMap.insert(make_pair(v, i));
+    }
+
+    // Construct the subgraph induced by the vertices of the cluster.
+    using Subgraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS>;
+    Subgraph subgraph(vertexMap.size());
+    for(const auto& p: vertexMap) {
+        const vertex_descriptor v0 = p.first;
+        const uint64_t i0 = p.second;
+        BGL_FORALL_OUTEDGES(v0, e, pathGraph, PathGraph) {
+            const vertex_descriptor v1 = target(e, pathGraph);
+            const auto it = vertexMap.find(v1);
+            if(it == vertexMap.end()) {
+                continue;
+            }
+            const uint64_t i1 = it->second;
+            add_edge(i0, i1, subgraph);
+        }
+    }
+
+    // Compute strong connected components of this subgraph.
+    const auto indexMap = get(boost::vertex_index, subgraph);
+    vector<uint64_t> strongComponent(num_vertices(subgraph));
+    boost::strong_components(
+        subgraph,
+        boost::make_iterator_property_map(strongComponent.begin(), indexMap));
+
+    // Remove edges internal to strong components.
+    vector<Subgraph::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, subgraph, Subgraph) {
+        const uint64_t i0 = source(e, subgraph);
+        const uint64_t i1 = target(e, subgraph);
+        if(strongComponent[i0] == strongComponent[i1]) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const Subgraph::edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, subgraph);
+    }
+
+
+    // Write it out.
+    if(debug) {
+        graphOut << "digraph cluster {\n";
+        for(uint64_t i=0; i<vertexMap.size(); i++) {
+            const auto& p = cluster.vertices[i];
+            const vertex_descriptor v = p.first;
+            const uint64_t coverage = p.second;
+            graphOut << pathGraph[v].id;
+            graphOut << " [label=\"" << pathGraph[v].id << "\\n" << coverage << "\"]";
+            graphOut << ";\n";
+        }
+        BGL_FORALL_EDGES(e, subgraph, Subgraph) {
+            const uint64_t i0 = source(e, subgraph);
+            const uint64_t i1 = target(e, subgraph);
+            const vertex_descriptor v0 = cluster.vertices[i0].first;
+            const vertex_descriptor v1 = cluster.vertices[i1].first;
+            graphOut << pathGraph[v0].id << "->" << pathGraph[v1].id;
+            graphOut << ";\n";
+        }
+        graphOut << "}\n";
+
+    }
+}
