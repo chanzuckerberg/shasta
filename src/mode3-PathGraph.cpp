@@ -1,6 +1,7 @@
 // Shasta.
 #include "mode3-PathGraph.hpp"
 #include "orderPairs.hpp"
+#include "transitiveReduction.hpp"
 using namespace shasta;
 using namespace mode3;
 
@@ -1071,7 +1072,7 @@ void PathGraph::findClusterPath(
     }
 
     // Construct the subgraph induced by the vertices of the cluster.
-    using Subgraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS>;
+    using Subgraph = boost::adjacency_list<boost::listS, boost::vecS, boost::bidirectionalS>;
     Subgraph subgraph(vertexMap.size());
     for(const auto& p: vertexMap) {
         const vertex_descriptor v0 = p.first;
@@ -1106,6 +1107,9 @@ void PathGraph::findClusterPath(
     for(const Subgraph::edge_descriptor e: edgesToBeRemoved) {
         boost::remove_edge(e, subgraph);
     }
+
+    // Transitive reduction.
+    transitiveReduction(subgraph);
 
 
     // Write it out.
