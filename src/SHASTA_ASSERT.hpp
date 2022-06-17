@@ -5,32 +5,18 @@
 #ifndef SHASTA_SHASTA_ASSERT_HPP
 #define SHASTA_SHASTA_ASSERT_HPP
 
-#include <stdexcept>
-#include <string>
-
-#if 0
-// Gcc (for backtraces).
-#include "execinfo.h"
-
 namespace shasta {
-    inline void writeBackTrace();
+    void handleFailedAssertion(
+        const char* expression,
+        const char* function,
+        const char* file,
+        int line
+    ) __attribute__ ((__noreturn__));
 }
-#endif
 
 
 #define SHASTA_ASSERT(expression) ((expression) ? (static_cast<void>(0)) : \
-    (/*writeBackTrace(),*/ throw std::runtime_error(std::string("Assertion failed: ") + #expression + " at " + __PRETTY_FUNCTION__ + " in " +  __FILE__ + " line " + std::to_string(__LINE__))))
-
-
-#if 0
-inline void shasta::writeBackTrace()
-{
-    const int bufferSize = 64;  // To avoid extremely long, useless backtraces.
-    void* buffer[bufferSize];
-    ::backtrace(buffer, bufferSize);
-    ::backtrace_symbols_fd(buffer, bufferSize, ::fileno(::stdout));
-}
-#endif
+    (shasta::handleFailedAssertion(#expression, __PRETTY_FUNCTION__,  __FILE__ , __LINE__)))
 
 
 #endif
