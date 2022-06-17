@@ -1,5 +1,6 @@
 // Shasta.
 #include "mode3-PathGraph.hpp"
+#include "findLinearChains.hpp"
 #include "orderPairs.hpp"
 #include "transitiveReduction.hpp"
 using namespace shasta;
@@ -1133,5 +1134,20 @@ void PathGraph::findClusterPath(
         }
         graphOut << "}\n";
 
+    }
+
+
+    // Find linear chains of vertices.
+    vector< vector<Subgraph::vertex_descriptor> > chains;
+    findLinearVertexChains(subgraph, chains);
+    if(debug) {
+        cout << "Found the following linear chains:" << endl;
+        for(const vector<Subgraph::vertex_descriptor>& chain: chains) {
+            for(const Subgraph::vertex_descriptor v: chain) {
+                const PathGraph::vertex_descriptor u = cluster.vertices[v].first;
+                cout << pathGraph[u].id << " ";
+            }
+            cout << endl;
+        }
     }
 }
