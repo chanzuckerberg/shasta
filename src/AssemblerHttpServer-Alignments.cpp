@@ -543,13 +543,13 @@ void Assembler::HttpServerData::createGraphEdgesFromOverlapMap(const ReferenceOv
                     for (const auto& otherId: readSet){
                         if (otherId != id){
                             // Won't duplicate edges if boost::adjacency_list is initialized with OutEdgesList as 'setS'
-                            referenceOverlapGraph.addEdge(id, otherId, false, false, false, false);
+                            referenceOverlapGraph->addEdge(id, otherId, false, false, false, false);
 
                             // Need to make the graph double stranded
                             auto idFlipped = OrientedReadId(id.getReadId(), 1 - id.getStrand());
                             auto otherIdFlipped = OrientedReadId(otherId.getReadId(), 1 - otherId.getStrand());
 
-                            referenceOverlapGraph.addEdge(idFlipped, otherIdFlipped, false, false, false, false);
+                            referenceOverlapGraph->addEdge(idFlipped, otherIdFlipped, false, false, false, false);
                         }
                     }
                 }
@@ -578,6 +578,7 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
     }
 
     ReferenceOverlapMap overlapMap;
+    httpServerData.referenceOverlapGraph = make_shared<LocalAlignmentCandidateGraph>();
 
     string token;
     string regionName;
@@ -627,11 +628,11 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
                         }
 
                         // Create the forward and reverse sequence nodes
-                        if(!httpServerData.referenceOverlapGraph.vertexExists(forwardId)){
-                            httpServerData.referenceOverlapGraph.addVertex(forwardId, 0, 0);
+                        if(!httpServerData.referenceOverlapGraph->vertexExists(forwardId)){
+                            httpServerData.referenceOverlapGraph->addVertex(forwardId, 0, 0);
                         }
-                        if(!httpServerData.referenceOverlapGraph.vertexExists(reverseId)){
-                            httpServerData.referenceOverlapGraph.addVertex(reverseId, 0, 0);
+                        if(!httpServerData.referenceOverlapGraph->vertexExists(reverseId)){
+                            httpServerData.referenceOverlapGraph->addVertex(reverseId, 0, 0);
                         }
                     }
                     else{

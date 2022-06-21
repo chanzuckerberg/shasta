@@ -2,11 +2,11 @@
 #define SHASTA_ASSEMBLER_HPP
 
 // Shasta.
+#include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
 #include "AssemblyGraph2Statistics.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
-#include "LocalAlignmentCandidateGraph.hpp"
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
@@ -27,6 +27,7 @@ namespace shasta {
     class AssemblerInfo;
     class AssemblyGraph;
     class Alignment;
+    class AlignmentData;
     class AlignmentGraph;
     class AlignmentInfo;
     class AlignOptions;
@@ -2207,7 +2208,7 @@ public:
     static void addScaleSvgButtons(ostream&, uint64_t sizePixels);
     class HttpServerData {
     public:
-        LocalAlignmentCandidateGraph referenceOverlapGraph;
+        shared_ptr<LocalAlignmentCandidateGraph> referenceOverlapGraph;
 
         using ServerFunction = void (Assembler::*) (
             const vector<string>& request,

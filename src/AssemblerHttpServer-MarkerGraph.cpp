@@ -13,6 +13,7 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/algorithm/string.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>

@@ -3,6 +3,7 @@
 using namespace shasta;
 
 #include <boost/graph/connected_components.hpp>
+#include <boost/graph/iteration_macros.hpp>
 
 
 

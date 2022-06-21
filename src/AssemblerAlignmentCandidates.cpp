@@ -53,7 +53,7 @@ bool Assembler::createLocalReferenceGraph(
 
         // Only iterate the reference graph, but will still check which subgraph each edge belongs to
         vector<OrientedReadId> referenceNeighbors;
-        httpServerData.referenceOverlapGraph.getAdjacentReadIds(orientedReadId0, referenceNeighbors);
+        httpServerData.referenceOverlapGraph->getAdjacentReadIds(orientedReadId0, referenceNeighbors);
 
         for (auto& orientedReadId1: referenceNeighbors){
             bool inCandidates = false;
@@ -280,7 +280,7 @@ bool Assembler::createLocalAlignmentCandidateGraph(
             }
 
             // Search the referenceOverlapGraph to see if this pair exists
-            if (httpServerData.referenceOverlapGraph.edgeExists(orientedReadId0, orientedReadId1)){
+            if (httpServerData.referenceOverlapGraph->edgeExists(orientedReadId0, orientedReadId1)){
                 inReferenceAlignments = true;
             }
 
@@ -327,7 +327,7 @@ bool Assembler::createLocalAlignmentCandidateGraph(
         // adds edges. This would effectively shorten the "distance" of nodes that may or may not have been reachable
         // in the candidate graph alone for a given maxDistance.
         vector<OrientedReadId> referenceNeighbors;
-        httpServerData.referenceOverlapGraph.getAdjacentReadIds(orientedReadId0, referenceNeighbors);
+        httpServerData.referenceOverlapGraph->getAdjacentReadIds(orientedReadId0, referenceNeighbors);
 
         for (auto& orientedReadId1: referenceNeighbors){
             // Only iterate edges that aren't already in the candidates.

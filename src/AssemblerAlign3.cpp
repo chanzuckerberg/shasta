@@ -2,6 +2,7 @@
 #include "PngImage.hpp"
 
 #include "Assembler.hpp"
+#include "Alignment.hpp"
 using namespace shasta;
 
 

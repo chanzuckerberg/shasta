@@ -3,6 +3,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "Alignment.hpp"
 #include "AlignmentGraph.hpp"
 #include "Align4.hpp"
 #include "AssemblerOptions.hpp"
