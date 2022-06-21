@@ -114,7 +114,6 @@ template<class Graph> void shasta::transitiveReduction(Graph& graph)
                 if(vv1 == v1) {
                     // We reached v1. Edge e can be removed and we can stop the BFS.
                     edgesToBeRemoved.push_back(e);
-                    cout << "Will remove edge " << v0 << "->" << v1 << endl;
                     q = {};
                 } else {
                     // Continue the BFS.

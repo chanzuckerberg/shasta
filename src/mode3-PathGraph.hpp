@@ -124,9 +124,9 @@ public:
     // that this vertex describes.
     vector<uint64_t> path;
 
-    // We also store the portions of the assembly graph journeys
+    // We also store the assembly graph journey intervals
     // for the oriented reads that are believed to follow this path.
-    // Note that an oriented read can have more than one
+    // Note that an oriented read can have more than one journey interval
     // (e. g. if it goes around in a cycle).
     // The second item in the pair is the ordinal
     // of this vertex in the path graph journey of the oriented read.

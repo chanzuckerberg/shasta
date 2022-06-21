@@ -934,6 +934,7 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     for(uint64_t clusterId=0; clusterId<clusters.size(); clusterId++) {
         vector<vertex_descriptor> path;
         ofstream graphOut("Cluster-" + to_string(clusterId) + ".dot");
+        cout << "Finding paths generates by cluster " << clusterId << endl;
         findClusterPath(clusters[clusterId], path, graphOut);
     }
 }
@@ -1141,7 +1142,7 @@ void PathGraph::findClusterPath(
     vector< vector<Subgraph::vertex_descriptor> > chains;
     findLinearVertexChains(subgraph, chains);
     if(debug) {
-        cout << "Found the following linear chains:" << endl;
+        cout << "Found the following paths:" << endl;
         for(const vector<Subgraph::vertex_descriptor>& chain: chains) {
             for(const Subgraph::vertex_descriptor v: chain) {
                 const PathGraph::vertex_descriptor u = cluster.vertices[v].first;
