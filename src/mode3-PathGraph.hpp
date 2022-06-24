@@ -15,7 +15,7 @@ a path in the mode3::AssemblyGraph.
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
 
-// Standara libraries.
+// Standard libraries.
 #include <limits>
 #include "vector.hpp"
 
@@ -226,21 +226,27 @@ private:
 
 
     // Detangling of a subgraph.
+    // Returns new vertices for the next detangle iteration.
+    // The new vertices can only be used in a new PathGraph
+    // created from scratch.
+    // Only the path and journeyIntervals are filled in.
     void detangleSubgraph(
         uint64_t subgraphId,
+        vector<PathGraphVertex> newVertices,
         bool debug
     );
     template<uint64_t N> void detangleSubgraphTemplate(
         const vector<vertex_descriptor>& subgraph,
+        vector<PathGraphVertex> newVertices,
         bool debug
     );
 
 
-    // Given a PathGraphJourneySnippetCluster, find a plausible
-    // path for it in the PathGraph.
-    void findClusterPath(
+    // Given a PathGraphJourneySnippetCluster, find plausible
+    // paths for it in the PathGraph.
+    void findClusterPaths(
         const PathGraphJourneySnippetCluster&,
-        vector<vertex_descriptor>& path,
+        vector< vector<vertex_descriptor> >& path,
         ostream&) const;
 };
 

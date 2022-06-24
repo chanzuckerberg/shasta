@@ -47,7 +47,8 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     uint64_t subgraphId;
     cout << "Enter a subgraph to detangle:" << endl;
     cin >> subgraphId;
-    detangleSubgraph(subgraphId, true);
+    vector<PathGraphVertex> newVertices;
+    detangleSubgraph(subgraphId, newVertices, true);
 }
 
 
@@ -550,8 +551,13 @@ void PathGraph::writeCsvDetailed(const string& fileName) const
 
 
 // Detangling of a subgraph.
+// Returns new vertices for the next detangle iteration.
+// The new vertices can only be used in a new PathGraph
+// created from scratch.
+// Only the path and journeyIntervals are filled in.
 void PathGraph::detangleSubgraph(
     uint64_t subgraphId,
+    vector<PathGraphVertex> newVertices,
     bool debug
 )
 {
@@ -561,21 +567,21 @@ void PathGraph::detangleSubgraph(
     // size of this subgraph. This way we use the shortest possible
     // bitmap (with size multiple of 64).
     if(subgraph.size() <= 64) {
-        detangleSubgraphTemplate<64>(subgraph, debug);
+        detangleSubgraphTemplate<64>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 128) {
-        detangleSubgraphTemplate<128>(subgraph, debug);
+        detangleSubgraphTemplate<128>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 192) {
-        detangleSubgraphTemplate<192>(subgraph, debug);
+        detangleSubgraphTemplate<192>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 256) {
-        detangleSubgraphTemplate<256>(subgraph, debug);
+        detangleSubgraphTemplate<256>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 320) {
-        detangleSubgraphTemplate<320>(subgraph, debug);
+        detangleSubgraphTemplate<320>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 384) {
-        detangleSubgraphTemplate<384>(subgraph, debug);
+        detangleSubgraphTemplate<384>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 448) {
-        detangleSubgraphTemplate<448>(subgraph, debug);
+        detangleSubgraphTemplate<448>(subgraph, newVertices, debug);
     } else if(subgraph.size() <= 512) {
-        detangleSubgraphTemplate<512>(subgraph, debug);
+        detangleSubgraphTemplate<512>(subgraph, newVertices, debug);
     } else {
         SHASTA_ASSERT(0);
     }
@@ -586,6 +592,7 @@ void PathGraph::detangleSubgraph(
 // but it operates on a subgraph of the PathGraph, not of the AssemblyGraph.
 template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     const vector<vertex_descriptor>& subgraph,
+    vector<PathGraphVertex> newVertices,
     bool debug
 )
 {
@@ -929,13 +936,16 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
 
 
 
-    // Find the path for each cluster.
+    // Find the paths of each cluster.
+    // Each of these paths generates a new vertex for the next detangle iteration.
+    newVertices.clear();
     cout << "Kept " << clusters.size() << " clusters." << endl;
     for(uint64_t clusterId=0; clusterId<clusters.size(); clusterId++) {
-        vector<vertex_descriptor> path;
+        const PathGraphJourneySnippetCluster& cluster = clusters[clusterId];
+        vector< vector<vertex_descriptor> > paths;
         ofstream graphOut("Cluster-" + to_string(clusterId) + ".dot");
         cout << "Finding paths generates by cluster " << clusterId << endl;
-        findClusterPath(clusters[clusterId], path, graphOut);
+        findClusterPaths(cluster, paths, graphOut);
     }
 }
 
@@ -1057,14 +1067,14 @@ void PathGraphJourneySnippetCluster::constructVertices(const PathGraph& pathGrap
 
 // Given a PathGraphJourneySnippetCluster, find a plausible
 // path for it in the PathGraph.
-void PathGraph::findClusterPath(
+void PathGraph::findClusterPaths(
     const PathGraphJourneySnippetCluster& cluster,
-    vector<vertex_descriptor>& path,
+    vector< vector<vertex_descriptor> >& paths,
     ostream& graphOut) const
 {
     const PathGraph& pathGraph = *this;
     const bool debug = true;
-    path.clear();
+    paths.clear();
 
     // Map vertex descriptors to indexes in cluster.vertices.
     std::map<vertex_descriptor, uint64_t> vertexMap;
