@@ -946,6 +946,20 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
         ofstream graphOut("Cluster-" + to_string(clusterId) + ".dot");
         cout << "Finding paths generates by cluster " << clusterId << endl;
         findClusterPaths(cluster, paths, graphOut);
+
+        // For each path, generate a new vertex for the next detangle iteration.
+        for(const vector<vertex_descriptor>& path: paths) {
+            newVertices.emplace_back();
+            PathGraphVertex& newVertex = newVertices.back();
+
+            // Construct the assembly graph path for the new vertex.
+            for(const vertex_descriptor v: path) {
+                const PathGraphVertex& vertex = pathGraph[v];
+                copy(vertex.path.begin(), vertex.path.end(), back_inserter(newVertex.path));
+            }
+
+            // Construct the AssemblyGraphJourneyInterval for the new vertex.
+        }
     }
 }
 

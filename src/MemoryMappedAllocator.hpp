@@ -133,16 +133,16 @@ public:
 
     // Construct an Allocator<T> that will use a given
     // ByteAllocator.
-    Allocator<T>(ByteAllocator& byteAllocator) :
+    Allocator(ByteAllocator& byteAllocator) :
         byteAllocator(byteAllocator) {}
-    Allocator<T>() = delete;
+    Allocator() = delete;
 
     // The copy constructor is required.
     // It creates an Allocator<T> that uses the same ByteAllocator.
     // Note this is more general than a standard copy constructor
     // because the type of the source Allocator can be different.
     template<typename U> friend class Allocator;
-    template<class U> Allocator<T>(const Allocator<U>& that) :
+    template<class U> Allocator(const Allocator<U>& that) :
         byteAllocator(that.byteAllocator) {}
 
     // Required types.
