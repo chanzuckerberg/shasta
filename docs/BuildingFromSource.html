@@ -41,20 +41,17 @@ To port the Shasta build to a different platform.
 <p>
 We currently support building from source on the following platforms:
 <ul>
-<li>Ubuntu 20.04 or 22.04 for Intel/AMD processors.
-The Shasta static executable created by this build runs on most current
+<li>Ubuntu 22.04 for Intel/AMD processors.
+The Shasta static executable created by this build has no dependencies
+(and therefore requires no installation) and runs on most current
 64-bit Linux platforms that use kernel version 3.2.0 or newer.
-<li>Ubuntu 20.04 or 22.04 for ARM processors 
+<li>Ubuntu 22.04 for ARM processors 
 (for example, AWS Graviton/Graviton2/Graviton3 processors running Ubuntu,
 Raspberry Pi).
 </ul>
 
 <p>
-Once the transition to Ubuntu 22.04 is completed, 
-building on Ubuntu 20.04 will no longer be supported.
-
-<p>
-Shasta no longer builds on any version of macOS.
+Shasta no longer builds on Ubuntu 20.04 or on any version of macOS.
 
 
 <h3>Build commands</h3>
@@ -120,17 +117,12 @@ With this in mind, you can use the following steps to download one of these test
 <li>Make sure to be logged in to GitHub. Any user will work, but GitHub
 will not allow downloading a test build anonymously.
 <li>Go to the 
-<a href='https://github.com/chanzuckerberg/shasta/commits/master'>Commits</a>
+<a href='https://github.com/chanzuckerberg/shasta/actions'>GitHub Actions</a>
 page of the Shasta repository.
-<li>Choose a commit that has green checkmark like this
-<span style='color:green'>&#10003;</span>.
+<li>Choose a build that has green checkmark and click on it.
 The checkmark indicates that a push occurred at that commit,
 followed by a successful test build.
-<li>Click on the green checkmark, then click on one of the 
-<i>Details</i> links that appear in the pop up window.
-<li>You are now on the GitHub Actions page for that test build.
-Click on <i>Summary</i> on the left of the window,
-then scroll down to the <i>Artifacts</i> section
+<li>Scroll down to the <i>Artifacts</i> section
 and select what you want to download.
 Your browser will then download the file you selected as zipped.
 You can use the <code>unzip</code>
