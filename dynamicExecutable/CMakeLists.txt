@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(shastaDynamicExecutable)
 
 # C++ dialect.
-add_definitions(-std=c++17)
+add_definitions(-std=c++20)
 
 # Compilation warnings.
 add_definitions(-Wall -Wconversion -Wno-unused-result)
