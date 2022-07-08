@@ -52,8 +52,13 @@ add_definitions(-DSHASTA_PYTHON_API)
 # Sources files.
 file(GLOB SOURCES ../src/*.cpp)
 
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+
 # Include directory.
 include_directories(../src)
+include_directories(${BLAS_INCLUDE_DIRS})
+include_directories(${LAPACK_INCLUDE_DIRS})
 
 # Define our library.
 add_library(shastaDynamicLibrary SHARED ${SOURCES})
@@ -66,22 +71,18 @@ set_target_properties(shastaDynamicLibrary PROPERTIES DEFINE_SYMBOL "")
 
 
 # Python 3 and pybind11.
-execute_process(COMMAND /usr/bin/python3-config --embed --libs OUTPUT_VARIABLE SHASTA_PYTHON_LIBRARIES)
+execute_process(COMMAND python3-config --embed --libs OUTPUT_VARIABLE SHASTA_PYTHON_LIBRARIES)
 execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
 add_definitions(${SHASTA_PYTHON_INCLUDES})
 string(STRIP ${SHASTA_PYTHON_LIBRARIES} SHASTA_PYTHON_LIBRARIES)
 SET(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS} ${SHASTA_PYTHON_LIBRARIES}")
 
-
+find_library(PNG_LIBRARY libpng.so REQUIRED)
 
 # Libraries to link with.
 target_link_libraries(
     shastaDynamicLibrary 
-     atomic png boost_program_options pthread z spoa lapack blas ${SHASTA_PYTHON_LIBRARIES})
+     atomic ${PNG_LIBRARY} boost_program_options pthread z spoa ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${SHASTA_PYTHON_LIBRARIES})
 
 # Install the shared library into the bin directory.
 install(TARGETS shastaDynamicLibrary DESTINATION shasta-install/bin)
-
-
-
-

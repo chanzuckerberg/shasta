@@ -51,8 +51,13 @@ add_definitions(-DSHASTA_PYTHON_API)
 # Source files
 file(GLOB SOURCES ../srcMain/*.cpp)
 
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+
 # Include directory.
 include_directories(../src)
+include_directories(${BLAS_INCLUDE_DIRS})
+include_directories(${LAPACK_INCLUDE_DIRS})
 
 # Define our executable.
 add_executable(shastaDynamicExecutable ${SOURCES})
@@ -62,19 +67,22 @@ set_target_properties(shastaDynamicExecutable PROPERTIES OUTPUT_NAME "shastaDyna
 # library in the same directory.
 set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN")
 
+find_library(PNG_LIBRARY libpng.so REQUIRED)
+
 # Libraries to link with.
 if(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa cpu_features png z 
-        lapack blas gfortran quadmath pthread)
+        atomic boost_system boost_program_options boost_chrono spoa
+        cpu_features ${PNG_LIBRARY} z 
+        ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} gfortran quadmath pthread)
 else(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa png z 
-        lapack blas gfortran pthread)
+        atomic boost_system boost_program_options boost_chrono spoa ${PNG_LIBRARY} z 
+        ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} gfortran pthread)
 endif(X86_64)
 
 if(BUILD_DEBUG) 
