@@ -1166,7 +1166,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
         gfa << "\n";
     }
 
-  
+
     // Write GFA links.
     // For each vertex in the assembly graph there is a link for
     // each combination of in-edges and out-edges.
@@ -1773,7 +1773,7 @@ void Assembler::assembleAssemblyGraphEdge(
     AssembledSegment& assembledSegment)
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-    const span<const MarkerGraph::EdgeId> markerGraphPath = makeSpanOfConst(assemblyGraph.edgeLists[edgeId]);
+    const span<const MarkerGraph::EdgeId> markerGraphPath = assemblyGraph.edgeLists[edgeId];
     assembleAssemblyGraphEdge(markerGraphPath, storeCoverageData, assembledSegment);
 }
 

@@ -1,22 +1,15 @@
 #ifndef SHASTA_SPAN_HPP
 #define SHASTA_SPAN_HPP
 
-// A span class similar to std::span in C++20.
-// We currently compile using the C++14 standard, so we cannot use std::span.
-
 #include "algorithm.hpp"
-#include "cstddef.hpp"
 #include "iostream.hpp"
 #include "iterator.hpp"
+#include <span>
 #include "stdexcept.hpp"
 #include "string.hpp"
-#include "vector.hpp"
 
 namespace shasta {
-    template<class T> class span;
-
-    // Allow converting a span<T> to a span<const T>.
-    template<class T> span<const T> makeSpanOfConst(const span<T>&);
+    using std::span;
 
     // Output a span<const char> as a string.
     inline ostream& operator<<(ostream&, const span<const char>&);
@@ -26,121 +19,29 @@ namespace shasta {
     // span<const char> is not null terminated.
     uint64_t atoul(const span<const char>&);
 
-    // Convert a span<const char> to an std::string.
+    // Convert a span<const char> to a string.
     string convertToString(const span<const char>&);
-}
+    string convertToString(const span<char>&);
 
-
-
-template<class T> class shasta::span {
-public:
-
-    span(T* begin, T* end) :
-        dataBegin(begin),
-        dataEnd(end)
+    // Comparison operators, which are missing from std::span.
+    template<class T> inline bool operator==(const span<T>& x, const span<T>& y)
     {
-    }
-
-    span(vector<T>& v) :
-        dataBegin(&v[0]),
-        dataEnd(dataBegin + v.size())
-    {
-    }
-
-    span() : dataBegin(0), dataEnd(0) {}
-
-    size_t size() const
-    {
-        return dataEnd - dataBegin;
-    }
-    bool empty() const
-    {
-        return dataBegin == dataEnd;
-    }
-    T* begin() const
-    {
-        return dataBegin;
-    }
-    T* end() const
-    {
-        return dataEnd;
-    }
-    T* rbegin() const
-    {
-        return dataEnd - 1;
-    }
-    T* rend() const
-    {
-        return dataBegin - 1;
-    }
-    T& operator[](size_t i) const
-    {
-        return dataBegin[i];
-    }
-
-    T& front()
-    {
-        SHASTA_ASSERT(dataBegin);
-        SHASTA_ASSERT(dataEnd);
-        SHASTA_ASSERT(!empty());
-        return *dataBegin;
-    }
-    const T& front() const
-    {
-        SHASTA_ASSERT(dataBegin);
-        SHASTA_ASSERT(dataEnd);
-        SHASTA_ASSERT(!empty());
-        return *dataBegin;
-    }
-
-    T& back()
-    {
-        SHASTA_ASSERT(dataBegin);
-        SHASTA_ASSERT(dataEnd);
-        SHASTA_ASSERT(!empty());
-        return *(dataEnd - 1);
-    }
-
-    const T& back() const
-    {
-        SHASTA_ASSERT(dataBegin);
-        SHASTA_ASSERT(dataEnd);
-        SHASTA_ASSERT(!empty());
-        return *(dataEnd - 1);
-    }
-
-    bool operator==(const span<T>& that) const
-    {
-        if(size() == that.size()) {
-            return std::equal(begin(), end(), that.begin());
+        if(x.size() == y.size()) {
+            return std::equal(x.begin(), x.end(), y.begin());
         } else {
             return false;
         }
     }
-    bool operator!=(const span<T>& that) const
+    template<class T> inline bool operator!=(const span<T>& x, const span<T>& y)
     {
-        return not((*this) == that);
+        return not(x == y);
     }
-
-    bool operator<(const span<T>& that) const
+    template<class T> inline bool operator<(const span<T>& x, const span<T>& y)
     {
         return std::lexicographical_compare(
-            dataBegin, dataEnd,
-            that.dataBegin, that.dataEnd);
+            x.begin(), x.end(),
+            y.begin(), y.end());
     }
-
-private:
-    T* dataBegin;
-    T* dataEnd;
-};
-
-
-
-// Allow converting a span<T> to a span<const T>.
-// I was not able to get an operator conversion to work
-template<class T> shasta::span<const T> shasta::makeSpanOfConst(const shasta::span<T>& s)
-{
-    return span<const T>(s.begin(), s.end());
 }
 
 
@@ -148,18 +49,19 @@ template<class T> shasta::span<const T> shasta::makeSpanOfConst(const shasta::sp
 // Output a span<const char> as a string.
 inline std::ostream& shasta::operator<<(
     std::ostream& s,
-    const shasta::span<const char>&  m)
+    const std::span<const char>&  m)
 {
-    copy(m.begin(), m.end(), ostream_iterator<char>(s));
+    copy(m.begin(), m.end(), std::ostream_iterator<char>(s));
     return s;
 }
+
 
 
 // Convert a span<const char> to an integer.
 // This cannot be done using std::atol because the
 // span<const char> is not null terminated.
 // The string can only contain numeric characters.
-inline uint64_t shasta::atoul(const span<const char>& s)
+inline uint64_t shasta::atoul(const std::span<const char>& s)
 {
     uint64_t n = 0;
     for(uint64_t i=0; ; i++) {
@@ -181,9 +83,15 @@ inline uint64_t shasta::atoul(const span<const char>& s)
 
 
 // Convert a span<const char> to an std::string.
-inline std::string shasta::convertToString(const span<const char>& m)
+inline std::string shasta::convertToString(const std::span<const char>& m)
 {
-    return string(m.begin(), m.size());
+    auto view = std::string_view(m.data(), m.size());
+    return string(view);
+}
+inline std::string shasta::convertToString(const std::span<char>& m)
+{
+    auto view = std::string_view(m.data(), m.size());
+    return string(view);
 }
 
 

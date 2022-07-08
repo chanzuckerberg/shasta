@@ -268,12 +268,12 @@ public:
     LongBaseSequenceView operator[](uint64_t i)
     {
         SHASTA_ASSERT(i < data.size());
-        return LongBaseSequenceView(data[i].begin(), baseCount[i]);
+        return LongBaseSequenceView(data[i].data(), baseCount[i]);
     }
     LongBaseSequenceView operator[](uint64_t i) const
     {
         SHASTA_ASSERT(i < data.size());
-        return LongBaseSequenceView(data[i].begin(), baseCount[i]);
+        return LongBaseSequenceView(data[i].data(), baseCount[i]);
     }
 
     uint64_t size() const

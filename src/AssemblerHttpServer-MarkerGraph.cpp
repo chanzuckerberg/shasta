@@ -1265,7 +1265,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         markerGraph.edgeConsensus.isOpen() and
         markerGraph.edgeConsensusOverlappingBaseCount.isOpen;
     int storedConsensusOverlappingBaseCount = 0;
-    span< pair<Base, uint8_t> > storedConsensus(0, 0);
+    span< pair<Base, uint8_t> > storedConsensus;
     if(consensusIsAvailable)   {
         storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
         storedConsensus = markerGraph.edgeConsensus[edgeId];
@@ -1279,14 +1279,14 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     vector<uint32_t> spoaRepeatCounts;
     uint8_t spoaOverlappingBaseCount;
     ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail spoaDetail;
-    
+
     const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
     auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
     auto spoaAlignmentGraph = spoa::createGraph();
-    
+
     computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         edgeId,
         markerGraphEdgeLengthThresholdForConsensus,
