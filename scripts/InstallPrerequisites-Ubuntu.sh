@@ -75,8 +75,11 @@ if [ "$minimalInstall" == false ]; then
         pip3 install pybind11==2.8.1
 fi
 
-# The spoa library is not available in the stable Ubuntu repository yet.
-# Download it from GitHub, then install it.
+
+
+# The spoa library is available in the stable Ubuntu repository, but
+# without the static version.
+# So we have to build it from source.
 
 # Create a temporary directory.
 tmpDirectoryName=$(mktemp --directory --tmpdir)
@@ -84,19 +87,30 @@ echo $tmpDirectoryName
 cd $tmpDirectoryName
 
 # Get the code.
-curl -L https://github.com/rvaser/spoa/releases/download/3.4.0/spoa-v3.4.0.tar.gz \
-    -o spoa-v3.4.0.tar.gz
-tar -xvf spoa-v3.4.0.tar.gz
+curl -L https://github.com/rvaser/spoa/archive/refs/tags/4.0.8.tar.gz \
+    -o 4.0.8.tar.gz
+tar -xvf 4.0.8.tar.gz
 
+# The spoa dispatcher feature selects code at run time based on available hardware features,
+# which can improve performance.
+# However, in spoa v4.0.8 it introduces two additional dependencies:
+# - USCiLab/cereal
+# - google/cpu_features
+# To avoid these additional dependencies, we turn off the dispatcher feature for now.
+# We could turn it back on if we see significant performance degradation in this area.
 spoaBuildFlags="-Dspoa_generate_dispatch=ON"
 if [[ "$isArm" == true ]]; then
     spoaBuildFlags="-Dspoa_generate_dispatch=OFF -Dspoa_optimize_for_portability=OFF -Dspoa_optimize_for_native=OFF"
 fi
+# Per the above comment, turn off the dispatcher feature for now.
+spoaBuildFlags="-DCMAKE_BUILD_TYPE=Release"
+
+
 
 # Build the shared library.
 mkdir build
 cd build
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=ON $spoaBuildFlags
+cmake ../spoa-4.0.8 -DBUILD_SHARED_LIBS=ON $spoaBuildFlags
 make -j all
 make install
 
@@ -104,7 +118,7 @@ make install
 cd ..
 mkdir build-static
 cd build-static
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF $spoaBuildFlags
+cmake ../spoa-4.0.8 -DBUILD_SHARED_LIBS=OFF $spoaBuildFlags
 make -j all
 make install
 cd 

@@ -107,8 +107,8 @@ void Assembler::createMarkerGraphVertices(
     // can be used as an array of 128 bit integers of size data.orientedMarkerCount. This allows
     // us to compact the data in-place, there by reducing memory usage.
     data.disjointSetTable.reserveAndResize(data.orientedMarkerCount * 2);
-    
-    // Have DisjointSets use the memory allocated in and managed by data.disjointSetTable. 
+
+    // Have DisjointSets use the memory allocated in and managed by data.disjointSetTable.
     data.disjointSetsPointer = std::make_shared<DisjointSets>(
         reinterpret_cast<DisjointSets::Aint*>(data.disjointSetTable.begin()),
         data.orientedMarkerCount
@@ -144,7 +144,7 @@ void Assembler::createMarkerGraphVertices(
         string errorMsg = "DisjointSets parent information did not converge in " + to_string(pass) + " iterations.";
         throw runtime_error(errorMsg);
     }
-    
+
 
     performanceLog << timestamp << "Verifying convergence of parent information." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
@@ -181,7 +181,7 @@ void Assembler::createMarkerGraphVertices(
     // and store it in data.workArea.
     // We don't want to combine this with the previous block
     // because it would significantly increase the peak memory usage.
-    // This way, we allocate data.workArea only after compacting 
+    // This way, we allocate data.workArea only after compacting
     // data.disjointSetTable.
     performanceLog << timestamp << "Counting the number of markers in each disjoint set." << endl;
     data.workArea.createNew(
@@ -465,7 +465,7 @@ void Assembler::createMarkerGraphVertices(
 
     data.isBadDisjointSet.remove();
     data.disjointSetMarkers.remove();
-    
+
 
     // Check that the data structures we created are consistent with each other.
     // This could be expensive. Remove when we know this code works.
@@ -612,7 +612,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 void Assembler::createMarkerGraphVerticesThreadFunction2(size_t threadId)
 {
     DisjointSets& disjointSets = *createMarkerGraphVerticesData.disjointSetsPointer;
-    
+
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
@@ -2002,8 +2002,8 @@ bool Assembler::extractLocalMarkerGraph(
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
-    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
-    auto spoaAlignmentGraph = spoa::createGraph();
+    auto spoaAlignmentEngine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
+    spoa::Graph spoaAlignmentGraph;
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         LocalMarkerGraphEdge& edge = graph[e];
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
@@ -2072,7 +2072,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
 
     markerGraph.edges.unreserve();
     markerGraph.edgeMarkerIntervals.unreserve();
-    
+
     SHASTA_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
     cout << "Found " << markerGraph.edges.size();
     cout << " edges for " << markerGraph.vertexCount() << " vertices." << endl;
@@ -3180,7 +3180,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     MarkerGraph::EdgeId edgeId,
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
     const std::unique_ptr<spoa::AlignmentEngine>& spoaAlignmentEngine,
-    const std::unique_ptr<spoa::Graph>& spoaAlignmentGraph,
+    spoa::Graph& spoaAlignmentGraph,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount,
@@ -3543,7 +3543,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
     // We are now ready to compute the spoa alignment for the distinct sequences.
 
-    spoaAlignmentGraph->clear();
+    spoaAlignmentGraph.Clear();
     // Add the sequences to the alignment, in order of decreasing frequency.
     string sequenceString;
     for(const auto& p: distinctSequenceTable) {
@@ -3554,15 +3554,15 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         for(const Base base: distinctSequence) {
             sequenceString += base.character();
         }
-        auto alignment = spoaAlignmentEngine->align(sequenceString, spoaAlignmentGraph);
-        spoaAlignmentGraph->add_alignment(alignment, sequenceString);
+        auto alignment = spoaAlignmentEngine->Align(sequenceString, spoaAlignmentGraph);
+        spoaAlignmentGraph.AddAlignment(alignment, sequenceString);
     }
 
 
 
     // Use spoa to compute the multiple sequence alignment.
     vector<string>& msa = detail.msa;
-    spoaAlignmentGraph->generate_multiple_sequence_alignment(msa);
+    msa = spoaAlignmentGraph.GenerateMultipleSequenceAlignment();
 
     // The length of the alignment.
     // This includes alignment gaps.
@@ -4631,7 +4631,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     }
 
     markerGraph.vertexCoverageData.unreserve();
-    
+
     // Remove the results computed by each thread.
     for(size_t threadId=0; threadId!=threadCount; threadId++) {
         computeMarkerGraphVerticesCoverageDataData.threadVertexIds[threadId]->remove();
@@ -4909,9 +4909,9 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
-    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
-    auto spoaAlignmentGraph = spoa::createGraph();
-    
+    auto spoaAlignmentEngine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
+    spoa::Graph spoaAlignmentGraph;
+
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
@@ -4987,7 +4987,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 
         }
     }
-    
+
     edgeIds.unreserve();
     consensus.unreserve();
     overlappingBaseCountVector.unreserve();
