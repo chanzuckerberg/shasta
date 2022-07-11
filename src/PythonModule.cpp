@@ -8,6 +8,7 @@
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
 #include "compressAlignment.hpp"
+#include "ConfigurationTable.hpp"
 #include "deduplicate.hpp"
 #include "dset64Test.hpp"
 #include "diploidBayesianPhase.hpp"
@@ -711,6 +712,7 @@ PYBIND11_MODULE(shasta, shastaModule)
     shastaModule.attr("invalidGlobalMarkerGraphVertexId") = MarkerGraph::invalidVertexId;
     shastaModule.attr("invalidCompressedGlobalMarkerGraphVertexId") =
         uint64_t(MarkerGraph::invalidCompressedVertexId);
+    shastaModule.attr("configurationTable") = shasta::configurationTable;
 
 
 
