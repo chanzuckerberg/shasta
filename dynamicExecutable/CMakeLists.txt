@@ -67,7 +67,7 @@ if(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa cpu_features png z 
+        atomic boost_system boost_program_options boost_chrono spoa png z 
         lapack blas gfortran quadmath pthread)
 else(X86_64)
     target_link_libraries(
