@@ -29,8 +29,6 @@ if not (os.path.isdir('conf') and os.path.isdir('src')):
 configurations = [
     'Nanopore-Dec2019',
     'Nanopore-UL-Dec2019',
-    'Nanopore-Jun2020',
-    'Nanopore-UL-Jun2020',
     'Nanopore-Sep2020',
     'Nanopore-UL-Sep2020',
     'Nanopore-UL-iterative-Sep2020',
