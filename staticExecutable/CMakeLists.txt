@@ -47,7 +47,12 @@ file(GLOB SOURCES ../srcMain/*.cpp)
 
 # Include directory.
 include_directories(../src)
+include_directories(${BLAS_INCLUDE_DIRS})
+include_directories(${LAPACK_INCLUDE_DIRS})
 
+set(BLA_STATIC ON)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 find_package(PNG REQUIRED)
 
 # Define our executable.
@@ -65,14 +70,14 @@ if(X86_64)
         shastaStaticExecutable
         shastaStaticLibrary
         atomic boost_system boost_program_options boost_chrono spoa cpu_features ${PNG_LIBRARIES} z
-        lapack blas gfortran quadmath
+        ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} gfortran quadmath
         -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 else(X86_64)
     target_link_libraries(
         shastaStaticExecutable
         shastaStaticLibrary
         atomic boost_system boost_program_options boost_chrono spoa ${PNG_LIBRARIES} z
-        lapack blas gfortran
+        ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} gfortran
         -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(X86_64) 
   
