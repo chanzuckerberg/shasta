@@ -9,11 +9,11 @@
 #include "span.hpp"
 
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "iosfwd.hpp"
 #include <map>
 #include <set>
+#include <sstream>
 #include "string.hpp"
 #include "vector.hpp"
 
@@ -111,7 +111,8 @@ public:
         for(size_t i = 0; i < request.size() - 1; i++) {
             if(request[i] == name) {
                 try {
-                    value = boost::lexical_cast<T>(request[i + 1]);
+                    std::istringstream s(request[i + 1]);
+                    s >> value;
                 } catch (...) {
                     return false;
                 }
