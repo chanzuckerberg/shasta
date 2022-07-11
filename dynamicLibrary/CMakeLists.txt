@@ -54,6 +54,7 @@ file(GLOB SOURCES ../src/*.cpp)
 
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
+find_package(PNG REQUIRED)
 
 # Include directory.
 include_directories(../src)
@@ -77,12 +78,10 @@ add_definitions(${SHASTA_PYTHON_INCLUDES})
 string(STRIP ${SHASTA_PYTHON_LIBRARIES} SHASTA_PYTHON_LIBRARIES)
 SET(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS} ${SHASTA_PYTHON_LIBRARIES}")
 
-find_library(PNG_LIBRARY libpng.so REQUIRED)
-
 # Libraries to link with.
 target_link_libraries(
     shastaDynamicLibrary 
-     atomic ${PNG_LIBRARY} boost_program_options pthread z spoa ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${SHASTA_PYTHON_LIBRARIES})
+     atomic ${PNG_LIBRARIES} boost_program_options pthread z spoa ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${SHASTA_PYTHON_LIBRARIES})
 
 # Install the shared library into the bin directory.
 install(TARGETS shastaDynamicLibrary DESTINATION shasta-install/bin)
