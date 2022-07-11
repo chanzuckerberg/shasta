@@ -6,6 +6,7 @@
 
 // Standard library.
 #include "array.hpp"
+#include <concepts>
 #include "iostream.hpp"
 #include <limits>
 #include "stdexcept.hpp"
@@ -20,7 +21,7 @@ namespace shasta {
     // by the length of the integers used.
     // This class does not keep track of the number of bases
     // actually stored. All unused positions are left set at "A".
-    template<class Int> class ShortBaseSequence;
+    template<class Int> requires std::unsigned_integral<Int> class ShortBaseSequence;
     using ShortBaseSequence8 = ShortBaseSequence<uint8_t>;
     using ShortBaseSequence16 = ShortBaseSequence<uint16_t>;
     using ShortBaseSequence32 = ShortBaseSequence<uint32_t>;
@@ -39,14 +40,8 @@ namespace shasta {
 // Position 1: the MSB bit of the bases (with base 0 corresponding to the MSB bit).
 // This class does not keep track of the number of bases
 // actually stored. All unused positions are left set at "A".
-template<class Int> class shasta::ShortBaseSequence {
+template<class Int> requires std::unsigned_integral<Int> class shasta::ShortBaseSequence {
 public:
-
-    // Sanity check on the Int type.
-    static_assert(std::numeric_limits<Int>::is_integer,
-        "Int type for ShortBaseSequence must be an integer type.");
-    static_assert(!std::numeric_limits<Int>::is_signed,
-        "Int type for ShortBaseSequence must be an unsigned integer type.");
 
     // The number of bases that can be represented equals the number of bits
     // in the Int type.
