@@ -39,6 +39,8 @@ namespace shasta {
             boost::adjacency_list<boost::setS, boost::listS, boost::bidirectionalS, SnippetGraphVertex>;
 
     }
+
+    extern template class MultithreadedObject<mode3::PathGraph>;
 }
 
 

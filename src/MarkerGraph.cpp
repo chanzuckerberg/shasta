@@ -6,6 +6,8 @@ using namespace shasta;
 // Standard library.
 #include "fstream.hpp"
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<MarkerGraph>;
 
 
 const MarkerGraph::VertexId MarkerGraph::invalidVertexId = std::numeric_limits<VertexId>::max();

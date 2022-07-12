@@ -16,6 +16,7 @@ namespace shasta {
     class MarkerGraph;
     class CompressedCoverageData;
 
+    extern template class MultithreadedObject<MarkerGraph>;
 }
 
 

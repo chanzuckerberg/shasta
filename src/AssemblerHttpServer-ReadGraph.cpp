@@ -5,6 +5,7 @@
 #include "orderPairs.hpp"
 #include "platformDependent.hpp"
 #include "Reads.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -172,7 +173,7 @@ void Assembler::exploreUndirectedReadGraph(
         readGraphHeading =
             "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>read graph</a></h3>";
     }
-    html << readGraphHeading << 
+    html << readGraphHeading <<
          "<form>"
          "<div style='clear:both; display:table;'>"
          "<div style='float:left;margin:10px;'>"

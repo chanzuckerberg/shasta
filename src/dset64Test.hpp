@@ -4,6 +4,7 @@
 // Unit test for dset64.hpp/dset64-gccAtomic.hpp.
 #include "dset64-gccAtomic.hpp"
 #include "MultithreadedObject.hpp"
+#include "utility.hpp"
 #include <map>
 
 namespace shasta {

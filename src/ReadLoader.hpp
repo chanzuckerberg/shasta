@@ -13,6 +13,8 @@
 
 namespace shasta {
     class ReadLoader;
+
+    extern template class MultithreadedObject<ReadLoader>;
 }
 
 
@@ -34,7 +36,7 @@ public:
         Reads& reads);
 
     ~ReadLoader();
-    
+
     // The number of reads and raw bases discarded because the read
     // contained invalid bases.
     uint64_t discardedInvalidBaseReadCount = 0;

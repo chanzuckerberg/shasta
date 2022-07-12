@@ -4,6 +4,7 @@
 #include "orderPairs.hpp"
 #include "Reads.hpp"
 #include "seqan.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Standard library.

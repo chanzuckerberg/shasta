@@ -3,6 +3,7 @@
 #include "performanceLog.hpp"
 #include "Reads.hpp"
 #include "SHASTA_ASSERT.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 

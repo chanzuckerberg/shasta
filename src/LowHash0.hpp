@@ -15,6 +15,8 @@
 namespace shasta {
     class LowHash0;
     class Reads;
+
+    extern template class MultithreadedObject<LowHash0>;
 }
 
 

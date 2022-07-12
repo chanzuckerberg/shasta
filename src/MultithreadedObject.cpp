@@ -1,8 +1,14 @@
+// Shasta.
 #include "MultithreadedObject.hpp"
+#include "MultithreadedObject.tpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
-#include <chrono>
+// Linux.
+#include <pthread.h>
+
+// Standard library.
+#include "chrono.hpp"
 
 
 
@@ -46,6 +52,15 @@ public:
             SHASTA_ASSERT(z[i] == s);
         }
     }
+    void run(
+        uint64_t n,
+        uint64_t batchSize,
+        size_t threadCount
+        )
+    {
+        setupLoadBalancing(n, batchSize);
+        runThreads(&MultithreadedObjectTestClass::compute, threadCount);
+    }
 
     uint64_t n;
     vector<uint64_t> x;
@@ -53,6 +68,62 @@ public:
     vector<uint64_t> z;
 };
 
+
+
+void shasta::MultithreadedObjectBaseClass::waitForThreads()
+{
+    for(std::shared_ptr<std::thread> thread: threads) {
+        thread->join();
+    }
+    threads.clear();
+    if(exceptionsOccurred) {
+        throw runtime_error("Exceptions occurred in at least one thread.");
+    }
+    exceptionsOccurred = false;
+    // __sync_synchronize (); A full memory barrier is probably not needed here.
+}
+
+
+
+void shasta::MultithreadedObjectBaseClass::setupLoadBalancing(
+    uint64_t nArgument,
+    uint64_t batchSizeArgument)
+{
+    n = nArgument;
+    batchSize = batchSizeArgument;
+    nextBatch = 0;
+}
+
+
+
+bool shasta::MultithreadedObjectBaseClass::getNextBatch(
+    uint64_t& begin,
+    uint64_t& end)
+{
+    begin = __sync_fetch_and_add(&nextBatch, batchSize);
+    if(begin < n) {
+        end = min(n, begin + batchSize);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+
+void shasta::MultithreadedObjectBaseClass::killAllThreadsExceptMe(size_t me)
+{
+    for(size_t threadId=0; threadId<threads.size(); threadId++) {
+        if(threadId == me) {
+            continue;
+        }
+        const std::shared_ptr<std::thread> thread = threads[threadId];
+        const auto h = thread->native_handle();
+        if(h) {
+            ::pthread_cancel(h);
+        }
+    }
+}
 
 
 void shasta::testMultithreadedObject()
@@ -63,9 +134,8 @@ void shasta::testMultithreadedObject()
     const uint64_t threadCount = 8;
     MultithreadedObjectTestClass x(n);
     for(int i=0; i<10; i++) {
-        x.setupLoadBalancing(n, batchSize);
         const auto t0 = std::chrono::steady_clock::now();
-        x.runThreads(&MultithreadedObjectTestClass::compute, threadCount);
+        x.run(n, batchSize, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
         const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
         cout << t01 << endl;

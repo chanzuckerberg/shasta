@@ -1,5 +1,6 @@
 // shasta.
 #include "dset64Test.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "vector.hpp"
 using namespace shasta;
 

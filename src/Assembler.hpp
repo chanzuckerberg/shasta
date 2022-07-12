@@ -73,6 +73,8 @@ namespace shasta {
     namespace mode3 {
         class AssemblyGraph;
     }
+
+    extern template class MultithreadedObject<Assembler>;
 }
 
 namespace spoa {

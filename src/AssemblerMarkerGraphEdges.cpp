@@ -3,6 +3,7 @@
 #include "orderPairs.hpp"
 #include "performanceLog.hpp"
 #include "Reads.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Seqan

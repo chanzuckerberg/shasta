@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "performanceLog.hpp"
 #include "ReadLoader.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Standard libraries.
@@ -29,7 +30,7 @@ void Assembler::addReads(
         largeDataFileNamePrefix,
         largeDataPageSize,
         *reads);
-    
+
     reads->checkSanity();
     reads->computeReadLengthHistogram();
 
@@ -229,7 +230,7 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
     uint64_t cumulativeBaseCount = reads->getTotalBaseCount();
 
     assemblerInfo->minReadLength = 0ULL;
-        
+
     if (desiredCoverage > cumulativeBaseCount) {
         return assemblerInfo->minReadLength;
     }
@@ -252,7 +253,7 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
         }
     }
 
-    cout << "Setting minReadLength to " + to_string(assemblerInfo->minReadLength) + 
+    cout << "Setting minReadLength to " + to_string(assemblerInfo->minReadLength) +
         " to get desired coverage." << endl;
 
     // Rename existing memory mapped files to avoid overwriting data.
@@ -278,14 +279,14 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
     );
 
     reads->remove();
-    
+
     reads = std::move(newReads);
 
     // Re-compute the histogram.
     reads->computeReadLengthHistogram();
 
     cout << timestamp << "Done adjusting for desired coverage." << endl;
-    
+
     return assemblerInfo->minReadLength;
 }
 

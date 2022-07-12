@@ -40,6 +40,7 @@ namespace shasta {
         boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
         PhasingGraphVertex, PhasingGraphEdge>;
 
+    extern template class MultithreadedObject<PhasingGraph>;
 }
 
 

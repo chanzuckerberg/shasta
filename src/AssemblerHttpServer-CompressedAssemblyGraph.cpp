@@ -3,6 +3,7 @@
 #include "CompressedAssemblyGraph.hpp"
 #include "platformDependent.hpp"
 #include "runCommandWithTimeout.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Boost libraries.

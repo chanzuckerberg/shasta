@@ -10,6 +10,8 @@ using namespace shasta;
 #include <chrono>
 #include <limits>
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<MarkerFinder>;
 
 MarkerFinder::MarkerFinder(
     size_t k,

@@ -17,6 +17,8 @@ namespace shasta {
     class LowHash1;
     class CompressedMarker;
     class OrientedReadPair;
+
+    extern template class MultithreadedObject<LowHash1>;
 }
 
 

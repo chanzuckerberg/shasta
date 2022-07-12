@@ -10,6 +10,8 @@ using namespace shasta;
 #include "chrono.hpp"
 #include <numeric>
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<LowHash0>;
 
 
 // Class LowHash0 uses the LowHash0 algorithm to find candidate pairs
@@ -109,7 +111,7 @@ LowHash0::LowHash0(
     // The number of oriented reads, each with its own vector of markers.
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
     const ReadId readCount = orientedReadCount / 2;
-    
+
 
     // Set up work areas.
     buckets.createNew(

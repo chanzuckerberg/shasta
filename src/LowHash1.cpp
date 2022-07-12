@@ -9,6 +9,8 @@ using namespace shasta;
 #include "algorithm.hpp"
 #include "chrono.hpp"
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<LowHash1>;
 
 
 LowHash1::LowHash1(

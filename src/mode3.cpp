@@ -25,6 +25,8 @@ using namespace mode3;
 #include <set>
 #include <unordered_set>
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<mode3::AssemblyGraph>;
 
 
 // Each  linear chain of marker graph edges generates a segment.

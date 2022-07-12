@@ -7,6 +7,8 @@
 #include "SimpleBayesianConsensusCaller.hpp"
 using namespace shasta;
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<Assembler>;
 
 
 // Constructor to be called one to create a new run.

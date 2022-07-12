@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "MarkerConnectivityGraph.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Boost libraries.

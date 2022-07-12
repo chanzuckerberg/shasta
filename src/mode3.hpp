@@ -39,11 +39,14 @@ namespace shasta {
         class AssemblyGraphJourneyEntry;
         class MarkerGraphJourneyEntry;
         class AssemblyGraphJourneyInterval;
+
     }
 
     // Some forward declarations of classes in the shasta namespace.
     class CompressedMarker;
     class MarkerGraph;
+
+    extern template class MultithreadedObject<mode3::AssemblyGraph>;
 }
 
 

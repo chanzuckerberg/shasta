@@ -13,6 +13,8 @@ namespace shasta {
         template<class T> class Vector;
         template<class Int, class T> class VectorOfVectors;
     }
+
+    extern template class MultithreadedObject<MarkerFinder>;
 }
 
 

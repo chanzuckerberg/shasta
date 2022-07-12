@@ -34,6 +34,9 @@ using namespace shasta;
 #include <map>
 #include <numeric>
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<AssemblyGraph2>;
+
 
 // The constructor creates an edge for each linear path
 // in the marker graph. Therefore, immediately after construction,

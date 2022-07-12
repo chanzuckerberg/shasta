@@ -36,6 +36,8 @@ namespace shasta {
 
     class AssemblerInfo;
 
+    extern template class MultithreadedObject<AssemblyGraph2>;
+
     namespace MemoryMapped {
         template<class T, class Int> class VectorOfVectors;
     }

@@ -3,6 +3,7 @@
 #include "AssemblyPathGraph.hpp"
 #include "AssemblyPathGraph2.hpp"
 #include "performanceLog.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
 
 // Boost libraries.

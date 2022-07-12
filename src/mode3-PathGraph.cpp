@@ -16,6 +16,9 @@ using namespace mode3;
 #include <queue>
 #include <stack>
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<mode3::PathGraph>;
+
 
 
 // Create the PathGraph from the AssemblyGraph.
