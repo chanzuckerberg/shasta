@@ -24,11 +24,9 @@ public:
     }
     void compute(size_t threadId)
     {
-        ostream& out = getLog(threadId);
 
         uint64_t begin, end;
         while(getNextBatch(begin, end)) {
-            out << timestamp << begin << " " << end << endl;
             for(uint64_t i=begin; i!=end; i++) {
                 uint64_t s = 0;
                 for(uint64_t j=0; j<n; j++) {
@@ -67,7 +65,7 @@ void shasta::testMultithreadedObject()
     for(int i=0; i<10; i++) {
         x.setupLoadBalancing(n, batchSize);
         const auto t0 = std::chrono::steady_clock::now();
-        x.runThreads(&MultithreadedObjectTestClass::compute, threadCount, "threadLogs-");
+        x.runThreads(&MultithreadedObjectTestClass::compute, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
         const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
         cout << t01 << endl;

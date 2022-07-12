@@ -24,7 +24,8 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
-#include <filesystem>
+#include "filesystem.hpp"
+#include "fstream.hpp"
 #include "iterator.hpp"
 #include <queue>
 

@@ -11,6 +11,7 @@ using namespace mode3;
 #include <boost/graph/strong_components.hpp>
 
 // Standard library.
+#include "fstream.hpp"
 #include "iostream.hpp"
 #include <queue>
 #include <stack>

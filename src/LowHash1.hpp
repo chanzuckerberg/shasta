@@ -9,6 +9,7 @@
 #include "Reads.hpp"
 
 // Standard library.
+#include "fstream.hpp"
 #include "memory.hpp"
 
 namespace shasta {

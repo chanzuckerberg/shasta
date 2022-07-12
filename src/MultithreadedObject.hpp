@@ -10,7 +10,6 @@
 // class A : public MultithreadedObject<A> {
 // public:
 //     A() : MultithreadedObject(*this) {}
-//     void compute(size_t threadId);
 // };
 
 // Shasta.
@@ -23,7 +22,6 @@
 // Standard libraries.
 #include "algorithm.hpp"
 #include "cstddef.hpp"
-#include "fstream.hpp"
 #include "iostream.hpp"
 #include <memory>
 #include <mutex>
@@ -53,14 +51,12 @@ public:
     // Start the threads and wait for them to complete.
     void runThreads(
         ThreadFunction,
-        size_t threadCount,
-        const string& logFileNamePrefix = "");
+        size_t threadCount);
 
     // Start the threads without waiting for them to complete.
     void startThreads(
         ThreadFunction,
-        size_t threadCount,
-        const string& logFileNamePrefix = "");
+        size_t threadCount);
 
     // Wait for the running threads to complete.
     void waitForThreads();
@@ -78,16 +74,6 @@ protected:
     bool getNextBatch(
         uint64_t& begin,
         uint64_t& end);
-
-    ostream& getLog(size_t threadId)
-    {
-        SHASTA_ASSERT(threadId < threadLogs.size());
-        ofstream& s = threadLogs[threadId];
-        if(!s.is_open()) {
-            throw runtime_error("Attempt to write to unopened log output for thread " + to_string(threadId));
-        }
-        return s;
-    }
 
     // General purpose mutex, used when exclusive access is needed.
     // It is better to use atomic memory primitives for synchronization instead,
@@ -165,8 +151,6 @@ private:
         }
     }
 
-    vector<ofstream> threadLogs;
-
     bool exceptionsOccurred= false;
 
     // Load balancing.
@@ -186,10 +170,9 @@ template<class T> inline shasta::MultithreadedObject<T>::MultithreadedObject(T& 
 
 template<class T> inline void shasta::MultithreadedObject<T>::runThreads(
     ThreadFunction f,
-    size_t threadCount,
-    const string& logFileNamePrefix)
+    size_t threadCount)
 {
-    startThreads(f, threadCount, logFileNamePrefix);
+    startThreads(f, threadCount);
     waitForThreads();
 }
 
@@ -197,30 +180,17 @@ template<class T> inline void shasta::MultithreadedObject<T>::runThreads(
 
 template<class T> inline void shasta::MultithreadedObject<T>::startThreads(
     ThreadFunction f,
-    size_t threadCount,
-    const string& logFileNamePrefix)
+    size_t threadCount)
 {
     SHASTA_ASSERT(threadCount > 0);
 
     if(!threads.empty()) {
         throw runtime_error("Unsupported attempt to start new threads while other threads have not been joined.");
     }
-    SHASTA_ASSERT(threadLogs.empty());
 
     // __sync_synchronize (); A full memory barrier is probably not needed here.
     exceptionsOccurred = false;
-    threadLogs.resize(threadCount);
     for(size_t threadId=0; threadId<threadCount; threadId++) {
-        if(!logFileNamePrefix.empty()) {
-            auto& log = threadLogs[threadId];
-            const string fileName = logFileNamePrefix + "-" + to_string(threadId);
-            log.open(fileName);
-            if(!log) {
-                throw runtime_error("Error opening thread log file " + fileName);
-            }
-            log.exceptions(ofstream::failbit | ofstream::badbit );
-        }
-
         try {
             threads.push_back(std::make_shared<std::thread>(
                 std::thread(
@@ -247,7 +217,6 @@ template<class T> inline void shasta::MultithreadedObject<T>::waitForThreads()
         thread->join();
     }
     threads.clear();
-    threadLogs.clear();
     if(exceptionsOccurred) {
         throw runtime_error("Exceptions occurred in at least one thread.");
     }

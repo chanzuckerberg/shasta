@@ -1,9 +1,15 @@
+// Shasta.
 #include "Assembler.hpp"
 #include "MarkerConnectivityGraph.hpp"
 using namespace shasta;
 
+// Boost libraries.
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/iteration_macros.hpp>
+
+// Standard library.
+#include "fstream.hpp"
+
 
 
 

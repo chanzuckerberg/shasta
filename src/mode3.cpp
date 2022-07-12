@@ -18,8 +18,8 @@ using namespace mode3;
 #include <boost/graph/strong_components.hpp>
 
 // Standard library.
-
 #include <bitset>
+#include "fstream.hpp"
 #include <map>
 #include <queue>
 #include <set>

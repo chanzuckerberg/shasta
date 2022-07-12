@@ -13,7 +13,10 @@ using namespace shasta;
 
 // Standard library.
 #include <filesystem>
+#include "fstream.hpp"
 #include <map>
+
+
 
 void Assembler::exploreCompressedAssemblyGraph(
     const vector<string>& request,

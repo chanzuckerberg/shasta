@@ -1,11 +1,11 @@
 #ifndef SHASTA_ASSEMBLY_GRAPH2_STATISTICS_HPP
 #define SHASTA_ASSEMBLY_GRAPH2_STATISTICS_HPP
 
+#include "cstdint.hpp"
+
 namespace shasta {
     class AssemblyGraph2Statistics;
 }
-
-
 
 class shasta::AssemblyGraph2Statistics {
 public:

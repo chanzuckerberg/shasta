@@ -3,6 +3,8 @@
 #include "findLinearChains.hpp"
 using namespace shasta;
 
+#include "fstream.hpp"
+
 
 
 // This version analyzes alignment coverage.

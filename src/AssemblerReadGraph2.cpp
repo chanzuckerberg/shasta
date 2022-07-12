@@ -1,8 +1,12 @@
+// Shasta.
 #include "Assembler.hpp"
 #include "Histogram.hpp"
 #include "filesystem.hpp"
 #include "Reads.hpp"
 using namespace shasta;
+
+// Standard library.
+#include "fstream.hpp"
 
 
 /*******************************************************************************

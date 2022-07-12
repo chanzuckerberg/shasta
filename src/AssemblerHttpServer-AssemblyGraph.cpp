@@ -15,6 +15,7 @@ using namespace shasta;
 // Standard library.
 #include "chrono.hpp"
 #include <filesystem>
+#include "fstream.hpp"
 
 
 

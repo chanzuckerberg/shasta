@@ -17,6 +17,7 @@ using namespace shasta;
 
 // Standard library.
 #include <filesystem>
+#include "fstream.hpp"
 
 
 // A map containing descriptions of output files.
@@ -258,7 +259,7 @@ void Assembler::processRequest(
 {
     // Process a documentation request.
     const string& keyword = request.front();
-    
+
     if(keyword.size()>6 && keyword.substr(0, 6)=="/docs/") {
 
         // Extract the file name.
@@ -465,7 +466,7 @@ void Assembler::writeNavigation(ostream& html) const
             {"Meta-alignments", "exploreMode3MetaAlignment"},
             });
     }
-    
+
     if (!httpServerData.docsDirectory.empty()) {
         writeNavigation(html, "Help", {
             {"Documentation", "docs/index.html"},

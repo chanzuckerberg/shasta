@@ -1,4 +1,3 @@
-
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblyGraph.hpp"
@@ -6,6 +5,9 @@
 #include "Reads.hpp"
 #include "seqan.hpp"
 using namespace shasta;
+
+// Standard library.
+#include "fstream.hpp"
 
 
 

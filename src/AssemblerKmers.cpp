@@ -1,9 +1,12 @@
+// Shasta.
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "MurmurHash2.hpp"
 #include "Reads.hpp"
 using namespace shasta;
 
+// Standard library.
+#include "fstream.hpp"
 #include <random>
 
 

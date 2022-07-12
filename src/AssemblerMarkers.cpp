@@ -1,9 +1,11 @@
-// shasta.
+// Shasta.
 #include "Assembler.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerFinder.hpp"
 using namespace shasta;
 
+// Standard library.
+#include "fstream.hpp"
 
 
 void Assembler::findMarkers(size_t threadCount)
