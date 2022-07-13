@@ -12,8 +12,7 @@ Reads from this paper are available
 The assembly results are
 [here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=publications/SHASTA2019/assemblies/).
 
-[Here](https://github.com/human-pangenomics/assembly-analysis) is a QUAST analysis of a Shasta assembly of CHM13 
-and a comparison with other assemblers.
+ℹ️ Example assemblies, user guides, FAQ and more can be found on the [Shasta Docs](https://chanzuckerberg.github.io/shasta-docs/) site.
 
 **Requests for help:** please file GitHub issues to report problems, request help, or ask questions. **Please keep each issue on a single topic when possible.** 
 ___
@@ -66,8 +65,6 @@ ___
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
 
 **For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
+
+**For even more information see [here](https://chanzuckerberg.github.io/shasta-docs/).**
 ___
-
-
-
-
