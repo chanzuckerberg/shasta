@@ -17,6 +17,7 @@ number of transitions 0->1, we create a link 0->1.
 
 // Shasta.
 #include "hashArray.hpp"
+#include "invalid.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
 #include "ReadId.hpp"
@@ -384,8 +385,7 @@ public:
         uint64_t commonCount = 0;
 
         // The offset of segment 1 relative to segment 0, in markers.
-        int64_t offset = std::numeric_limits<int64_t>::max();
-
+        int64_t offset = invalid<int64_t>;
 
         // The number of oriented reads present in each segment
         // but missing from the other segment,
@@ -531,7 +531,7 @@ public:
         class SnippetGraphVertex {
         public:
             vector<uint64_t> snippetIndexes;
-            uint64_t clusterId = std::numeric_limits<uint64_t>::max();
+            uint64_t clusterId = invalid<uint64_t>;
             SnippetGraphVertex() {}
             SnippetGraphVertex(uint64_t snippetIndex) :
                 snippetIndexes(1, snippetIndex) {}

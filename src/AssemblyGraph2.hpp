@@ -4,6 +4,7 @@
 // Assembly graph for assembly mode 2.
 
 // Shasta.
+#include "invalid.hpp"
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
 #include "MultithreadedObject.hpp"
@@ -56,7 +57,7 @@ public:
         uint64_t firstPosition;
         uint64_t lastPosition;
         bool isPhased;
-        uint64_t componentId = std::numeric_limits<uint64_t>::max();   // Only valid if isPhased is true.
+        uint64_t componentId = invalid<uint64_t>;   // Only valid if isPhased is true.
     };
     vector<PhasingRegion> phasingRegions;
 };
@@ -192,7 +193,7 @@ public:
 
     uint64_t minimumPathLength() const
     {
-        uint64_t length = std::numeric_limits<uint64_t>::max();
+        uint64_t length = invalid<uint64_t>;
         for(const Branch& branch: branches) {
             length = min(length, uint64_t(branch.path.size()));
         }
@@ -227,13 +228,13 @@ public:
 
     // Phasing information - only set for bubbles not marker
     // as bad by the above flag.
-    static const uint64_t invalidComponentId = std::numeric_limits<uint64_t>::max();
+    static const uint64_t invalidComponentId = invalid<uint64_t>;
     uint64_t componentId = invalidComponentId;
-    static const uint64_t invalidPhase = std::numeric_limits<uint64_t>::max();
+    static const uint64_t invalidPhase = invalid<uint64_t>;
     uint64_t phase = invalidPhase;
     bool isPhased() const
     {
-        return componentId != std::numeric_limits<uint64_t>::max();
+        return componentId != invalid<uint64_t>;
     }
 
     // Bubble chain information.
@@ -559,7 +560,7 @@ private:
         // And index that gives the position of this vertex on the critical path,
         // if this vertex is a on the critical path.
         // See AssemblyGraph2::handleSuperbubble1 for details.
-        uint64_t positionInCriticalPath = std::numeric_limits<uint64_t>::max();
+        uint64_t positionInCriticalPath = invalid<uint64_t>;
     };
 
     class SuperbubbleEdge {
@@ -570,7 +571,7 @@ private:
             AssemblyGraph2::edge_descriptor ae,
             uint64_t branchId) :
             ae(ae), branchId(branchId) {}
-        uint64_t chunk = std::numeric_limits<uint64_t>::max();
+        uint64_t chunk = invalid<uint64_t>;
     };
 
     class Superbubble : public SuperbubbleBaseClass  {
