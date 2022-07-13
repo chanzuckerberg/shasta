@@ -89,6 +89,10 @@ public:
 
     // Construct the vertices given the snippets.
     void constructVertices(const PathGraph&);
+
+    // Construct a set of all pairs (orientedReadId, vertex) covered by this cluster.
+    std::set< pair<OrientedReadId, PathGraphBaseClass::vertex_descriptor> > clusterSet;
+    void createClusterSet();
 };
 
 
