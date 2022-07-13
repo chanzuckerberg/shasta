@@ -16,6 +16,8 @@ namespace shasta {
         int seed                // The random seed.
         );
     class Dset64Test;
+
+    extern template class MultithreadedObject<Dset64Test>;
 }
 
 

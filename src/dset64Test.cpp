@@ -13,6 +13,8 @@ using namespace shasta;
 #include "iterator.hpp"
 #include <random>
 
+#include "MultithreadedObject.tpp"
+template class MultithreadedObject<Dset64Test>;
 
 
 void shasta::dset64Test(
