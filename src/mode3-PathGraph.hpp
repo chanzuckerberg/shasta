@@ -238,12 +238,12 @@ private:
     // Only the path and journeyIntervals are filled in.
     void detangleSubgraph(
         uint64_t subgraphId,
-        vector<PathGraphVertex> newVertices,
+        vector<PathGraphVertex>& newVertices,
         bool debug
     );
     template<uint64_t N> void detangleSubgraphTemplate(
         const vector<vertex_descriptor>& subgraph,
-        vector<PathGraphVertex> newVertices,
+        vector<PathGraphVertex>& newVertices,
         bool debug
     );
 
@@ -253,7 +253,8 @@ private:
     void findClusterPaths(
         const PathGraphJourneySnippetCluster&,
         vector< vector<vertex_descriptor> >& path,
-        ostream&) const;
+        ostream*,
+        bool debug) const;
 };
 
 
