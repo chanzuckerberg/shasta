@@ -187,6 +187,9 @@ private:
     // (that is, paths of length 1).
     void createVertices();
 
+    // Creation of vertices after a detangle iteration.
+    void createVertices(const vector<PathGraphVertex>&);
+
     // Recreate all edges from scratch, using only the
     // information stored in the vertices.
     void createEdges(uint64_t minCoverage);
@@ -235,18 +238,21 @@ private:
     // Returns new vertices for the next detangle iteration.
     // The new vertices can only be used in a new PathGraph
     // created from scratch.
-    // Only the path and journeyIntervals are filled in.
-    void detangleSubgraph(
+     void detangleSubgraph(
         uint64_t subgraphId,
         vector<PathGraphVertex>& newVertices,
         bool debug
-    );
+    ) const;
     template<uint64_t N> void detangleSubgraphTemplate(
         const vector<vertex_descriptor>& subgraph,
         vector<PathGraphVertex>& newVertices,
         bool debug
-    );
+    ) const;
 
+    // Detangle all the subgraphs.
+    // This does not modify the PathGraph.
+    // Instead, it creates vertices to be used for next detangle iteration.
+    void detangle(vector<PathGraphVertex>& newVertices) const;
 
     // Given a PathGraphJourneySnippetCluster, find plausible
     // paths for it in the PathGraph.

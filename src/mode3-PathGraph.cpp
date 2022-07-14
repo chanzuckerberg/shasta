@@ -50,7 +50,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     writeCsvDetailed("PathGraphDetailed.csv");
 
     // Interactive local detangling, without modifying the PathGraph.
-    while(true) {
+    while(false) {
         int64_t subgraphId;
         cout << "Enter a subgraph to detangle or -1 to quit:" << endl;
         cin >> subgraphId;
@@ -62,6 +62,24 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
         cout << "Detangling subgraph " << subgraphId <<
             " generated " << newVertices.size() << " new vertices." << endl;
     }
+
+    // Detangle iteration.
+    vector<PathGraphVertex> newVertices;
+    detangle(newVertices);
+    cout << "Detangle iteration created " << newVertices.size() << " new vertices." << endl;
+    clear();
+    createVertices(newVertices);
+    createEdges(0 /* minCoverage */);
+    cout << "After one detangle iteration, the path graph has " << num_vertices(pathGraph) <<
+        " vertices and " << num_edges(pathGraph) << " edges." << endl;
+
+    computeJourneys();
+    writeJourneys("PathGraphJourneys-1.csv");
+
+    // Partition the PathGraph into subgraphs.
+    // partition(partitionMaxDistance, minSubgraphSize);
+    writeGfa("PathGraph-1");
+    writeCsvDetailed("PathGraphDetailed-1.csv");
 }
 
 
@@ -103,6 +121,20 @@ void PathGraph::createVertices() {
 }
 
 
+// Creation of vertices after a detangle iteration.
+void PathGraph::createVertices(const vector<PathGraphVertex>& newVertices)
+{
+    PathGraph& pathGraph = *this;
+
+    nextVertexId = 0;
+    for(const PathGraphVertex& newVertex: newVertices) {
+        const vertex_descriptor v = boost::add_vertex(newVertex, pathGraph);
+        PathGraphVertex& vertex = pathGraph[v];
+        vertex.id = nextVertexId++;
+    }
+}
+
+
 
 // Recreate all edges from scratch, using only the
 // information stored in the vertices.
@@ -132,14 +164,16 @@ void PathGraph::createEdges(uint64_t minCoverage)
             const vertex_descriptor v0 = orientedReadJourneyIntervals[i-1].second;
             const vertex_descriptor v1 = orientedReadJourneyIntervals[i  ].second;
 
-            edge_descriptor e;
-            bool edgeExists = false;
-            tie(e, edgeExists) = edge(v0, v1, pathGraph);
-            if(not edgeExists) {
-                tie(e, edgeExists) = add_edge(v0, v1, pathGraph);
-                SHASTA_ASSERT(edgeExists);
+            if(v0 != v1) {
+                edge_descriptor e;
+                bool edgeExists = false;
+                tie(e, edgeExists) = edge(v0, v1, pathGraph);
+                if(not edgeExists) {
+                    tie(e, edgeExists) = add_edge(v0, v1, pathGraph);
+                    SHASTA_ASSERT(edgeExists);
+                }
+                ++pathGraph[e].coverage;
             }
-            ++pathGraph[e].coverage;
         }
     }
 
@@ -572,7 +606,7 @@ void PathGraph::detangleSubgraph(
     uint64_t subgraphId,
     vector<PathGraphVertex>& newVertices,
     bool debug
-)
+) const
 {
     const vector<vertex_descriptor>& subgraph = subgraphs[subgraphId];
 
@@ -615,7 +649,7 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     const vector<vertex_descriptor>& subgraph,
     vector<PathGraphVertex>& newVertices,
     bool debug
-)
+) const
 {
     // EXPOSE WHEN CODE STABILIZES.
     const double fractionThreshold = 0.05;
@@ -1061,6 +1095,21 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
                 }
             }
         }
+    }
+}
+
+
+
+// Detangle all the subgraphs.
+// This does not modify the PathGraph.
+// Instead, it creates vertices to be used for next detangle iteration.
+void PathGraph::detangle(vector<PathGraphVertex>& allNewVertices) const
+{
+    allNewVertices.clear();
+    vector<PathGraphVertex> newVertices;
+    for(uint64_t subgraphId=0; subgraphId<subgraphs.size(); subgraphId++) {
+        detangleSubgraph(subgraphId, newVertices, false);
+        copy(newVertices.begin(), newVertices.end(), back_inserter(allNewVertices));
     }
 }
 
