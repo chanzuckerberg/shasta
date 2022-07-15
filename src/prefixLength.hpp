@@ -2,7 +2,6 @@
 #define SHASTA_PREFIX_LENGTH_HPP
 
 #include "algorithm.hpp"
-#include "vector.hpp"
 
 namespace shasta {
 
