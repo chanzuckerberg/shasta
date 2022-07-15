@@ -50,7 +50,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     writeCsvDetailed("PathGraphDetailed.csv");
 
     // Interactive local detangling, without modifying the PathGraph.
-    while(false) {
+    while(true) {
         int64_t subgraphId;
         cout << "Enter a subgraph to detangle or -1 to quit:" << endl;
         cin >> subgraphId;
@@ -58,7 +58,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
             break;
         }
         vector<PathGraphVertex> newVertices;
-        detangleSubgraph(uint64_t(subgraphId), newVertices, false);
+        detangleSubgraph(uint64_t(subgraphId), newVertices, true);
         cout << "Detangling subgraph " << subgraphId <<
             " generated " << newVertices.size() << " new vertices." << endl;
     }
@@ -69,7 +69,7 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     cout << "Detangle iteration created " << newVertices.size() << " new vertices." << endl;
     clear();
     createVertices(newVertices);
-    createEdges(0 /* minCoverage */);
+    createEdges(minCoverage);
     cout << "After one detangle iteration, the path graph has " << num_vertices(pathGraph) <<
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
 
@@ -776,6 +776,27 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
             bitVector.set(bitIndex);
         }
         bitVectorsPopCount[snippetIndex] = bitVector.count();
+    }
+
+
+
+    if(debug) {
+        ofstream csv("SnippetBitVector.csv");
+        csv << "OrientedReadId,";
+        for(uint64_t i=0; i<subgraph.size(); i++) {
+            const vertex_descriptor v = subgraph[i];
+            csv << pathGraph[v].id << ",";
+        }
+        csv << "\n";
+        for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
+            const PathGraphJourneySnippet& snippet = snippets[snippetIndex];
+            csv << snippet.orientedReadId << ",";
+            const BitVector& bitVector = bitVectors[snippetIndex];
+            for(uint64_t i=0; i<subgraph.size(); i++) {
+                csv << bitVector[i] << ",";
+            }
+            csv << "\n";
+        }
     }
 
 
