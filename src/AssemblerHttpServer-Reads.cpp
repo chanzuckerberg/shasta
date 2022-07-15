@@ -72,7 +72,7 @@ void Assembler::exploreReadRle(
         (requestReadName.empty() ? "" : " value='" + requestReadName + "'") <<
         "> on strand ";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
-    
+
     html << "<font color=grey style='font-size:smaller'>";
     html << "&nbsp&nbsp starting at&nbsp";
     html << "<input type=text name=beginPosition size=8 "
@@ -81,7 +81,7 @@ void Assembler::exploreReadRle(
         html << " value=" << beginPosition;
     }
     html << "> &nbsp ending at&nbsp";
-    
+
     html << "<input type=text name=endPosition size=8 "
         "title='End display of raw sequence at this base position (leave blank to end at end of read).'";
     if(endPositionIsPresent) {
@@ -95,7 +95,7 @@ void Assembler::exploreReadRle(
     }
     html << "> highlighted.";
     html << "</font>";
-    
+
 
 
     // Checkboxes to choose what we want to display.
@@ -259,7 +259,7 @@ void Assembler::exploreReadRle(
 
         // Link to align this read against another read.
         html <<
-            "<button style='background-color:lightsteelblue;font-size:12px;margin-top:16px' " 
+            "<button style='background-color:lightsteelblue;font-size:12px;margin-top:16px' "
             "onclick=\"window.location.href = 'exploreAlignment?readId0=" << readId << "&strand0=" << strand <<
             "';\">Compute a marker alignment of this read with another read</button>";
 
@@ -267,7 +267,7 @@ void Assembler::exploreReadRle(
 
         // Link to show overlapping reads.
         html <<
-            "<button style='background-color:lightsteelblue;font-size:12px;margin-top:4px' " 
+            "<button style='background-color:lightsteelblue;font-size:12px;margin-top:4px' "
             "onclick=\"window.location.href = 'exploreAlignments?readId=" << readId << "&strand=" << strand <<
             "';\">Find other reads that overlap this read</button>";
 
@@ -603,7 +603,7 @@ void Assembler::exploreReadRle(
             html << "</text>";
         }
 
-        
+
         // Read sequence in run length encoding.
         // This code uses one <text> element for every blockSize characters.
         // This way you can select sequence text without getting a
@@ -625,7 +625,7 @@ void Assembler::exploreReadRle(
             }
             html << "</text>";
         }
-    
+
 
 
         // Draw a rectangle for each highlighted marker.
@@ -811,7 +811,7 @@ void Assembler::exploreReadRle(
         for(uint32_t i=0; i<kmers.size(); i++) {
             markerFrequencyTable.push_back(make_pair(kmers[i], kmerFrequency[i]));
         }
-        sort(markerFrequencyTable.begin(), markerFrequencyTable.end(),
+        std::ranges::sort(markerFrequencyTable,
             OrderPairsBySecondOnlyGreater<KmerId, uint32_t>());
 
         if(beginPositionIsPresent || endPositionIsPresent) {

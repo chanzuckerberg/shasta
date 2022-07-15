@@ -654,7 +654,7 @@ void Assembler::computeReadGraphConnectedComponents() const
         const vector<OrientedReadId>& component = p.second;
         componentTable.push_back(make_pair(component.size(), p.first));
     }
-    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, uint32_t>>());
+    std::ranges::sort(componentTable, std::greater<pair<size_t, uint32_t>>());
 
 
 

@@ -1532,7 +1532,7 @@ void Assembler::writeAssemblyIndex(ostream& html) const
     // Loop over files in the assembly directory,
     // in case-insensitive alphabetic order.
     vector<string> assemblyFiles = shasta::filesystem::directoryContents(".");
-    sort(assemblyFiles.begin(), assemblyFiles.end(),
+    std::ranges::sort(assemblyFiles,
         [](const string& s1, const string& s2) {
         return lexicographical_compare(
         s1.begin(), s1.end(),
@@ -1706,7 +1706,7 @@ void Assembler::blastRead(
         }
 
         // Sort by score.
-        sort(alignments.begin(), alignments.end(),
+        std::ranges::sort(alignments,
             std::greater< pair<double, vector<string> > >());
 
         // Write it out.

@@ -1997,7 +1997,7 @@ void Assembler::computeAllAlignments(
         copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignments));
     }
     computeAllAlignmentsData.threadAlignments.clear();
-    sort(alignments.begin(), alignments.end(),
+    std::ranges::sort(alignments,
         OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
 
 #if 0

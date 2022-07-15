@@ -579,7 +579,7 @@ void Assembler::exploreUndirectedReadGraph(
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
             sortedVertices.push_back(make_pair(graph[v].orientedReadId, v));
         }
-        sort(sortedVertices.begin(), sortedVertices.end(),
+        std::ranges::sort(sortedVertices,
             OrderPairsByFirstOnly<OrientedReadId, vertex_descriptor>());
 
         // Write least square positions of the vertices.
@@ -611,7 +611,7 @@ void Assembler::exploreUndirectedReadGraph(
             const double residual = (x1 - x0) - graph[e].averageAlignmentOffset;
             sortedEdges.push_back(make_pair(abs(residual), e));
         }
-        sort(sortedEdges.begin(), sortedEdges.end(),
+        std::ranges::sort(sortedEdges,
             OrderPairsByFirstOnlyGreater<double, edge_descriptor>());
 
 
