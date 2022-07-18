@@ -313,8 +313,7 @@ public:
         vector<uint64_t>& segmentIds
         ) const;
 
-    void writeGfa(const string& fileName) const;
-    void writeGfa(ostream&) const;
+    void writeGfa(const string& baseName) const;
 
     // Find the distinct oriented reads that appear on the path
     // of a segment. Also return the average edge coverage for the path.

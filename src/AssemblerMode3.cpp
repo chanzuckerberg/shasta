@@ -25,7 +25,7 @@ void Assembler::mode3Assembly(
         markers,
         markerGraph);
     auto& assemblyGraph3 = *assemblyGraph3Pointer;
-    assemblyGraph3.writeGfa("AssemblyGraph.gfa");
+    assemblyGraph3.writeGfa("AssemblyGraph");
     assemblyGraph3.clusterSegments(threadCount, minClusterSize);
 
 }

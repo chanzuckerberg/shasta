@@ -791,18 +791,14 @@ void AssemblyGraph::getParents(
 
 
 
-void AssemblyGraph::writeGfa(const string& fileName) const
+void AssemblyGraph::writeGfa(const string& baseName) const
 {
-    ofstream gfa(fileName);
-    writeGfa(gfa);
-}
+    ofstream gfa(baseName + ".gfa");
+    ofstream csv(baseName + ".csv");
 
-
-
-void AssemblyGraph::writeGfa(ostream& gfa) const
-{
-    // Write the header.
+    // Write the headers.
     gfa << "H\tVN:Z:1.0\n";
+    csv << "Segment,Length,Average coverage,Read count\n";
 
     // Write the segments.
     for(uint64_t segmentId=0; segmentId<paths.size(); segmentId++) {
@@ -810,6 +806,11 @@ void AssemblyGraph::writeGfa(ostream& gfa) const
         gfa <<
             "S\t" << segmentId << "\t" <<
             "*\tLN:i:" << path.size() << "\n";
+
+        csv << segmentId << ",";
+        csv << path.size() << ",";
+        csv << segmentCoverage[segmentId] << ",";
+        csv << assemblyGraphJourneyInfos[segmentId].size() << "\n";
     }
 
     // Write the liks.
