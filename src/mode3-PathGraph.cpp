@@ -52,9 +52,15 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
     // Interactive local detangling, without modifying the PathGraph.
     while(true) {
         int64_t subgraphId;
-        cout << "Enter a subgraph to detangle or -1 to quit:" << endl;
+        cout << "Enter a subgraph to detangle interactively, -1 to quit, or -2 to continue with detangle:" << endl;
         cin >> subgraphId;
-        if(not cin or (subgraphId == -1)) {
+        if(not cin) {
+            return;
+        }
+        if(subgraphId == -1) {
+            return;
+        }
+        if(subgraphId == -2) {
             break;
         }
         vector<PathGraphVertex> newVertices;
@@ -622,21 +628,21 @@ void PathGraph::detangleSubgraph(
     // size of this subgraph. This way we use the shortest possible
     // bitmap (with size multiple of 64).
     if(subgraph.size() <= 64) {
-        detangleSubgraphTemplate<64>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<64>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 128) {
-        detangleSubgraphTemplate<128>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<128>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 192) {
-        detangleSubgraphTemplate<192>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<192>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 256) {
-        detangleSubgraphTemplate<256>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<256>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 320) {
-        detangleSubgraphTemplate<320>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<320>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 384) {
-        detangleSubgraphTemplate<384>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<384>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 448) {
-        detangleSubgraphTemplate<448>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<448>(subgraphId, newVertices, debug);
     } else if(subgraph.size() <= 512) {
-        detangleSubgraphTemplate<512>(subgraph, newVertices, debug);
+        detangleSubgraphTemplate<512>(subgraphId, newVertices, debug);
     } else {
         SHASTA_ASSERT(0);
     }
@@ -646,7 +652,7 @@ void PathGraph::detangleSubgraph(
 // This code is similar to mode3::AssemblyGraph::analyzeSubgraphTemplate
 // but it operates on a subgraph of the PathGraph, not of the AssemblyGraph.
 template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
-    const vector<vertex_descriptor>& subgraph,
+    uint64_t subgraphId,
     vector<PathGraphVertex>& newVertices,
     bool debug
 ) const
@@ -657,6 +663,7 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
     const uint64_t minClusterCoverage = 6;
 
     const PathGraph& pathGraph = *this;
+    const vector<vertex_descriptor>& subgraph = subgraphs[subgraphId];
 
     // The bitmap type used to store which vertices are visited
     // by each journey snippet.
@@ -945,8 +952,9 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
             ++unclusterVertexCount;
         }
     }
-    if(debug) {
-        cout << "Found " << unclusterVertexCount << " unclustered vertices." << endl;
+    if(debug or unclusterVertexCount>0) {
+        cout << "Subgraph " << subgraphId << " has " << unclusterVertexCount <<
+            " unclustered snippets out of " << snippetCount << " total." << endl;
     }
 
 

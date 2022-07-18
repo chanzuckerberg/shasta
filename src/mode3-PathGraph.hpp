@@ -244,7 +244,7 @@ private:
         bool debug
     ) const;
     template<uint64_t N> void detangleSubgraphTemplate(
-        const vector<vertex_descriptor>& subgraph,
+        uint64_t subgraphId,
         vector<PathGraphVertex>& newVertices,
         bool debug
     ) const;
