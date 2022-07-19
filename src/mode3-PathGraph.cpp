@@ -789,7 +789,7 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
 
     if(debug) {
         ofstream csv("SnippetBitVector.csv");
-        csv << "OrientedReadId,";
+        csv << "Snippet,OrientedReadId,";
         for(uint64_t i=0; i<subgraph.size(); i++) {
             const vertex_descriptor v = subgraph[i];
             csv << pathGraph[v].id << ",";
@@ -797,6 +797,7 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
         csv << "\n";
         for(uint64_t snippetIndex=0; snippetIndex<snippetCount; snippetIndex++) {
             const PathGraphJourneySnippet& snippet = snippets[snippetIndex];
+            csv << snippetIndex << ",";
             csv << snippet.orientedReadId << ",";
             const BitVector& bitVector = bitVectors[snippetIndex];
             for(uint64_t i=0; i<subgraph.size(); i++) {
@@ -842,6 +843,9 @@ template<uint64_t N> void PathGraph::detangleSubgraphTemplate(
                 add_edge(vx, vy, snippetGraph);
             }
         }
+    }
+    if(debug) {
+        snippetGraph.writeGraphviz("SnippetGraph-Initial.dot");
     }
 
 
@@ -1206,7 +1210,7 @@ void SnippetGraph::writeGraphviz(
         }
         dot << "\"";
         const uint64_t clusterId = graph[v].clusterId;
-        if(clusterId != std::numeric_limits<uint64_t>::max()) {
+        if(clusterId != invalid<uint64_t>) {
             dot << " style=filled fillcolor=\"" <<
                 float(clusterId)/float(clusterCount) <<
                 ",0.3,1\"";
