@@ -1830,6 +1830,7 @@ void AssemblyGraph::createAssemblyPath(
     // CONSTANTS TO EXPOSE WHEN CODE STABILIZES.
     const uint64_t minimumLinkCoverage = 4;
     const double minJaccardForReference = 0.8;
+    const uint64_t minCommonForReference = 6;
 
     const bool debug = true;
     if(debug) {
@@ -1839,10 +1840,12 @@ void AssemblyGraph::createAssemblyPath(
 
     // Start with a path consisting only of startSegmentId.
     path.clear();
+    std::set<uint64_t> pathSet;
     if(isBackSegment[startSegmentId]) {
         return;
     }
     path.push_back(startSegmentId);
+    pathSet.insert(startSegmentId);
 
     // The last segment that was added to the path.
     uint64_t segmentId0 = startSegmentId;
@@ -1909,6 +1912,7 @@ void AssemblyGraph::createAssemblyPath(
         // Find the child or parent that has the best Jaccard similarity with
         // the current reference segment.
         uint64_t iBest = std::numeric_limits<uint64_t>::max();
+        uint64_t commonBest = 0;
         double jaccardBest = -1.;
         for(uint64_t i=0; i<childrenOrParents.size(); i++) {
             if(isBackSegment[childrenOrParents[i]]) {
@@ -1918,6 +1922,7 @@ void AssemblyGraph::createAssemblyPath(
             if(jaccard > jaccardBest) {
                 iBest = i;
                 jaccardBest = jaccard;
+                commonBest = segmentPairInformation[i].commonCount;
             }
         }
         if(iBest == std::numeric_limits<uint64_t>::max()) { // Can happen due to back-segments.
@@ -1932,12 +1937,17 @@ void AssemblyGraph::createAssemblyPath(
         // Add the best segment to the path.
         segmentId0 = childrenOrParents[iBest];
         path.push_back(segmentId0);
+        if(pathSet.contains(segmentId0)) {
+            cout << "Circular path detected at segment " << segmentId0 << endl;
+            return;
+        }
+        pathSet.insert(segmentId0);
         if(debug) {
             cout << "Segment " << segmentId0 << " added to the path." << endl;
         }
 
         // If good enough, make it a new reference segment.
-        if(jaccardBest > minJaccardForReference) {
+        if(jaccardBest > minJaccardForReference and commonBest >= minCommonForReference) {
             referenceSegmentId = segmentId0;
             getOrientedReadsOnSegment(referenceSegmentId, referenceOrientedReads);
             if(debug) {
