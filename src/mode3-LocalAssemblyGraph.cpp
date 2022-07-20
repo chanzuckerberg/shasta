@@ -507,12 +507,13 @@ void mode3::LocalAssemblyGraph::writeSvg(
     }
 
 
-    std::set<uint64_t> pathSegments;
+    std::map<uint64_t, uint64_t> pathSegments; // map(segmentId, positionInPath).
     if(options.segmentColoring == "path") {
         vector<uint64_t> path;
         assemblyGraph.createAssemblyPath(options.pathStart, options.pathDirection, path);
-        for(const uint64_t segmentId: path) {
-            pathSegments.insert(segmentId);
+        for(uint64_t position=0; position<path.size(); position++) {
+            const uint64_t segmentId = path[position];
+            pathSegments.insert(make_pair(segmentId, position));
         }
     }
 
@@ -766,10 +767,14 @@ void mode3::LocalAssemblyGraph::writeSvg(
                     }
                 }
             } else if(options.segmentColoring == "path") {
-                if(pathSegments.find(segmentId) == pathSegments.end()) {
+                auto it = pathSegments.find(segmentId);
+                if(it == pathSegments.end()) {
                     color = "Black";
                 } else {
-                    color = "Green";
+                    const uint64_t positionInPath = it->second;
+                    const uint32_t hue = uint32_t(
+                        std::round(240. * double(positionInPath) / double(pathSegments.size())));
+                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
                 }
             } else {
                 color = "Black";
