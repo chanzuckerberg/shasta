@@ -84,7 +84,7 @@ public:
     public:
 
         double sizePixels = 600.;
-        string layoutMethod = "neato";
+        string layoutMethod;
 
 
 

@@ -1140,6 +1140,20 @@ double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 // Construct the svg options from an html request.
 LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
 {
+    // The initial layout method if set to "custom" if
+    // command "customLayout" is available, "neato" otherwise.
+    static bool firstTime = true;
+    static string layoutDefaultMethod = "neato";
+    if(firstTime) {
+        firstTime = false;
+        const string command = "which customLayout";
+        const int returnCode = system(command.c_str());
+        if(returnCode == 0) {
+            layoutDefaultMethod = "custom";
+        }
+    }
+    layoutMethod = layoutDefaultMethod;
+
     HttpServer::getParameterValue(request, "sizePixels", sizePixels);
     HttpServer::getParameterValue(request, "layoutMethod", layoutMethod);
 
