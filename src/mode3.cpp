@@ -1833,6 +1833,18 @@ void AssemblyGraph::createAssemblyPath(
     vector<uint64_t>& path // The segmentId's of the path.
     ) const
 {
+    createAssemblyPath2(startSegmentId, direction, path);
+}
+
+
+
+// Create an assembly path starting at a given segment.
+void AssemblyGraph::createAssemblyPath1(
+    uint64_t startSegmentId,
+    uint64_t direction,    // 0 = forward, 1 = backward
+    vector<uint64_t>& path // The segmentId's of the path.
+    ) const
+{
     // CONSTANTS TO EXPOSE WHEN CODE STABILIZES.
     const uint64_t minimumLinkCoverage = 4;
     const double minJaccardForReference = 0.8;
@@ -2068,3 +2080,159 @@ void AssemblyGraph::createAssemblyPath(
 #endif
     }
 }
+
+
+
+// Create an assembly path starting at a given segment.
+void AssemblyGraph::createAssemblyPath2(
+    uint64_t startSegmentId,
+    uint64_t direction,    // 0 = forward, 1 = backward
+    vector<uint64_t>& path // The segmentId's of the path.
+    ) const
+{
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t maxDistance = 500;
+    const uint64_t minCommon = 10;
+    const double minJaccard = 0.75;
+
+    const bool debug = true;
+    if(debug) {
+        cout << "Creating a " <<
+            (direction==0 ? "forward" : "backward") <<
+            " assembly path starting at segment " << startSegmentId << endl;
+    }
+
+    // Start with a path consisting only of startSegmentId.
+    path.clear();
+    path.push_back(startSegmentId);
+
+
+
+    // At each iteration, we start from segmentIdA and move
+    // in the specified direction until we find segmentIdB with
+    // sufficiently high Jaccard similarity and number of
+    // common oriented reads with segmentIdA.
+    // Then we fill in a path between segmentIdA and segmentIdB.
+    // When the iteration begins, segmentIdA is the last segment
+    // of the path.
+    uint64_t segmentIdA = startSegmentId;
+    while(true) {
+        uint64_t segmentIdB = findSimilarSegment(
+            segmentIdA, direction, maxDistance, minCommon, minJaccard);
+        if(segmentIdB == invalid<uint64_t>) {
+            break;
+        }
+
+        // For now we just add segmentIdB to the path, without
+        // filling in the portion between segmentIdA and segmentIdB.
+        path.push_back(segmentIdB);
+
+        // Prepare for the next iteration.
+        segmentIdA = segmentIdB;
+    }
+}
+
+
+
+// Given a segment, move in the specified direction until
+// we find a segment with sufficiently high Jaccard similarity
+// and number of common reads.
+// This returns invalid<uint64_t> if no such segment is found
+// within the specified distance.
+uint64_t AssemblyGraph::findSimilarSegment(
+    uint64_t segmentIdA,
+    uint64_t direction, // 0 = forward, 1 = backward
+    uint64_t maxDistance,
+    uint64_t minCommon,
+    double minJaccard) const
+{
+    const bool debug = false;
+    if(debug) {
+        cout << "findSimilarSegment starts " << segmentIdA << " " << direction << endl;
+    }
+
+    // Sanity check.
+    SHASTA_ASSERT(maxDistance > 0);
+
+    // Get the oriented reads on segmentIdA.
+    SegmentOrientedReadInformation infoA;
+    getOrientedReadsOnSegment(segmentIdA, infoA);
+
+    // Initialize a BFS.
+    std::queue<uint64_t> q;
+    q.push(segmentIdA);
+
+    // Keep track of segments we already encountered and their distance.
+    // Key = segmentId;
+    // Value = distance.
+    std::map<uint64_t, uint64_t> distanceMap;
+    distanceMap.insert(make_pair(segmentIdA, 0));
+
+
+
+    // BFS loop.
+    while(not q.empty()) {
+
+        // Dequeue a segment.
+        const uint64_t segmentId0 = q.front();
+        q.pop();
+        const uint64_t distance0 = distanceMap[segmentId0];
+        SHASTA_ASSERT(distance0 < maxDistance);
+        const uint64_t distance1 = distance0 + 1;
+        if(debug) {
+            cout << "dequeued " << segmentId0 << " " << distance0 << endl;
+        }
+
+        // Loop over outgoing or incoming links.
+        const auto linkIds = (direction == 0) ? linksBySource[segmentId0] : linksByTarget[segmentId0];
+        for(const uint64_t linkId: linkIds) {
+            const Link& link = links[linkId];
+
+            // Get the segment at the other side of this link.
+            const uint64_t segmentId1 = (direction==0) ? link.segmentId1 : link.segmentId0;
+
+            // If we already found it, skip it.
+            if(distanceMap.contains(segmentId1)) {
+                continue;
+            }
+
+            // Get the oriented reads on segmentId1.
+            SegmentOrientedReadInformation info1;
+            getOrientedReadsOnSegment(segmentId1, info1);
+
+            // See how similar this is to segmentIdA.
+            SegmentPairInformation infoA1;
+            analyzeSegmentPair(
+                segmentIdA, segmentId1,
+                infoA, info1,
+                markers, infoA1);
+
+            // If this satisfies our criteria, we are done.
+            if(infoA1.commonCount >= minCommon and
+                infoA1.jaccard() >= minJaccard) {
+                if(debug) {
+                    cout << "findSimilarSegment returns " << segmentId1 << " " << direction << endl;
+                }
+                return segmentId1;
+            }
+
+            // This segment did not satisfy our criteria, so we
+            // have to continue the BFS.
+            if(distance1 < maxDistance) {
+                q.push(segmentId1);
+                distanceMap.insert(make_pair(segmentId1, distance1));
+            }
+        }
+
+    }
+
+
+
+    // If getting here, we did not find a segment that satisfies
+    // the requested criteria.
+    if(debug) {
+        cout << "findSimilarSegment returns invalid" << endl;
+    }
+    return invalid<uint64_t>;
+}
+

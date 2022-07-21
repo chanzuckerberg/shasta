@@ -515,6 +515,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             const uint64_t segmentId = path[position];
             pathSegments.insert(make_pair(segmentId, position));
         }
+        svg << "\nFound a " << (options.pathDirection==0 ? "forward" : "backward") <<
+            " path of length " << path.size() << " starting at segment " << path.front() <<
+            " and ending at segment " << path.back() << "<br>";
     }
 
 

@@ -556,10 +556,30 @@ public:
         vector<AnalyzeSubgraphClasses::Cluster>&,
         bool debug) const;
 
-
+    // Given a segment, move in the specified direction until
+    // we find a segment with sufficiently high Jaccard similarity
+    // and number of common reads.
+    // This returns invalid<uint64_t> if no such segment is found
+    // within the specified distance.
+    uint64_t findSimilarSegment(
+        uint64_t segmentId,
+        uint64_t direction, // 0 = forward, 1 = backward
+        uint64_t maxDistance,
+        uint64_t minCommon,
+        double minJaccard) const;
 
     // Create an assembly path starting at a given segment.
     void createAssemblyPath(
+        uint64_t segmentId,
+        uint64_t direction,    // 0 = forward, 1 = backward
+        vector<uint64_t>& path // The segmentId's of the path.
+        ) const;
+    void createAssemblyPath1(
+        uint64_t segmentId,
+        uint64_t direction,    // 0 = forward, 1 = backward
+        vector<uint64_t>& path // The segmentId's of the path.
+        ) const;
+    void createAssemblyPath2(
         uint64_t segmentId,
         uint64_t direction,    // 0 = forward, 1 = backward
         vector<uint64_t>& path // The segmentId's of the path.
