@@ -2138,20 +2138,24 @@ void AssemblyGraph::createAssemblyPath2(
         targetedBfs(segmentIdA, segmentIdB, direction, segmentsA);
         targetedBfs(segmentIdB, segmentIdA, 1 - direction, segmentsB);
 
-        // Find common segments between segmentsA and segmentsB.
-        std::ranges::sort(segmentsA);
-        std::ranges::sort(segmentsB);
-        vector<uint64_t> candidates;
-        std::ranges::set_intersection(segmentsA, segmentsB, back_inserter(candidates));
+        std::set<uint64_t> segmentsBSet;
+        for(const uint64_t segmentIdB: segmentsB) {
+            segmentsBSet.insert(segmentIdB);
+        }
 
-        // Segments to be added to the path must have low unexplained fraction
+
+        // Segments to be added to the path be in both segmentsA and segmentsB
+        // and must have low unexplained fraction
         // relative to either segmentIdA or segmentIdB.
         SegmentOrientedReadInformation infoA;
         SegmentOrientedReadInformation infoB;
         getOrientedReadsOnSegment(segmentIdA, infoA);
         getOrientedReadsOnSegment(segmentIdB, infoB);
         vector<uint64_t> newPathSegments;
-        for(const uint64_t segmentId: candidates) {
+        for(const uint64_t segmentId: segmentsA) {
+            if(not segmentsBSet.contains(segmentId)) {
+                continue;
+            }
             SegmentOrientedReadInformation info;
             getOrientedReadsOnSegment(segmentId, info);
             SegmentPairInformation pairInfoA;
@@ -2172,15 +2176,31 @@ void AssemblyGraph::createAssemblyPath2(
             }
         }
 
-        // **********************************************************************************
-        // ADD HERE CODE TO ORDER THE SEGMENTS.
-        // **********************************************************************************
-
         // Add the new segments to the path.
         for(const uint64_t segmentId: newPathSegments) {
             path.push_back(segmentId);
         }
         path.push_back(segmentIdB);
+
+
+        if(debug) {
+            cout << "Path portion " << segmentIdA << " ... " << segmentIdB << endl;
+            cout << "segmentsA" << endl;
+            for(const uint64_t segmentId: segmentsA) {
+                cout << segmentId << " ";
+            }
+            cout << endl;
+            cout << "segmentsB" << endl;
+            for(const uint64_t segmentId: segmentsB) {
+                cout << segmentId << " ";
+            }
+            cout << endl;
+            cout << "newPathSegments" << endl;
+            for(const uint64_t segmentId: newPathSegments) {
+                cout << segmentId << " ";
+            }
+            cout << endl;
+        }
 
         // Prepare for the next iteration.
         segmentIdA = segmentIdB;
@@ -2321,6 +2341,7 @@ void AssemblyGraph::targetedBfs(
 
 
     // BFS loop.
+    segments.clear();
     while(not q.empty()) {
 
         // Dequeue a segment.
@@ -2347,15 +2368,9 @@ void AssemblyGraph::targetedBfs(
 
             // Queue and store this segment.
             q.push(segmentId1);
+            segments.push_back(segmentId1);
             segmentSet.insert(segmentId1);
         }
     }
 
-    // Store the segments.
-    segments.clear();
-    for(const uint64_t segmentId: segmentSet) {
-        if(segmentId != segmentIdA) {
-            segments.push_back(segmentId);
-        }
-    }
 }
