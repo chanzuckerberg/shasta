@@ -2094,6 +2094,7 @@ void AssemblyGraph::createAssemblyPath2(
     const uint64_t maxDistance = 500;
     const uint64_t minCommon = 10;
     const double minJaccard = 0.75;
+    const double maxUnexplainedFraction = 0.25;
 
     const bool debug = true;
     if(debug) {
@@ -2123,8 +2124,62 @@ void AssemblyGraph::createAssemblyPath2(
             break;
         }
 
-        // For now we just add segmentIdB to the path, without
-        // filling in the portion between segmentIdA and segmentIdB.
+
+
+        // To fill in the path between segmentIdA and segmentIdB,
+        // do two BFSs:
+        // - A forward (if direction==0) or backward (if direction==1)
+        //   BFS that starts at segmentIdA and ends at segmentIdB.
+        // - A backward (if direction==0) or forward (if direction==1)
+        //   BFS that starts at segmentIdB and ends at segmentIdA.
+        // Segments that appear in both are candidates to be added to the assembly path.
+        vector<uint64_t> segmentsA;
+        vector<uint64_t> segmentsB;
+        targetedBfs(segmentIdA, segmentIdB, direction, segmentsA);
+        targetedBfs(segmentIdB, segmentIdA, 1 - direction, segmentsB);
+
+        // Find common segments between segmentsA and segmentsB.
+        std::ranges::sort(segmentsA);
+        std::ranges::sort(segmentsB);
+        vector<uint64_t> candidates;
+        std::ranges::set_intersection(segmentsA, segmentsB, back_inserter(candidates));
+
+        // Segments to be added to the path must have low unexplained fraction
+        // relative to either segmentIdA or segmentIdB.
+        SegmentOrientedReadInformation infoA;
+        SegmentOrientedReadInformation infoB;
+        getOrientedReadsOnSegment(segmentIdA, infoA);
+        getOrientedReadsOnSegment(segmentIdB, infoB);
+        vector<uint64_t> newPathSegments;
+        for(const uint64_t segmentId: candidates) {
+            SegmentOrientedReadInformation info;
+            getOrientedReadsOnSegment(segmentId, info);
+            SegmentPairInformation pairInfoA;
+            analyzeSegmentPair(segmentIdA, segmentId, infoA, info, markers, pairInfoA);
+            SegmentPairInformation pairInfoB;
+            analyzeSegmentPair(segmentIdB, segmentId, infoB, info, markers, pairInfoB);
+            const bool keep =
+                (
+                (pairInfoA.commonCount >= minCommon) and
+                (pairInfoA.unexplainedFraction(0) <= maxUnexplainedFraction)
+                ) or
+                (
+                (pairInfoB.commonCount >= minCommon) and
+                (pairInfoB.unexplainedFraction(0) <= maxUnexplainedFraction)
+                );
+            if(keep) {
+                newPathSegments.push_back(segmentId);
+            }
+        }
+
+        // **********************************************************************************
+        // ADD HERE CODE TO ORDER THE SEGMENTS.
+        // **********************************************************************************
+
+        // Add the new segments to the path.
+        for(const uint64_t segmentId: newPathSegments) {
+            path.push_back(segmentId);
+        }
         path.push_back(segmentIdB);
 
         // Prepare for the next iteration.
@@ -2236,3 +2291,71 @@ uint64_t AssemblyGraph::findSimilarSegment(
     return invalid<uint64_t>;
 }
 
+
+
+
+// BFS with given begin/end.
+// Does a BFS which starts at segmentIdA.
+// and ends when segmentIdB is encountered.
+// The BFS if forward if direction is 0
+// and backward if direction is 1.
+// Computes a vector of all the segments encountered,
+// excluding segmentIdA and segmentIdB,
+// in the order in which they are encountered in the BFS.
+void AssemblyGraph::targetedBfs(
+    uint64_t segmentIdA,
+    uint64_t segmentIdB,
+    uint64_t direction,
+    vector<uint64_t>& segments
+    ) const
+{
+
+    // Initialize the BFS.
+    std::queue<uint64_t> q;
+    q.push(segmentIdA);
+
+    // Keep track of segments we already encountered.
+    std::set<uint64_t> segmentSet;
+    segmentSet.insert(segmentIdA);
+
+
+
+    // BFS loop.
+    while(not q.empty()) {
+
+        // Dequeue a segment.
+        const uint64_t segmentId0 = q.front();
+        q.pop();
+
+        // Loop over outgoing or incoming links.
+        const auto linkIds = (direction == 0) ? linksBySource[segmentId0] : linksByTarget[segmentId0];
+        for(const uint64_t linkId: linkIds) {
+            const Link& link = links[linkId];
+
+            // Get the segment at the other side of this link.
+            const uint64_t segmentId1 = (direction==0) ? link.segmentId1 : link.segmentId0;
+
+            // If we found segmentIdB, we are done.
+            if(segmentId1 == segmentIdB) {
+                break;
+            }
+
+            // If we already found it, skip it.
+            if(segmentSet.contains(segmentId1)) {
+                continue;
+            }
+
+            // Queue and store this segment.
+            q.push(segmentId1);
+            segmentSet.insert(segmentId1);
+        }
+    }
+
+    // Store the segments.
+    segments.clear();
+    for(const uint64_t segmentId: segmentSet) {
+        if(segmentId != segmentIdA) {
+            segments.push_back(segmentId);
+        }
+    }
+}

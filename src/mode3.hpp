@@ -313,6 +313,21 @@ public:
         vector<uint64_t>& segmentIds
         ) const;
 
+    // BFS with given begin/end.
+    // Does a BFS which starts at segmentIdA.
+    // and ends when segmentIdB is encountered.
+    // The BFS if forward if direction is 0
+    // and backward if direction is 1.
+    // Computes a vector of all the segments encountered,
+    // excluding segmentIdA and segmentIdB,
+    // in the order in which they are encountered in the BFS.
+    void targetedBfs(
+        uint64_t segmentIdA,
+        uint64_t segmentIdB,
+        uint64_t direction,
+        vector<uint64_t>& segments
+        ) const;
+
     void writeGfa(const string& baseName) const;
 
     // Find the distinct oriented reads that appear on the path
