@@ -507,17 +507,23 @@ void mode3::LocalAssemblyGraph::writeSvg(
     }
 
 
-    std::map<uint64_t, uint64_t> pathSegments; // map(segmentId, positionInPath).
+    std::map<uint64_t, vector<uint64_t> > pathSegments; // map(segmentId, positionsInPath).
+    vector<uint64_t> path;
     if(options.segmentColoring == "path") {
-        vector<uint64_t> path;
         assemblyGraph.createAssemblyPath(options.pathStart, options.pathDirection, path);
         for(uint64_t position=0; position<path.size(); position++) {
             const uint64_t segmentId = path[position];
-            pathSegments.insert(make_pair(segmentId, position));
+            pathSegments[segmentId].push_back(position);
         }
         svg << "\nFound a " << (options.pathDirection==0 ? "forward" : "backward") <<
             " path of length " << path.size() << " starting at segment " << path.front() <<
             " and ending at segment " << path.back() << "<br>";
+
+        ofstream csv("Path.csv");
+        csv << "Position,SegmentId\n";
+        for(uint64_t position=0; position<path.size(); position++) {
+            csv << position << "," << path[position] << "\n";
+        }
     }
 
 
@@ -774,10 +780,17 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 if(it == pathSegments.end()) {
                     color = "Black";
                 } else {
-                    const uint64_t positionInPath = it->second;
-                    const uint32_t hue = uint32_t(
-                        std::round(240. * double(positionInPath) / double(pathSegments.size())));
-                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                    const auto positions = it->second;
+                    SHASTA_ASSERT(not positions.empty());
+                    if(positions.size() == 1) {
+                        const uint64_t positionInPath = positions.front();
+                        const uint32_t hue = uint32_t(
+                            std::round(240. * double(positionInPath) / double(path.size())));
+                        color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                    } else {
+                        // This segment appears more than once on the path.
+                        color = "Fuchsia";
+                    }
                 }
             } else {
                 color = "Black";
