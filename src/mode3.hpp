@@ -571,17 +571,31 @@ public:
         vector<AnalyzeSubgraphClasses::Cluster>&,
         bool debug) const;
 
-    // Given a segment, move in the specified direction until
+    // Given a segment, use a BFS to move in the specified direction until
+    // we find a segment with sufficiently high Jaccard similarity
+    // and number of common reads.
+    // This returns invalid<uint64_t> if no such segment is found
+    // within the specified distance.
+    uint64_t findSimilarSegmentBfs(
+        uint64_t segmentId,
+        uint64_t direction, // 0 = forward, 1 = backward
+        uint64_t maxDistance,
+        uint64_t minCommon,
+        double minJaccard) const;
+
+    // Given a segment, move in the specified direction,
+    // in order of increasing distance in markers, until
     // we find a segment with sufficiently high Jaccard similarity
     // and number of common reads.
     // This returns invalid<uint64_t> if no such segment is found
     // within the specified distance.
     uint64_t findSimilarSegment(
         uint64_t segmentId,
-        uint64_t direction, // 0 = forward, 1 = backward
-        uint64_t maxDistance,
+        uint64_t direction,     // 0 = forward, 1 = backward
+        uint64_t maxDistance,   // In markers
         uint64_t minCommon,
-        double minJaccard) const;
+        double minJaccard,
+        vector<uint64_t>& segments) const;
 
     // Create an assembly path starting at a given segment.
     void createAssemblyPath(
