@@ -778,7 +778,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             } else if(options.segmentColoring == "path") {
                 auto it = pathSegments.find(segmentId);
                 if(it == pathSegments.end()) {
-                    color = "Black";
+                    color = "rgba(0, 0, 0, 0.5)";
                 } else {
                     const auto positions = it->second;
                     SHASTA_ASSERT(not positions.empty());
