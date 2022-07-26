@@ -2094,9 +2094,9 @@ void AssemblyGraph::createAssemblyPath2(
     const uint64_t maxDistance = 5000;  // Markers.
     const uint64_t minCommon = 10;
     const double minJaccard = 0.75;
-    // const double maxUnexplainedFraction = 0.25;
+    const double maxUnexplainedFraction = 0.25;
 
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         cout << "Creating a " <<
             (direction==0 ? "forward" : "backward") <<
@@ -2120,103 +2120,37 @@ void AssemblyGraph::createAssemblyPath2(
     vector<uint64_t> segments;
     while(true) {
         uint64_t segmentIdB = findSimilarSegment(
-            segmentIdA, direction, maxDistance, minCommon, minJaccard, segments);
-        cout << "findSimilarSegment: segmentIdA " << segmentIdA << ", segmentIdB " << segmentIdB << endl;
-        cout << "Found the following segments:";
-        for(const uint64_t segmentId: segments) {
-            cout << " " << segmentId;
-        }
-        cout << endl;
-        SHASTA_ASSERT(0);
+            segmentIdA, direction, maxDistance, minCommon, maxUnexplainedFraction, minJaccard, segments);
+        SHASTA_ASSERT(not segments.empty());
+        SHASTA_ASSERT(segments.front() == segmentIdA);
+        SHASTA_ASSERT((segmentIdB == invalid<uint64_t>) or (segments.back() == segmentIdB));
 
-#if 0
-        uint64_t segmentIdB = findSimilarSegmentBfs(
-            segmentIdA, direction, maxDistance, minCommon, minJaccard);
+        if(debug) {
+            cout << "segmentIdA " << segmentIdA << ", segmentIdB " << segmentIdB << endl;
+            cout << "Found the following segments:";
+            for(const uint64_t segmentId: segments) {
+                cout << " " << segmentId;
+            }
+            cout << endl;
+        }
+
+        // If we did not find a segment with high Jaccard similarity,
+        // the path must end here.
         if(segmentIdB == invalid<uint64_t>) {
             break;
         }
 
-
-
-        // To fill in the path between segmentIdA and segmentIdB,
-        // do two BFSs:
-        // - A forward (if direction==0) or backward (if direction==1)
-        //   BFS that starts at segmentIdA and ends at segmentIdB.
-        // - A backward (if direction==0) or forward (if direction==1)
-        //   BFS that starts at segmentIdB and ends at segmentIdA.
-        // Segments that appear in both are candidates to be added to the assembly path.
-        vector<uint64_t> segmentsA;
-        vector<uint64_t> segmentsB;
-        targetedBfs(segmentIdA, segmentIdB, direction, segmentsA);
-        targetedBfs(segmentIdB, segmentIdA, 1 - direction, segmentsB);
-
-        std::set<uint64_t> segmentsBSet;
-        for(const uint64_t segmentIdB: segmentsB) {
-            segmentsBSet.insert(segmentIdB);
-        }
-
-
-        // Segments to be added to the path be in both segmentsA and segmentsB
-        // and must have low unexplained fraction
-        // relative to either segmentIdA or segmentIdB.
-        SegmentOrientedReadInformation infoA;
-        SegmentOrientedReadInformation infoB;
-        getOrientedReadsOnSegment(segmentIdA, infoA);
-        getOrientedReadsOnSegment(segmentIdB, infoB);
-        vector<uint64_t> newPathSegments;
-        for(const uint64_t segmentId: segmentsA) {
-            if(not segmentsBSet.contains(segmentId)) {
-                continue;
-            }
-            SegmentOrientedReadInformation info;
-            getOrientedReadsOnSegment(segmentId, info);
-            SegmentPairInformation pairInfoA;
-            analyzeSegmentPair(segmentIdA, segmentId, infoA, info, markers, pairInfoA);
-            SegmentPairInformation pairInfoB;
-            analyzeSegmentPair(segmentIdB, segmentId, infoB, info, markers, pairInfoB);
-            const bool keep =
-                (
-                (pairInfoA.commonCount >= minCommon) and
-                (pairInfoA.unexplainedFraction(0) <= maxUnexplainedFraction)
-                ) or
-                (
-                (pairInfoB.commonCount >= minCommon) and
-                (pairInfoB.unexplainedFraction(0) <= maxUnexplainedFraction)
-                );
-            if(keep) {
-                newPathSegments.push_back(segmentId);
-            }
-        }
-
-        // Add the new segments to the path.
-        for(const uint64_t segmentId: newPathSegments) {
-            path.push_back(segmentId);
-        }
-        path.push_back(segmentIdB);
-
-
         if(debug) {
-            cout << "Path portion " << segmentIdA << " ... " << segmentIdB << endl;
-            cout << "segmentsA" << endl;
-            for(const uint64_t segmentId: segmentsA) {
-                cout << segmentId << " ";
-            }
-            cout << endl;
-            cout << "segmentsB" << endl;
-            for(const uint64_t segmentId: segmentsB) {
-                cout << segmentId << " ";
-            }
-            cout << endl;
-            cout << "newPathSegments" << endl;
-            for(const uint64_t segmentId: newPathSegments) {
-                cout << segmentId << " ";
-            }
-            cout << endl;
+            cout << "Milestone segment " << segmentIdB << endl;
+        }
+
+        // Add the segments to the path.
+        for(uint64_t i=1; i<segments.size(); i++) {
+            path.push_back(segments[i]);
         }
 
         // Prepare for the next iteration.
         segmentIdA = segmentIdB;
-#endif
     }
 }
 
@@ -2344,10 +2278,11 @@ uint64_t AssemblyGraph::findSimilarSegment(
     uint64_t direction,     // 0 = forward, 1 = backward
     uint64_t maxDistance,   // In markers
     uint64_t minCommon,
+    double maxUnexplainedFraction,
     double minJaccard,
     vector<uint64_t>& segments) const
 {
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         cout << "findSimilarSegment begins, segmentIdA " << segmentIdA << endl;
     }
@@ -2379,7 +2314,7 @@ uint64_t AssemblyGraph::findSimilarSegment(
         q.erase(it0);
         segments.push_back(segmentId0);
 
-        // If Jaccard similarity is low, we are done.
+        // If unexplained fraction and Jaccard similarity are low, we are done.
         if(segmentId0 != segmentIdA) {
             SegmentOrientedReadInformation info0;
             getOrientedReadsOnSegment(segmentId0, info0);
@@ -2388,7 +2323,8 @@ uint64_t AssemblyGraph::findSimilarSegment(
                 segmentIdA, segmentId0,
                 infoA, info0,
                 markers, infoA0);
-            if(infoA0.jaccard() >= minJaccard) {
+            if((infoA0.unexplainedFraction(0)<maxUnexplainedFraction) and (infoA0.jaccard() >= minJaccard)) {
+                SHASTA_ASSERT(segments.back() == segmentId0);
                 return segmentId0;
             }
         }
@@ -2436,6 +2372,9 @@ uint64_t AssemblyGraph::findSimilarSegment(
                 continue;
             }
 
+            // Offset estimates are not reliable.
+            // Don't use them to rule out segments.
+#if 0
             // If not in the expected direction, skip it.
             uint64_t offset;
             if(direction == 0) {
@@ -2457,17 +2396,22 @@ uint64_t AssemblyGraph::findSimilarSegment(
                     offset = uint64_t(-infoA1.offset);
                 }
             }
+#endif
+
+            // If we went too far, skip it.
+            if(labs(infoA1.offset) > maxDistance) {
+                if(debug) {
+                    cout << "Too far." << endl;
+                }
+                continue;
+            }
 
             // Queue it.
-            q.insert(make_pair(offset, segmentId1));
+            q.insert(make_pair(labs(infoA1.offset), segmentId1));
             if(debug) {
-                cout << "Queued " << segmentId1 << " with offset " << offset << endl;
+                cout << "Queued " << segmentId1 << endl;
             }
 
-            // If Jaccard similarity is low, we are done.
-            if(infoA1.jaccard() >= minJaccard) {
-                return segmentId1;
-            }
         }
 
     }

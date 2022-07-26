@@ -594,6 +594,7 @@ public:
         uint64_t direction,     // 0 = forward, 1 = backward
         uint64_t maxDistance,   // In markers
         uint64_t minCommon,
+        double maxUnexplainedFraction,
         double minJaccard,
         vector<uint64_t>& segments) const;
 
