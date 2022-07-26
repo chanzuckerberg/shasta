@@ -145,6 +145,11 @@ public:
 
         // Add rows to the html request form.
         void addFormRows(ostream& html);
+
+        // Return true if there were no changes in the options
+        // that affect graph layout changed, compared to another
+        // SvgOptions object.
+        bool hasSameLayoutOptions(const SvgOptions& that) const;
     };
     void writeHtml(ostream& html, const SvgOptions&) const;
     void writeSvg(

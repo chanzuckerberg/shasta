@@ -1385,6 +1385,22 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
 
 
 
+// Return true if there were no changes in the options
+// that affect graph layout changed, compared to another
+// SvgOptions object.
+bool LocalAssemblyGraph::SvgOptions::hasSameLayoutOptions(const SvgOptions& that) const
+{
+    return
+        (layoutMethod == that.layoutMethod) and
+        (minimumSegmentLength == that.minimumSegmentLength) and
+        (additionalSegmentLengthPerMarker == that.additionalSegmentLengthPerMarker) and
+        (minimumLinkLength == that.minimumLinkLength) and
+        (additionalLinkLengthPerMarker == that.additionalLinkLengthPerMarker)
+        ;
+}
+
+
+
 // Write the local assembly graph in gfa format.
 void LocalAssemblyGraph::writeGfa(const string& fileName) const
 {

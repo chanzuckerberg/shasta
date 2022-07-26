@@ -85,17 +85,39 @@ void Assembler::exploreMode3AssemblyGraph(
 
     html << "<h1>Local assembly graph near segment " << startSegmentId << "</h1></p>";
 
-    // Create the local assembly graph.
-    mode3::LocalAssemblyGraph localAssemblyGraph(
-        markerGraph,
-        *assemblyGraph3Pointer,
-        startSegmentId, maxDistance);
-    localAssemblyGraph.computeLayout(options, timeout);
-    localAssemblyGraph.computeSegmentTangents();
+
+
+    // Create the local assembly graph, or reuse the last one, if possible.
+    static shared_ptr<mode3::LocalAssemblyGraph> lastLocalAssemblyGraphPointer;
+    static shared_ptr<mode3::LocalAssemblyGraph::SvgOptions> lastOptions;
+    static uint64_t lastStartSegmentId = invalid<uint64_t>;
+    static uint64_t lastMaxDistance = invalid<uint64_t>;
+    const bool canReuse =
+        lastLocalAssemblyGraphPointer and
+        (startSegmentId == lastStartSegmentId) and
+        (maxDistance == lastMaxDistance) and
+        options.hasSameLayoutOptions(*lastOptions);
+    if(canReuse) {
+        cout << "Reusing the previous mode3::LocalAssemblyGraph." << endl;
+    } else {
+        lastLocalAssemblyGraphPointer = make_shared<mode3::LocalAssemblyGraph>(
+            markerGraph,
+            *assemblyGraph3Pointer,
+            startSegmentId, maxDistance);
+        lastOptions = make_shared<mode3::LocalAssemblyGraph::SvgOptions>(options);
+        lastStartSegmentId = startSegmentId;
+        lastMaxDistance = maxDistance;
+        lastLocalAssemblyGraphPointer->computeLayout(options, timeout);
+        lastLocalAssemblyGraphPointer->computeSegmentTangents();
+    }
+    mode3::LocalAssemblyGraph& localAssemblyGraph = *lastLocalAssemblyGraphPointer;
+
     html << "<p>The local assembly graph has " <<
         num_vertices(localAssemblyGraph) << " segments and " <<
         num_edges(localAssemblyGraph) << " links."
         "<p>";
+
+
 
     // Display the local assembly graph.
     localAssemblyGraph.writeHtml(html, options);
