@@ -2092,9 +2092,11 @@ void AssemblyGraph::createAssemblyPath2(
 {
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t maxDistance = 5000;  // Markers.
+    const uint64_t minLinkCoverage = 6;
     const uint64_t minCommon = 10;
     const double minJaccard = 0.7;
     const double maxUnexplainedFraction = 0.25;
+
 
     const bool debug = true;
     if(debug) {
@@ -2124,7 +2126,8 @@ void AssemblyGraph::createAssemblyPath2(
     vector<uint64_t> segments;
     while(true) {
         uint64_t segmentIdB = findSimilarSegment(
-            segmentIdA, direction, maxDistance, minCommon, maxUnexplainedFraction, minJaccard, segments);
+            segmentIdA, direction,
+            maxDistance, minLinkCoverage, minCommon, maxUnexplainedFraction, minJaccard, segments);
         SHASTA_ASSERT(not segments.empty());
         SHASTA_ASSERT(segments.front() == segmentIdA);
         SHASTA_ASSERT((segmentIdB == invalid<uint64_t>) or (segments.back() == segmentIdB));
@@ -2292,6 +2295,7 @@ uint64_t AssemblyGraph::findSimilarSegment(
     uint64_t segmentIdA,
     uint64_t direction,     // 0 = forward, 1 = backward
     uint64_t maxDistance,   // In markers
+    uint64_t minLinkCoverage,
     uint64_t minCommon,
     double maxUnexplainedFraction,
     double minJaccard,
@@ -2351,9 +2355,13 @@ uint64_t AssemblyGraph::findSimilarSegment(
         // Loop over outgoing or incoming links.
         const auto linkIds = (direction == 0) ? linksBySource[segmentId0] : linksByTarget[segmentId0];
         for(const uint64_t linkId: linkIds) {
-            const Link& link = links[linkId];
+            // If link coverage is too low, skip.
+            if(transitions.size(linkId) < minLinkCoverage) {
+                continue;
+            }
 
             // Get the segment at the other side of this link.
+            const Link& link = links[linkId];
             const uint64_t segmentId1 = (direction==0) ? link.segmentId1 : link.segmentId0;
             if(debug) {
                 cout << "Found " << segmentId1 << endl;
