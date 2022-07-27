@@ -193,6 +193,12 @@ void mode3::LocalAssemblyGraph::writeHtml(ostream& html, const SvgOptions& optio
             segmentId = inputField.value;
             inputField.value = "";
 
+            zoomToGivenSegment(segmentId);
+        }
+
+        function zoomToGivenSegment(segmentId)
+        {
+
             // Find the bounding box and its center.
             var element = document.getElementById("Segment-" + segmentId);
             var box = element.getBBox();
@@ -216,6 +222,21 @@ void mode3::LocalAssemblyGraph::writeHtml(ostream& html, const SvgOptions& optio
         <p>Zoom to segment
         <input id=zoomInputField type=text onchange="zoomToSegment()" size=10>
         )stringDelimiter";
+
+
+
+    // Initial zoom to segment of interest.
+    if(options.segmentColoring == "path") {
+        html << "\n<script>zoomToGivenSegment(" << options.pathStart << ");</script>\n";
+    }
+    if(
+        options.segmentColoring == "byCommonReads" or
+        options.segmentColoring == "byJaccard" or
+        options.segmentColoring == "byUnexplainedFractionOnReferenceSegment" or
+        options.segmentColoring == "byUnexplainedFractionOnDisplayedSegment"
+        ) {
+        html << "\n<script>zoomToGivenSegment(" << options.referenceSegmentId << ");</script>\n";
+    }
 
 
 
