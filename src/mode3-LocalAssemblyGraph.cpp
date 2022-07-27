@@ -345,11 +345,10 @@ function onMouseExitSegment()
         function segmentThickness(factor)
         {
             const group = document.getElementById('LocalAssemblyGraph-segments');
-            for (let i=0; i<group.children.length; i++) {
-                path = group.children[i];
-                if(path.tagName == 'path') {
-                    path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
-                }
+            descendants = group.querySelectorAll("path");
+            for (let i=0; i<descendants.length; i++) {
+                path = descendants[i];
+                path.setAttribute('stroke-width', factor * path.getAttribute('stroke-width'));
             }
         }
         </script>
@@ -823,6 +822,21 @@ void mode3::LocalAssemblyGraph::writeSvg(
         const auto& segmentPairInfo = segmentPairInformationTable[v];
         const auto oldPrecision = svg.precision(1);
         const auto oldFlags = svg.setf(std::ios_base::fixed, std::ios_base::floatfield);
+
+        if(options.segmentColoring == "path") {
+            svg << "<g>";
+            auto it = pathSegments.find(segmentId);
+            if(it != pathSegments.end()) {
+                const auto positions = it->second;
+                SHASTA_ASSERT(not positions.empty());
+                svg << "<title>";
+                for(const uint64_t position: positions) {
+                    svg << position << " ";
+                }
+                svg << "</title>";
+            }
+        }
+
         /*
         svg <<
             "<g>"
@@ -883,6 +897,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             "\n";
         svg.precision(oldPrecision);
         svg.flags(oldFlags);
+        if(options.segmentColoring == "path") {
+            svg << "</g>";
+        }
     }
     svg << "</g>\n";
 
