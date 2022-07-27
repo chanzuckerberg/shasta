@@ -2093,10 +2093,10 @@ void AssemblyGraph::createAssemblyPath2(
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t maxDistance = 5000;  // Markers.
     const uint64_t minCommon = 10;
-    const double minJaccard = 0.75;
+    const double minJaccard = 0.7;
     const double maxUnexplainedFraction = 0.25;
 
-    const bool debug = false;
+    const bool debug = true;
     if(debug) {
         cout << "Creating a " <<
             (direction==0 ? "forward" : "backward") <<
@@ -2106,6 +2106,10 @@ void AssemblyGraph::createAssemblyPath2(
     // Start with a path consisting only of startSegmentId.
     path.clear();
     path.push_back(startSegmentId);
+
+    // Keep track of the milestones reached, to avoid cycles.
+    std::set<uint64_t> milestones;
+    milestones.insert(startSegmentId);
 
 
 
@@ -2140,6 +2144,16 @@ void AssemblyGraph::createAssemblyPath2(
             break;
         }
 
+
+        // If this is not the first time we reach this milestone, stop here
+        // to avoid cycles.
+        if(milestones.contains(segmentIdB)) {
+            if(debug) {
+                cout << "Previously reached milestone " << segmentIdB << endl;
+            }
+            break;
+        }
+
         if(debug) {
             cout << "Milestone segment " << segmentIdB << endl;
         }
@@ -2150,6 +2164,7 @@ void AssemblyGraph::createAssemblyPath2(
         }
 
         // Prepare for the next iteration.
+        milestones.insert(segmentIdA);
         segmentIdA = segmentIdB;
     }
 }
