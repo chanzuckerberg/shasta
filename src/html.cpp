@@ -103,39 +103,49 @@ var yNew = 0;
 var ratio = width / svg.getBoundingClientRect().width;
 
 function onPointerDown(event) {
-    pointerIsDown = true;   
+    event.stopPropagation();
+    event.preventDefault();
+    pointerIsDown = true;
     xOrigin = event.clientX;
     yOrigin = event.clientY;
+
+    return false;
 }
 
 function onPointerMove (event) {
+    event.stopPropagation();
+    event.preventDefault();
     if (!pointerIsDown) {
         return;
     }
-    event.preventDefault();
-    
+
     xNew = x - (event.clientX - xOrigin) * ratio;
     yNew = y - (event.clientY - yOrigin) * ratio;
-    
+
     svg.setAttribute('viewBox', `${xNew} ${yNew} ${width} ${height}`);
-    
+
+    return false;
 }
 
-function onPointerUp() {
+function onPointerUp(event) {
+    event.stopPropagation();
+    event.preventDefault();
     pointerIsDown = false;
     x = xNew;
     y = yNew;
+
+    return false;
 }
 
-function onMouseWheel() {
+function onMouseWheel(event) {
+    event.stopPropagation();
     event.preventDefault();  
     var value = event.wheelDelta / 120.;
     var factor = Math.pow(1.1, value);
     ratio /= factor;
-    
+
     var viewBoxString = `${x} ${y} ${width} ${height}`;
-    
-    
+
     // Adjust the viewbox so the center does not move.
     var xCenter = x + 0.5 * width;
     var yCenter = y + 0.5 * height;  
@@ -143,8 +153,10 @@ function onMouseWheel() {
     height /= factor;
     x = xCenter - 0.5 * width;
     y = yCenter - 0.5 * height;
-    
+
     svg.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+
+    return false;
 }
 
 </script>
