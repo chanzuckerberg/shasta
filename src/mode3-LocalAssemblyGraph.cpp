@@ -530,12 +530,26 @@ void mode3::LocalAssemblyGraph::writeSvg(
     std::map<uint64_t, vector<uint64_t> > pathSegments; // map(segmentId, positionsInPath).
     vector<uint64_t> path;
     if(options.segmentColoring == "path") {
-        assemblyGraph.createAssemblyPath(options.pathStart, options.pathDirection, path);
+        if(options.pathDirection=="forward" or options.pathDirection=="backward") {
+            // Forward or backward.
+            assemblyGraph.createAssemblyPath(options.pathStart,
+                (options.pathDirection == "forward") ? 0 : 1, path);
+        } else {
+            // Bidirectional.
+            vector<uint64_t> forwardPath;
+            vector<uint64_t> backwardPath;
+            assemblyGraph.createAssemblyPath(options.pathStart, 0, forwardPath);
+            assemblyGraph.createAssemblyPath(options.pathStart, 1, backwardPath);
+            // Stitch them together, making sure not to repeat the starting segment.
+            path.clear();
+            copy(backwardPath.rbegin(), backwardPath.rend(), back_inserter(path));
+            copy(forwardPath.begin() + 1, forwardPath.end(), back_inserter(path));
+        }
         for(uint64_t position=0; position<path.size(); position++) {
             const uint64_t segmentId = path[position];
             pathSegments[segmentId].push_back(position);
         }
-        svg << "\nFound a " << (options.pathDirection==0 ? "forward" : "backward") <<
+        svg << "\nFound a " << options.pathDirection <<
             " path of length " << path.size() << " starting at segment " << path.front() <<
             " and ending at segment " << path.back() << "<br>";
 
@@ -1381,9 +1395,13 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
              ">Color an assembly path"
              "<br>"
              "Start the path at segment &nbsp;<input type=text name=pathStart size=8 style='text-align:center'"
-                     " value='" << pathStart << "'><br>"
-             "Direction (0=forward, 1=backward) &nbsp;<input type=text name=pathDirection size=8 style='text-align:center'"
-                     " value='" << pathDirection << "'><br>";
+                     " value='" << pathStart << "'>"
+             "<br><input type=radio name=pathDirection value=forward" <<
+             (pathDirection=="forward" ? " checked=checked" : "") << "> Forward"
+             "<br><input type=radio name=pathDirection value=backward" <<
+             (pathDirection=="backward" ? " checked=checked" : "") << "> Backward"
+             "<br><input type=radio name=pathDirection value=bidirectional" <<
+             (pathDirection=="bidirectional" ? " checked=checked" : "") << "> Both directions";
 
 
         html << "</table>"
