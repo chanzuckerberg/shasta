@@ -1230,7 +1230,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
     const uint64_t minCommonReadCount = 10;
     const double maxUnexplainedFraction = 0.2;
     const double minJaccard = 0.8;
-    const uint64_t pairCountPerSegment = 3;
+    const uint64_t pairCountPerSegment = 1;
     const uint64_t maxDistance = 200;
 
     // std::lock_guard<std::mutex> lock(mutex);    // *********** TAKE OUT
