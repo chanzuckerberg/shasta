@@ -1330,7 +1330,7 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         // Segment coloring by Jaccard similarity with the reference segment.
         "<input type=radio name=segmentColoring value=byJaccard"
         << (segmentColoring=="byJaccard" ? " checked=checked" : "") <<
-        ">By Jaccard similarity with reference segment, withotu counting short reads"
+        ">By Jaccard similarity with reference segment, without counting short reads"
         "<br>"
 
         // Segment coloring by number of common reads with the reference segment.
