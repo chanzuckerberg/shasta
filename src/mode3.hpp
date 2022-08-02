@@ -248,10 +248,21 @@ public:
         uint64_t segmentId0;
         uint64_t segmentId1;
 
+        // Flag to indicate whether the two segments are adjacent.
+        // This is set if the last marker graph vertex of segmentId0
+        // is the same as the first marker graph vertex of segmentId1.
+        // In that case the separation will be set to 0.
+        // However, the separation is just an estimate, so it
+        // could be 0 even when the segments are ot adjacent.
+        bool segmentsAreAdjacent;
+
+        // Estimated separation in markers.
+        int32_t separation;
+
+
         Link(
             uint64_t segmentId0 = 0,
-            uint64_t segmentId1 = 0,
-            uint64_t coverage = 0) :
+            uint64_t segmentId1 = 0) :
             segmentId0(segmentId0),
             segmentId1(segmentId1) {}
     };

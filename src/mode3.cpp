@@ -569,8 +569,34 @@ void AssemblyGraph::createLinks(
         if(coverage >= minCoverage) {
             const uint64_t segmentId0 = p.first.first;
             const uint64_t segmentId1 = p.first.second;
-            links.push_back(Link(segmentId0, segmentId1, coverage));
+            links.push_back(Link(segmentId0, segmentId1));
             transitions.appendVector(transitionVector);
+        }
+    }
+
+    // Store link separation.
+    for(uint64_t linkId=0; linkId<links.size(); linkId++) {
+        Link& link = links[linkId];
+
+        // Check if these two segments are adjacent in the marker graph.
+        const uint64_t segmentId0 = link.segmentId0;
+        const uint64_t segmentId1 = link.segmentId1;
+        const auto path0 = paths[segmentId0];
+        const auto path1 = paths[segmentId1];
+        const MarkerGraph::Edge lastEdge0 = markerGraph.edges[path0.back()];
+        const MarkerGraph::Edge firstEdge1 = markerGraph.edges[path1.front()];
+        if(lastEdge0.target == firstEdge1.source) {
+            // The segments are adjacent. Set the link separation to 0.
+            link.segmentsAreAdjacent = true;
+            link.separation = 0;
+        } else {
+            // The segments are not adjacent.
+            // Use the transitions to estimate the separation.
+            const auto linkTransitions = transitions[linkId];
+            const double separation = linkSeparation(linkTransitions, path0.size());
+
+            link.segmentsAreAdjacent = false;
+            link.separation = int32_t(std::round(separation));
         }
     }
 }
@@ -1228,8 +1254,8 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
 {
     // EXPOSE THESE CONSTANTS WHEN CODE STABILIZES.
     const uint64_t minCommonReadCount = 10;
-    const double maxUnexplainedFraction = 0.2;
-    const double minJaccard = 0.8;
+    const double maxUnexplainedFraction = 0.25;
+    const double minJaccard = 0.7;
     const uint64_t pairCountPerSegment = 1;
     const uint64_t maxDistance = 200;
 
@@ -2089,9 +2115,9 @@ void AssemblyGraph::createAssemblyPath2(
     ) const
 {
     // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t maxDistance = 5000;  // Markers.
+    const uint64_t maxDistance = 20000;  // Markers.
     const uint64_t minLinkCoverage = 6;
-    const uint64_t minCommon = 10;
+    const uint64_t minCommon = 6;
     const double minJaccard = 0.7;
     const double maxUnexplainedFraction = 0.25;
 
