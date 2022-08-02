@@ -175,7 +175,7 @@ public:
 
     // Return the average link separation for the Link
     // described by an edge.
-    double linkSeparation(edge_descriptor) const;
+    int32_t linkSeparation(edge_descriptor) const;
 
     // Write the local assembly graph in gfa format.
     void writeGfa(const string& fileName) const;

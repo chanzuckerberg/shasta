@@ -647,6 +647,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
     svg << "<g id='" << svgId << "-links'>\n";
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
         const uint64_t linkId = localAssemblyGraph[e].linkId;
+        const AssemblyGraph::Link& link = assemblyGraph.links[linkId];
 
         // Access the LocalAssemblyGraph vertices corresponding to
         // the two segments of this Link and extract some information
@@ -657,7 +658,6 @@ void mode3::LocalAssemblyGraph::writeSvg(
         const LocalAssemblyGraphVertex& vertex2 = localAssemblyGraph[v2];
         const uint64_t segmentId1 = vertex1.segmentId;
         const uint64_t segmentId2 = vertex2.segmentId;
-        const bool areConsecutivePaths = haveConsecutivePaths(v1, v2);
 
         // Get the positions of the ends of this link.
         SHASTA_ASSERT(vertex1.position.size() >= 2);
@@ -682,7 +682,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             options.additionalLinkThicknessPerRead * double(assemblyGraph.linkCoverage(linkId) - 1);
 
         const string dash =
-            areConsecutivePaths ? "" :
+            link.segmentsAreAdjacent ? "" :
             " stroke-dasharray='0 " + to_string(1.5 * linkThickness) + "'";
 
 
@@ -694,6 +694,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " from segment " << segmentId1 <<
             " to segment " << segmentId2 <<
             ", coverage " << assemblyGraph.linkCoverage(linkId) <<
+            ", separation " << link.separation <<
             "</title>"
             "<path d="
             "'M " << p1.x() << " " << p1.y() <<
@@ -985,13 +986,16 @@ void mode3::LocalAssemblyGraph::computeLayout(
     BGL_FORALL_EDGES(e, localAssemblyGraph, LocalAssemblyGraph) {
         const vertex_descriptor v1 = source(e, localAssemblyGraph);
         const vertex_descriptor v2 = target(e, localAssemblyGraph);
+        const LocalAssemblyGraphEdge& edge = localAssemblyGraph[e];
+        const uint64_t linkId = edge.linkId;
+        const AssemblyGraph::Link& link = assemblyGraph.links[linkId];
 
         double edgeLength;
-        if(haveConsecutivePaths(v1, v2)) {
+        if(link.segmentsAreAdjacent) {
             edgeLength = options.minimumLinkLength;
         } else {
-            const double linkSeparation = max(this->linkSeparation(e), 0.);
-            edgeLength = 3. * options.minimumLinkLength + linkSeparation * options.additionalLinkLengthPerMarker;
+            const int32_t linkSeparation = max(link.separation, 0);
+            edgeLength = 3. * options.minimumLinkLength + double(linkSeparation) * options.additionalLinkLengthPerMarker;
         }
         G::edge_descriptor eAuxiliary;
         tie(eAuxiliary, ignore) = add_edge(
@@ -1191,21 +1195,11 @@ bool LocalAssemblyGraph::haveConsecutivePaths(
 
 // Return the average link separation for the Link
 // described by an edge.
-double LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
+int32_t LocalAssemblyGraph::linkSeparation(edge_descriptor e) const
 {
     const LocalAssemblyGraph& localAssemblyGraph = *this;
-
-    // Get the path length of the first segment.
-    const vertex_descriptor v0 = source(e, localAssemblyGraph);
-    const LocalAssemblyGraphVertex& vertex0 = localAssemblyGraph[v0];
-    const uint64_t segmentId0 = vertex0.segmentId;
-    const auto path0 = assemblyGraph.paths[segmentId0];
-    const uint64_t pathLength0 = path0.size();
-
-    // Now we can compute the link separation.
     const uint64_t linkId = localAssemblyGraph[e].linkId;
-    return mode3::AssemblyGraph::linkSeparation(assemblyGraph.transitions[linkId], pathLength0);
-
+    return assemblyGraph.links[linkId].separation;
 }
 
 

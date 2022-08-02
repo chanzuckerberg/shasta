@@ -304,10 +304,6 @@ void Assembler::exploreMode3AssemblyGraphLink(
     const auto path1 = assemblyGraph3.paths[segmentId1];
     const uint64_t pathLength0 = path0.size();
     const uint64_t pathLength1 = path1.size();
-    const MarkerGraph::VertexId vertexId0 = markerGraph.edges[path0.back()].target;
-    const MarkerGraph::VertexId vertexId1 = markerGraph.edges[path1.front()].source;
-
-    const double linkSeparation = mode3::AssemblyGraph::linkSeparation(transitions, pathLength0);
 
     html <<
         "<h1>Assembly graph link " << linkId << "</h1>"
@@ -315,12 +311,12 @@ void Assembler::exploreMode3AssemblyGraphLink(
         "<tr><th>Segment<th>Id<th>Path<br>length"
         "<tr><th class = left>Source segment<td class=centered>" << segmentId0 << "<td class=centered>" << pathLength0 <<
         "<tr><th class = left>Target segment<td class=centered>" << segmentId1 << "<td class=centered>" << pathLength1 <<
-        "</table>";
+         "</table>";
 
-    if(vertexId0 == vertexId1) {
-        html << "<p>The paths of these segments are consecutive.";
+    if(link.segmentsAreAdjacent) {
+        html << "<p>The paths of these segments are adjacent.";
     } else {
-        html << "<p>The paths of these segments are not consecutive.";
+        html << "<p>The paths of these segments are not adjacent.";
     }
 
 
@@ -331,7 +327,7 @@ void Assembler::exploreMode3AssemblyGraphLink(
         "<tr><th class = left tooltip='Number of supporting transitions'>Coverage<td class=centered>" <<
         transitions.size() <<
         "<tr><th class = left>Average link separation<td class=centered>" <<
-        linkSeparation <<
+        link.separation <<
         "</table>";
     html.precision(oldPrecision);
     html.flags(oldFlags);
