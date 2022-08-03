@@ -2355,18 +2355,25 @@ uint64_t AssemblyGraph::findSimilarSegment(
         const auto it0 = q.begin();
         const uint64_t segmentId0 = it0->second;
         q.erase(it0);
-        segments.push_back(segmentId0);
+
+        // Analyze against segmentIdA.
+        SegmentOrientedReadInformation info0;
+        getOrientedReadsOnSegment(segmentId0, info0);
+        SegmentPairInformation infoA0;
+        analyzeSegmentPair(
+            segmentIdA, segmentId0,
+            infoA, info0,
+            markers, infoA0);
+
+        // Add it to our list of segments, if possible.
+        const double unexplainedFraction = infoA0.unexplainedFraction(0);
+        if(unexplainedFraction < maxUnexplainedFraction) {
+            segments.push_back(segmentId0);
+        }
 
         // If unexplained fraction and Jaccard similarity are low, we are done.
         if(segmentId0 != segmentIdA) {
-            SegmentOrientedReadInformation info0;
-            getOrientedReadsOnSegment(segmentId0, info0);
-            SegmentPairInformation infoA0;
-            analyzeSegmentPair(
-                segmentIdA, segmentId0,
-                infoA, info0,
-                markers, infoA0);
-            if((infoA0.unexplainedFraction(0)<maxUnexplainedFraction) and (infoA0.jaccard() >= minJaccard)) {
+            if((unexplainedFraction < maxUnexplainedFraction) and (infoA0.jaccard() >= minJaccard)) {
                 SHASTA_ASSERT(segments.back() == segmentId0);
                 return segmentId0;
             }
