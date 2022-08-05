@@ -2136,6 +2136,7 @@ void AssemblyGraph::createAssemblyPath2(
     const uint64_t minCommon = 6;
     const double minJaccard = 0.7;
     const double maxUnexplainedFraction = 0.25;
+    const int32_t minLinkSeparation = -20;
 
 
     const bool debug = true;
@@ -2167,7 +2168,7 @@ void AssemblyGraph::createAssemblyPath2(
     while(true) {
         uint64_t segmentIdB = findSimilarSegment(
             segmentIdA, direction,
-            maxDistance, minLinkCoverage, minCommon, maxUnexplainedFraction, minJaccard, segments);
+            maxDistance, minLinkCoverage, minLinkSeparation, minCommon, maxUnexplainedFraction, minJaccard, segments);
         SHASTA_ASSERT(not segments.empty());
         SHASTA_ASSERT(segments.front() == segmentIdA);
         SHASTA_ASSERT((segmentIdB == invalid<uint64_t>) or (segments.back() == segmentIdB));
@@ -2336,6 +2337,7 @@ uint64_t AssemblyGraph::findSimilarSegment(
     uint64_t direction,     // 0 = forward, 1 = backward
     uint64_t maxDistance,   // In markers
     uint64_t minLinkCoverage,
+    int32_t minLinkSeparation,
     uint64_t minCommon,
     double maxUnexplainedFraction,
     double minJaccard,
@@ -2407,8 +2409,14 @@ uint64_t AssemblyGraph::findSimilarSegment(
                 continue;
             }
 
-            // Get the segment at the other side of this link.
+            // If link separation is too negative, skip it.
+            // The goal here is to avoid cycles in paths.
             const Link& link = links[linkId];
+            if(link.separation < minLinkSeparation) {
+                continue;
+            }
+
+            // Get the segment at the other side of this link.
             const uint64_t segmentId1 = (direction==0) ? link.segmentId1 : link.segmentId0;
             if(debug) {
                 cout << "Found " << segmentId1 << endl;
