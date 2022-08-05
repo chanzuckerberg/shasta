@@ -599,6 +599,22 @@ void AssemblyGraph::createLinks(
             link.separation = int32_t(std::round(separation));
         }
     }
+
+
+
+    ofstream csv("Links.csv");
+    csv << "LinkId,SegmentId0,SegmentId1,Coverage,Adjacent,Separation\n";
+    for(uint64_t linkId=0; linkId<links.size(); linkId++) {
+        Link& link = links[linkId];
+
+        csv << linkId << ",";
+        csv << link.segmentId0 << ",";
+        csv << link.segmentId1 << ",";
+        csv << transitions[linkId].size() << ",";
+        csv << (link.segmentsAreAdjacent ? "Yes" : "No") << ",";
+        csv << link.separation << "\n";
+    }
+
 }
 
 
