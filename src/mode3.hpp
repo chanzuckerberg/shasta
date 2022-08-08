@@ -219,6 +219,7 @@ public:
     // Store appearances of segments in assembly graph journeys.
     // For each segment, store pairs (orientedReadId, position in assembly graph journey).
     // Indexed by the segmentId.
+    // For each segment, they are sorted.
     MemoryMapped::VectorOfVectors<pair<OrientedReadId, uint64_t>, uint64_t>
         assemblyGraphJourneyInfos;
     void computeAssemblyGraphJourneyInfos();
@@ -230,6 +231,7 @@ public:
     // In other words, it describes the transition of an oriented read
     // from a segment to the next segment it encounters.
     // Transitions are used to create edges in the AssemblyGraph (gfa links).
+    // Indexed by the linkId. For each link, they are sorted.
     class Transition : public array<MarkerGraphJourneyEntry, 2> {
     public:
         Transition(const array<MarkerGraphJourneyEntry, 2>& x) : array<MarkerGraphJourneyEntry, 2>(x) {}
@@ -458,6 +460,15 @@ public:
         SegmentPairInformation&
         ) const;
 
+    // Count the number of common oriented reads between a segment and a link,
+    // without counting oriented reads that appear more than once on the
+    // segment or on the link.
+    void analyzeSegmentLinkPair(
+        uint64_t segmentId,
+        uint64_t linkId,
+        uint64_t& commonOrientedReadCount
+    ) const;
+
 
 
     // Find segment pairs a sufficient number of common reads
@@ -623,6 +634,11 @@ public:
         vector<uint64_t>& path // The segmentId's of the path.
         ) const;
     void createAssemblyPath2(
+        uint64_t segmentId,
+        uint64_t direction,    // 0 = forward, 1 = backward
+        vector<uint64_t>& path // The segmentId's of the path.
+        ) const;
+    void createAssemblyPath3(
         uint64_t segmentId,
         uint64_t direction,    // 0 = forward, 1 = backward
         vector<uint64_t>& path // The segmentId's of the path.

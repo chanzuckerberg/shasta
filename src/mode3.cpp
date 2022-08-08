@@ -1873,7 +1873,7 @@ void AssemblyGraph::createAssemblyPath(
     vector<uint64_t>& path // The segmentId's of the path.
     ) const
 {
-    createAssemblyPath2(startSegmentId, direction, path);
+    createAssemblyPath3(startSegmentId, direction, path);
 }
 
 
@@ -2211,6 +2211,201 @@ void AssemblyGraph::createAssemblyPath2(
         milestones.insert(segmentIdA);
         segmentIdA = segmentIdB;
     }
+}
+
+
+
+void AssemblyGraph::createAssemblyPath3(
+    uint64_t startSegmentId,
+    uint64_t direction,    // 0 = forward, 1 = backward
+    vector<uint64_t>& path // The segmentId's of the path.
+    ) const
+{
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t minCommonForLink = 6;
+    const uint64_t minCommonForReference = 6;
+    const double minJaccard = 0.7;
+
+    const bool debug = true;
+    if(debug) {
+        cout << "createAssemblyPath3 begins at segment " << startSegmentId <<
+            ", direction " << direction << endl;
+    }
+
+
+
+    // At each iteration, we start from segmentIdA (the current "reference segment")
+    // and move in the specified direction until we find segmentIdB with
+    // sufficiently high Jaccard similarity and number of
+    // common oriented reads with segmentIdA.
+    // At each step, we choose the links that has the most common oriented
+    // reads with the current reference segment.
+    uint64_t referenceSegmentId = startSegmentId;
+    SegmentOrientedReadInformation infoReference;
+    getOrientedReadsOnSegment(referenceSegmentId, infoReference);
+    uint64_t segmentId0 = startSegmentId;
+    path.clear();
+    path.push_back(startSegmentId);
+    while(true) {
+
+        if(debug) {
+            cout << "Reference segment " << referenceSegmentId <<
+                ", segmentId0 " << segmentId0 << endl;
+        }
+
+        // Loop over outgoing or incoming links of the current segment.
+        // Find the link with the most common reads with the reference segment.
+        const auto linkIds = (direction == 0) ? linksBySource[segmentId0] : linksByTarget[segmentId0];
+        if(linkIds.empty()) {
+            if(debug) {
+                cout << "No links in this direction." << endl;
+            }
+            break;
+        }
+        uint64_t linkIdBest = invalid<uint64_t>;
+        uint64_t commonOrientedReadCountBest = 0;
+        for(const uint64_t linkId: linkIds) {
+
+            // Count the number of common oriented reads between the reference segment and this link.
+            uint64_t commonOrientedReadCount;
+            analyzeSegmentLinkPair(referenceSegmentId, linkId, commonOrientedReadCount);
+
+            // If better than the one we have it, record it.
+            if(commonOrientedReadCount > commonOrientedReadCountBest) {
+                linkIdBest = linkId;
+                commonOrientedReadCountBest = commonOrientedReadCount;
+            }
+        }
+        if(commonOrientedReadCountBest < minCommonForLink) {
+            if(debug) {
+                cout << "No good links found." << endl;
+            }
+            break;
+        }
+        const uint64_t linkId = linkIdBest;
+        if(debug) {
+            cout << "Best link " << linkId <<
+                ", " << commonOrientedReadCountBest <<
+                " common oriented reads with the reference segment." << endl;
+        }
+
+        // Get the segment at the other side of this link.
+        const Link& link = links[linkId];
+        const uint64_t segmentId1 = (direction==0) ? link.segmentId1 : link.segmentId0;
+        if(debug) {
+            cout << "segmentId1 " << segmentId1 << endl;
+        }
+        path.push_back(segmentId1);
+
+        // Check segmentId1 against the reference segment.
+        SegmentOrientedReadInformation info1;
+        getOrientedReadsOnSegment(segmentId1, info1);
+        SegmentPairInformation info;
+        analyzeSegmentPair(
+            referenceSegmentId, segmentId1,
+            infoReference, info1,
+            markers, info);
+        if(debug) {
+            cout << "Jaccard " << info.jaccard() << endl;
+        }
+
+        // If the Jaccard similarity is low, this becomes the new reference segment.
+        if(info.commonCount >= minCommonForReference and info.jaccard() >= minJaccard) {
+            referenceSegmentId = segmentId1;
+            getOrientedReadsOnSegment(referenceSegmentId, infoReference);
+            if(debug) {
+                cout << "New reference segment is " << segmentId1 << endl;
+            }
+        }
+
+        segmentId0 = segmentId1;
+    }
+
+
+
+    if(debug) {
+        cout << "createAssemblyPath3 ends." << endl;
+    }
+}
+
+
+
+// Count the number of common oriented reads between a segment and a link,
+// without counting oriented reads that appear more than once on the
+// segment or on the link.
+void AssemblyGraph::analyzeSegmentLinkPair(
+    uint64_t segmentId,
+    uint64_t linkId,
+    uint64_t& commonOrientedReadCount
+) const
+{
+    // The oriented reads in this segment,
+    // with some extra information that we don't care about here.
+    const auto segmentOrientedReads = assemblyGraphJourneyInfos[segmentId];
+
+    // The oriented reads in this link,
+    // with some extra information that we don't care about here.
+    const auto linkOrientedReads = transitions[linkId];
+
+    // Joint loop over oriented reads.
+    commonOrientedReadCount = 0;
+    const auto segmentBegin = segmentOrientedReads.begin();
+    const auto segmentEnd = segmentOrientedReads.end();
+    const auto linkBegin = linkOrientedReads.begin();
+    const auto linkEnd = linkOrientedReads.end();
+    auto itSegment = segmentBegin;
+    auto itLink = linkBegin;
+    while(itSegment != segmentEnd and itLink != linkEnd) {
+
+        if(itSegment->first < itLink->first) {
+            ++itSegment;
+            continue;
+        }
+        if(itLink->first < itSegment->first) {
+            ++itLink;
+            continue;
+        }
+        SHASTA_ASSERT(itSegment->first == itLink->first);
+
+        // If it appears more than once in the segment, skip it.
+        auto itSegmentNext = itSegment + 1;
+        if(itSegmentNext != segmentEnd and  itSegmentNext->first == itSegment->first) {
+            ++itSegment;
+            ++itLink;
+            continue;
+        }
+        if(itSegment != segmentBegin) {
+            auto itSegmentPrevious = itSegment - 1;
+            if(itSegmentPrevious->first == itSegment->first) {
+                ++itSegment;
+                ++itLink;
+                continue;
+            }
+        }
+
+        // If it appears more than once in the link, skip it.
+        auto itLinkNext = itLink + 1;
+        if(itLinkNext != linkEnd and  itLinkNext->first == itLink->first) {
+            ++itSegment;
+            ++itLink;
+            continue;
+        }
+        if(itLink != linkBegin) {
+             auto itLinkPrevious = itLink - 1;
+            if(itLinkPrevious->first == itLink->first) {
+                ++itSegment;
+                ++itLink;
+                continue;
+            }
+        }
+
+        // Ok, this is a common oriented read that appears only once
+        // in both the segment and the link.
+        ++commonOrientedReadCount;
+        ++itSegment;
+        ++itLink;
+    }
+
 }
 
 
