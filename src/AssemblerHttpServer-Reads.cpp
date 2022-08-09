@@ -45,7 +45,11 @@ void Assembler::exploreReadRle(
     getParameterValues(request, "highlightMarker", highlightedMarkerStrings);
     std::set<uint32_t> highlightedMarkers;
     for(const string& s: highlightedMarkerStrings) {
-        highlightedMarkers.insert(uint32_t(std::stoi(s)));
+        try {
+            highlightedMarkers.insert(uint32_t(std::stoi(s)));
+        } catch (...) {
+            // Ignore.
+        }
     }
 
     // Get the arguments to select what to display.

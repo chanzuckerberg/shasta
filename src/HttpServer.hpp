@@ -110,8 +110,12 @@ public:
     {
         for(size_t i = 0; i < request.size() - 1; i++) {
             if(request[i] == name) {
+                const string& next = request[i + 1];
+                if(next.empty()) {
+                    return false;
+                }
                 try {
-                    std::istringstream s(request[i + 1]);
+                    std::istringstream s(next);
                     s >> value;
                 } catch (...) {
                     return false;
