@@ -2222,8 +2222,8 @@ void AssemblyGraph::createAssemblyPath3(
     ) const
 {
     // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t minCommonForLink = 6;
-    const uint64_t minCommonForReference = 6;
+    const uint64_t minCommonForLink = 3;
+    const uint64_t minCommonForReference = 3;
     const double minJaccard = 0.7;
 
     const bool debug = true;
@@ -2246,6 +2246,7 @@ void AssemblyGraph::createAssemblyPath3(
     uint64_t segmentId0 = startSegmentId;
     path.clear();
     path.push_back(startSegmentId);
+    vector<uint64_t> lastIterationSegments;
     while(true) {
 
         if(debug) {
@@ -2295,7 +2296,7 @@ void AssemblyGraph::createAssemblyPath3(
         if(debug) {
             cout << "segmentId1 " << segmentId1 << endl;
         }
-        path.push_back(segmentId1);
+        lastIterationSegments.push_back(segmentId1);
 
         // Check segmentId1 against the reference segment.
         SegmentOrientedReadInformation info1;
@@ -2316,6 +2317,8 @@ void AssemblyGraph::createAssemblyPath3(
             if(debug) {
                 cout << "New reference segment is " << segmentId1 << endl;
             }
+            copy(lastIterationSegments, back_inserter(path));
+            lastIterationSegments.clear();
         }
 
         segmentId0 = segmentId1;
