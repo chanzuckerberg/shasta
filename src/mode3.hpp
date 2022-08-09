@@ -40,6 +40,7 @@ namespace shasta {
         class AssemblyGraphJourneyEntry;
         class MarkerGraphJourneyEntry;
         class AssemblyGraphJourneyInterval;
+        class AssemblyPath;
 
     }
 
@@ -128,6 +129,26 @@ public:
         return tie(orientedReadId, first) < tie(that.orientedReadId, that.first);
     }
 
+};
+
+
+
+// An assembly path in the AssemblyGraph
+class shasta::mode3::AssemblyPath {
+public:
+
+    // The segments on the path.
+    // The bool is true for reference segments.
+    // The first and last segment are always reference segments.
+    // A reference segment is one that is believed to be exclusive
+    // to the sequence copy described by this path (that is,
+    // it does not appear in other copies or haplotypes).
+    vector< pair<uint64_t, bool> > segments;
+
+    void clear()
+    {
+        segments.clear();
+    }
 };
 
 
@@ -626,7 +647,7 @@ public:
     void createAssemblyPath(
         uint64_t segmentId,
         uint64_t direction,    // 0 = forward, 1 = backward
-        vector<uint64_t>& path // The segmentId's of the path.
+        AssemblyPath&
         ) const;
     void createAssemblyPath1(
         uint64_t segmentId,
@@ -641,7 +662,7 @@ public:
     void createAssemblyPath3(
         uint64_t segmentId,
         uint64_t direction,    // 0 = forward, 1 = backward
-        vector<uint64_t>& path // The segmentId's of the path.
+        AssemblyPath&
         ) const;
 
 

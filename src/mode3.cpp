@@ -1870,7 +1870,7 @@ vector<uint64_t> AssemblyGraph::AnalyzeSubgraphClasses::Cluster::getSegments() c
 void AssemblyGraph::createAssemblyPath(
     uint64_t startSegmentId,
     uint64_t direction,    // 0 = forward, 1 = backward
-    vector<uint64_t>& path // The segmentId's of the path.
+    AssemblyPath& path // The segmentId's of the path.
     ) const
 {
     createAssemblyPath3(startSegmentId, direction, path);
@@ -2218,7 +2218,7 @@ void AssemblyGraph::createAssemblyPath2(
 void AssemblyGraph::createAssemblyPath3(
     uint64_t startSegmentId,
     uint64_t direction,    // 0 = forward, 1 = backward
-    vector<uint64_t>& path // The segmentId's of the path.
+    AssemblyPath& path
     ) const
 {
     // EXPOSE WHEN CODE STABILIZES.
@@ -2245,7 +2245,7 @@ void AssemblyGraph::createAssemblyPath3(
     getOrientedReadsOnSegment(referenceSegmentId, infoReference);
     uint64_t segmentId0 = startSegmentId;
     path.clear();
-    path.push_back(startSegmentId);
+    path.segments.push_back(make_pair(startSegmentId, true));
     vector<uint64_t> lastIterationSegments;
     while(true) {
 
@@ -2317,7 +2317,10 @@ void AssemblyGraph::createAssemblyPath3(
             if(debug) {
                 cout << "New reference segment is " << segmentId1 << endl;
             }
-            copy(lastIterationSegments, back_inserter(path));
+            for(const uint64_t segmentId: lastIterationSegments) {
+                path.segments.push_back(make_pair(segmentId, false));
+            }
+            path.segments.back().second = true;
             lastIterationSegments.clear();
         }
 

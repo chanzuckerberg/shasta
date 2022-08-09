@@ -2419,9 +2419,6 @@ public:
     shared_ptr<mode3::AssemblyGraph> assemblyGraph3Pointer;
     void accessMode3AssemblyGraph();
     void analyzeMode3Subgraph(const vector<uint64_t>& segmentIds);
-    vector<uint64_t> createMode3AssemblyPath(
-        uint64_t segmentId,
-        uint64_t direction) const;
     void createMode3PathGraph();
 
 

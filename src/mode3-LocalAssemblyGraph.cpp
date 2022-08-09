@@ -527,38 +527,40 @@ void mode3::LocalAssemblyGraph::writeSvg(
     }
 
 
-    std::map<uint64_t, vector<uint64_t> > pathSegments; // map(segmentId, positionsInPath).
-    vector<uint64_t> path;
+    std::map<uint64_t, vector<pair<uint64_t, bool> > > pathSegments; // map(segmentId, (positionsInPath, is referenceSegment)).
+    AssemblyPath path;
     if(options.segmentColoring == "path") {
         if(options.pathDirection=="forward" or options.pathDirection=="backward") {
             // Forward or backward.
             assemblyGraph.createAssemblyPath(options.pathStart,
                 (options.pathDirection == "forward") ? 0 : 1, path);
             if(options.pathDirection == "backward") {
-                reverse(path.begin(), path.end());
+                reverse(path.segments.begin(), path.segments.end());
             }
         } else {
             // Bidirectional.
-            vector<uint64_t> forwardPath;
-            vector<uint64_t> backwardPath;
+            AssemblyPath forwardPath;
+            AssemblyPath backwardPath;
             assemblyGraph.createAssemblyPath(options.pathStart, 0, forwardPath);
             assemblyGraph.createAssemblyPath(options.pathStart, 1, backwardPath);
             // Stitch them together, making sure not to repeat the starting segment.
-            path.clear();
-            copy(backwardPath.rbegin(), backwardPath.rend(), back_inserter(path));
-            copy(forwardPath.begin() + 1, forwardPath.end(), back_inserter(path));
+            path.segments.clear();
+            copy(backwardPath.segments.rbegin(), backwardPath.segments.rend(), back_inserter(path.segments));
+            copy(forwardPath.segments.begin() + 1, forwardPath.segments.end(), back_inserter(path.segments));
         }
-        for(uint64_t position=0; position<path.size(); position++) {
-            const uint64_t segmentId = path[position];
-            pathSegments[segmentId].push_back(position);
+        for(uint64_t position=0; position<path.segments.size(); position++) {
+            const auto& p = path.segments[position];
+            const uint64_t segmentId = p.first;
+            pathSegments[segmentId].push_back(make_pair(position, p.second));
         }
-        svg << "\nPath of length " << path.size() << " starting at segment " << path.front() <<
-            " and ending at segment " << path.back() << "<br>";
+        svg << "\nPath of length " << path.segments.size() << " starting at segment " << path.segments.front().first <<
+            " and ending at segment " << path.segments.back().first << "<br>";
 
         ofstream csv("Path.csv");
-        csv << "Position,SegmentId\n";
-        for(uint64_t position=0; position<path.size(); position++) {
-            csv << position << "," << path[position] << "\n";
+        csv << "Position,SegmentId,Reference\n";
+        for(uint64_t position=0; position<path.segments.size(); position++) {
+            const auto& p = path.segments[position];
+            csv << position << "," << p.first << "," << int(p.second) << "\n";
         }
     }
 
@@ -820,10 +822,12 @@ void mode3::LocalAssemblyGraph::writeSvg(
                     const auto positions = it->second;
                     SHASTA_ASSERT(not positions.empty());
                     if(positions.size() == 1) {
-                        const uint64_t positionInPath = positions.front();
+                        const auto& p = positions.front();
+                        const uint64_t positionInPath = p.first;
+                        const bool isReferenceSegment = p.second;
                         const uint32_t hue = uint32_t(
-                            std::round(240. * double(positionInPath) / double(path.size())));
-                        color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                            std::round(240. * double(positionInPath) / double(path.segments.size())));
+                        color = "hsl(" + to_string(hue) + ",100%, " + (isReferenceSegment ? "40%" : "70%") + ")";
                     } else {
                         // This segment appears more than once on the path.
                         color = "Fuchsia";
@@ -868,8 +872,8 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 const auto positions = it->second;
                 SHASTA_ASSERT(not positions.empty());
                 svg << "<title>";
-                for(const uint64_t position: positions) {
-                    svg << position << " ";
+                for(const auto& p: positions) {
+                    svg << p.first << " ";
                 }
                 svg << "</title>";
             }
