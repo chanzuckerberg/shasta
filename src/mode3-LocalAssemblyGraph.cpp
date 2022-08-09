@@ -534,6 +534,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             // Forward or backward.
             assemblyGraph.createAssemblyPath(options.pathStart,
                 (options.pathDirection == "forward") ? 0 : 1, path);
+            if(options.pathDirection == "backward") {
+                reverse(path.begin(), path.end());
+            }
         } else {
             // Bidirectional.
             vector<uint64_t> forwardPath;
@@ -549,8 +552,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             const uint64_t segmentId = path[position];
             pathSegments[segmentId].push_back(position);
         }
-        svg << "\nFound a " << options.pathDirection <<
-            " path of length " << path.size() << " starting at segment " << path.front() <<
+        svg << "\nPath of length " << path.size() << " starting at segment " << path.front() <<
             " and ending at segment " << path.back() << "<br>";
 
         ofstream csv("Path.csv");
