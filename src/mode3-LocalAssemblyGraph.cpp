@@ -358,10 +358,12 @@ function onMouseExitSegment()
     html << R"stringDelimiter(
     <p><table>
     <tr><th class=left>Segment thickness<td>
-    <button type='button' onClick='segmentThickness(0.5)' style='width:2em'>--</button>
-    <button type='button' onClick='segmentThickness(0.8)' style='width:2em'>-</button>
-    <button type='button' onClick='segmentThickness(1.25)' style='width:2em'>+</button>
-    <button type='button' onClick='segmentThickness(2)' style='width:2em'>++</button>
+    <button type='button' onClick='segmentThickness(0.1)' style='width:3em'>---</button>
+    <button type='button' onClick='segmentThickness(0.5)' style='width:3em'>--</button>
+    <button type='button' onClick='segmentThickness(0.8)' style='width:3em'>-</button>
+    <button type='button' onClick='segmentThickness(1.25)' style='width:3em'>+</button>
+    <button type='button' onClick='segmentThickness(2.)' style='width:3em'>++</button>
+    <button type='button' onClick='segmentThickness(10.)' style='width:3em'>+++</button>
         <script>
         function segmentThickness(factor)
         {
@@ -380,10 +382,12 @@ function onMouseExitSegment()
     // Change link thickness
     html << R"stringDelimiter(
     <tr><th class=left>Link thickness<td>
-    <button type='button' onClick='linkThickness(0.5)' style='width:2em'>--</button>
-    <button type='button' onClick='linkThickness(0.8)' style='width:2em'>-</button>
-    <button type='button' onClick='linkThickness(1.25)' style='width:2em'>+</button>
-    <button type='button' onClick='linkThickness(2.)' style='width:2em'>++</button>
+    <button type='button' onClick='linkThickness(0.1)' style='width:3em'>---</button>
+    <button type='button' onClick='linkThickness(0.5)' style='width:3em'>--</button>
+    <button type='button' onClick='linkThickness(0.8)' style='width:3em'>-</button>
+    <button type='button' onClick='linkThickness(1.25)' style='width:3em'>+</button>
+    <button type='button' onClick='linkThickness(2.)' style='width:3em'>++</button>
+    <button type='button' onClick='linkThickness(10.)' style='width:3em'>+++</button>
         <script>
         function linkThickness(factor)
         {
