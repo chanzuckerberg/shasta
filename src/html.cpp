@@ -82,7 +82,7 @@ var svg = document.querySelector('svg');
 svg.scrollIntoView();
 svg.addEventListener('pointerdown', onPointerDown); 
 svg.addEventListener('pointerup', onPointerUp); 
-svg.addEventListener('pointerleave', onPointerUp); 
+svg.addEventListener('pointerleave', onPointerLeave); 
 svg.addEventListener('pointermove', onPointerMove); 
 svg.addEventListener('wheel', onMouseWheel); 
 
@@ -133,6 +133,18 @@ function onPointerUp(event) {
     pointerIsDown = false;
     x = xNew;
     y = yNew;
+
+    return false;
+}
+
+function onPointerLeave(event) {
+    event.stopPropagation();
+    event.preventDefault();
+    if(pointerIsDown) {
+        pointerIsDown = false;
+        x = xNew;
+        y = yNew;
+    }
 
     return false;
 }
