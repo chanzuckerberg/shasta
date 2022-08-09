@@ -2225,6 +2225,7 @@ void AssemblyGraph::createAssemblyPath3(
     const uint64_t minCommonForLink = 3;
     const uint64_t minCommonForReference = 3;
     const double minJaccard = 0.7;
+    const int32_t minLinkSeparation = -20;
 
     const bool debug = true;
     if(debug) {
@@ -2266,6 +2267,13 @@ void AssemblyGraph::createAssemblyPath3(
         uint64_t linkIdBest = invalid<uint64_t>;
         uint64_t commonOrientedReadCountBest = 0;
         for(const uint64_t linkId: linkIds) {
+
+            // If link separation is too negative, skip it.
+            // The goal here is to avoid cycles in paths.
+            const Link& link = links[linkId];
+            if(link.separation < minLinkSeparation) {
+                continue;
+            }
 
             // Count the number of common oriented reads between the reference segment and this link.
             uint64_t commonOrientedReadCount;
