@@ -2790,7 +2790,6 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 {
     cout << timestamp << "AssemblyGraph::assemblePathSequence begins." << endl;
 
-    ofstream fasta("PathSequence.fasta");
 
     // Assemble each segment on the path.
     vector<AssembledSegment> assembledSegments(assemblyPath.segments.size());
@@ -2799,12 +2798,79 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         AssembledSegment& assembledSegment = assembledSegments[i];
         assembleMarkerGraphPath(readRepresentation, k,
             markers, markerGraph, paths[segmentId], false, assembledSegment);
-
-        fasta << ">" << i << " segment " << segmentId << " length " << assembledSegment.rawSequence.size() << "\n";
-        copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
-            ostream_iterator<Base>(fasta));
-        fasta << "\n";
     }
+
+
+
+    // Write out assembled sequence of each segment.
+    if(true) {
+        ofstream fasta("PathSegmentsSequence.fasta");
+        for(uint64_t i=0; i<assemblyPath.segments.size(); i++) {
+            const uint64_t segmentId = assemblyPath.segments[i].first;
+            AssembledSegment& assembledSegment = assembledSegments[i];
+            fasta <<
+                ">" << i <<
+                " segment " << segmentId <<
+                " length " << assembledSegment.rawSequence.size() << "\n";
+            copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
+                ostream_iterator<Base>(fasta));
+            fasta << "\n";
+        }
+    }
+
+
+
+    // Assemble segment and link sequence into path sequence.
+    string sequence;
+    for(uint64_t i=0; ; i++) {
+        const uint64_t segmentId0 = assemblyPath.segments[i].first;
+        AssembledSegment& assembledSegment0 = assembledSegments[i];
+
+        // Add the sequence of this segment.
+        for(const Base b: assembledSegment0.rawSequence) {
+            sequence.push_back(b.character());
+        }
+
+        // If this is the last segment, we are done.
+        if(i == assemblyPath.segments.size() - 1) {
+            break;
+        }
+
+        // This is not the last segment. Access the next segment in the path.
+        const uint64_t segmentId1 = assemblyPath.segments[i+1].first;
+        // AssembledSegment& assembledSegment1 = assembledSegments[i+1];
+
+        // If the segments are consecutive in the marker graph,
+        // just take out the last k RLE bases from the sequence.
+        // We will get them from the next segment.
+        const auto path0 = paths[segmentId0];
+        const auto path1 = paths[segmentId1];
+        const MarkerGraph::Edge lastEdge0 = markerGraph.edges[path0.back()];
+        const MarkerGraph::Edge firstEdge1 = markerGraph.edges[path1.front()];
+        if(lastEdge0.target == firstEdge1.source) {
+
+            // Compute the number of bases to be removed.
+            uint64_t removeCount = 0;
+            for(uint64_t j=assembledSegment0.repeatCounts.size() - k; j<assembledSegment0.repeatCounts.size(); j++) {
+                removeCount += assembledSegment0.repeatCounts[j];
+            }
+
+            // Remove them from the sequence we already have.
+            sequence.resize(sequence.size() - removeCount);
+
+            // We are done.
+            continue;
+        }
+    }
+
+
+
+    // Write out the path sequence.
+    if(true) {
+        ofstream fasta("PathSequence.fasta");
+        fasta << ">path\n" << sequence << "\n";
+    }
+
 
     cout << timestamp << "AssemblyGraph::assemblePathSequence ends." << endl;
 }
