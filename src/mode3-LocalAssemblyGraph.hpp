@@ -115,7 +115,8 @@ public:
         // If empty, all clusters are colored.
         vector<uint64_t> clustersToBeColored;
 
-
+        // Flag to turn on sequence assembly when coloring a path.
+        bool assemblePathSequence = false;
 
         // Link length and thickness.
 

@@ -22,6 +22,8 @@ void Assembler::mode3Assembly(
         largeDataFileNamePrefix,
         largeDataPageSize,
         threadCount,
+        assemblerInfo->readRepresentation,
+        assemblerInfo->k,
         markers,
         markerGraph);
     auto& assemblyGraph3 = *assemblyGraph3Pointer;
@@ -34,7 +36,11 @@ void Assembler::mode3Assembly(
 
 void Assembler::accessMode3AssemblyGraph()
 {
-    assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(largeDataFileNamePrefix, markers, markerGraph);
+    assemblyGraph3Pointer = std::make_shared<mode3::AssemblyGraph>(
+        largeDataFileNamePrefix,
+        assemblerInfo->readRepresentation,
+        assemblerInfo->k,
+        markers, markerGraph);
 }
 
 

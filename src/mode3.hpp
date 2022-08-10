@@ -165,12 +165,16 @@ public:
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize,
         size_t threadCount,
+        uint64_t readRepresentation,
+        uint64_t k, // Marker length
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
     // Constructor from binary data.
     AssemblyGraph(
         const string& largeDataFileNamePrefix,
+        uint64_t readRepresentation,
+        uint64_t k, // Marker length
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
@@ -187,7 +191,9 @@ public:
         t.accessExistingReadOnly(largeDataName(name));
     }
 
-    // References to Assembler objects.
+    // References or copies for Assembler objects.
+    uint64_t readRepresentation;
+    uint64_t k;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 
@@ -665,6 +671,8 @@ public:
         AssemblyPath&
         ) const;
 
+    // Assemble sequence for an AssemblyPath.
+    void assemblePathSequence(const AssemblyPath&) const;
 
 
     // Compute link separation given a set of Transitions.

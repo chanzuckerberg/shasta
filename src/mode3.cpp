@@ -1,6 +1,8 @@
 
 // Shasta
 #include "mode3.hpp"
+#include "assembleMarkerGraphPath.hpp"
+#include "AssembledSegment.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerGraph.hpp"
 #include "orderPairs.hpp"
@@ -624,11 +626,15 @@ AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize,
     size_t threadCount,
+    uint64_t readRepresentation,
+    uint64_t k, // Marker length
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
     MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
+    readRepresentation(readRepresentation),
+    k(k),
     markers(markers),
     markerGraph(markerGraph)
 {
@@ -645,7 +651,7 @@ AssemblyGraph::AssemblyGraph(
     // Keep track of the segment and position each marker graph edge corresponds to.
     computeMarkerGraphEdgeTable(threadCount);
 
-    // Compute marker graphand assembly graph journeys of all oriented reads.
+    // Compute marker graph and assembly graph journeys of all oriented reads.
     // We permanently store only the assembly graph journeys.
     computeMarkerGraphJourneys(threadCount);
     computeAssemblyGraphJourneys();
@@ -682,10 +688,14 @@ string AssemblyGraph::largeDataName(const string& name) const
 // Constructor from binary data.
 AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
+    uint64_t readRepresentation,
+    uint64_t k, // Marker length
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
     MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
+    readRepresentation(readRepresentation),
+    k(k),
     markers(markers),
     markerGraph(markerGraph)
 {
@@ -2771,4 +2781,30 @@ void AssemblyGraph::targetedBfs(
         }
     }
 
+}
+
+
+
+// Assemble sequence for an AssemblyPath.
+void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
+{
+    cout << timestamp << "AssemblyGraph::assemblePathSequence begins." << endl;
+
+    ofstream fasta("PathSequence.fasta");
+
+    // Assemble each segment on the path.
+    vector<AssembledSegment> assembledSegments(assemblyPath.segments.size());
+    for(uint64_t i=0; i<assemblyPath.segments.size(); i++) {
+        const uint64_t segmentId = assemblyPath.segments[i].first;
+        AssembledSegment& assembledSegment = assembledSegments[i];
+        assembleMarkerGraphPath(readRepresentation, k,
+            markers, markerGraph, paths[segmentId], false, assembledSegment);
+
+        fasta << ">" << i << " segment " << segmentId << " length " << assembledSegment.rawSequence.size() << "\n";
+        copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
+            ostream_iterator<Base>(fasta));
+        fasta << "\n";
+    }
+
+    cout << timestamp << "AssemblyGraph::assemblePathSequence ends." << endl;
 }

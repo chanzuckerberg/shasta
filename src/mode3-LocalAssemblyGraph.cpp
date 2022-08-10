@@ -566,6 +566,11 @@ void mode3::LocalAssemblyGraph::writeSvg(
             const auto& p = path.segments[position];
             csv << position << "," << p.first << "," << int(p.second) << "\n";
         }
+
+        // If requested, assemble path sequence.
+        if(options.assemblePathSequence) {
+            assemblyGraph.assemblePathSequence(path);
+        }
     }
 
 
@@ -1265,6 +1270,10 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
         }
     }
 
+    // Flag to turn on sequence assembly when coloring a path.
+    string assemblePathSequenceString;
+    assemblePathSequence = HttpServer::getParameterValue(request, "assemblePathSequence", assemblePathSequenceString);
+
     // Link length and thickness.
     HttpServer::getParameterValue(request, "minimumLinkLength", minimumLinkLength);
     HttpServer::getParameterValue(request, "additionalLinkLengthPerMarker", additionalLinkLengthPerMarker);
@@ -1405,7 +1414,10 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
              "<br><input type=radio name=pathDirection value=backward" <<
              (pathDirection=="backward" ? " checked=checked" : "") << "> Backward"
              "<br><input type=radio name=pathDirection value=bidirectional" <<
-             (pathDirection=="bidirectional" ? " checked=checked" : "") << "> Both directions";
+             (pathDirection=="bidirectional" ? " checked=checked" : "") << "> Both directions" <<
+             "<br><input type=checkbox name=assemblePathSequence" <<
+             (assemblePathSequence ? " checked=checked" : "") <<
+             "> Assemble path sequence.";
 
 
         html << "</table>"
