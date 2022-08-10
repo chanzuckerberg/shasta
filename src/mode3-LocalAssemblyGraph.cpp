@@ -698,6 +698,32 @@ void mode3::LocalAssemblyGraph::writeSvg(
             link.segmentsAreAdjacent ? "" :
             " stroke-dasharray='0 " + to_string(1.5 * linkThickness) + "'";
 
+        // If the link participates in a path, color it consistently with the
+        // segments is joins.
+        string linkColor = options.linkColor;
+        if(options.segmentColoring == "path") {
+            const auto it1 = pathSegments.find(segmentId1);
+            if(it1 != pathSegments.end()) {
+                const auto positions1 = it1->second;
+                SHASTA_ASSERT(not positions1.empty());
+                const auto it2 = pathSegments.find(segmentId2);
+                if(it2 != pathSegments.end()) {
+                    const auto positions2 = it2->second;
+                    SHASTA_ASSERT(not positions2.empty());
+                    if(positions1.size()==1 and positions2.size()==1) {
+                        const uint64_t position1 = positions1.front().first;
+                        const uint64_t position2 = positions2.front().first;
+                        if(position2 == position1 + 1) {
+                            const uint32_t hue = uint32_t(
+                                std::round(120. * double(position1 + position2) / double(path.segments.size())));
+                            linkColor = "hsl(" + to_string(hue) + ",100%, 20%)";
+                        }
+                    } else {
+                        linkColor = "Fuchsia";
+                    }
+                }
+            }
+        }
 
         svg <<
             "<g>"
@@ -714,7 +740,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " C " << q1.x() << " " << q1.y() << ", "
                   << q2.x() << " " << q2.y() << ","
                   << p2.x() << " " << p2.y() << "'"
-            " stroke='" << options.linkColor << "'" <<
+            " stroke='" << linkColor << "'" <<
             dash <<
             " stroke-width='" << linkThickness << "'"
             " stroke-linecap='round'"
