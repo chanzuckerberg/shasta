@@ -9,6 +9,7 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/v6_only.hpp>
@@ -100,9 +101,9 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
         cout << "To connect from this computer, "
             "point your browser to http://localhost:" << port << endl;
         cout << "To connect from a different computer, "
-            "point your browser to http://XYZ:" << port << 
+            "point your browser to http://XYZ:" << port <<
             ", where XYZ is either the name or IP address of this computer." << endl;
-        cout << 
+        cout <<
             "All connections are accepted: local and remote, from any user. "
             "This means that all users, not only on the computer running the server, "
             "but also on all computers on the same local area network, can use the server. "
@@ -112,7 +113,7 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
             "TO LOOK AT YOUR DATA AND SHOULD "
             "NOT BE USED IF YOUR ASSEMBLY DATA IS SUBJECT TO "
             "CONFIDENTIALITY RESTRICTIONS OR IS NOT CLEARED OR CONSENTED "
-            "FOR PUBLIC RELEASE." 
+            "FOR PUBLIC RELEASE."
             << endl;
     }
 
@@ -155,7 +156,10 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
 }
 
 
-void HttpServer::setRequestTimeout(int tsec, tcp::iostream& s) {
+// Argument is boost::asio::ip::tcp::iostream&,
+// but make it templated to reduce include file dependencies.
+template<class T> void HttpServer::setRequestTimeout(int tsec, T& s) {
+// void HttpServer::setRequestTimeout(int tsec, tcp::iostream& s) {
 #if BOOST_VERSION < 106600
     s.expires_from_now(boost::posix_time::seconds(tsec));
 #else
@@ -163,7 +167,12 @@ void HttpServer::setRequestTimeout(int tsec, tcp::iostream& s) {
 #endif
 }
 
-void HttpServer::processRequest(tcp::iostream& s)
+
+
+// Argument is boost::asio::ip::tcp::iostream&,
+// but make it templated to reduce include file dependencies.
+template<class T> void HttpServer::processRequest(T& s)
+// void HttpServer::processRequest(tcp::iostream& s)
 {
     // If the client is too slow sending the request, drop it.
     setRequestTimeout(1, s);
@@ -650,9 +659,14 @@ void HttpServer::processPostRequest(
 // user running the server.
 // We use the lsof command to find open sockets on 127.0.0.1
 // and the current port as source or destination.
-bool HttpServer::isLocalConnectionSameUser(
-    boost::asio::ip::tcp::iostream& s,
+// Argument is boost::asio::ip::tcp::iostream&,
+// but make it templated to reduce include file dependencies.
+template<class T> bool HttpServer::isLocalConnectionSameUser(
+    T& s,
     uint16_t port) const
+/* bool HttpServer::isLocalConnectionSameUser(
+    boost::asio::ip::tcp::iostream& s,
+    uint16_t port) const */
 {
     // Get out process id.
     const string serverProcessId = to_string(::getpid());
