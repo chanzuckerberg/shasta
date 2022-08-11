@@ -24,6 +24,7 @@ void Assembler::mode3Assembly(
         threadCount,
         assemblerInfo->readRepresentation,
         assemblerInfo->k,
+        *reads,
         markers,
         markerGraph);
     auto& assemblyGraph3 = *assemblyGraph3Pointer;
@@ -40,7 +41,7 @@ void Assembler::accessMode3AssemblyGraph()
         largeDataFileNamePrefix,
         assemblerInfo->readRepresentation,
         assemblerInfo->k,
-        markers, markerGraph);
+        *reads, markers, markerGraph);
 }
 
 

@@ -45,6 +45,7 @@ namespace shasta {
     }
 
     // Some forward declarations of classes in the shasta namespace.
+    class Reads;
     class CompressedMarker;
     class MarkerGraph;
 
@@ -167,6 +168,7 @@ public:
         size_t threadCount,
         uint64_t readRepresentation,
         uint64_t k, // Marker length
+        const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
@@ -175,6 +177,7 @@ public:
         const string& largeDataFileNamePrefix,
         uint64_t readRepresentation,
         uint64_t k, // Marker length
+        const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MarkerGraph&);
 
@@ -194,6 +197,7 @@ public:
     // References or copies for Assembler objects.
     uint64_t readRepresentation;
     uint64_t k;
+    const Reads& reads;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
 

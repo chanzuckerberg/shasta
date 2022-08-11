@@ -3,9 +3,11 @@
 #include "mode3.hpp"
 #include "assembleMarkerGraphPath.hpp"
 #include "AssembledSegment.hpp"
+#include "deduplicate.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerGraph.hpp"
 #include "orderPairs.hpp"
+#include "Reads.hpp"
 #include "ReadFlags.hpp"
 #include "SubsetGraph.hpp"
 using namespace shasta;
@@ -628,6 +630,7 @@ AssemblyGraph::AssemblyGraph(
     size_t threadCount,
     uint64_t readRepresentation,
     uint64_t k, // Marker length
+    const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
     MultithreadedObject<AssemblyGraph>(*this),
@@ -635,6 +638,7 @@ AssemblyGraph::AssemblyGraph(
     largeDataPageSize(largeDataPageSize),
     readRepresentation(readRepresentation),
     k(k),
+    reads(reads),
     markers(markers),
     markerGraph(markerGraph)
 {
@@ -690,12 +694,14 @@ AssemblyGraph::AssemblyGraph(
     const string& largeDataFileNamePrefix,
     uint64_t readRepresentation,
     uint64_t k, // Marker length
+    const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MarkerGraph& markerGraph) :
     MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     readRepresentation(readRepresentation),
     k(k),
+    reads(reads),
     markers(markers),
     markerGraph(markerGraph)
 {
@@ -2237,7 +2243,7 @@ void AssemblyGraph::createAssemblyPath3(
     const double minJaccard = 0.7;
     const int32_t minLinkSeparation = -20;
 
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         cout << "createAssemblyPath3 begins at segment " << startSegmentId <<
             ", direction " << direction << endl;
@@ -2788,7 +2794,18 @@ void AssemblyGraph::targetedBfs(
 // Assemble sequence for an AssemblyPath.
 void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 {
-    cout << timestamp << "AssemblyGraph::assemblePathSequence begins." << endl;
+    const bool debug = true;
+    if(debug) {
+        cout << timestamp << "AssemblyGraph::assemblePathSequence begins for a path of length " <<
+            assemblyPath.segments.size() << endl;
+    }
+
+    // The list of oriented reads that can be used to assemble links.
+    // These are the oriented reads that appear in either the previous or next
+    // reference segment in the path.
+    // This list changes every time we encounter a new reference segment.
+    // It is kept sorted for efficiency.
+    vector<OrientedReadId> orientedReadsForLinks;
 
 
     // Assemble each segment on the path.
@@ -2803,7 +2820,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
 
     // Write out assembled sequence of each segment.
-    if(true) {
+    if(debug) {
         ofstream fasta("PathSegmentsSequence.fasta");
         for(uint64_t i=0; i<assemblyPath.segments.size(); i++) {
             const uint64_t segmentId = assemblyPath.segments[i].first;
@@ -2823,8 +2840,21 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
     // Assemble segment and link sequence into path sequence.
     string sequence;
     for(uint64_t i=0; ; i++) {
-        const uint64_t segmentId0 = assemblyPath.segments[i].first;
+        const auto& p = assemblyPath.segments[i];
+        const uint64_t segmentId0 = p.first;
+        if(debug) {
+            cout << "Working on segment " << segmentId0 << " at position " << i <<
+                " in assembly path." << endl;
+        }
+        const bool isReferenceSegment = p.second;
         AssembledSegment& assembledSegment0 = assembledSegments[i];
+
+        // The first segment in the path must be a reference segment.
+        if(i == 0) {
+            SHASTA_ASSERT(isReferenceSegment);
+        }
+
+
 
         // Add the sequence of this segment.
         for(const Base b: assembledSegment0.rawSequence) {
@@ -2836,9 +2866,44 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             break;
         }
 
+
+
+        // If this is a reference segment, update
+        // the list of oriented reads that can be used to assemble links.
+        // These are the oriented reads that appear in either the previous or next
+        // reference segment in the path.
+        if(isReferenceSegment) {
+            orientedReadsForLinks.clear();
+
+            // Add the oriented reads in segmentId0, our new
+            // reference segment.
+            for(const auto& p: assemblyGraphJourneyInfos[segmentId0]) {
+                orientedReadsForLinks.push_back(p.first);
+            }
+
+            // Look for the next reference segment in the path.
+            uint64_t nextReferenceSegmentId = invalid<uint64_t>;
+            for(uint64_t j=i+1; j<assemblyPath.segments.size(); j++) {
+                const auto& q = assemblyPath.segments[i];
+                if(q.second) {
+                    nextReferenceSegmentId = q.first;
+                    break;
+                }
+            }
+            SHASTA_ASSERT(nextReferenceSegmentId != invalid<uint64_t>);
+            for(const auto& p: assemblyGraphJourneyInfos[nextReferenceSegmentId]) {
+                orientedReadsForLinks.push_back(p.first);
+            }
+
+            // Deduplicate and sort.
+            deduplicate(orientedReadsForLinks);
+        }
+
         // This is not the last segment. Access the next segment in the path.
         const uint64_t segmentId1 = assemblyPath.segments[i+1].first;
         // AssembledSegment& assembledSegment1 = assembledSegments[i+1];
+
+
 
         // If the segments are consecutive in the marker graph,
         // just take out the last k RLE bases from the sequence.
@@ -2861,16 +2926,110 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             // We are done.
             continue;
         }
+
+
+
+        // If getting here, this segment and the next are not adjacent in the marker graph.
+        // We need to assembly the link between them.
+        // We can only use oriented reads that are in the link
+        // and also in orientedReadsForLinks.
+
+        // Locate the link between segmentId0 and segmentId1.
+        uint64_t linkId01 = invalid<uint64_t>;
+        for(uint64_t linkId: linksBySource[segmentId0]) {
+            if(links[linkId].segmentId1 == segmentId1) {
+                linkId01 = linkId;
+                break;
+            }
+        }
+        SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
+
+        // Access the oriented reads that transition over this link.
+        const auto transitions01 = transitions[linkId01];
+
+        if(debug) {
+            cout << "Assembling link " << linkId01 <<
+                " with coverage " << transitions01.size() <<
+                " and " << orientedReadsForLinks.size() <<
+                " reference oriented reads." << endl;
+        }
+
+
+
+        // Loop over oriented reads that are both in transitions01 and in
+        // orientedReadsForLinks. These are the oriented reads that we can
+        // actually use to assemble the link.
+        uint64_t actualLinkCoverage = 0;
+        for(const auto& p: transitions[linkId01]) {
+            const OrientedReadId orientedReadId = p.first;
+
+            // If not in orientedReadsForLinks, skip it.
+            if(not std::binary_search(
+                orientedReadsForLinks.begin(), orientedReadsForLinks.end(),
+                orientedReadId)) {
+                continue;
+            }
+
+            // Access the transition from segmentId0 to segmentId1 for this oriented read.
+            const Transition& transition = p.second;
+            ++actualLinkCoverage;
+
+            // Get the ordinals of the last appearance of this oriented
+            // read on segmentId0 and the first on segmentId1,
+            // and the corresponding markers.
+            const uint32_t ordinal0 = transition[0].ordinals[1];
+            const uint32_t ordinal1 = transition[1].ordinals[0];
+            if(debug) {
+                cout << orientedReadId << " " << ordinal0 << " " << ordinal1 << endl;
+            }
+            const CompressedMarker& marker0 = markers[orientedReadId.getValue()][ordinal0];
+            const CompressedMarker& marker1 = markers[orientedReadId.getValue()][ordinal1];
+
+            // Get the positions of these markers on the oriented read.
+            // If using RLE, these are RLE positions.
+            const uint32_t position0 = marker0.position;
+            const uint32_t position1 = marker1.position;
+
+            // Extract the sequence between these markers (including the markers).
+            vector<Base> orientedReadSequence;
+            if(readRepresentation == 1) {
+                // RLE.
+                for(uint64_t position=position0; position<position1+k; position++) {
+                    Base b;
+                    uint8_t r;
+                    tie(b, r) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+                    for(uint64_t j=0; j<r; j++) {
+                        orientedReadSequence.push_back(b);
+                    }
+                }
+            } else {
+                // Raw sequence.
+                for(uint64_t position=position0; position<position1+k; position++) {
+                    const Base b = reads.getOrientedReadBase(orientedReadId, uint32_t(position));
+                    orientedReadSequence.push_back(b);
+                }
+            }
+
+            if(debug) {
+                copy(orientedReadSequence.begin(), orientedReadSequence.end(), ostream_iterator<Base>(cout));
+                cout << endl;
+            }
+        }
+        if(debug) {
+            cout << "Link assembly will use " << actualLinkCoverage <<
+                " oriented reads." << endl;
+        }
     }
 
 
 
     // Write out the path sequence.
-    if(true) {
+    if(debug) {
         ofstream fasta("PathSequence.fasta");
         fasta << ">path\n" << sequence << "\n";
     }
 
-
-    cout << timestamp << "AssemblyGraph::assemblePathSequence ends." << endl;
+    if(debug) {
+        cout << timestamp << "AssemblyGraph::assemblePathSequence ends." << endl;
+    }
 }
