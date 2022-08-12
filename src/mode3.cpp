@@ -2916,7 +2916,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
         // This is not the last segment. Access the next segment in the path.
         const uint64_t segmentId1 = assemblyPath.segments[i+1].first;
-        // AssembledSegment& assembledSegment1 = assembledSegments[i+1];
+        AssembledSegment& assembledSegment1 = assembledSegments[i+1];
 
 
 
@@ -2967,13 +2967,64 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
                 " with coverage " << transitions01.size() <<
                 " and " << orientedReadsForLinks.size() <<
                 " reference oriented reads." << endl;
+            cout << segmentId0 << " path length " << path0.size() << endl;
+            cout << segmentId1 << " path length " << path1.size() << endl;
         }
 
 
 
-        // Loop over oriented reads that are both in transitions01 and in
+        // Consider all oriented reads that are both in transitions01 and in
         // orientedReadsForLinks. These are the oriented reads that we can
         // actually use to assemble the link.
+
+
+
+        // First, find:
+        // - The position in segmentId0 of the leftmost transition.
+        // - The position in segmentId1 of the rightmost transition.
+        uint64_t minEdgePosition0 = path0.size();
+        uint64_t maxEdgePosition1 = 0;
+        for(const auto& p: transitions[linkId01]) {
+            const OrientedReadId orientedReadId = p.first;
+
+            // If not in orientedReadsForLinks, skip it.
+            if(not std::binary_search(
+                orientedReadsForLinks.begin(), orientedReadsForLinks.end(),
+                orientedReadId)) {
+                continue;
+            }
+
+            // Access the transition from segmentId0 to segmentId1 for this oriented read.
+            const Transition& transition = p.second;
+
+            minEdgePosition0 = min(minEdgePosition0, uint64_t(transition[0].position));
+            maxEdgePosition1 = max(maxEdgePosition1, uint64_t(transition[1].position));
+        }
+        if(debug) {
+            cout << "minEdgePosition0 " << minEdgePosition0 << endl;
+            cout << "maxEdgePosition1 " << maxEdgePosition1 << endl;
+        }
+
+        // When getting here:
+        // - minPosition0 is the leftmost position of the transitions in path0.
+        // - minPosition1 is the rightmost position of the transitions in path1.
+        // These positions are edge positions in path0 and path1.
+        // We will do a multiple sequence alignment of the oriented reads,
+        // using the sequence of segmentId0 to extend to the left all reads to minPosition0,
+        // and using the sequence of segmentId1 to extend to the right all reads to minPosition1,
+
+        // Get the corresponding vertex positions in segmentId0 and segmentId1.
+        const uint64_t minVertexPosition0 = minEdgePosition0 + 1;
+        const uint64_t maxVertexPosition1 = maxEdgePosition1;
+        if(debug) {
+            cout << "minVertexPosition0 " << minVertexPosition0 << endl;
+            cout << "maxVertexPosition1 " << maxVertexPosition1 << endl;
+        }
+
+
+
+        // Now extract the portion of each oriented read sequence that
+        // will be used to assemble this link.
         uint64_t actualLinkCoverage = 0;
         for(const auto& p: transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
@@ -3007,26 +3058,114 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
             // Extract the sequence between these markers (including the markers).
             vector<Base> orientedReadSequence;
+            vector<uint8_t> orientedReadRepeatCounts;
             if(readRepresentation == 1) {
                 // RLE.
                 for(uint64_t position=position0; position<position1+k; position++) {
                     Base b;
                     uint8_t r;
                     tie(b, r) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
-                    for(uint64_t j=0; j<r; j++) {
-                        orientedReadSequence.push_back(b);
-                    }
+                    orientedReadSequence.push_back(b);
+                    orientedReadRepeatCounts.push_back(r);
                 }
             } else {
                 // Raw sequence.
                 for(uint64_t position=position0; position<position1+k; position++) {
                     const Base b = reads.getOrientedReadBase(orientedReadId, uint32_t(position));
                     orientedReadSequence.push_back(b);
+                    orientedReadRepeatCounts.push_back(uint8_t(1));
                 }
             }
 
             if(debug) {
                 copy(orientedReadSequence.begin(), orientedReadSequence.end(), ostream_iterator<Base>(cout));
+                cout << endl;
+                for(uint8_t r: orientedReadRepeatCounts) {
+                    if(r < 10) {
+                        cout << int(r);
+                    } else {
+                        cout << "*";
+                    }
+                }
+                cout << endl;
+            }
+
+            // We need to extend the sequence of this read to the left,
+            // using segmentId0 sequence, up to minVertexPosition0,
+            // so the portions of all reads we will be using for the MSA
+            // all begin in the same place.
+            vector<Base> leftSequence;
+            vector<uint32_t> leftRepeatCounts;
+            const uint64_t vertexPosition0 = transition[0].position + 1;  // Add 1 to get vertex position.
+            const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
+            const uint64_t end0 = assembledSegment0.vertexOffsets[vertexPosition0];
+            for(uint64_t position=begin0; position!=end0; position++) {
+                leftSequence.push_back(assembledSegment0.runLengthSequence[position]);
+                leftRepeatCounts.push_back(assembledSegment0.repeatCounts[position]);
+            }
+            if(debug) {
+                cout << "Left extend sequence:" << endl;
+                copy(leftSequence.begin(), leftSequence.end(), ostream_iterator<Base>(cout));
+                cout << endl;
+                for(uint32_t r: leftRepeatCounts) {
+                    if(r < 10) {
+                        cout << int(r);
+                    } else {
+                        cout << "*";
+                    }
+                }
+                cout << endl;
+            }
+
+            vector<Base> rightSequence;
+            vector<uint32_t> rightRepeatCounts;
+            const uint64_t vertexPosition1 = transition[1].position;
+            const uint64_t begin1 = assembledSegment1.vertexOffsets[vertexPosition1] + k;
+            const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + k;
+            // cout << "*** begin1 " << begin1 << endl;
+            // cout << "*** end1 " << end1 << endl;
+            for(uint64_t position=begin1; position!=end1; position++) {
+                // cout << "*** " << position << " " << assembledSegment1.runLengthSequence[position] <<
+                //     " " << int(assembledSegment1.repeatCounts[position]) << endl;
+                rightSequence.push_back(assembledSegment1.runLengthSequence[position]);
+                rightRepeatCounts.push_back(assembledSegment1.repeatCounts[position]);
+            }
+            if(debug) {
+                cout << "Right extend sequence:" << endl;
+                copy(rightSequence.begin(), rightSequence.end(), ostream_iterator<Base>(cout));
+                cout << endl;
+                for(uint32_t r: rightRepeatCounts) {
+                    if(r < 10) {
+                        cout << int(r);
+                    } else {
+                        cout << "*";
+                    }
+                }
+                cout << endl;
+            }
+
+            // Construct the extended sequence for this oriented read,
+            // to be used in the MSA.
+            vector<Base> orientedReadExtendedSequence;
+            vector<uint64_t> orientedReadExtendedRepeatCounts;
+            copy(leftSequence.begin(), leftSequence.end(), back_inserter(orientedReadExtendedSequence));
+            copy(leftRepeatCounts.begin(), leftRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
+            copy(orientedReadSequence.begin(), orientedReadSequence.end(), back_inserter(orientedReadExtendedSequence));
+            copy(orientedReadRepeatCounts.begin(), orientedReadRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
+            copy(rightSequence.begin(), rightSequence.end(), back_inserter(orientedReadExtendedSequence));
+            copy(rightRepeatCounts.begin(), rightRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
+
+            if(debug) {
+                cout << "Sequence for this oriented read to be used for MSA:" << endl;
+                copy(orientedReadExtendedSequence.begin(), orientedReadExtendedSequence.end(), ostream_iterator<Base>(cout));
+                cout << endl;
+                for(uint64_t r: orientedReadExtendedRepeatCounts) {
+                    if(r < 10) {
+                        cout << int(r);
+                    } else {
+                        cout << "*";
+                    }
+                }
                 cout << endl;
             }
         }
