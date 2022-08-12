@@ -2822,9 +2822,11 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
     // Write out assembled sequence of each segment.
     if(debug) {
         ofstream fasta("PathSegmentsSequence.fasta");
+        ofstream txt("PathSegmentsRleSequence.txt");
         for(uint64_t i=0; i<assemblyPath.segments.size(); i++) {
             const uint64_t segmentId = assemblyPath.segments[i].first;
             AssembledSegment& assembledSegment = assembledSegments[i];
+
             fasta <<
                 ">" << i <<
                 " segment " << segmentId <<
@@ -2832,6 +2834,19 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
                 ostream_iterator<Base>(fasta));
             fasta << "\n";
+
+            txt << i << " " << segmentId << endl;
+            copy(assembledSegment.runLengthSequence.begin(), assembledSegment.runLengthSequence.end(),
+                ostream_iterator<Base>(txt));
+            txt << "\n";
+            for(const uint32_t r: assembledSegment.repeatCounts) {
+                if(r < 10) {
+                    txt << r;
+                } else {
+                    txt << "*";
+                }
+            }
+            txt << "\n";
         }
     }
 
@@ -2948,7 +2963,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         const auto transitions01 = transitions[linkId01];
 
         if(debug) {
-            cout << "Assembling link " << linkId01 <<
+            cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
                 " with coverage " << transitions01.size() <<
                 " and " << orientedReadsForLinks.size() <<
                 " reference oriented reads." << endl;
