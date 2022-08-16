@@ -45,6 +45,7 @@ namespace shasta {
     }
 
     // Some forward declarations of classes in the shasta namespace.
+    class Base;
     class Reads;
     class CompressedMarker;
     class MarkerGraph;
@@ -677,6 +678,18 @@ public:
 
     // Assemble sequence for an AssemblyPath.
     void assemblePathSequence(const AssemblyPath&) const;
+
+    // Compute consensus sequence for Link, given sequences of
+    // the oriented reads, which must all be anchored on both sides.
+    void computeLinkConsensusUsingSpoa(
+        const vector< vector<Base> > rleSequences,
+        const vector< vector<uint64_t> > repeatCounts,
+        uint64_t readRepresentation,
+        bool debug,
+        ostream& html,
+        vector<Base>& consensusRleSequence,
+        vector<uint64_t>& consensusRepeatCounts
+        ) const;
 
 
     // Compute link separation given a set of Transitions.

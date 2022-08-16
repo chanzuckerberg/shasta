@@ -5,6 +5,7 @@
 #include "AssembledSegment.hpp"
 #include "deduplicate.hpp"
 #include "findMarkerId.hpp"
+#include "html.hpp"
 #include "MarkerGraph.hpp"
 #include "orderPairs.hpp"
 #include "Reads.hpp"
@@ -12,6 +13,9 @@
 #include "SubsetGraph.hpp"
 using namespace shasta;
 using namespace mode3;
+
+// Spoa.
+#include "spoa/spoa.hpp"
 
 // Boost libraries.
 // Include disjoint_sets.hpp first to avoid Boost problems.
@@ -2795,9 +2799,12 @@ void AssemblyGraph::targetedBfs(
 void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 {
     const bool debug = true;
+    ofstream html;
     if(debug) {
         cout << timestamp << "AssemblyGraph::assemblePathSequence begins for a path of length " <<
             assemblyPath.segments.size() << endl;
+        html.open("Msa.html");
+        writeHtmlBegin(html, "Mode 3 assembly");
     }
 
     // The list of oriented reads that can be used to assemble links.
@@ -3026,6 +3033,8 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         // Now extract the portion of each oriented read sequence that
         // will be used to assemble this link.
         uint64_t actualLinkCoverage = 0;
+        vector< vector<Base> > orientedReadsSequencesForAssembly;
+        vector< vector<uint64_t> > orientedReadsRepeatCountsForAssembly;
         for(const auto& p: transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
 
@@ -3155,6 +3164,9 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             copy(rightSequence.begin(), rightSequence.end(), back_inserter(orientedReadExtendedSequence));
             copy(rightRepeatCounts.begin(), rightRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
 
+            orientedReadsSequencesForAssembly.push_back(orientedReadExtendedSequence);
+            orientedReadsRepeatCountsForAssembly.push_back(orientedReadExtendedRepeatCounts);
+
             if(debug) {
                 cout << "Sequence for this oriented read to be used for MSA:" << endl;
                 copy(orientedReadExtendedSequence.begin(), orientedReadExtendedSequence.end(), ostream_iterator<Base>(cout));
@@ -3173,6 +3185,22 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             cout << "Link assembly will use " << actualLinkCoverage <<
                 " oriented reads." << endl;
         }
+
+        // Compute the consensus sequence for the link.
+        vector<Base> consensusRleSequence;
+        vector<uint64_t> consensusRepeatCounts;
+        if(debug) {
+            html<< "<h2>Link " << linkId01 << "</h2>\n";
+        }
+        computeLinkConsensusUsingSpoa(
+            orientedReadsSequencesForAssembly,
+            orientedReadsRepeatCountsForAssembly,
+            readRepresentation,
+            debug,
+            html,
+            consensusRleSequence,
+            consensusRepeatCounts
+            );
     }
 
 
@@ -3185,5 +3213,88 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
     if(debug) {
         cout << timestamp << "AssemblyGraph::assemblePathSequence ends." << endl;
+        writeHtmlEnd(html);
+    }
+}
+
+
+
+// Compute consensus sequence for Link, given sequences of
+// the oriented reads, which must all be anchored on both sides.
+void AssemblyGraph::computeLinkConsensusUsingSpoa(
+    const vector< vector<Base> > rleSequences,
+    const vector< vector<uint64_t> > repeatCounts,
+    uint64_t readRepresentation,
+    bool debug,
+    ostream& html,
+    vector<Base>& consensusRleSequence,
+    vector<uint64_t>& consensusRepeatCounts
+    ) const
+{
+    // Create the spoa alignment engine and elignment graph.
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
+    const int8_t match = 1;
+    const int8_t mismatch = -1;
+    const int8_t gap = -1;
+    auto spoaAlignmentEngine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
+    spoa::Graph spoaAlignmentGraph;
+
+    // Add the oriented read sequences to the alignment.
+    string sequenceString;
+    for(const vector<Base>& sequence: rleSequences) {
+
+        // Add it to the alignment.
+        sequenceString.clear();
+        for(const Base base: sequence) {
+            sequenceString += base.character();
+        }
+        auto alignment = spoaAlignmentEngine->Align(sequenceString, spoaAlignmentGraph);
+        spoaAlignmentGraph.AddAlignment(alignment, sequenceString);
+    }
+
+    // Compute the multiple sequence alignment.
+    const vector<string> msa = spoaAlignmentGraph.GenerateMultipleSequenceAlignment();
+    const string consensus = spoaAlignmentGraph.GenerateConsensus();
+    if(debug) {
+        cout << "Multiple sequence alignment:" << endl;
+        for(const string& s: msa) {
+            cout << s << endl;
+        }
+    }
+
+
+
+    // Html output of the alignment.
+    if(html.good()) {
+        html << "<div style='font-family:monospace;white-space:nowrap;'>\n";
+        for(const string& s: msa) {
+            for(const char c: s) {
+                switch(c) {
+                case 'A':
+                    // html << "<span style='background-color:hsl(0,100%,70%)'>A</span>";
+                    html << "<span style='background-color:#ff6666'>A</span>";
+                    break;
+                case 'C':
+                    // html << "<span style='background-color:hsl(240,100%,70%)'>C</span>";
+                    html << "<span style='background-color:#6666ff'>C</span>";
+                    break;
+                case 'G':
+                    // html << "<span style='background-color:hsl(60,100%,70%)'>G</span>";
+                    html << "<span style='background-color:#ffff66'>G</span>";
+                    break;
+                case 'T':
+                    // html << "<span style='background-color:hsl(120,100%,70%)'>T</span>";
+                    html << "<span style='background-color:#66ff66'>T</span>";
+                    break;
+                case '-':
+                    html << "-";
+                    break;
+                default:
+                    SHASTA_ASSERT(0);
+                }
+            }
+            html << "<br>";
+        }
+        html << "</div>\n";
     }
 }
