@@ -3255,8 +3255,9 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
     // Compute the multiple sequence alignment.
     const vector<string> msa = spoaAlignmentGraph.GenerateMultipleSequenceAlignment();
     const string consensus = spoaAlignmentGraph.GenerateConsensus();
+    const uint64_t msaLength = msa.front().size();
     if(debug) {
-        cout << "Multiple sequence alignment:" << endl;
+        cout << "Multiple sequence alignment has length " << msaLength << ":" << endl;
         for(const string& s: msa) {
             cout << s << endl;
         }
@@ -3264,8 +3265,30 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
 
 
 
+    // Compute coverage for each base at each position of the MSA.
+    // Use position 4 for gaps.
+    vector < array < uint64_t, 5 > > coverage(msaLength, {0, 0, 0, 0, 0});
+    for(const string& s: msa) {
+        SHASTA_ASSERT(s.size() == msaLength);
+        for(uint64_t i=0; i<msaLength; i++) {
+            const char c = s[i];
+            switch(c) {
+            case 'A': ++coverage[i][0]; break;
+            case 'C': ++coverage[i][1]; break;
+            case 'G': ++coverage[i][2]; break;
+            case 'T': ++coverage[i][3]; break;
+            case '-': ++coverage[i][4]; break;
+            default: SHASTA_ASSERT(0);
+            }
+        }
+    }
+
+
+
     // Html output of the alignment.
     if(html.good()) {
+        html << rleSequences.size() << " oriented reads<br>\n";
+        html << "Alignment length " << msaLength << "<br>\n";
         html << "<div style='font-family:monospace;white-space:nowrap;'>\n";
         for(const string& s: msa) {
             for(const char c: s) {
@@ -3293,8 +3316,46 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
                     SHASTA_ASSERT(0);
                 }
             }
-            html << "<br>";
+            html << "<br>\n";
+        }
+
+        // Coverage.
+        for(uint64_t k=0; k<=4; k++) {
+            for(uint64_t i=0; i<msaLength; i++) {
+                const uint64_t n = coverage[i][k];
+                char c;
+                if(n == 0) {
+                    c = '.';
+                } else if(n < 10) {
+                    c = '0' + char(n);
+                } else if(n < 100) {
+                    c = 'A' + char(n/10);
+                } else {
+                    c = '*';
+                }
+                html << c;
+            }
+            html << " ";
+
+            switch(k) {
+            case 0: html << "A"; break;
+            case 1: html << "C"; break;
+            case 2: html << "G"; break;
+            case 3: html << "T"; break;
+            case 4: html << "-"; break;
+            }
+            html << "<br>\n";
         }
         html << "</div>\n";
+#if 0
+        for(uint64_t i=0; i<msaLength; i++) {
+            html << i << " ";
+            for(uint64_t k=0; k<=4; k++) {
+                html << coverage[i][k] << " ";
+            }
+            html << std::accumulate(coverage[i].begin(), coverage[i].end(), 0);
+            html << "<br>\n";
+        }
+#endif
     }
 }
