@@ -1,6 +1,6 @@
 // Main program for the Shasta static executable.
 // The static executable provides
-// basic functionality and reduced performance. 
+// basic functionality and reduced performance.
 // For full functionality use the shared library built
 // under directory src.
 
@@ -259,7 +259,7 @@ void shasta::main::assemble(
     if( assemblerOptions.alignOptions.alignMethod <  0 or
         assemblerOptions.alignOptions.alignMethod == 2 or
         assemblerOptions.alignOptions.alignMethod >  4) {
-        throw runtime_error("Align method " + to_string(assemblerOptions.alignOptions.alignMethod) + 
+        throw runtime_error("Align method " + to_string(assemblerOptions.alignOptions.alignMethod) +
             " is not valid. Valid options are 0, 1, 3, and 4.");
     }
 
@@ -551,7 +551,7 @@ void shasta::main::assemble(
     if(assembler.getReads().readCount() == 0) {
         throw runtime_error("There are no input reads.");
     }
-    
+
 
 
     // If requested, increase the read length cutoff
@@ -574,13 +574,13 @@ void shasta::main::assemble(
                 ", less than desired coverage " +
                 to_string(assemblerOptions.readsOptions.desiredCoverage) +
                 ". Try reducing Reads.minReadLength if appropriate or get more coverage."
-            ); 
+            );
         }
 
         // Adjusting coverage should only ever reduce coverage if necessary.
         SHASTA_ASSERT(newMinReadLength >= oldMinReadLength);
     }
-    
+
     assembler.computeReadIdsSortedByName();
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
@@ -1303,11 +1303,11 @@ void shasta::main::explore(
 
     // Go to the assembly directory.
     std::filesystem::current_path(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
-    
-    // Check that we have the binary data. 
+
+    // Check that we have the binary data.
     if(!std::filesystem::exists("Data")) {
         throw runtime_error("Binary directory \"Data\" not available "
-        " in assembly directory " + 
+        " in assembly directory " +
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
         ". Use \"--memoryMode filesystem\", possibly followed by "
         "\"--command saveBinaryData\" and \"--command cleanupBinaryData\" "
@@ -1316,17 +1316,17 @@ void shasta::main::explore(
         );
         return;
     }
-    
+
     // Create the Assembler.
     Assembler assembler("Data/", false, 1, 0);
-    
-    // Access all available binary data.
-    assembler.accessAllSoft();
-    
+
     // Set up the consensus caller.
     cout << "Setting up consensus caller " <<
         assemblerOptions.assemblyOptions.consensusCaller << endl;
     assembler.setupConsensusCaller(assemblerOptions.assemblyOptions.consensusCaller);
+
+    // Access all available binary data.
+    assembler.accessAllSoft();
 
     string executablePath = filesystem::executablePath();
     // On Linux it will be something like - `/path/to/install_root/bin/shasta`
@@ -1366,8 +1366,8 @@ void shasta::main::explore(
         );
     }
     assembler.explore(
-        assemblerOptions.commandLineOnlyOptions.port, 
-        localOnly, 
+        assemblerOptions.commandLineOnlyOptions.port,
+        localOnly,
         sameUserOnly);
 }
 

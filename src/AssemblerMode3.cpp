@@ -26,7 +26,8 @@ void Assembler::mode3Assembly(
         assemblerInfo->k,
         *reads,
         markers,
-        markerGraph);
+        markerGraph,
+        *consensusCaller);
     auto& assemblyGraph3 = *assemblyGraph3Pointer;
     assemblyGraph3.writeGfa("AssemblyGraph");
     assemblyGraph3.clusterSegments(threadCount, minClusterSize);
@@ -41,7 +42,7 @@ void Assembler::accessMode3AssemblyGraph()
         largeDataFileNamePrefix,
         assemblerInfo->readRepresentation,
         assemblerInfo->k,
-        *reads, markers, markerGraph);
+        *reads, markers, markerGraph, *consensusCaller);
 }
 
 

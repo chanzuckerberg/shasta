@@ -46,6 +46,7 @@ namespace shasta {
 
     // Some forward declarations of classes in the shasta namespace.
     class Base;
+    class ConsensusCaller;
     class Reads;
     class CompressedMarker;
     class MarkerGraph;
@@ -171,7 +172,8 @@ public:
         uint64_t k, // Marker length
         const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&);
+        const MarkerGraph&,
+        const ConsensusCaller& consensusCaller);
 
     // Constructor from binary data.
     AssemblyGraph(
@@ -180,7 +182,8 @@ public:
         uint64_t k, // Marker length
         const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MarkerGraph&);
+        const MarkerGraph&,
+        const ConsensusCaller& consensusCaller);
 
     // Data and functions to handle memory mapped data.
     const string& largeDataFileNamePrefix;
@@ -201,6 +204,7 @@ public:
     const Reads& reads;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const MarkerGraph& markerGraph;
+    const ConsensusCaller& consensusCaller;
 
     uint64_t readCount() const
     {
@@ -682,6 +686,7 @@ public:
     // Compute consensus sequence for Link, given sequences of
     // the oriented reads, which must all be anchored on both sides.
     void computeLinkConsensusUsingSpoa(
+        const vector<OrientedReadId> orientedReadIds,
         const vector< vector<Base> > rleSequences,
         const vector< vector<uint64_t> > repeatCounts,
         uint64_t readRepresentation,

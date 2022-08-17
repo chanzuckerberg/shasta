@@ -265,7 +265,7 @@ public:
             throw runtime_error("Invalid base value " + to_string(value));
         }
     }
-    
+
     // Return the complement of this base or the gap character if it is already a gap.
     AlignedBase complement() const
     {
@@ -289,10 +289,24 @@ public:
     {
         return value == that.value;
     }
-    
+
     bool operator<(AlignedBase that) const
     {
         return value < that.value;
+    }
+
+    // The html color used to represent this base.
+    string htmlColor() const
+    {
+        switch(value) {
+        case 0: return "#ff6666"; // "hsl(0,100%,70%)";
+        case 1: return "#6666ff"; // "hsl(240,100%,70%);
+        case 2: return "#ffff66"; // "hsl(60,100%,70%);
+        case 3: return "#66ff66"; // "hsl(120,100%,70%);
+        case 4: return "";
+        default:
+            throw runtime_error("Invalid base value " + to_string(value));
+        }
     }
 };
 

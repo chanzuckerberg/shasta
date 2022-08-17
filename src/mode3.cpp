@@ -3,6 +3,7 @@
 #include "mode3.hpp"
 #include "assembleMarkerGraphPath.hpp"
 #include "AssembledSegment.hpp"
+#include "ConsensusCaller.hpp"
 #include "deduplicate.hpp"
 #include "findMarkerId.hpp"
 #include "html.hpp"
@@ -636,7 +637,8 @@ AssemblyGraph::AssemblyGraph(
     uint64_t k, // Marker length
     const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph) :
+    const MarkerGraph& markerGraph,
+    const ConsensusCaller& consensusCaller) :
     MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
@@ -644,7 +646,8 @@ AssemblyGraph::AssemblyGraph(
     k(k),
     reads(reads),
     markers(markers),
-    markerGraph(markerGraph)
+    markerGraph(markerGraph),
+    consensusCaller(consensusCaller)
 {
     // Minimum number of transitions (oriented reads) to create a link.
     // If this equals 1, then the sequence of segments visited by every
@@ -700,14 +703,16 @@ AssemblyGraph::AssemblyGraph(
     uint64_t k, // Marker length
     const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MarkerGraph& markerGraph) :
+    const MarkerGraph& markerGraph,
+    const ConsensusCaller& consensusCaller) :
     MultithreadedObject<AssemblyGraph>(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     readRepresentation(readRepresentation),
     k(k),
     reads(reads),
     markers(markers),
-    markerGraph(markerGraph)
+    markerGraph(markerGraph),
+    consensusCaller(consensusCaller)
 {
     accessExistingReadOnly(paths, "Mode3-Paths");
     accessExistingReadOnly(segmentCoverage, "Mode3-SegmentCoverage");
@@ -2798,14 +2803,14 @@ void AssemblyGraph::targetedBfs(
 // Assemble sequence for an AssemblyPath.
 void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 {
-    const bool debug = true;
+    const bool debug = false;
     ofstream html;
     if(debug) {
         cout << timestamp << "AssemblyGraph::assemblePathSequence begins for a path of length " <<
             assemblyPath.segments.size() << endl;
-        html.open("Msa.html");
-        writeHtmlBegin(html, "Mode 3 assembly");
     }
+    html.open("Msa.html");
+    writeHtmlBegin(html, "Mode 3 assembly");
 
     // The list of oriented reads that can be used to assemble links.
     // These are the oriented reads that appear in either the previous or next
@@ -3033,6 +3038,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         // Now extract the portion of each oriented read sequence that
         // will be used to assemble this link.
         uint64_t actualLinkCoverage = 0;
+        vector<OrientedReadId> orientedReadIdsForAssembly;
         vector< vector<Base> > orientedReadsSequencesForAssembly;
         vector< vector<uint64_t> > orientedReadsRepeatCountsForAssembly;
         for(const auto& p: transitions[linkId01]) {
@@ -3164,6 +3170,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             copy(rightSequence.begin(), rightSequence.end(), back_inserter(orientedReadExtendedSequence));
             copy(rightRepeatCounts.begin(), rightRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
 
+            orientedReadIdsForAssembly.push_back(orientedReadId);
             orientedReadsSequencesForAssembly.push_back(orientedReadExtendedSequence);
             orientedReadsRepeatCountsForAssembly.push_back(orientedReadExtendedRepeatCounts);
 
@@ -3189,10 +3196,11 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         // Compute the consensus sequence for the link.
         vector<Base> consensusRleSequence;
         vector<uint64_t> consensusRepeatCounts;
-        if(debug) {
+        if(true) {
             html<< "<h2>Link " << linkId01 << "</h2>\n";
         }
         computeLinkConsensusUsingSpoa(
+            orientedReadIdsForAssembly,
             orientedReadsSequencesForAssembly,
             orientedReadsRepeatCountsForAssembly,
             readRepresentation,
@@ -3222,6 +3230,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 // Compute consensus sequence for Link, given sequences of
 // the oriented reads, which must all be anchored on both sides.
 void AssemblyGraph::computeLinkConsensusUsingSpoa(
+    const vector<OrientedReadId> orientedReadIds,
     const vector< vector<Base> > rleSequences,
     const vector< vector<uint64_t> > repeatCounts,
     uint64_t readRepresentation,
@@ -3231,6 +3240,9 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
     vector<uint64_t>& consensusRepeatCounts
     ) const
 {
+    SHASTA_ASSERT(rleSequences.size() == orientedReadIds.size());
+    SHASTA_ASSERT(repeatCounts.size() == orientedReadIds.size());
+
     // Create the spoa alignment engine and elignment graph.
     const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
     const int8_t match = 1;
@@ -3264,61 +3276,125 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
     }
 
 
-
     // Compute coverage for each base at each position of the MSA.
     // Use position 4 for gaps.
-    vector < array < uint64_t, 5 > > coverage(msaLength, {0, 0, 0, 0, 0});
-    for(const string& s: msa) {
-        SHASTA_ASSERT(s.size() == msaLength);
-        for(uint64_t i=0; i<msaLength; i++) {
-            const char c = s[i];
-            switch(c) {
-            case 'A': ++coverage[i][0]; break;
-            case 'C': ++coverage[i][1]; break;
-            case 'G': ++coverage[i][2]; break;
-            case 'T': ++coverage[i][3]; break;
-            case '-': ++coverage[i][4]; break;
-            default: SHASTA_ASSERT(0);
+    vector<Coverage> coverage(msaLength);
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const OrientedReadId orientedReadId = orientedReadIds[i];
+        const vector<Base>& rleSequence = rleSequences[i];
+        const vector<uint64_t>& repeatCount = repeatCounts[i];
+        const string& msaString = msa[i];
+
+        // Here:
+        // rPosition = position in rle sequence of oriented read.
+        // aPosition = position in alignment
+        uint64_t rPosition = 0;
+        for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+            const AlignedBase alignedBase = AlignedBase::fromCharacter(msaString[aPosition]);
+            if(alignedBase.isGap()) {
+                coverage[aPosition].addRead(alignedBase, orientedReadId.getStrand(), 0);
+            } else {
+                SHASTA_ASSERT(AlignedBase(rleSequence[rPosition]) == alignedBase);
+                if(readRepresentation == 1) {
+                    coverage[aPosition].addRead(
+                        alignedBase,
+                        orientedReadId.getStrand(),
+                        repeatCount[rPosition]);
+                } else {
+                    coverage[aPosition].addRead(
+                        alignedBase,
+                        orientedReadId.getStrand(),
+                        1);
+                }
+                ++rPosition;
             }
         }
+        SHASTA_ASSERT(rPosition == rleSequence.size());
+    }
+
+
+
+    // Compute consensus base and repeat count at every position in the alignment.
+    vector<AlignedBase> msaConsensusSequence(msaLength);
+    vector<uint64_t> msaConsensusRepeatCount(msaLength);
+    for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+        const Consensus consensus = consensusCaller(coverage[aPosition]);
+        msaConsensusSequence[aPosition] = consensus.base;
+        msaConsensusRepeatCount[aPosition] = consensus.repeatCount;
     }
 
 
 
     // Html output of the alignment.
     if(html.good()) {
-        html << rleSequences.size() << " oriented reads<br>\n";
+        html << "Coverage " << rleSequences.size() << "<br>\n";
         html << "Alignment length " << msaLength << "<br>\n";
         html << "<div style='font-family:monospace;white-space:nowrap;'>\n";
-        for(const string& s: msa) {
-            for(const char c: s) {
-                switch(c) {
-                case 'A':
-                    // html << "<span style='background-color:hsl(0,100%,70%)'>A</span>";
-                    html << "<span style='background-color:#ff6666'>A</span>";
-                    break;
-                case 'C':
-                    // html << "<span style='background-color:hsl(240,100%,70%)'>C</span>";
-                    html << "<span style='background-color:#6666ff'>C</span>";
-                    break;
-                case 'G':
-                    // html << "<span style='background-color:hsl(60,100%,70%)'>G</span>";
-                    html << "<span style='background-color:#ffff66'>G</span>";
-                    break;
-                case 'T':
-                    // html << "<span style='background-color:hsl(120,100%,70%)'>T</span>";
-                    html << "<span style='background-color:#66ff66'>T</span>";
-                    break;
-                case '-':
-                    html << "-";
-                    break;
-                default:
-                    SHASTA_ASSERT(0);
+        for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+            const OrientedReadId orientedReadId = orientedReadIds[i];
+            const string& msaString = msa[i];
+
+            for(const char c: msaString) {
+                const AlignedBase alignedBase = AlignedBase::fromCharacter(c);
+                if(alignedBase.isGap()) {
+                    html << alignedBase;
+                } else {
+                    html << "<span style='background-color:" << alignedBase.htmlColor() <<
+                        "'>" << alignedBase << "</span>";
                 }
             }
-            html << "<br>\n";
+
+            // If using the RLE representation, also write the
+            // repeat count at each position.
+            if(readRepresentation == 1) {
+                const vector<Base>& rleSequence = rleSequences[i];
+                const vector<uint64_t>& repeatCount = repeatCounts[i];
+
+                // Here:
+                // rPosition = position in rle sequence of oriented read.
+                // aPosition = position in alignment
+                uint64_t rPosition = 0;
+                html << "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+                for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+                    const AlignedBase alignedBase = AlignedBase::fromCharacter(msaString[aPosition]);
+                    if(alignedBase.isGap()) {
+                        html << alignedBase;
+                    } else {
+                        SHASTA_ASSERT(AlignedBase(rleSequence[rPosition]) == alignedBase);
+                        const uint64_t r = repeatCount[rPosition];
+                        html << "<span style='background-color:" << alignedBase.htmlColor() <<
+                            "'>";
+                        if(r < 10) {
+                            html << r;
+                        } else {
+                            html << "*";
+                        }
+                        html << "</span>";
+                        ++rPosition;
+                    }
+                }
+                SHASTA_ASSERT(rPosition == rleSequence.size());
+            }
+
+            html << " " << orientedReadId << "<br>\n";
         }
 
+       // Also write the consensus.
+        html << "<br>\n";
+        for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+            const AlignedBase alignedBase = msaConsensusSequence[aPosition];
+            if(alignedBase.isGap()) {
+                html << alignedBase;
+            } else {
+                html << "<span style='background-color:" << alignedBase.htmlColor() <<
+                    "'>" << alignedBase << "</span>";
+            }
+        }
+        html << " Consensus<br>\n";
+
+
+
+        #if 0
         // Coverage.
         for(uint64_t k=0; k<=4; k++) {
             for(uint64_t i=0; i<msaLength; i++) {
@@ -3346,16 +3422,7 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
             }
             html << "<br>\n";
         }
-        html << "</div>\n";
-#if 0
-        for(uint64_t i=0; i<msaLength; i++) {
-            html << i << " ";
-            for(uint64_t k=0; k<=4; k++) {
-                html << coverage[i][k] << " ";
-            }
-            html << std::accumulate(coverage[i].begin(), coverage[i].end(), 0);
-            html << "<br>\n";
-        }
 #endif
+        html << "</div>\n";
     }
 }
