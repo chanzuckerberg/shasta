@@ -2805,9 +2805,11 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 {
     const bool debug = true;
     ofstream html;
+    ofstream linksFasta;
     if(debug) {
         cout << timestamp << "AssemblyGraph::assemblePathSequence begins for a path of length " <<
             assemblyPath.segments.size() << endl;
+        linksFasta.open("PathLinksSequence.fasta");
     }
     html.open("Msa.html");
     writeHtmlBegin(html, "Mode 3 assembly");
@@ -2957,7 +2959,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
 
         // If getting here, this segment and the next are not adjacent in the marker graph.
-        // We need to assembly the link between them.
+        // We need to assemble the link between them.
         // We can only use oriented reads that are in the link
         // and also in orientedReadsForLinks.
 
@@ -3209,6 +3211,18 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             consensusRleSequence,
             consensusRepeatCounts
             );
+        SHASTA_ASSERT(consensusRleSequence.size() == consensusRepeatCounts.size());
+        if(debug) {
+            linksFasta << ">L" << i << " " << linkId01 << "\n";
+            for(uint64_t position=0; position<consensusRleSequence.size(); position++) {
+                const Base base = consensusRleSequence[position];
+                const uint64_t repeatCount = consensusRepeatCounts[position];
+                for(uint64_t j=0; j<repeatCount; j++) {
+                    linksFasta << base;
+                }
+            }
+            linksFasta << "\n";
+        }
     }
 
 
