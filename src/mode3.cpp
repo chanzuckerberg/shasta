@@ -2803,7 +2803,7 @@ void AssemblyGraph::targetedBfs(
 // Assemble sequence for an AssemblyPath.
 void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 {
-    const bool debug = false;
+    const bool debug = true;
     ofstream html;
     if(debug) {
         cout << timestamp << "AssemblyGraph::assemblePathSequence begins for a path of length " <<
@@ -3325,6 +3325,21 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
 
 
 
+    // Fill in the output arguments.
+    // These are the same as msaConsensusSequence and msaConsensusRepeatCount,
+    // but with the gap bases removed.
+    consensusRleSequence.clear();
+    consensusRepeatCounts.clear();
+    for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+        const AlignedBase alignedBase = msaConsensusSequence[aPosition];
+        if(not alignedBase.isGap()) {
+            consensusRleSequence.push_back(Base(alignedBase));
+            consensusRepeatCounts.push_back(msaConsensusRepeatCount[aPosition]);
+        }
+    }
+
+
+
     // Html output of the alignment.
     if(html.good()) {
         html << "Coverage " << rleSequences.size() << "<br>\n";
@@ -3351,7 +3366,7 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
                 const vector<uint64_t>& repeatCount = repeatCounts[i];
 
                 // Here:
-                // rPosition = position in rle sequence of oriented read.
+                // rPosition = position in RLE sequence of oriented read.
                 // aPosition = position in alignment
                 uint64_t rPosition = 0;
                 html << "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
@@ -3379,6 +3394,8 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
             html << " " << orientedReadId << "<br>\n";
         }
 
+
+
        // Also write the consensus.
         html << "<br>\n";
         for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
@@ -3390,39 +3407,51 @@ void AssemblyGraph::computeLinkConsensusUsingSpoa(
                     "'>" << alignedBase << "</span>";
             }
         }
-        html << " Consensus<br>\n";
-
-
-
-        #if 0
-        // Coverage.
-        for(uint64_t k=0; k<=4; k++) {
-            for(uint64_t i=0; i<msaLength; i++) {
-                const uint64_t n = coverage[i][k];
-                char c;
-                if(n == 0) {
-                    c = '.';
-                } else if(n < 10) {
-                    c = '0' + char(n);
-                } else if(n < 100) {
-                    c = 'A' + char(n/10);
+        if(readRepresentation == 1) {
+            html << "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+            for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+                const AlignedBase alignedBase = msaConsensusSequence[aPosition];
+                if(alignedBase.isGap()) {
+                    html << alignedBase;
                 } else {
-                    c = '*';
+                    const uint64_t r = msaConsensusRepeatCount[aPosition];
+                    html << "<span style='background-color:" << alignedBase.htmlColor() <<
+                        "'>";
+                    if(r < 10) {
+                        html << r;
+                    } else {
+                        html << "*";
+                    }
+                    html << "</span>";
                 }
-                html << c;
             }
-            html << " ";
-
-            switch(k) {
-            case 0: html << "A"; break;
-            case 1: html << "C"; break;
-            case 2: html << "G"; break;
-            case 3: html << "T"; break;
-            case 4: html << "-"; break;
-            }
-            html << "<br>\n";
         }
-#endif
+        html << " Consensus<br>\n";
+        html << "</div>\n";
+
+        html << "<h3>Consensus</h3>";
+        html << "<div style='font-family:monospace;white-space:nowrap;'>\n";
+        for(const Base b: consensusRleSequence) {
+            html << b;
+        }
+        html << "<br>\n";
+        for(const uint64_t r: consensusRepeatCounts) {
+            if(r < 10) {
+                html << r;
+            } else {
+                html << "*";
+            }
+        }
+        html << "<br>\n";
+        html << "<br>\n";
+        for(uint64_t i=0; i<consensusRleSequence.size(); i++) {
+            const Base b = consensusRleSequence[i];
+            const uint64_t r = consensusRepeatCounts[i];
+            for(uint64_t j=0; j<r; j++) {
+                html << b;
+            }
+        }
+        html << "<br>\n";
         html << "</div>\n";
     }
 }
