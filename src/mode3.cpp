@@ -18,6 +18,9 @@ using namespace mode3;
 // Spoa.
 #include "spoa/spoa.hpp"
 
+// Seqan.
+#include <seqan/align.h>
+
 // Boost libraries.
 // Include disjoint_sets.hpp first to avoid Boost problems.
 #include <boost/pending/disjoint_sets.hpp>
@@ -3222,6 +3225,84 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
                 }
             }
             linksFasta << "\n";
+        }
+
+
+
+        // Align the link consensus sequence with the sequence of the adjacent segment
+        // on the left.
+        // We don't need to use the entire segment sequence to compute
+        // the alignment - only the final portion that was used to construct read
+        // extended sequences for this link.
+        using SeqanSequence = seqan::String<char>;
+        using SeqanStringSet = seqan::StringSet<SeqanSequence>;
+        using SeqanDepStringSet = seqan::StringSet<SeqanSequence, seqan::Dependent<> >;
+        using SeqanAlignGraph = seqan::Graph<seqan::Alignment<SeqanDepStringSet> >;
+        {
+            // The sequence on the left is the previous segment.
+            const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
+            const uint64_t end0 = assembledSegment0.runLengthSequence.size();
+            SeqanSequence sequence0;
+            for(uint64_t i=begin0; i!=end0; i++) {
+                appendValue(sequence0, assembledSegment0.runLengthSequence[i].character());
+            }
+
+            // The sequence on the right is the link.
+            SeqanSequence sequence1;
+            for(uint64_t i=0; i!=consensusRleSequence.size(); i++) {
+                appendValue(sequence1, consensusRleSequence[i].character());
+            }
+
+            SeqanStringSet sequences;
+            appendValue(sequences, sequence0);
+            appendValue(sequences, sequence1);
+            SeqanAlignGraph graph(sequences);
+            const int64_t alignmentScore =  seqan::globalAlignment(
+                graph,
+                seqan::Score<int64_t, seqan::Simple>(1, -1, -1),
+                seqan::AlignConfig<false, false, true, true>(),
+                seqan::LinearGaps());
+            if(debug) {
+                cout << "Alignment of link consensus to left segment has score " << alignmentScore << endl;
+                cout << graph << endl;
+            }
+
+
+
+            // Align the link consensus sequence with the sequence of the adjacent segment
+            // on the right.
+            // We don't need to use the entire segment sequence to compute
+            // the alignment - only the initial portion that was used to construct read
+            // extended sequences for this link.
+            {
+                // The sequence on the left is the link.
+                SeqanSequence sequence0;
+                for(uint64_t i=0; i!=consensusRleSequence.size(); i++) {
+                    appendValue(sequence0, consensusRleSequence[i].character());
+                }
+
+                // The sequence on the right is the next segment.
+                SeqanSequence sequence1;
+                const uint64_t begin1 = 0;
+                const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + k;
+                for(uint64_t i=begin1; i!=end1; i++) {
+                    appendValue(sequence1, assembledSegment1.runLengthSequence[i].character());
+                }
+
+                SeqanStringSet sequences;
+                appendValue(sequences, sequence0);
+                appendValue(sequences, sequence1);
+                SeqanAlignGraph graph(sequences);
+                const int64_t alignmentScore =  seqan::globalAlignment(
+                    graph,
+                    seqan::Score<int64_t, seqan::Simple>(1, -1, -1),
+                    seqan::AlignConfig<true, true, false, false>(),
+                    seqan::LinearGaps());
+                if(debug) {
+                    cout << "Alignment of link consensus to right segment has score " << alignmentScore << endl;
+                    cout << graph << endl;
+                }
+            }
         }
     }
 
