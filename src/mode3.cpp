@@ -2806,63 +2806,36 @@ void AssemblyGraph::targetedBfs(
 void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 {
     const bool debug = true;
-    ofstream html;
-    ofstream linksFasta;
     if(debug) {
         cout << timestamp << "Assembly begins for a path of length " <<
             segments.size() << endl;
-        linksFasta.open("PathLinksSequence.fasta");
     }
-    html.open("Msa.html");
-    writeHtmlBegin(html, "Mode 3 assembly");
-
-
 
     // Assemble each segment on the path.
-    assembledSegments.resize(segments.size());
-    for(uint64_t i=0; i<segments.size(); i++) {
-        const uint64_t segmentId = segments[i].first;
-        AssembledSegment& assembledSegment = assembledSegments[i];
-        assembleMarkerGraphPath(
-            assemblyGraph.readRepresentation,
-            assemblyGraph.k,
-            assemblyGraph.markers,
-            assemblyGraph.markerGraph,
-            assemblyGraph.markerGraphPaths[segmentId], false, assembledSegment);
-    }
-
-    // Write out assembled sequence of each segment.
+    assembleSegments(assemblyGraph);
     if(debug) {
-        ofstream fasta("PathSegmentsSequence.fasta");
-        ofstream txt("PathSegmentsRleSequence.txt");
-        for(uint64_t i=0; i<segments.size(); i++) {
-            const uint64_t segmentId = segments[i].first;
-            AssembledSegment& assembledSegment = assembledSegments[i];
-
-            fasta <<
-                ">" << i <<
-                " segment " << segmentId <<
-                " length " << assembledSegment.rawSequence.size() << "\n";
-            copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
-                ostream_iterator<Base>(fasta));
-            fasta << "\n";
-
-            txt << i << " " << segmentId << endl;
-            copy(assembledSegment.runLengthSequence.begin(), assembledSegment.runLengthSequence.end(),
-                ostream_iterator<Base>(txt));
-            txt << "\n";
-            for(const uint32_t r: assembledSegment.repeatCounts) {
-                if(r < 10) {
-                    txt << r;
-                } else {
-                    txt << "*";
-                }
-            }
-            txt << "\n";
-        }
+        writeAssembledSegments();
     }
 
+    // Assemble links in this assembly path.
+    assembleLinks(assemblyGraph, debug);
 
+}
+
+
+
+// Assemble links in this assembly path.
+void AssemblyPath::assembleLinks(
+    const AssemblyGraph& assemblyGraph,
+    bool debug)
+{
+    ofstream html;
+    ofstream linksFasta;
+    if(debug) {
+        linksFasta.open("PathLinksSequence.fasta");
+        html.open("Msa.html");
+        writeHtmlBegin(html, "Mode 3 path assembly");
+    }
 
     // The list of oriented reads that can be used to assemble links.
     // These are the oriented reads that appear in either the previous or next
@@ -3208,11 +3181,12 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
         if(true) {
             html<< "<h2>Link " << linkId01 << "</h2>\n";
         }
-        assemblyGraph.computeLinkConsensusUsingSpoa(
+        computeLinkConsensusUsingSpoa(
             orientedReadIdsForAssembly,
             orientedReadsSequencesForAssembly,
             orientedReadsRepeatCountsForAssembly,
             assemblyGraph.readRepresentation,
+            assemblyGraph.consensusCaller,
             debug,
             html,
             consensusRleSequence,
@@ -3330,17 +3304,75 @@ void AssemblyPath::clear()
 {
     segments.clear();
     assembledSegments.clear();
+    linksRleSequence.clear();
+    linksRepeatCounts.clear();
+    skipAtSegmentBegin.clear();
+    skipAtSegmentEnd.clear();
+}
+
+
+
+// Assemble each segment on the path.
+void AssemblyPath::assembleSegments(const AssemblyGraph& assemblyGraph)
+{
+    assembledSegments.clear();
+    assembledSegments.resize(segments.size());
+    for(uint64_t i=0; i<segments.size(); i++) {
+        const uint64_t segmentId = segments[i].first;
+        AssembledSegment& assembledSegment = assembledSegments[i];
+        assembleMarkerGraphPath(
+            assemblyGraph.readRepresentation,
+            assemblyGraph.k,
+            assemblyGraph.markers,
+            assemblyGraph.markerGraph,
+            assemblyGraph.markerGraphPaths[segmentId], false, assembledSegment);
+    }
+}
+
+
+
+void AssemblyPath::writeAssembledSegments()
+{
+    ofstream fasta("PathSegmentsSequence.fasta");
+    ofstream txt("PathSegmentsRleSequence.txt");
+
+    for(uint64_t i=0; i<segments.size(); i++) {
+        const uint64_t segmentId = segments[i].first;
+        AssembledSegment& assembledSegment = assembledSegments[i];
+
+        fasta <<
+            ">" << i <<
+            " segment " << segmentId <<
+            " length " << assembledSegment.rawSequence.size() << "\n";
+        copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
+            ostream_iterator<Base>(fasta));
+        fasta << "\n";
+
+        txt << i << " " << segmentId << endl;
+        copy(assembledSegment.runLengthSequence.begin(), assembledSegment.runLengthSequence.end(),
+            ostream_iterator<Base>(txt));
+        txt << "\n";
+        for(const uint32_t r: assembledSegment.repeatCounts) {
+            if(r < 10) {
+                txt << r;
+            } else {
+                txt << "*";
+            }
+        }
+        txt << "\n";
+    }
 }
 
 
 
 // Compute consensus sequence for Link, given sequences of
 // the oriented reads, which must all be anchored on both sides.
-void AssemblyGraph::computeLinkConsensusUsingSpoa(
+void AssemblyPath::computeLinkConsensusUsingSpoa(
     const vector<OrientedReadId> orientedReadIds,
     const vector< vector<Base> > rleSequences,
     const vector< vector<uint64_t> > repeatCounts,
     uint64_t readRepresentation,
+    const ConsensusCaller& consensusCaller,
     bool debug,
     ostream& html,
     vector<Base>& consensusRleSequence,

@@ -155,9 +155,45 @@ public:
 
     // Each segment gets assembled and the result stored here.
     vector<AssembledSegment> assembledSegments;
-    void assembleSegments();
+    void assembleSegments(const AssemblyGraph&);
+    void writeAssembledSegments();
+
+    // Assemble links in this assembly path.
+    void assembleLinks(const AssemblyGraph&, bool debug);
+    vector< vector<Base> > linksRleSequence;
+    vector< vector<uint64_t> > linksRepeatCounts;
+
+    // When assembling path sequence, we give priority to
+    // sequence assembled from links over sequence assembled
+    // from segments. The reason is that sequence assembled from links
+    // is generally more accurate because it is assembled
+    // using only the "reference oriented reads" - that is,
+    // the oriented reads that are believed to originate from the
+    // sequence copy we are assembling.
+    // As a result, only part of the sequence of each assembled segment
+    // is used when assembling path sequence.
+    // Here we store the number of (RLE) bases to be skipped at the
+    // beginning and end of each assembled segment.
+    // These are computed in assembleLinks.
+    vector<uint64_t> skipAtSegmentBegin;
+    vector<uint64_t> skipAtSegmentEnd;
 
     void clear();
+
+    // Use spoa to compute consensus sequence for a link, given sequences of
+    // the oriented reads, which must all be anchored on both sides.
+    void computeLinkConsensusUsingSpoa(
+        const vector<OrientedReadId> orientedReadIds,
+        const vector< vector<Base> > rleSequences,
+        const vector< vector<uint64_t> > repeatCounts,
+        uint64_t readRepresentation,
+        const ConsensusCaller&,
+        bool debug,
+        ostream& html,
+        vector<Base>& consensusRleSequence,
+        vector<uint64_t>& consensusRepeatCounts
+        ) const;
+
 };
 
 
@@ -685,20 +721,6 @@ public:
         uint64_t direction,    // 0 = forward, 1 = backward
         AssemblyPath&
         ) const;
-
-    // Compute consensus sequence for Link, given sequences of
-    // the oriented reads, which must all be anchored on both sides.
-    void computeLinkConsensusUsingSpoa(
-        const vector<OrientedReadId> orientedReadIds,
-        const vector< vector<Base> > rleSequences,
-        const vector< vector<uint64_t> > repeatCounts,
-        uint64_t readRepresentation,
-        bool debug,
-        ostream& html,
-        vector<Base>& consensusRleSequence,
-        vector<uint64_t>& consensusRepeatCounts
-        ) const;
-
 
     // Compute link separation given a set of Transitions.
     template<class Container> static double linkSeparation(
