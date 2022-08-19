@@ -1,6 +1,7 @@
 // Shasta.
 #include "mode3-PathGraph.hpp"
 #include "findLinearChains.hpp"
+#include "MurmurHash2.hpp"
 #include "orderPairs.hpp"
 #include "transitiveReduction.hpp"
 using namespace shasta;

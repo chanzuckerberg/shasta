@@ -1,5 +1,6 @@
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
+#include "mode3-AssemblyPath.hpp"
 #include "computeLayout.hpp"
 #include "html.hpp"
 #include "HttpServer.hpp"
