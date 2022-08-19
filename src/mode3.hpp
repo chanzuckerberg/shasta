@@ -302,6 +302,7 @@ public:
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksBySource;
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> linksByTarget;
     void createConnectivity();
+    uint64_t findLink(uint64_t segmentId0, uint64_t segmentId1) const;
 
 
     // Flag back-segments.

@@ -41,10 +41,12 @@ public:
     // Each segment gets assembled and the result stored here.
     vector<AssembledSegment> assembledSegments;
     void assembleSegments(const AssemblyGraph&);
-    void writeAssembledSegments();
+    void writeSegmentSequences();
 
     // Assemble links in this assembly path.
-    void assembleLinks(const AssemblyGraph&, bool debug);
+    void assembleLinksOld(const AssemblyGraph&, bool debug);
+    void assembleLinks(const AssemblyGraph&);
+    void writeLinkSequences(const AssemblyGraph&);
     vector< vector<Base> > linksRleSequence;
     vector< vector<uint64_t> > linksRepeatCounts;
 
@@ -78,6 +80,16 @@ public:
         vector<Base>& consensusRleSequence,
         vector<uint64_t>& consensusRepeatCounts
         ) const;
+
+    // Find the oriented reads to be used to assemble
+    // links between the segment at position0
+    // in the assembly path (which must be a reference segment)
+    // and the next reference segment in the path.
+    // The oriented reads are returned sorted.
+    void findOrientedReadsForLinks(
+        uint64_t position0,
+        const AssemblyGraph&,
+        vector<OrientedReadId>&) const;
 
 };
 

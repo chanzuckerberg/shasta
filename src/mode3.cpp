@@ -749,6 +749,18 @@ void AssemblyGraph::createConnectivity()
 
 
 
+uint64_t AssemblyGraph::findLink(uint64_t segmentId0, uint64_t segmentId1) const
+{
+    for(const uint64_t linkId: linksBySource[segmentId0]) {
+        if(links[linkId].segmentId1 == segmentId1) {
+            return linkId;
+        }
+    }
+    SHASTA_ASSERT(0);
+}
+
+
+
 // Flag back-segments.
 // This does not do a full blown search for locally strongly connected components.
 // A segment is marked as a back-segment if:
