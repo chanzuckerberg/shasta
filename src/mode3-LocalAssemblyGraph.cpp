@@ -569,7 +569,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
 
         // If requested, assemble path sequence.
         if(options.assemblePathSequence) {
-            assemblyGraph.assemblePathSequence(path);
+            path.assemble(assemblyGraph);
         }
     }
 
@@ -935,7 +935,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " onmouseenter='onMouseEnterSegment(" <<
             segmentId << "," <<
             distance << "," <<
-            assemblyGraph.paths.size(segmentId) << "," <<
+            assemblyGraph.markerGraphPaths.size(segmentId) << "," <<
             averageEdgeCoverage << "," <<
             assemblyGraph.clusterIds[segmentId] << "," <<
             segmentPairInfo.totalCount[0] << "," <<
@@ -1003,7 +1003,7 @@ void mode3::LocalAssemblyGraph::computeLayout(
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
 
-        const uint64_t pathLength = assemblyGraph.paths.size(segmentId);
+        const uint64_t pathLength = assemblyGraph.markerGraphPaths.size(segmentId);
         const double displayLength =
             options.minimumSegmentLength +
             double(pathLength - 1) * options.additionalSegmentLengthPerMarker;
@@ -1220,8 +1220,8 @@ bool LocalAssemblyGraph::haveConsecutivePaths(
     const uint64_t segmentId0 = vertex0.segmentId;
     const uint64_t segmentId1 = vertex1.segmentId;
 
-    const auto path0 = assemblyGraph.paths[segmentId0];
-    const auto path1 = assemblyGraph.paths[segmentId1];
+    const auto path0 = assemblyGraph.markerGraphPaths[segmentId0];
+    const auto path1 = assemblyGraph.markerGraphPaths[segmentId1];
 
     const MarkerGraphEdgeId edgeId0 = path0.back();
     const MarkerGraphEdgeId edgeId1 = path1.front();
@@ -1515,7 +1515,7 @@ void LocalAssemblyGraph::writeGfa(ostream& gfa) const
     // Write the segments.
     BGL_FORALL_VERTICES(v, localAssemblyGraph, LocalAssemblyGraph) {
         const uint64_t segmentId = localAssemblyGraph[v].segmentId;
-        const auto path = assemblyGraph.paths[segmentId];
+        const auto path = assemblyGraph.markerGraphPaths[segmentId];
         gfa <<
             "S\t" << segmentId << "\t" <<
             "*\tLN:i:" << path.size() << "\n";

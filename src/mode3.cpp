@@ -2,7 +2,6 @@
 // Shasta
 #include "mode3.hpp"
 #include "assembleMarkerGraphPath.hpp"
-#include "AssembledSegment.hpp"
 #include "ConsensusCaller.hpp"
 #include "deduplicate.hpp"
 #include "findMarkerId.hpp"
@@ -46,7 +45,7 @@ void AssemblyGraph::createSegmentPaths()
 {
     const bool debug = false;
 
-    createNew(paths, "Mode3-Paths");
+    createNew(markerGraphPaths, "Mode3-MarkerGraphPaths");
     const MarkerGraph::EdgeId edgeCount = markerGraph.edges.size();
     vector<bool> wasFound(edgeCount, false);
 
@@ -137,9 +136,9 @@ void AssemblyGraph::createSegmentPaths()
         }
 
         // Store this path as a new segment.
-        paths.appendVector();
+        markerGraphPaths.appendVector();
         for(const MarkerGraphEdgeId edgeId: path) {
-            paths.append(edgeId);
+            markerGraphPaths.append(edgeId);
         }
     }
 
@@ -152,8 +151,8 @@ void AssemblyGraph::createSegmentPaths()
     // Debug output: write the paths.
     if(debug) {
         ofstream csv("Paths.csv");
-        for(uint64_t segmentId=0; segmentId<paths.size(); segmentId++) {
-            const auto path = paths[segmentId];
+        for(uint64_t segmentId=0; segmentId<markerGraphPaths.size(); segmentId++) {
+            const auto path = markerGraphPaths[segmentId];
             for(const MarkerGraphEdgeId edgeId: path) {
                 csv << segmentId << ",";
                 csv << edgeId << "\n";
@@ -172,14 +171,14 @@ void AssemblyGraph::computeSegmentCoverage()
 {
     // Initialize segmentCoverage.
     createNew(segmentCoverage, "Mode3-SegmentCoverage");
-    const uint64_t segmentCount = paths.size();
+    const uint64_t segmentCount = markerGraphPaths.size();
     segmentCoverage.resize(segmentCount);
 
     // Loop over all segments.
     for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
 
         // Access the marker graph path for this segment.
-        const span<MarkerGraphEdgeId> path = paths[segmentId];
+        const span<MarkerGraphEdgeId> path = markerGraphPaths[segmentId];
 
 
         // Loop over this path.
@@ -228,7 +227,7 @@ void AssemblyGraph::computeMarkerGraphEdgeTable(size_t threadCount)
 
     // Fill in the marker graph edge table.
     const uint64_t batchSize = 100;
-    setupLoadBalancing(paths.size(), batchSize);
+    setupLoadBalancing(markerGraphPaths.size(), batchSize);
     runThreads(&AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction, threadCount);
 }
 
@@ -243,7 +242,7 @@ void AssemblyGraph::computeMarkerGraphEdgeTableThreadFunction(size_t threadId)
 
         // Loop over all vertices assigned to this batch.
         for(uint64_t segmentId=begin; segmentId!=end; ++segmentId) {
-            const span<MarkerGraphEdgeId> path = paths[segmentId];
+            const span<MarkerGraphEdgeId> path = markerGraphPaths[segmentId];
 
             // Loop over the path of this segment.
             for(uint64_t position=0; position<path.size(); position++) {
@@ -485,7 +484,7 @@ void AssemblyGraph::computeAssemblyGraphJourneyInfos()
 {
     const bool debug = true;
 
-    const uint64_t segmentCount = paths.size();
+    const uint64_t segmentCount = markerGraphPaths.size();
     const uint64_t readCount = assemblyGraphJourneys.size()/2;
 
     createNew(assemblyGraphJourneyInfos, "Mode3-AssemblyGraphJourneyInfos");
@@ -593,8 +592,8 @@ void AssemblyGraph::createLinks(
         // Check if these two segments are adjacent in the marker graph.
         const uint64_t segmentId0 = link.segmentId0;
         const uint64_t segmentId1 = link.segmentId1;
-        const auto path0 = paths[segmentId0];
-        const auto path1 = paths[segmentId1];
+        const auto path0 = markerGraphPaths[segmentId0];
+        const auto path1 = markerGraphPaths[segmentId1];
         const MarkerGraph::Edge lastEdge0 = markerGraph.edges[path0.back()];
         const MarkerGraph::Edge firstEdge1 = markerGraph.edges[path1.front()];
         if(lastEdge0.target == firstEdge1.source) {
@@ -682,7 +681,7 @@ AssemblyGraph::AssemblyGraph(
     createConnectivity();
     flagBackSegments();
 
-    cout << "The mode 3 assembly graph has " << paths.size() << " segments and " <<
+    cout << "The mode 3 assembly graph has " << markerGraphPaths.size() << " segments and " <<
         links.size() << " links." << endl;
 }
 
@@ -717,7 +716,7 @@ AssemblyGraph::AssemblyGraph(
     markerGraph(markerGraph),
     consensusCaller(consensusCaller)
 {
-    accessExistingReadOnly(paths, "Mode3-Paths");
+    accessExistingReadOnly(markerGraphPaths, "Mode3-MarkerGraphPaths");
     accessExistingReadOnly(segmentCoverage, "Mode3-SegmentCoverage");
     accessExistingReadOnly(markerGraphEdgeTable, "Mode3-MarkerGraphEdgeTable");
     accessExistingReadOnly(assemblyGraphJourneys, "Mode3-AssemblyGraphJourneys");
@@ -765,7 +764,7 @@ void AssemblyGraph::createConnectivity()
 // - The incoming and outgoing links both connect to/from the same segment.
 void AssemblyGraph::flagBackSegments()
 {
-    const uint64_t segmentCount = paths.size();
+    const uint64_t segmentCount = markerGraphPaths.size();
     createNew(isBackSegment, "Mode3-IsBackSegment");
     isBackSegment.resize(segmentCount);
 
@@ -871,8 +870,8 @@ void AssemblyGraph::writeGfa(const string& baseName) const
     csv << "Segment,Length,Average coverage,Read count\n";
 
     // Write the segments.
-    for(uint64_t segmentId=0; segmentId<paths.size(); segmentId++) {
-        const auto path = paths[segmentId];
+    for(uint64_t segmentId=0; segmentId<markerGraphPaths.size(); segmentId++) {
+        const auto path = markerGraphPaths[segmentId];
         gfa <<
             "S\t" << segmentId << "\t" <<
             "*\tLN:i:" << path.size() << "\n";
@@ -901,7 +900,7 @@ double AssemblyGraph::findOrientedReadsOnSegment(
     vector<OrientedReadId>& orientedReadIdsArgument) const
 {
     // Loop over the marker graph path corresponding to this segment.
-    const span<const MarkerGraphEdgeId> path = paths[segmentId];
+    const span<const MarkerGraphEdgeId> path = markerGraphPaths[segmentId];
     double coverage = 0.;
     std::set<OrientedReadId> orientedReadIds;
     for(const MarkerGraphEdgeId& edgeId: path) {
@@ -936,7 +935,7 @@ void AssemblyGraph::getOrientedReadsOnSegment(
     std::map<OrientedReadId, pair<uint64_t, int64_t>  > table;
 
     // Loop over the marker graph path corresponding to this segment.
-    const span<const MarkerGraphEdgeId> path = paths[segmentId];
+    const span<const MarkerGraphEdgeId> path = markerGraphPaths[segmentId];
     std::set<OrientedReadId> orientedReadIds;
     for(uint64_t position=0; position<path.size(); position++) {
         const MarkerGraphEdgeId& edgeId = path[position];
@@ -1067,8 +1066,8 @@ void AssemblyGraph::analyzeSegmentPair(
     auto it0 = begin0;
     auto it1 = begin1;
 
-    const uint64_t length0 = paths.size(segmentId0);
-    const uint64_t length1 = paths.size(segmentId1);
+    const uint64_t length0 = markerGraphPaths.size(segmentId0);
+    const uint64_t length1 = markerGraphPaths.size(segmentId1);
     while(true) {
 
         // At end of both segments.
@@ -1146,7 +1145,7 @@ void AssemblyGraph::analyzeSegmentPair(
 // Gather oriented read information for each segment.
 void AssemblyGraph::storeSegmentOrientedReadInformation(size_t threadCount)
 {
-    const uint64_t segmentCount = paths.size();
+    const uint64_t segmentCount = markerGraphPaths.size();
     segmentOrientedReadInformation.resize(segmentCount);
     const uint64_t batchSize = 10;
     setupLoadBalancing(segmentCount, batchSize);
@@ -1179,7 +1178,7 @@ void AssemblyGraph::clusterSegments(size_t threadCount, uint64_t minClusterSize)
     storeSegmentOrientedReadInformation(threadCount);
 
     // Find the segment pairs.
-    const uint64_t segmentCount = paths.size();
+    const uint64_t segmentCount = markerGraphPaths.size();
     const uint64_t batchSize = 10;
     setupLoadBalancing(segmentCount, batchSize);
     clusterSegmentsData.threadPairs.resize(threadCount);
@@ -2804,44 +2803,40 @@ void AssemblyGraph::targetedBfs(
 
 
 // Assemble sequence for an AssemblyPath.
-void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
+void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 {
     const bool debug = true;
     ofstream html;
     ofstream linksFasta;
     if(debug) {
-        cout << timestamp << "AssemblyGraph::assemblePathSequence begins for a path of length " <<
-            assemblyPath.segments.size() << endl;
+        cout << timestamp << "Assembly begins for a path of length " <<
+            segments.size() << endl;
         linksFasta.open("PathLinksSequence.fasta");
     }
     html.open("Msa.html");
     writeHtmlBegin(html, "Mode 3 assembly");
 
-    // The list of oriented reads that can be used to assemble links.
-    // These are the oriented reads that appear in either the previous or next
-    // reference segment in the path.
-    // This list changes every time we encounter a new reference segment.
-    // It is kept sorted for efficiency.
-    vector<OrientedReadId> orientedReadsForLinks;
 
 
     // Assemble each segment on the path.
-    vector<AssembledSegment> assembledSegments(assemblyPath.segments.size());
-    for(uint64_t i=0; i<assemblyPath.segments.size(); i++) {
-        const uint64_t segmentId = assemblyPath.segments[i].first;
+    assembledSegments.resize(segments.size());
+    for(uint64_t i=0; i<segments.size(); i++) {
+        const uint64_t segmentId = segments[i].first;
         AssembledSegment& assembledSegment = assembledSegments[i];
-        assembleMarkerGraphPath(readRepresentation, k,
-            markers, markerGraph, paths[segmentId], false, assembledSegment);
+        assembleMarkerGraphPath(
+            assemblyGraph.readRepresentation,
+            assemblyGraph.k,
+            assemblyGraph.markers,
+            assemblyGraph.markerGraph,
+            assemblyGraph.markerGraphPaths[segmentId], false, assembledSegment);
     }
-
-
 
     // Write out assembled sequence of each segment.
     if(debug) {
         ofstream fasta("PathSegmentsSequence.fasta");
         ofstream txt("PathSegmentsRleSequence.txt");
-        for(uint64_t i=0; i<assemblyPath.segments.size(); i++) {
-            const uint64_t segmentId = assemblyPath.segments[i].first;
+        for(uint64_t i=0; i<segments.size(); i++) {
+            const uint64_t segmentId = segments[i].first;
             AssembledSegment& assembledSegment = assembledSegments[i];
 
             fasta <<
@@ -2869,10 +2864,18 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
 
 
+    // The list of oriented reads that can be used to assemble links.
+    // These are the oriented reads that appear in either the previous or next
+    // reference segment in the path.
+    // This list changes every time we encounter a new reference segment.
+    // It is kept sorted for efficiency.
+    vector<OrientedReadId> orientedReadsForLinks;
+
+
     // Assemble segment and link sequence into path sequence.
     string sequence;
     for(uint64_t i=0; ; i++) {
-        const auto& p = assemblyPath.segments[i];
+        const auto& p = segments[i];
         const uint64_t segmentId0 = p.first;
         if(debug) {
             cout << "Working on segment " << segmentId0 << " at position " << i <<
@@ -2894,7 +2897,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         }
 
         // If this is the last segment, we are done.
-        if(i == assemblyPath.segments.size() - 1) {
+        if(i == segments.size() - 1) {
             break;
         }
 
@@ -2909,21 +2912,21 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
             // Add the oriented reads in segmentId0, our new
             // reference segment.
-            for(const auto& p: assemblyGraphJourneyInfos[segmentId0]) {
+            for(const auto& p: assemblyGraph.assemblyGraphJourneyInfos[segmentId0]) {
                 orientedReadsForLinks.push_back(p.first);
             }
 
             // Look for the next reference segment in the path.
             uint64_t nextReferenceSegmentId = invalid<uint64_t>;
-            for(uint64_t j=i+1; j<assemblyPath.segments.size(); j++) {
-                const auto& q = assemblyPath.segments[i];
+            for(uint64_t j=i+1; j<segments.size(); j++) {
+                const auto& q = segments[i];
                 if(q.second) {
                     nextReferenceSegmentId = q.first;
                     break;
                 }
             }
             SHASTA_ASSERT(nextReferenceSegmentId != invalid<uint64_t>);
-            for(const auto& p: assemblyGraphJourneyInfos[nextReferenceSegmentId]) {
+            for(const auto& p: assemblyGraph.assemblyGraphJourneyInfos[nextReferenceSegmentId]) {
                 orientedReadsForLinks.push_back(p.first);
             }
 
@@ -2932,7 +2935,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         }
 
         // This is not the last segment. Access the next segment in the path.
-        const uint64_t segmentId1 = assemblyPath.segments[i+1].first;
+        const uint64_t segmentId1 = segments[i+1].first;
         AssembledSegment& assembledSegment1 = assembledSegments[i+1];
 
 
@@ -2940,15 +2943,16 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         // If the segments are consecutive in the marker graph,
         // just take out the last k RLE bases from the sequence.
         // We will get them from the next segment.
-        const auto path0 = paths[segmentId0];
-        const auto path1 = paths[segmentId1];
-        const MarkerGraph::Edge lastEdge0 = markerGraph.edges[path0.back()];
-        const MarkerGraph::Edge firstEdge1 = markerGraph.edges[path1.front()];
+        const auto path0 = assemblyGraph.markerGraphPaths[segmentId0];
+        const auto path1 = assemblyGraph.markerGraphPaths[segmentId1];
+        const MarkerGraph::Edge lastEdge0 = assemblyGraph.markerGraph.edges[path0.back()];
+        const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[path1.front()];
         if(lastEdge0.target == firstEdge1.source) {
 
             // Compute the number of bases to be removed.
             uint64_t removeCount = 0;
-            for(uint64_t j=assembledSegment0.repeatCounts.size() - k; j<assembledSegment0.repeatCounts.size(); j++) {
+            for(uint64_t j=assembledSegment0.repeatCounts.size() - assemblyGraph.k;
+                j<assembledSegment0.repeatCounts.size(); j++) {
                 removeCount += assembledSegment0.repeatCounts[j];
             }
 
@@ -2968,8 +2972,8 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
 
         // Locate the link between segmentId0 and segmentId1.
         uint64_t linkId01 = invalid<uint64_t>;
-        for(uint64_t linkId: linksBySource[segmentId0]) {
-            if(links[linkId].segmentId1 == segmentId1) {
+        for(uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
+            if(assemblyGraph.links[linkId].segmentId1 == segmentId1) {
                 linkId01 = linkId;
                 break;
             }
@@ -2977,7 +2981,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
 
         // Access the oriented reads that transition over this link.
-        const auto transitions01 = transitions[linkId01];
+        const auto transitions01 = assemblyGraph.transitions[linkId01];
 
         if(debug) {
             cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
@@ -3001,7 +3005,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         // - The position in segmentId1 of the rightmost transition.
         uint64_t minEdgePosition0 = path0.size();
         uint64_t maxEdgePosition1 = 0;
-        for(const auto& p: transitions[linkId01]) {
+        for(const auto& p: assemblyGraph.transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
 
             // If not in orientedReadsForLinks, skip it.
@@ -3012,7 +3016,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             }
 
             // Access the transition from segmentId0 to segmentId1 for this oriented read.
-            const Transition& transition = p.second;
+            const AssemblyGraph::Transition& transition = p.second;
 
             minEdgePosition0 = min(minEdgePosition0, uint64_t(transition[0].position));
             maxEdgePosition1 = max(maxEdgePosition1, uint64_t(transition[1].position));
@@ -3046,7 +3050,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         vector<OrientedReadId> orientedReadIdsForAssembly;
         vector< vector<Base> > orientedReadsSequencesForAssembly;
         vector< vector<uint64_t> > orientedReadsRepeatCountsForAssembly;
-        for(const auto& p: transitions[linkId01]) {
+        for(const auto& p: assemblyGraph.transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
 
             // If not in orientedReadsForLinks, skip it.
@@ -3057,7 +3061,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             }
 
             // Access the transition from segmentId0 to segmentId1 for this oriented read.
-            const Transition& transition = p.second;
+            const AssemblyGraph::Transition& transition = p.second;
             ++actualLinkCoverage;
 
             // Get the ordinals of the last appearance of this oriented
@@ -3068,8 +3072,8 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             if(debug) {
                 cout << orientedReadId << " " << ordinal0 << " " << ordinal1 << endl;
             }
-            const CompressedMarker& marker0 = markers[orientedReadId.getValue()][ordinal0];
-            const CompressedMarker& marker1 = markers[orientedReadId.getValue()][ordinal1];
+            const CompressedMarker& marker0 = assemblyGraph.markers[orientedReadId.getValue()][ordinal0];
+            const CompressedMarker& marker1 = assemblyGraph.markers[orientedReadId.getValue()][ordinal1];
 
             // Get the positions of these markers on the oriented read.
             // If using RLE, these are RLE positions.
@@ -3079,19 +3083,19 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             // Extract the sequence between these markers (including the markers).
             vector<Base> orientedReadSequence;
             vector<uint8_t> orientedReadRepeatCounts;
-            if(readRepresentation == 1) {
+            if(assemblyGraph.readRepresentation == 1) {
                 // RLE.
-                for(uint64_t position=position0; position<position1+k; position++) {
+                for(uint64_t position=position0; position<position1+assemblyGraph.k; position++) {
                     Base b;
                     uint8_t r;
-                    tie(b, r) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+                    tie(b, r) = assemblyGraph.reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
                     orientedReadSequence.push_back(b);
                     orientedReadRepeatCounts.push_back(r);
                 }
             } else {
                 // Raw sequence.
-                for(uint64_t position=position0; position<position1+k; position++) {
-                    const Base b = reads.getOrientedReadBase(orientedReadId, uint32_t(position));
+                for(uint64_t position=position0; position<position1+assemblyGraph.k; position++) {
+                    const Base b = assemblyGraph.reads.getOrientedReadBase(orientedReadId, uint32_t(position));
                     orientedReadSequence.push_back(b);
                     orientedReadRepeatCounts.push_back(uint8_t(1));
                 }
@@ -3140,8 +3144,8 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
             vector<Base> rightSequence;
             vector<uint32_t> rightRepeatCounts;
             const uint64_t vertexPosition1 = transition[1].position;
-            const uint64_t begin1 = assembledSegment1.vertexOffsets[vertexPosition1] + k;
-            const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + k;
+            const uint64_t begin1 = assembledSegment1.vertexOffsets[vertexPosition1] + assemblyGraph.k;
+            const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
             // cout << "*** begin1 " << begin1 << endl;
             // cout << "*** end1 " << end1 << endl;
             for(uint64_t position=begin1; position!=end1; position++) {
@@ -3204,11 +3208,11 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         if(true) {
             html<< "<h2>Link " << linkId01 << "</h2>\n";
         }
-        computeLinkConsensusUsingSpoa(
+        assemblyGraph.computeLinkConsensusUsingSpoa(
             orientedReadIdsForAssembly,
             orientedReadsSequencesForAssembly,
             orientedReadsRepeatCountsForAssembly,
-            readRepresentation,
+            assemblyGraph.readRepresentation,
             debug,
             html,
             consensusRleSequence,
@@ -3284,7 +3288,7 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
                 // The sequence on the right is the next segment.
                 SeqanSequence sequence1;
                 const uint64_t begin1 = 0;
-                const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + k;
+                const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
                 for(uint64_t i=begin1; i!=end1; i++) {
                     appendValue(sequence1, assembledSegment1.runLengthSequence[i].character());
                 }
@@ -3318,6 +3322,14 @@ void AssemblyGraph::assemblePathSequence(const AssemblyPath& assemblyPath) const
         cout << timestamp << "AssemblyGraph::assemblePathSequence ends." << endl;
         writeHtmlEnd(html);
     }
+}
+
+
+
+void AssemblyPath::clear()
+{
+    segments.clear();
+    assembledSegments.clear();
 }
 
 

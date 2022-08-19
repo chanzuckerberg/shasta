@@ -71,14 +71,14 @@ void Assembler::exploreMode3AssemblyGraph(
         return;
     }
 
-    if(startSegmentId >= assemblyGraph3Pointer->paths.size()) {
+    if(startSegmentId >= assemblyGraph3Pointer->markerGraphPaths.size()) {
         html << "<p>Invalid start segment id. Maximum valid value is " <<
-            assemblyGraph3Pointer->paths.size() - 1;
+            assemblyGraph3Pointer->markerGraphPaths.size() - 1;
         return;
     }
-    if(options.referenceSegmentId >= assemblyGraph3Pointer->paths.size()) {
+    if(options.referenceSegmentId >= assemblyGraph3Pointer->markerGraphPaths.size()) {
         html << "<p>Invalid reference segment id. Maximum valid value is " <<
-            assemblyGraph3Pointer->paths.size() - 1;
+            assemblyGraph3Pointer->markerGraphPaths.size() - 1;
         return;
     }
 
@@ -165,14 +165,14 @@ void Assembler::exploreMode3AssemblyGraphSegment(
     }
 
     // Check that we have a valid segmentId.
-    if(segmentId >= assemblyGraph3.paths.size()) {
+    if(segmentId >= assemblyGraph3.markerGraphPaths.size()) {
         html << "Invalid segment id. Maximum valid value is " <<
-            assemblyGraph3.paths.size() - 1 << ".";
+            assemblyGraph3.markerGraphPaths.size() - 1 << ".";
         return;
     }
 
     // Access the marker graph path for this segment.
-    const auto path = assemblyGraph3.paths[segmentId];
+    const auto path = assemblyGraph3.markerGraphPaths[segmentId];
 
     // Get information about the oriented reads of this segment.
     mode3::AssemblyGraph::SegmentOrientedReadInformation orientedReads;
@@ -300,8 +300,8 @@ void Assembler::exploreMode3AssemblyGraphLink(
     const auto transitions = assemblyGraph3.transitions[linkId];
     const uint64_t segmentId0 = link.segmentId0;
     const uint64_t segmentId1 = link.segmentId1;
-    const auto path0 = assemblyGraph3.paths[segmentId0];
-    const auto path1 = assemblyGraph3.paths[segmentId1];
+    const auto path0 = assemblyGraph3.markerGraphPaths[segmentId0];
+    const auto path1 = assemblyGraph3.markerGraphPaths[segmentId1];
     const uint64_t pathLength0 = path0.size();
     const uint64_t pathLength1 = path1.size();
 
@@ -427,14 +427,14 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     }
 
     // Check that we have valid segmentId's.
-    if(segmentId0 >= assemblyGraph3.paths.size()) {
+    if(segmentId0 >= assemblyGraph3.markerGraphPaths.size()) {
         html << "Invalid segment id. Maximum valid value is " <<
-            assemblyGraph3.paths.size() - 1 << ".";
+            assemblyGraph3.markerGraphPaths.size() - 1 << ".";
         return;
     }
-    if(segmentId1 >= assemblyGraph3.paths.size()) {
+    if(segmentId1 >= assemblyGraph3.markerGraphPaths.size()) {
         html << "Invalid segment id. Maximum valid value is " <<
-            assemblyGraph3.paths.size() - 1 << ".";
+            assemblyGraph3.markerGraphPaths.size() - 1 << ".";
         return;
     }
 
@@ -444,8 +444,8 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     mode3::AssemblyGraph::SegmentOrientedReadInformation orientedReads1;
     assemblyGraph3.getOrientedReadsOnSegment(segmentId0, orientedReads0);
     assemblyGraph3.getOrientedReadsOnSegment(segmentId1, orientedReads1);
-    const uint64_t length0 = assemblyGraph3.paths.size(segmentId0);
-    const uint64_t length1 = assemblyGraph3.paths.size(segmentId1);
+    const uint64_t length0 = assemblyGraph3.markerGraphPaths.size(segmentId0);
+    const uint64_t length1 = assemblyGraph3.markerGraphPaths.size(segmentId1);
 
     // Estimate the offset between the segments and count missing
     // oriented reads.

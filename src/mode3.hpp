@@ -16,6 +16,7 @@ number of transitions 0->1, we create a link 0->1.
 *******************************************************************************/
 
 // Shasta.
+#include "AssembledSegment.hpp"
 #include "hashArray.hpp"
 #include "invalid.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
@@ -45,6 +46,7 @@ namespace shasta {
     }
 
     // Some forward declarations of classes in the shasta namespace.
+    class AssembledSegment;
     class Base;
     class ConsensusCaller;
     class Reads;
@@ -148,10 +150,14 @@ public:
     // it does not appear in other copies or haplotypes).
     vector< pair<uint64_t, bool> > segments;
 
-    void clear()
-    {
-        segments.clear();
-    }
+    // Top level function to assemble sequence for this path.
+    void assemble(const AssemblyGraph&);
+
+    // Each segment gets assembled and the result stored here.
+    vector<AssembledSegment> assembledSegments;
+    void assembleSegments();
+
+    void clear();
 };
 
 
@@ -214,7 +220,7 @@ public:
     // Each  linear chain of marker graph edges generates a segment.
     // The marker graph path corresponding to each segment is stored
     // indexed by segment id.
-    MemoryMapped::VectorOfVectors<MarkerGraphEdgeId, uint64_t> paths;
+    MemoryMapped::VectorOfVectors<MarkerGraphEdgeId, uint64_t> markerGraphPaths;
     void createSegmentPaths();
 
     // Average marker graph edge coverage for all segments.
@@ -679,9 +685,6 @@ public:
         uint64_t direction,    // 0 = forward, 1 = backward
         AssemblyPath&
         ) const;
-
-    // Assemble sequence for an AssemblyPath.
-    void assemblePathSequence(const AssemblyPath&) const;
 
     // Compute consensus sequence for Link, given sequences of
     // the oriented reads, which must all be anchored on both sides.
