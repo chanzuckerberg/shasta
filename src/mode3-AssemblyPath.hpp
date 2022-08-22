@@ -37,6 +37,11 @@ public:
     // The first and last segment are always primary segments.
     bool isPrimary;
 
+    // The AssembledSegment segment contains the sequence for this segment
+    // plus information on how the sequence was extracted from the
+    // marker graph.
+    AssembledSegment assembledSegment;
+
     // Constructor.
     AssemblyPathSegment(uint64_t id, bool isPrimary);
 };
@@ -54,13 +59,11 @@ public:
     // Top level function to assemble sequence for this path.
     void assemble(const AssemblyGraph&);
 
-    // Each segment gets assembled and the result stored here.
-    vector<AssembledSegment> assembledSegments;
+    // Assemble the sequence of each segment.
     void assembleSegments(const AssemblyGraph&);
     void writeSegmentSequences();
 
     // Assemble links in this assembly path.
-    void assembleLinksOld(const AssemblyGraph&, bool debug);
     void assembleLinks(const AssemblyGraph&);
     void writeLinkSequences(const AssemblyGraph&);
     vector< vector<Base> > linksRleSequence;
