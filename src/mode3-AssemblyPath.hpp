@@ -65,6 +65,12 @@ public:
     vector<uint64_t> skipAtSegmentBegin;
     vector<uint64_t> skipAtSegmentEnd;
 
+    // Final assembly of segments and links sequence into the path sequence.
+    void assemble();
+    vector<Base> rleSequence;
+    vector<uint64_t> repeatCounts;
+    vector<Base> rawSequence;
+
     void clear();
 
     // Use spoa to compute consensus sequence for a link, given sequences of

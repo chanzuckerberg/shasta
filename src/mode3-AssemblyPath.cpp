@@ -35,6 +35,8 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 
     writeSegmentSequences();
     writeLinkSequences(assemblyGraph);
+
+    assemble();
 }
 
 
@@ -88,6 +90,7 @@ void AssemblyPath::findOrientedReadsForLinks(
 void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
 {
     const bool debug = false;
+    SHASTA_ASSERT((assemblyGraph.k % 2) == 0);
 
     // Resize the vectors that describe link sequences.
     linksRleSequence.resize(segments.size()-1);
@@ -137,7 +140,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         }
 
         // If segmentId0 and segmentId1 are consecutive in the marker graph,
-        // just skip the last k RLE bases of segmentId0
+        // just skip the last k/2 RLE bases of segmentId0
+        // and the first k/2 RLE bases of seegmentId1.
         // and take them from segmentId1 (they are identical because
         // they correspond to the same marker graph vertex).
         const auto markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
@@ -145,8 +149,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         const MarkerGraph::Edge lastEdge0 = assemblyGraph.markerGraph.edges[markerGraphPath0.back()];
         const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[markerGraphPath1.front()];
         if(lastEdge0.target == firstEdge1.source) {
-            skipAtSegmentEnd[position0] = assemblyGraph.k;
-            skipAtSegmentBegin[position1] = 0;
+            skipAtSegmentEnd[position0] = assemblyGraph.k/2;
+            skipAtSegmentBegin[position1] = assemblyGraph.k/2;
 
             // Leave empty the sequence for the link between these segments.
             SHASTA_ASSERT(linksRleSequence[position0].empty());
@@ -317,19 +321,90 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
             orientedReadsRepeatCountsForAssembly,
             assemblyGraph.readRepresentation,
             assemblyGraph.consensusCaller,
-            true,
+            debug,
             html,
             consensusRleSequence,
             consensusRepeatCounts
             );
         SHASTA_ASSERT(consensusRleSequence.size() == consensusRepeatCounts.size());
 
-        // For now, store this as the link sequence, setting
-        // the number of bases skipped in adjacent segments to 0.
-        linksRleSequence[position0] = consensusRleSequence;
-        linksRepeatCounts[position0] = consensusRepeatCounts;
-        skipAtSegmentEnd[position0] = 0;
-        skipAtSegmentBegin[position1] = 0;
+        if(debug) {
+            cout << "Consensus RLE sequence length before trimming " << consensusRleSequence.size() << endl;
+            cout << "Portion of segment on left involved in the MSA begins at position " <<
+                assembledSegment0.vertexOffsets[minVertexPosition0] << endl;
+            cout << "Portion of segment on right involved in the MSA ends at position " <<
+                assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k << endl;
+        }
+
+        // Count the number of identical (RLE) bases at the beginning of the
+        // link consensus sequence and of the segmentId0 sequence portion
+        // involved in assembling this link.
+        uint64_t identicalOnLeft = 0;
+        const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
+        const uint64_t end0 = assembledSegment0.runLengthSequence.size();
+        for(uint64_t i=begin0; (i!=end0 and (i-begin0)<consensusRleSequence.size()); i++) {
+            if(consensusRleSequence[i-begin0] == assembledSegment0.runLengthSequence[i]) {
+                // cout << "*** " << begin0 << " " << end0 << " " << i << endl;
+                ++identicalOnLeft;
+            } else {
+                break;
+            }
+        }
+        if(debug) {
+            cout << "Identical on left: " << identicalOnLeft << endl;
+        }
+
+        // Count the number of identical (RLE) bases at the end of the
+        // link consensus sequence and the beginning of segmentId1 .
+        uint64_t identicalOnRight = 0;
+        const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
+        for(uint64_t i=end1-1; ; i--) {
+            const uint64_t j = consensusRleSequence.size() - (end1 - i);
+            if(consensusRleSequence[j] == assembledSegment1.runLengthSequence[i]) {
+                // cout << "*** " << i << " " << assembledSegment1.runLengthSequence[i] << " " <<
+                //     j << " " << consensusRleSequence[j] << endl;
+                ++identicalOnRight;
+            } else {
+                break;
+            }
+            if(i == 0) {
+                break;
+            }
+            if(j == 0) {
+                break;
+            }
+        }
+        identicalOnRight = min(identicalOnRight, consensusRleSequence.size()-identicalOnLeft);
+        if(debug) {
+            cout << "Identical on right: " << identicalOnRight << endl;
+        }
+
+        // Trim these identical bases from the link consensus sequence.
+        const uint64_t trimmedConsensusLength = consensusRleSequence.size() - identicalOnLeft - identicalOnRight;
+        vector<Base> trimmedConsensusRleSequence(trimmedConsensusLength);
+        vector<uint64_t> trimmedlconsensusRepeatCounts(trimmedConsensusLength);
+        copy(
+            consensusRleSequence.begin() + identicalOnLeft,
+            consensusRleSequence.begin() + identicalOnLeft + trimmedConsensusLength,
+            trimmedConsensusRleSequence.begin());
+        copy(
+            consensusRepeatCounts.begin() + identicalOnLeft,
+            consensusRepeatCounts.begin() + identicalOnLeft + trimmedConsensusLength,
+            trimmedlconsensusRepeatCounts.begin());
+
+        // Store this as the link sequence.
+        linksRleSequence[position0] = trimmedConsensusRleSequence;
+        linksRepeatCounts[position0] = trimmedlconsensusRepeatCounts;
+
+        // Compute and store the number of bases to be skipped at the end of segmentId0
+        // and at the beginning of segmentId1.
+        skipAtSegmentEnd[position0] =
+            assembledSegment0.runLengthSequence.size() -
+            assembledSegment0.vertexOffsets[minVertexPosition0] -
+            identicalOnLeft;
+        skipAtSegmentBegin[position1] =
+            assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k
+            - identicalOnRight;
     }
 }
 
@@ -851,21 +926,34 @@ void AssemblyPath::writeSegmentSequences()
         const uint64_t segmentId = segments[i].first;
         AssembledSegment& assembledSegment = assembledSegments[i];
 
-        fasta <<
-            ">S" << i <<
-            " segment " << segmentId <<
-            ", length " << assembledSegment.rawSequence.size() <<
-            ", skip " << skipAtSegmentBegin[i] << " " << skipAtSegmentEnd[i] << "\n";
-        copy(assembledSegment.rawSequence.begin(), assembledSegment.rawSequence.end(),
-            ostream_iterator<Base>(fasta));
-        fasta << "\n";
+        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] > assembledSegment.runLengthSequence.size()) {
+            cout << "Segment " << segmentId <<
+                " has overlapping skips on left/right." << endl;
+            continue;
+        }
+        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] == assembledSegment.runLengthSequence.size()) {
+            cout << "Segment " << segmentId <<
+                " is skipped entirely." << endl;
+            continue;
+        }
 
-        txt << "S" << i << " " << segmentId <<
-            ", skip " << skipAtSegmentBegin[i] << " " << skipAtSegmentEnd[i] << "\n";
-        copy(assembledSegment.runLengthSequence.begin(), assembledSegment.runLengthSequence.end(),
+        const uint64_t rleLengthKept =
+            assembledSegment.runLengthSequence.size() -
+            skipAtSegmentBegin[i] -
+            skipAtSegmentEnd[i];
+
+        // Write out the RLE sequence.
+        // Also compute the raw length kept.
+        uint64_t rawLengthKept = 0;
+        txt << "S" << i << " " << segmentId << "\n";
+        copy(
+            assembledSegment.runLengthSequence.begin() +  skipAtSegmentBegin[i],
+            assembledSegment.runLengthSequence.end() - skipAtSegmentEnd[i],
             ostream_iterator<Base>(txt));
         txt << "\n";
-        for(const uint32_t r: assembledSegment.repeatCounts) {
+        for(uint64_t j=skipAtSegmentBegin[i]; j<rleLengthKept; j++) {
+            const uint32_t r = assembledSegment.repeatCounts[j];
+            rawLengthKept += r;
             if(r < 10) {
                 txt << r;
             } else {
@@ -873,6 +961,19 @@ void AssemblyPath::writeSegmentSequences()
             }
         }
         txt << "\n";
+
+        fasta <<
+            ">S" << i <<
+            " segment " << segmentId <<
+            ", length " << rawLengthKept << "\n";
+        for(uint64_t j=skipAtSegmentBegin[i]; j<rleLengthKept; j++) {
+            const Base b = assembledSegment.runLengthSequence[j];
+            const uint32_t r = assembledSegment.repeatCounts[j];
+            for(uint64_t k=0; k<r; k++) {
+                fasta << b;
+            }
+        }
+        fasta << "\n";
     }
 }
 
@@ -908,7 +1009,6 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
 
         txt << "L" << i <<
             " link " << linkId << " " << segmentId0 << "->"<< segmentId1 << "\n";
-        txt << "\n";
         copy(rleSequence.begin(), rleSequence.end(),
             ostream_iterator<Base>(txt));
         txt << "\n";
@@ -1154,3 +1254,66 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
     }
 }
 
+
+
+// Final assembly of segments and links sequence into the path sequence.
+void AssemblyPath::assemble()
+{
+    rleSequence.clear();
+    repeatCounts.clear();
+    rawSequence.clear();
+
+    // Assemble RLE sequence.
+    for(uint64_t i=0; i<segments.size(); i++) {
+        const uint64_t segmentId = segments[i].first;
+        AssembledSegment& assembledSegment = assembledSegments[i];
+
+        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] > assembledSegment.runLengthSequence.size()) {
+            cout << "Segment " << segmentId <<
+                " has overlapping skips on left/right." << endl;
+            continue;
+        }
+        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] == assembledSegment.runLengthSequence.size()) {
+            cout << "Segment " << segmentId <<
+                " is skipped entirely." << endl;
+            continue;
+        }
+
+        // Add the sequence of this segment.
+        copy(
+            assembledSegment.runLengthSequence.begin() +  skipAtSegmentBegin[i],
+            assembledSegment.runLengthSequence.end() - skipAtSegmentEnd[i],
+            back_inserter(rleSequence));
+        copy(
+            assembledSegment.repeatCounts.begin() +  skipAtSegmentBegin[i],
+            assembledSegment.repeatCounts.end() - skipAtSegmentEnd[i],
+            back_inserter(repeatCounts));
+
+        // Add the sequence of the link following this segment.
+        if(i != segments.size() - 1) {
+            copy(
+                linksRleSequence[i].begin(),  linksRleSequence[i].end(),
+                back_inserter(rleSequence));
+            copy(
+                linksRepeatCounts[i].begin(),  linksRepeatCounts[i].end(),
+                back_inserter(repeatCounts));
+        }
+    }
+    SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
+
+
+
+    // Now we can compute the raw sequence.
+    for(uint64_t i=0; i<rleSequence.size(); i++) {
+        const Base b = rleSequence[i];
+        const uint64_t r = repeatCounts[i];
+        for(uint64_t k=0; k<r; k++) {
+            rawSequence.push_back(b);
+        }
+    }
+
+    ofstream fasta("PathSequence.fasta");
+    fasta << ">Path" << endl;
+    copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(fasta));
+    fasta << "\n";
+}
