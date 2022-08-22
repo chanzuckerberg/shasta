@@ -12,6 +12,7 @@
 namespace shasta {
     namespace mode3 {
         class AssemblyPath;
+        class AssemblyPathSegment;
 
         class AssemblyGraph;
     }
@@ -23,17 +24,32 @@ namespace shasta {
 
 
 
+// A segment in an AssemblyPath.
+class shasta::mode3::AssemblyPathSegment {
+public:
+public:
+
+    // The id of this segment, in the AssemblyGraph.
+    uint64_t id;
+
+    // Each primary segment in the path has high Jaccard similarity
+    // with the previous primary segment.
+    // The first and last segment are always primary segments.
+    bool isPrimary;
+
+    // Constructor.
+    AssemblyPathSegment(uint64_t id, bool isPrimary);
+};
+
+
+
+
 // An assembly path in the mode3::AssemblyGraph
 class shasta::mode3::AssemblyPath {
 public:
 
     // The segments on the path.
-    // The bool is true for reference segments.
-    // The first and last segment are always reference segments.
-    // A reference segment is one that is believed to be exclusive
-    // to the sequence copy described by this path (that is,
-    // it does not appear in other copies or haplotypes).
-    vector< pair<uint64_t, bool> > segments;
+     vector<AssemblyPathSegment > segments;
 
     // Top level function to assemble sequence for this path.
     void assemble(const AssemblyGraph&);

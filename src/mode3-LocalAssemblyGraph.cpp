@@ -554,18 +554,18 @@ void mode3::LocalAssemblyGraph::writeSvg(
             copy(forwardPath.segments.begin() + 1, forwardPath.segments.end(), back_inserter(path.segments));
         }
         for(uint64_t position=0; position<path.segments.size(); position++) {
-            const auto& p = path.segments[position];
-            const uint64_t segmentId = p.first;
-            pathSegments[segmentId].push_back(make_pair(position, p.second));
+            const AssemblyPathSegment& segment = path.segments[position];
+            const uint64_t segmentId = segment.id;
+            pathSegments[segmentId].push_back(make_pair(position, segment.isPrimary));
         }
-        svg << "\nPath of length " << path.segments.size() << " starting at segment " << path.segments.front().first <<
-            " and ending at segment " << path.segments.back().first << "<br>";
+        svg << "\nPath of length " << path.segments.size() << " starting at segment " << path.segments.front().id <<
+            " and ending at segment " << path.segments.back().id << "<br>";
 
         ofstream csv("Path.csv");
         csv << "Position,SegmentId,Reference\n";
         for(uint64_t position=0; position<path.segments.size(); position++) {
-            const auto& p = path.segments[position];
-            csv << position << "," << p.first << "," << int(p.second) << "\n";
+            const AssemblyPathSegment& segment = path.segments[position];
+            csv << position << "," << segment.id << "," << int(segment.isPrimary) << "\n";
         }
 
         // If requested, assemble path sequence.

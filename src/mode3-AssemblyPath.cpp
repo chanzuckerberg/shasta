@@ -43,8 +43,8 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 
 // Find the oriented reads to be used to assemble
 // links between the segment at position0
-// in the assembly path (which must be a reference segment)
-// and the next reference segment in the path.
+// in the assembly path (which must be a primary segment)
+// and the next primary segment in the path.
 void AssemblyPath::findOrientedReadsForLinks(
     uint64_t position0,
     const AssemblyGraph& assemblyGraph,
@@ -53,9 +53,9 @@ void AssemblyPath::findOrientedReadsForLinks(
 
     // Sanity checks.
     SHASTA_ASSERT(position0 < segments.size());
-    const auto p0 = segments[position0];
-    SHASTA_ASSERT(p0.second);   // Must be a reference segment.
-    const uint64_t segmentId0 = p0.first;
+    const AssemblyPathSegment& segment0 = segments[position0];
+    SHASTA_ASSERT(segment0.isPrimary);   // Must be a primary segment.
+    const uint64_t segmentId0 = segment0.id;
 
     // Add the oriented reads in segmentId0, the reference segment
     // at position0.
@@ -64,12 +64,12 @@ void AssemblyPath::findOrientedReadsForLinks(
         orientedReadsForLinks.push_back(p.first);
     }
 
-    // Look for the next reference segment in the path.
+    // Look for the next primary segment in the path.
     uint64_t segmentId1 = invalid<uint64_t>;
     for(uint64_t position1=position0+1; position1<segments.size(); position1++) {
-        const auto& q = segments[position1];
-        if(q.second) {
-            segmentId1 = q.first;
+        const AssemblyPathSegment& segment = segments[position1];
+        if(segment.isPrimary) {
+            segmentId1 = segment.id;
             break;
         }
     }
@@ -118,12 +118,12 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
 
         // Access the consecutive segments in this pair.
         // We will process the link between segmentId0 and segmentId1.
-        const auto& p0 = segments[position0];
-        const uint64_t segmentId0 = p0.first;
-        const bool isReferenceSegment0 = p0.second;
+        const AssemblyPathSegment& segment0 = segments[position0];
+        const uint64_t segmentId0 = segment0.id;
+        const bool isReferenceSegment0 = segment0.isPrimary;
         const AssembledSegment& assembledSegment0 = assembledSegments[position0];
-        const auto& p1 = segments[position1];
-        const uint64_t segmentId1 = p1.first;
+        const AssemblyPathSegment& segment1 = segments[position1];
+        const uint64_t segmentId1 = segment1.id;
         const AssembledSegment& assembledSegment1 = assembledSegments[position1];
 
         // The first segment in the path must be a reference segment.
@@ -434,13 +434,13 @@ void AssemblyPath::assembleLinksOld(
     // Assemble segment and link sequence into path sequence.
     string sequence;
     for(uint64_t i=0; ; i++) {
-        const auto& p = segments[i];
-        const uint64_t segmentId0 = p.first;
+        const AssemblyPathSegment& segment0 = segments[i];
+        const uint64_t segmentId0 = segment0.id;
         if(debug) {
             cout << "Working on segment " << segmentId0 << " at position " << i <<
                 " in assembly path." << endl;
         }
-        const bool isReferenceSegment = p.second;
+        const bool isReferenceSegment = segment0.isPrimary;
         AssembledSegment& assembledSegment0 = assembledSegments[i];
 
         // The first segment in the path must be a reference segment.
@@ -478,9 +478,9 @@ void AssemblyPath::assembleLinksOld(
             // Look for the next reference segment in the path.
             uint64_t nextReferenceSegmentId = invalid<uint64_t>;
             for(uint64_t j=i+1; j<segments.size(); j++) {
-                const auto& q = segments[i];
-                if(q.second) {
-                    nextReferenceSegmentId = q.first;
+                const AssemblyPathSegment& segment = segments[i];
+                if(segment.isPrimary) {
+                    nextReferenceSegmentId = segment.id;
                     break;
                 }
             }
@@ -494,7 +494,7 @@ void AssemblyPath::assembleLinksOld(
         }
 
         // This is not the last segment. Access the next segment in the path.
-        const uint64_t segmentId1 = segments[i+1].first;
+        const uint64_t segmentId1 = segments[i+1].id;
         AssembledSegment& assembledSegment1 = assembledSegments[i+1];
 
 
@@ -904,7 +904,7 @@ void AssemblyPath::assembleSegments(const AssemblyGraph& assemblyGraph)
     assembledSegments.clear();
     assembledSegments.resize(segments.size());
     for(uint64_t i=0; i<segments.size(); i++) {
-        const uint64_t segmentId = segments[i].first;
+        const uint64_t segmentId = segments[i].id;
         AssembledSegment& assembledSegment = assembledSegments[i];
         assembleMarkerGraphPath(
             assemblyGraph.readRepresentation,
@@ -923,7 +923,7 @@ void AssemblyPath::writeSegmentSequences()
     ofstream txt("PathSegmentsRleSequence.txt");
 
     for(uint64_t i=0; i<segments.size(); i++) {
-        const uint64_t segmentId = segments[i].first;
+        const uint64_t segmentId = segments[i].id;
         AssembledSegment& assembledSegment = assembledSegments[i];
 
         if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] > assembledSegment.runLengthSequence.size()) {
@@ -985,8 +985,8 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
     ofstream txt("PathLinksRleSequence.txt");
 
     for(uint64_t i=0; i<segments.size()-1; i++) {
-        const uint64_t segmentId0 = segments[i].first;
-        const uint64_t segmentId1 = segments[i+1].first;
+        const uint64_t segmentId0 = segments[i].id;
+        const uint64_t segmentId1 = segments[i+1].id;
         const uint64_t linkId = assemblyGraph.findLink(segmentId0, segmentId1);
         const vector<Base>& rleSequence = linksRleSequence[i];
         const vector<uint64_t>& repeatCounts = linksRepeatCounts[i];
@@ -1265,7 +1265,7 @@ void AssemblyPath::assemble()
 
     // Assemble RLE sequence.
     for(uint64_t i=0; i<segments.size(); i++) {
-        const uint64_t segmentId = segments[i].first;
+        const uint64_t segmentId = segments[i].id;
         AssembledSegment& assembledSegment = assembledSegments[i];
 
         if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] > assembledSegment.runLengthSequence.size()) {
@@ -1317,3 +1317,13 @@ void AssemblyPath::assemble()
     copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(fasta));
     fasta << "\n";
 }
+
+
+
+
+AssemblyPathSegment::AssemblyPathSegment(
+    uint64_t id,
+    bool isPrimary) :
+    id(id),
+    isPrimary(isPrimary)
+    {}

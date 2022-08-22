@@ -2278,7 +2278,7 @@ void AssemblyGraph::createAssemblyPath3(
     getOrientedReadsOnSegment(referenceSegmentId, infoReference);
     uint64_t segmentId0 = startSegmentId;
     path.clear();
-    path.segments.push_back(make_pair(startSegmentId, true));
+    path.segments.push_back(AssemblyPathSegment(startSegmentId, true));
     vector<uint64_t> lastIterationSegments;
     while(true) {
 
@@ -2358,9 +2358,9 @@ void AssemblyGraph::createAssemblyPath3(
                 cout << "New reference segment is " << segmentId1 << endl;
             }
             for(const uint64_t segmentId: lastIterationSegments) {
-                path.segments.push_back(make_pair(segmentId, false));
+                path.segments.push_back(AssemblyPathSegment(segmentId, false));
             }
-            path.segments.back().second = true;
+            path.segments.back().isPrimary = true;
             lastIterationSegments.clear();
         }
 
