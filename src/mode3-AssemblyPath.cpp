@@ -50,14 +50,14 @@ void AssemblyPath::findOrientedReadsForLinks(
     const AssemblyGraph& assemblyGraph,
     vector<OrientedReadId>& orientedReadsForLinks) const
 {
+    const AssemblyPathSegment& segment0 = segments[position0];
+    const uint64_t segmentId0 = segment0.id;
 
     // Sanity checks.
     SHASTA_ASSERT(position0 < segments.size());
-    const AssemblyPathSegment& segment0 = segments[position0];
     SHASTA_ASSERT(segment0.isPrimary);   // Must be a primary segment.
-    const uint64_t segmentId0 = segment0.id;
 
-    // Add the oriented reads in segmentId0, the reference segment
+    // Add the oriented reads in segmentId0, the primary segment
     // at position0.
     orientedReadsForLinks.clear();
     for(const auto& p: assemblyGraph.assemblyGraphJourneyInfos[segmentId0]) {
@@ -73,6 +73,8 @@ void AssemblyPath::findOrientedReadsForLinks(
             break;
         }
     }
+    // The last segment in the path is guaranteed to be primary,
+    // so this will always suceed.
     SHASTA_ASSERT(segmentId1 != invalid<uint64_t>);
 
     // Add the oriented reads in segmentId1.
@@ -111,11 +113,12 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
 
     ofstream html("Msa.html");
 
-    // Loop over pairs of consecutive segments in the path.
-    for(uint64_t position0=0; position0<segments.size()-1 ; position0++) {
+    // Loop over links in the path.
+    for(uint64_t position0=0; position0<links.size(); position0++) {
+        AssemblyPathLink& link = links[position0];
         const uint64_t position1 = position0 + 1;
 
-        // Access the consecutive segments in this pair.
+        // Access the source and target segments of this link.
         // We will process the link between segmentId0 and segmentId1.
         const AssemblyPathSegment& segment0 = segments[position0];
         const uint64_t segmentId0 = segment0.id;
@@ -139,25 +142,24 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         }
 
         // If segmentId0 and segmentId1 are consecutive in the marker graph,
-        // this is a trivial link.
+        // this is a trivial link because the two segments share a terminal
+        // marker graph vertex.
         // Just skip the last k/2 RLE bases of segmentId0
         // and the first k/2 RLE bases of seegmentId1.
-        // and take them from segmentId1 (they are identical because
-        // they correspond to the same marker graph vertex).
         const auto markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
         const auto markerGraphPath1 = assemblyGraph.markerGraphPaths[segmentId1];
         const MarkerGraph::Edge lastEdge0 = assemblyGraph.markerGraph.edges[markerGraphPath0.back()];
         const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[markerGraphPath1.front()];
         if(lastEdge0.target == firstEdge1.source) {
-            links[position0].isTrivial = true;
+            link.isTrivial = true;
             skipAtSegmentEnd[position0] = assemblyGraph.k/2;
             skipAtSegmentBegin[position1] = assemblyGraph.k/2;
 
             // Leave empty the sequence for the link between these segments.
-            SHASTA_ASSERT(links[position0].msaRleSequence.empty());
-            SHASTA_ASSERT(links[position0].msaRepeatCounts.empty());
-            SHASTA_ASSERT(links[position0].trimmedRleSequence.empty());
-            SHASTA_ASSERT(links[position0].trimmedRepeatCounts.empty());
+            SHASTA_ASSERT(link.msaRleSequence.empty());
+            SHASTA_ASSERT(link.msaRepeatCounts.empty());
+            SHASTA_ASSERT(link.trimmedRleSequence.empty());
+            SHASTA_ASSERT(link.trimmedRepeatCounts.empty());
 
             // We are done.
             continue;
@@ -167,7 +169,7 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // We need to assemble the link between them.
         // We can only use oriented reads that are in the link
         // and also in orientedReadsForLinks.
-        links[position0].isTrivial = false;
+        link.isTrivial = false;
 
         // Locate the link between segmentId0 and segmentId1.
         uint64_t linkId01 = invalid<uint64_t>;
@@ -179,7 +181,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         }
         SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
         if(debug) {
-            cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 << endl;
+            cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
+                " at position " << position0 << " in the assembly path." << endl;
         }
 
         // First, find:
@@ -325,13 +328,13 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
             assemblyGraph.consensusCaller,
             debug,
             html,
-            links[position0].msaRleSequence,
-            links[position0].msaRepeatCounts
+            link.msaRleSequence,
+            link.msaRepeatCounts
             );
-        SHASTA_ASSERT(links[position0].msaRleSequence.size() == links[position0].msaRepeatCounts.size());
+        SHASTA_ASSERT(link.msaRleSequence.size() == link.msaRepeatCounts.size());
 
         if(debug) {
-            cout << "Consensus RLE sequence length before trimming " << links[position0].msaRleSequence.size() << endl;
+            cout << "Consensus RLE sequence length before trimming " << link.msaRleSequence.size() << endl;
             cout << "Portion of segment on left involved in the MSA begins at position " <<
                 assembledSegment0.vertexOffsets[minVertexPosition0] << endl;
             cout << "Portion of segment on right involved in the MSA ends at position " <<
@@ -344,8 +347,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         uint64_t identicalOnLeft = 0;
         const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
         const uint64_t end0 = assembledSegment0.runLengthSequence.size();
-        for(uint64_t i=begin0; (i!=end0 and (i-begin0)<links[position0].msaRleSequence.size()); i++) {
-            if(links[position0].msaRleSequence[i-begin0] == assembledSegment0.runLengthSequence[i]) {
+        for(uint64_t i=begin0; (i!=end0 and (i-begin0)<link.msaRleSequence.size()); i++) {
+            if(link.msaRleSequence[i-begin0] == assembledSegment0.runLengthSequence[i]) {
                 // cout << "*** " << begin0 << " " << end0 << " " << i << endl;
                 ++identicalOnLeft;
             } else {
@@ -361,8 +364,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         uint64_t identicalOnRight = 0;
         const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
         for(uint64_t i=end1-1; ; i--) {
-            const uint64_t j = links[position0].msaRleSequence.size() - (end1 - i);
-            if(links[position0].msaRleSequence[j] == assembledSegment1.runLengthSequence[i]) {
+            const uint64_t j = link.msaRleSequence.size() - (end1 - i);
+            if(link.msaRleSequence[j] == assembledSegment1.runLengthSequence[i]) {
                 // cout << "*** " << i << " " << assembledSegment1.runLengthSequence[i] << " " <<
                 //     j << " " << consensusRleSequence[j] << endl;
                 ++identicalOnRight;
@@ -376,24 +379,24 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
                 break;
             }
         }
-        identicalOnRight = min(identicalOnRight, links[position0].msaRleSequence.size()-identicalOnLeft);
+        identicalOnRight = min(identicalOnRight, link.msaRleSequence.size()-identicalOnLeft);
         if(debug) {
             cout << "Identical on right: " << identicalOnRight << endl;
         }
 
         // Trim these identical bases from the link consensus sequence.
         const uint64_t trimmedConsensusLength =
-            links[position0].msaRleSequence.size() - identicalOnLeft - identicalOnRight;
-        links[position0].trimmedRleSequence.resize(trimmedConsensusLength);
-        links[position0].trimmedRepeatCounts.resize(trimmedConsensusLength);
+            link.msaRleSequence.size() - identicalOnLeft - identicalOnRight;
+        link.trimmedRleSequence.resize(trimmedConsensusLength);
+        link.trimmedRepeatCounts.resize(trimmedConsensusLength);
         copy(
-            links[position0].msaRleSequence.begin() + identicalOnLeft,
-            links[position0].msaRleSequence.begin() + identicalOnLeft + trimmedConsensusLength,
-            links[position0].trimmedRleSequence.begin());
+            link.msaRleSequence.begin() + identicalOnLeft,
+            link.msaRleSequence.begin() + identicalOnLeft + trimmedConsensusLength,
+            link.trimmedRleSequence.begin());
         copy(
-            links[position0].msaRepeatCounts.begin() + identicalOnLeft,
-            links[position0].msaRepeatCounts.begin() + identicalOnLeft + trimmedConsensusLength,
-            links[position0].trimmedRepeatCounts.begin());
+            link.msaRepeatCounts.begin() + identicalOnLeft,
+            link.msaRepeatCounts.begin() + identicalOnLeft + trimmedConsensusLength,
+            link.trimmedRepeatCounts.begin());
 
         // Compute and store the number of bases to be skipped at the end of segmentId0
         // and at the beginning of segmentId1.
