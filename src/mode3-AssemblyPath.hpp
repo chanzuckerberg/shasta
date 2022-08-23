@@ -83,13 +83,13 @@ public:
     // of oriented reads in the link.
     // This overlaps with adjacent segments.
     vector<Base> msaRleSequence;
-    vector<uint64_t> msaRepeatCounts;
+    vector<uint32_t> msaRepeatCounts;
 
     // The trimmed RLE sequence is obtained from
     // the MSA sequence by removing bases at the two ends
     // that are identical with the adjacent segments.
     vector<Base> trimmedRleSequence;
-    vector<uint64_t> trimmedRepeatCounts;
+    vector<uint32_t> trimmedRepeatCounts;
 };
 
 
@@ -126,13 +126,13 @@ public:
     void computeLinkConsensusUsingSpoa(
         const vector<OrientedReadId> orientedReadIds,
         const vector< vector<Base> > rleSequences,
-        const vector< vector<uint64_t> > repeatCounts,
+        const vector< vector<uint32_t> > repeatCounts,
         uint64_t readRepresentation,
         const ConsensusCaller&,
         bool debug,
         ostream& html,
         vector<Base>& consensusRleSequence,
-        vector<uint64_t>& consensusRepeatCounts
+        vector<uint32_t>& consensusRepeatCounts
         ) const;
 
     // Find the oriented reads to be used to assemble
@@ -144,6 +144,10 @@ public:
         uint64_t position0,
         const AssemblyGraph&,
         vector<OrientedReadId>&) const;
+
+    // Return a character to represent a repeat count
+    // when writing out RLE sequence.
+    static char repeatCountCharacter(uint32_t);
 
 };
 

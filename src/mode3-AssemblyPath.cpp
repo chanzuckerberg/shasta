@@ -221,7 +221,7 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // will be used to assemble this link.
         vector<OrientedReadId> orientedReadIdsForAssembly;
         vector< vector<Base> > orientedReadsSequencesForAssembly;
-        vector< vector<uint64_t> > orientedReadsRepeatCountsForAssembly;
+        vector< vector<uint32_t> > orientedReadsRepeatCountsForAssembly;
         for(const auto& p: assemblyGraph.transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
 
@@ -296,20 +296,22 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
             // Construct the extended sequence for this oriented read,
             // to be used in the MSA.
             vector<Base> orientedReadExtendedSequence;
-            vector<uint64_t> orientedReadExtendedRepeatCounts;
-            copy(leftSequence.begin(), leftSequence.end(), back_inserter(orientedReadExtendedSequence));
-            copy(leftRepeatCounts.begin(), leftRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
-            copy(orientedReadSequence.begin(), orientedReadSequence.end(), back_inserter(orientedReadExtendedSequence));
-            copy(orientedReadRepeatCounts.begin(), orientedReadRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
-            copy(rightSequence.begin(), rightSequence.end(), back_inserter(orientedReadExtendedSequence));
-            copy(rightRepeatCounts.begin(), rightRepeatCounts.end(), back_inserter(orientedReadExtendedRepeatCounts));
+            vector<uint32_t> orientedReadExtendedRepeatCounts;
+            const auto addToExtendedSequence = back_inserter(orientedReadExtendedSequence);
+            copy(leftSequence, addToExtendedSequence);
+            copy(orientedReadSequence, addToExtendedSequence);
+            copy(rightSequence, addToExtendedSequence);
+            const auto addToRepeatCounts = back_inserter(orientedReadExtendedRepeatCounts);
+            copy(leftRepeatCounts, addToRepeatCounts);
+            copy(orientedReadRepeatCounts, addToRepeatCounts);
+            copy(rightRepeatCounts, addToRepeatCounts);
 
             orientedReadIdsForAssembly.push_back(orientedReadId);
             orientedReadsSequencesForAssembly.push_back(orientedReadExtendedSequence);
             orientedReadsRepeatCountsForAssembly.push_back(orientedReadExtendedRepeatCounts);
 
             if(debug) {
-                copy(orientedReadExtendedSequence.begin(), orientedReadExtendedSequence.end(), ostream_iterator<Base>(cout));
+                copy(orientedReadExtendedSequence, ostream_iterator<Base>(cout));
                 cout << " " << orientedReadId << endl;
             }
         }
@@ -459,17 +461,10 @@ void AssemblyPath::writeSegmentSequences()
         const auto trimmedRleSequence = segment.trimmedRleSequence();
         const auto trimmedRepeatCounts = segment.trimmedRepeatCounts();
         txt << "S" << i << " " << segmentId << "\n";
-        copy(
-            trimmedRleSequence.begin(),
-            trimmedRleSequence.end(),
-            ostream_iterator<Base>(txt));
+        copy( trimmedRleSequence, ostream_iterator<Base>(txt));
         txt << "\n";
         for(const uint32_t r: trimmedRepeatCounts) {
-            if(r < 10) {
-                txt << r;
-            } else {
-                txt << "*";
-            }
+            txt << repeatCountCharacter(r);
         }
         txt << "\n";
 
@@ -480,10 +475,7 @@ void AssemblyPath::writeSegmentSequences()
             ">S" << i <<
             " segment " << segmentId <<
             ", length " << trimmedRawSequence.size() << "\n";
-        copy(
-            trimmedRawSequence.begin(),
-            trimmedRawSequence.end(),
-            ostream_iterator<Base>(fasta));
+        copy(trimmedRawSequence, ostream_iterator<Base>(fasta));
         fasta << "\n";
     }
 }
@@ -500,7 +492,7 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
         const uint64_t segmentId1 = segments[i+1].id;
         const uint64_t linkId = assemblyGraph.findLink(segmentId0, segmentId1);
         const vector<Base>& rleSequence = links[i].trimmedRleSequence;
-        const vector<uint64_t>& repeatCounts = links[i].trimmedRepeatCounts;
+        const vector<uint32_t>& repeatCounts = links[i].trimmedRepeatCounts;
         SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
         if(rleSequence.empty()) {
             continue;
@@ -520,15 +512,10 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
 
         txt << "L" << i <<
             " link " << linkId << " " << segmentId0 << "->"<< segmentId1 << "\n";
-        copy(rleSequence.begin(), rleSequence.end(),
-            ostream_iterator<Base>(txt));
+        copy(rleSequence, ostream_iterator<Base>(txt));
         txt << "\n";
-        for(const uint64_t r: repeatCounts) {
-            if(r < 10) {
-                txt << r;
-            } else {
-                txt << "*";
-            }
+        for(const uint32_t r: repeatCounts) {
+            txt << repeatCountCharacter(r);
         }
         txt << "\n";
     }
@@ -540,13 +527,13 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
 void AssemblyPath::computeLinkConsensusUsingSpoa(
     const vector<OrientedReadId> orientedReadIds,
     const vector< vector<Base> > rleSequences,
-    const vector< vector<uint64_t> > repeatCounts,
+    const vector< vector<uint32_t> > repeatCounts,
     uint64_t readRepresentation,
     const ConsensusCaller& consensusCaller,
     bool debug,
     ostream& html,
     vector<Base>& consensusRleSequence,
-    vector<uint64_t>& consensusRepeatCounts
+    vector<uint32_t>& consensusRepeatCounts
     ) const
 {
     SHASTA_ASSERT(rleSequences.size() == orientedReadIds.size());
@@ -591,7 +578,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
     for(uint64_t i=0; i<orientedReadIds.size(); i++) {
         const OrientedReadId orientedReadId = orientedReadIds[i];
         const vector<Base>& rleSequence = rleSequences[i];
-        const vector<uint64_t>& repeatCount = repeatCounts[i];
+        const vector<uint32_t>& repeatCount = repeatCounts[i];
         const string& msaString = msa[i];
 
         // Here:
@@ -625,11 +612,11 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
 
     // Compute consensus base and repeat count at every position in the alignment.
     vector<AlignedBase> msaConsensusSequence(msaLength);
-    vector<uint64_t> msaConsensusRepeatCount(msaLength);
+    vector<uint32_t> msaConsensusRepeatCount(msaLength);
     for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
         const Consensus consensus = consensusCaller(coverage[aPosition]);
         msaConsensusSequence[aPosition] = consensus.base;
-        msaConsensusRepeatCount[aPosition] = consensus.repeatCount;
+        msaConsensusRepeatCount[aPosition] = uint32_t(consensus.repeatCount);
     }
 
 
@@ -672,7 +659,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
             // repeat count at each position.
             if(readRepresentation == 1) {
                 const vector<Base>& rleSequence = rleSequences[i];
-                const vector<uint64_t>& repeatCount = repeatCounts[i];
+                const vector<uint32_t>& repeatCount = repeatCounts[i];
 
                 // Here:
                 // rPosition = position in RLE sequence of oriented read.
@@ -794,23 +781,13 @@ void AssemblyPath::assemble()
         // Add the sequence of this segment.
         const auto segmentTrimmedRleSequence = segment.trimmedRleSequence();
         const auto segmentTrimmedRepeatCounts = segment.trimmedRepeatCounts();
-        copy(
-            segmentTrimmedRleSequence.begin(),
-            segmentTrimmedRleSequence.end(),
-            back_inserter(rleSequence));
-        copy(
-            segmentTrimmedRepeatCounts.begin(),
-            segmentTrimmedRepeatCounts.end(),
-            back_inserter(repeatCounts));
+        copy(segmentTrimmedRleSequence, back_inserter(rleSequence));
+        copy(segmentTrimmedRepeatCounts, back_inserter(repeatCounts));
 
         // Add the sequence of the link following this segment.
         if(i != segments.size() - 1) {
-            copy(
-                links[i].trimmedRleSequence.begin(), links[i].trimmedRleSequence.end(),
-                back_inserter(rleSequence));
-            copy(
-                links[i].trimmedRepeatCounts.begin(), links[i].trimmedRepeatCounts.end(),
-                back_inserter(repeatCounts));
+            copy(links[i].trimmedRleSequence, back_inserter(rleSequence));
+            copy(links[i].trimmedRepeatCounts, back_inserter(repeatCounts));
         }
     }
     SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
@@ -828,7 +805,7 @@ void AssemblyPath::assemble()
 
     ofstream fasta("PathSequence.fasta");
     fasta << ">Path" << endl;
-    copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(fasta));
+    copy(rawSequence, ostream_iterator<Base>(fasta));
     fasta << "\n";
 }
 
@@ -882,3 +859,18 @@ void AssemblyPathSegment::getTrimmedRawSequence(vector<Base>& trimmedRawSequence
         }
     }
 }
+
+
+
+// Return a character to represent a repeat count
+// when writing out RLE sequence.
+char AssemblyPath::repeatCountCharacter(uint32_t r) {
+    if(r < 10) {
+        return '0' + char(r);
+    } else if(r < 36) {
+        return 'A' + char(r - 10);
+    } else {
+        return '*';
+    }
+}
+
