@@ -135,16 +135,6 @@ public:
         vector<uint32_t>& consensusRepeatCounts
         ) const;
 
-    // Find the oriented reads to be used to assemble
-    // links between the segment at position0
-    // in the assembly path (which must be a reference segment)
-    // and the next reference segment in the path.
-    // The oriented reads are returned sorted.
-    void findOrientedReadsForLinks(
-        uint64_t position0,
-        const AssemblyGraph&,
-        vector<OrientedReadId>&) const;
-
     // Return a character to represent a repeat count
     // when writing out RLE sequence.
     static char repeatCountCharacter(uint32_t);

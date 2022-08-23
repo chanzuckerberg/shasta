@@ -41,52 +41,6 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 
 
 
-// Find the oriented reads to be used to assemble
-// links between the segment at position0
-// in the assembly path (which must be a primary segment)
-// and the next primary segment in the path.
-void AssemblyPath::findOrientedReadsForLinks(
-    uint64_t position0,
-    const AssemblyGraph& assemblyGraph,
-    vector<OrientedReadId>& orientedReadsForLinks) const
-{
-    const AssemblyPathSegment& segment0 = segments[position0];
-    const uint64_t segmentId0 = segment0.id;
-
-    // Sanity checks.
-    SHASTA_ASSERT(position0 < segments.size());
-    SHASTA_ASSERT(segment0.isPrimary);   // Must be a primary segment.
-
-    // Add the oriented reads in segmentId0, the primary segment
-    // at position0.
-    orientedReadsForLinks.clear();
-    for(const auto& p: assemblyGraph.assemblyGraphJourneyInfos[segmentId0]) {
-        orientedReadsForLinks.push_back(p.first);
-    }
-
-    // Look for the next primary segment in the path.
-    uint64_t segmentId1 = invalid<uint64_t>;
-    for(uint64_t position1=position0+1; position1<segments.size(); position1++) {
-        const AssemblyPathSegment& segment = segments[position1];
-        if(segment.isPrimary) {
-            segmentId1 = segment.id;
-            break;
-        }
-    }
-    // The last segment in the path is guaranteed to be primary,
-    // so this will always suceed.
-    SHASTA_ASSERT(segmentId1 != invalid<uint64_t>);
-
-    // Add the oriented reads in segmentId1.
-    for(const auto& p: assemblyGraph.assemblyGraphJourneyInfos[segmentId1]) {
-        orientedReadsForLinks.push_back(p.first);
-    }
-
-    // Deduplicate and sort.
-    deduplicate(orientedReadsForLinks);
-}
-
-
 
 // Assemble links in this assembly path.
 void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
@@ -98,13 +52,6 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
     // segment and at the end of the last segment.
     segments.front().leftTrim = 0;
     segments.back().rightTrim = 0;
-
-    // The list of oriented reads that can be used to assemble links.
-    // These are the oriented reads that appear in either the previous or next
-    // reference segment in the path.
-    // This list changes every time we encounter a new reference segment.
-    // It is stored sorted.
-    vector<OrientedReadId> orientedReadsForLinks;
 
     ofstream html("Msa.html");
 
@@ -118,24 +65,10 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // We will process the link between segmentId0 and segmentId1.
         AssemblyPathSegment& segment0 = segments[position0];
         const uint64_t segmentId0 = segment0.id;
-        const bool isReferenceSegment0 = segment0.isPrimary;
         const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
         AssemblyPathSegment& segment1 = segments[position1];
         const uint64_t segmentId1 = segment1.id;
         const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
-
-        // The first segment in the path must be a reference segment.
-        if(position0 == 0) {
-            SHASTA_ASSERT(isReferenceSegment0);
-        }
-
-        // If this is a reference segment, update
-        // the list of oriented reads that can be used to assemble links.
-        // These are the oriented reads that appear in either the previous or next
-        // reference segment in the path.
-        if(isReferenceSegment0) {
-            findOrientedReadsForLinks(position0, assemblyGraph, orientedReadsForLinks);
-        }
 
         // If segmentId0 and segmentId1 are consecutive in the marker graph,
         // this is a trivial link because the two segments share a terminal
@@ -181,6 +114,40 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
                 " at position " << position0 << " in the assembly path." << endl;
         }
 
+
+
+        // We only want to use for assembly of this link oriented reads
+        // that are present in the previous or next primary segment
+        // and that are also present in the transitions for this link.
+
+        // Locate the previous primary segment preceding this link.
+        uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+        for(uint64_t position=position0; /* Check later */ ; position--) {
+            if(segments[position].isPrimary) {
+                previousPrimarySegmentId = segments[position].id;
+                break;
+            }
+            if(position == 0) {
+                break;
+            }
+        }
+        SHASTA_ASSERT(previousPrimarySegmentId != invalid<uint64_t>);
+
+        // Locate the next primary segment following this link.
+        uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+        for(uint64_t position=position1; position<segments.size() ; position++) {
+            if(segments[position].isPrimary) {
+                nextPrimarySegmentId = segments[position].id;
+                break;
+            }
+            if(position == 0) {
+                break;
+            }
+        }
+        SHASTA_ASSERT(nextPrimarySegmentId != invalid<uint64_t>);
+
+
+
         // First, find:
         // - The position in segmentId0 of the leftmost transition.
         // - The position in segmentId1 of the rightmost transition.
@@ -189,10 +156,12 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         for(const auto& p: assemblyGraph.transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
 
-            // If not in orientedReadsForLinks, skip it.
-            if(not std::binary_search(
-                orientedReadsForLinks.begin(), orientedReadsForLinks.end(),
-                orientedReadId)) {
+            // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
+            if(not(
+                assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
+                or
+                assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
+                )) {
                 continue;
             }
 
@@ -225,10 +194,12 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         for(const auto& p: assemblyGraph.transitions[linkId01]) {
             const OrientedReadId orientedReadId = p.first;
 
-            // If not in orientedReadsForLinks, skip it.
-            if(not std::binary_search(
-                orientedReadsForLinks.begin(), orientedReadsForLinks.end(),
-                orientedReadId)) {
+            // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
+            if(not(
+                assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
+                or
+                assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
+                )) {
                 continue;
             }
 

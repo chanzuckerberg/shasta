@@ -534,6 +534,23 @@ void AssemblyGraph::computeAssemblyGraphJourneyInfos()
 
 
 
+// Find out if a segment contains a given OrientedReadId.
+// This returns true if assemblyGraphJourneyInfos[segmentId]
+// contains an entry with the given OrientedReadId.
+bool AssemblyGraph::segmentContainsOrientedRead(
+    uint64_t segmentId,
+    OrientedReadId orientedReadId) const
+{
+    for(const auto& p: assemblyGraphJourneyInfos[segmentId]) {
+        if(p.first == orientedReadId) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
 void AssemblyGraph::findTransitions(std::map<SegmentPair, Transitions>& transitionMap)
 {
     transitionMap.clear();

@@ -240,6 +240,13 @@ public:
         assemblyGraphJourneyInfos;
     void computeAssemblyGraphJourneyInfos();
 
+    // Find out if a segment contains a given OrientedReadId.
+    // This returns true if assemblyGraphJourneyInfos[segmentId]
+    // contains an entry with the given OrientedReadId.
+    bool segmentContainsOrientedRead(
+        uint64_t segmentId,
+        OrientedReadId) const;
+
 
 
     // A transition is a sequence of two consecutive positions
