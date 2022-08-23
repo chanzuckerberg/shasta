@@ -60,6 +60,7 @@ public:
     uint64_t rightTrim;
     span<const Base> trimmedRleSequence() const;
     span<const uint32_t> trimmedRepeatCounts() const;
+    void getTrimmedRawSequence(vector<Base>&) const;
 
     // Constructor.
     AssemblyPathSegment(uint64_t id, bool isPrimary);

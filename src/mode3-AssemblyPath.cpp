@@ -455,12 +455,9 @@ void AssemblyPath::writeSegmentSequences()
             continue;
         }
 
+        // Write the trimmed RLE sequence to txt.
         const auto trimmedRleSequence = segment.trimmedRleSequence();
         const auto trimmedRepeatCounts = segment.trimmedRepeatCounts();
-
-        // Write out the RLE sequence.
-        // Also compute the raw length.
-        uint64_t rawLength = 0;
         txt << "S" << i << " " << segmentId << "\n";
         copy(
             trimmedRleSequence.begin(),
@@ -468,7 +465,6 @@ void AssemblyPath::writeSegmentSequences()
             ostream_iterator<Base>(txt));
         txt << "\n";
         for(const uint32_t r: trimmedRepeatCounts) {
-            rawLength += r;
             if(r < 10) {
                 txt << r;
             } else {
@@ -477,17 +473,17 @@ void AssemblyPath::writeSegmentSequences()
         }
         txt << "\n";
 
+        // Write the trimmed raw sequence to fasta.
+        vector<Base> trimmedRawSequence;
+        segment.getTrimmedRawSequence(trimmedRawSequence);
         fasta <<
             ">S" << i <<
             " segment " << segmentId <<
-            ", length " << rawLength << "\n";
-        for(uint64_t j=0; j<trimmedRleSequence.size(); j++) {
-            const Base b = trimmedRleSequence[j];
-            const uint32_t r = trimmedRepeatCounts[j];
-            for(uint64_t k=0; k<r; k++) {
-                fasta << b;
-            }
-        }
+            ", length " << trimmedRawSequence.size() << "\n";
+        copy(
+            trimmedRawSequence.begin(),
+            trimmedRawSequence.end(),
+            ostream_iterator<Base>(fasta));
         fasta << "\n";
     }
 }
@@ -864,4 +860,25 @@ span<const uint32_t> AssemblyPathSegment::trimmedRepeatCounts() const
     const auto end = assembledSegment.repeatCounts.end() - rightTrim;
     SHASTA_ASSERT(begin <= end);
     return span<const uint32_t>(begin, end);
+}
+
+
+
+void AssemblyPathSegment::getTrimmedRawSequence(vector<Base>& trimmedRawSequence) const
+{
+
+    // Get the trimed RLE sequence and repeat counts.
+    const span<const Base> trimmedRleSequenceSpan = trimmedRleSequence();
+    const span<const uint32_t> trimmedRepeatCountsSpan = trimmedRepeatCounts();
+    SHASTA_ASSERT(trimmedRleSequenceSpan.size() == trimmedRepeatCountsSpan.size());
+
+    // Construct the raw sequence.
+    trimmedRawSequence.clear();
+    for(uint64_t i=0; i<trimmedRleSequenceSpan.size(); i++) {
+        const Base b = trimmedRleSequenceSpan[i];
+        const uint32_t r = trimmedRepeatCountsSpan[i];
+        for(uint64_t k=0; k<r; k++) {
+            trimmedRawSequence.push_back(b);
+        }
+    }
 }
