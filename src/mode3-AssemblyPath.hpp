@@ -6,6 +6,7 @@
 
 // Standard library.
 #include "cstdint.hpp"
+#include "span.hpp"
 #include "utility.hpp"
 #include "vector.hpp"
 
@@ -40,7 +41,35 @@ public:
     // The AssembledSegment contains the sequence for this segment
     // plus information on how the sequence was extracted from the
     // marker graph.
+    // The sequence includes the first and last marker graph vertex
+    // of this segment.
     AssembledSegment assembledSegment;
+
+    // For assembly of the path sequence, we don't use the entire
+    // sequence of the AssembledSegment.
+    // We trim some bases at each end to avoid overlap
+    // with adjacent segments and links.
+    // When a segment is adjacent to a non-trivial link,
+    // we give priority to link sequence over segment sequence.
+    // The reason is that sequence assembled from links
+    // is generally more accurate because it is assembled
+    // using only a restricted set of
+    // oriented reads that are believed to originate from the
+    // sequence copy we are assembling.
+    uint64_t leftTrim;
+    uint64_t rightTrim;
+    span<const Base> trimmedRleSequence() const
+    {
+        return span<const Base>(
+            assembledSegment.runLengthSequence.begin() + leftTrim,
+            assembledSegment.runLengthSequence.end() - rightTrim);
+    }
+    span<const uint32_t> trimmedRepeatCounts() const
+    {
+        return span<const uint32_t>(
+            assembledSegment.repeatCounts.begin() + leftTrim,
+            assembledSegment.repeatCounts.end() - rightTrim);
+    }
 
     // Constructor.
     AssemblyPathSegment(uint64_t id, bool isPrimary);
@@ -92,21 +121,6 @@ public:
     // Assemble links in this assembly path.
     void assembleLinks(const AssemblyGraph&);
     void writeLinkSequences(const AssemblyGraph&);
-
-    // When assembling path sequence, we give priority to
-    // sequence assembled from links over sequence assembled
-    // from segments. The reason is that sequence assembled from links
-    // is generally more accurate because it is assembled
-    // using only the "reference oriented reads" - that is,
-    // the oriented reads that are believed to originate from the
-    // sequence copy we are assembling.
-    // As a result, only part of the sequence of each assembled segment
-    // is used when assembling path sequence.
-    // Here we store the number of (RLE) bases to be skipped at the
-    // beginning and end of each assembled segment.
-    // These are computed in assembleLinks.
-    vector<uint64_t> skipAtSegmentBegin;
-    vector<uint64_t> skipAtSegmentEnd;
 
     // Final assembly of segments and links sequence into the path sequence.
     void assemble();

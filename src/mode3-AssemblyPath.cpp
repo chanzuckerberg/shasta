@@ -94,15 +94,10 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
     const bool debug = false;
     SHASTA_ASSERT((assemblyGraph.k % 2) == 0);
 
-    // Resize vectors to be used below.
-    links.resize(segments.size()-1);
-    skipAtSegmentBegin.resize(segments.size());
-    skipAtSegmentEnd.resize(segments.size());
-
     // Don't skip any bases at the beginning of the first
     // segment and at the end of the last segment.
-    skipAtSegmentBegin.front() = 0;
-    skipAtSegmentEnd.back() = 0;
+    segments.front().leftTrim = 0;
+    segments.back().rightTrim = 0;
 
     // The list of oriented reads that can be used to assemble links.
     // These are the oriented reads that appear in either the previous or next
@@ -114,17 +109,18 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
     ofstream html("Msa.html");
 
     // Loop over links in the path.
+    links.resize(segments.size()-1);
     for(uint64_t position0=0; position0<links.size(); position0++) {
         AssemblyPathLink& link = links[position0];
         const uint64_t position1 = position0 + 1;
 
         // Access the source and target segments of this link.
         // We will process the link between segmentId0 and segmentId1.
-        const AssemblyPathSegment& segment0 = segments[position0];
+        AssemblyPathSegment& segment0 = segments[position0];
         const uint64_t segmentId0 = segment0.id;
         const bool isReferenceSegment0 = segment0.isPrimary;
         const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
-        const AssemblyPathSegment& segment1 = segments[position1];
+        AssemblyPathSegment& segment1 = segments[position1];
         const uint64_t segmentId1 = segment1.id;
         const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
 
@@ -152,8 +148,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[markerGraphPath1.front()];
         if(lastEdge0.target == firstEdge1.source) {
             link.isTrivial = true;
-            skipAtSegmentEnd[position0] = assemblyGraph.k/2;
-            skipAtSegmentBegin[position1] = assemblyGraph.k/2;
+            segment0.rightTrim = assemblyGraph.k/2;
+            segment1.leftTrim  = assemblyGraph.k/2;
 
             // Leave empty the sequence for the link between these segments.
             SHASTA_ASSERT(link.msaRleSequence.empty());
@@ -400,11 +396,11 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
 
         // Compute and store the number of bases to be skipped at the end of segmentId0
         // and at the beginning of segmentId1.
-        skipAtSegmentEnd[position0] =
+        segment0.rightTrim =
             assembledSegment0.runLengthSequence.size() -
             assembledSegment0.vertexOffsets[minVertexPosition0] -
             identicalOnLeft;
-        skipAtSegmentBegin[position1] =
+        segment1.leftTrim =
             assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k
             - identicalOnRight;
     }
@@ -416,8 +412,6 @@ void AssemblyPath::clear()
 {
     segments.clear();
     links.clear();
-    skipAtSegmentBegin.clear();
-    skipAtSegmentEnd.clear();
 }
 
 
@@ -450,12 +444,12 @@ void AssemblyPath::writeSegmentSequences()
         const uint64_t segmentId = segment.id;
         const AssembledSegment& assembledSegment = segment.assembledSegment;
 
-        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] > assembledSegment.runLengthSequence.size()) {
+        if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
             cout << "Segment " << segmentId <<
                 " has overlapping skips on left/right." << endl;
             continue;
         }
-        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] == assembledSegment.runLengthSequence.size()) {
+        if(segment.leftTrim + segment.rightTrim == assembledSegment.runLengthSequence.size()) {
             cout << "Segment " << segmentId <<
                 " is skipped entirely." << endl;
             continue;
@@ -463,19 +457,18 @@ void AssemblyPath::writeSegmentSequences()
 
         const uint64_t rleLengthKept =
             assembledSegment.runLengthSequence.size() -
-            skipAtSegmentBegin[i] -
-            skipAtSegmentEnd[i];
+            segment.leftTrim - segment.rightTrim;
 
         // Write out the RLE sequence.
         // Also compute the raw length kept.
         uint64_t rawLengthKept = 0;
         txt << "S" << i << " " << segmentId << "\n";
         copy(
-            assembledSegment.runLengthSequence.begin() +  skipAtSegmentBegin[i],
-            assembledSegment.runLengthSequence.end() - skipAtSegmentEnd[i],
+            assembledSegment.runLengthSequence.begin() +  segment.leftTrim,
+            assembledSegment.runLengthSequence.end() - segment.rightTrim,
             ostream_iterator<Base>(txt));
         txt << "\n";
-        for(uint64_t j=skipAtSegmentBegin[i]; j<rleLengthKept; j++) {
+        for(uint64_t j=segment.leftTrim; j<rleLengthKept; j++) {
             const uint32_t r = assembledSegment.repeatCounts[j];
             rawLengthKept += r;
             if(r < 10) {
@@ -490,7 +483,7 @@ void AssemblyPath::writeSegmentSequences()
             ">S" << i <<
             " segment " << segmentId <<
             ", length " << rawLengthKept << "\n";
-        for(uint64_t j=skipAtSegmentBegin[i]; j<rleLengthKept; j++) {
+        for(uint64_t j=segment.leftTrim; j<rleLengthKept; j++) {
             const Base b = assembledSegment.runLengthSequence[j];
             const uint32_t r = assembledSegment.repeatCounts[j];
             for(uint64_t k=0; k<r; k++) {
@@ -793,12 +786,12 @@ void AssemblyPath::assemble()
         const uint64_t segmentId = segment.id;
         const AssembledSegment& assembledSegment = segment.assembledSegment;
 
-        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] > assembledSegment.runLengthSequence.size()) {
+        if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
             cout << "Segment " << segmentId <<
                 " has overlapping skips on left/right." << endl;
             continue;
         }
-        if(skipAtSegmentBegin[i] + skipAtSegmentEnd[i] == assembledSegment.runLengthSequence.size()) {
+        if(segment.leftTrim + segment.rightTrim == assembledSegment.runLengthSequence.size()) {
             cout << "Segment " << segmentId <<
                 " is skipped entirely." << endl;
             continue;
@@ -806,12 +799,12 @@ void AssemblyPath::assemble()
 
         // Add the sequence of this segment.
         copy(
-            assembledSegment.runLengthSequence.begin() +  skipAtSegmentBegin[i],
-            assembledSegment.runLengthSequence.end() - skipAtSegmentEnd[i],
+            assembledSegment.runLengthSequence.begin() +  segment.leftTrim,
+            assembledSegment.runLengthSequence.end() - segment.rightTrim,
             back_inserter(rleSequence));
         copy(
-            assembledSegment.repeatCounts.begin() +  skipAtSegmentBegin[i],
-            assembledSegment.repeatCounts.end() - skipAtSegmentEnd[i],
+            assembledSegment.repeatCounts.begin() +  segment.leftTrim,
+            assembledSegment.repeatCounts.end() - segment.rightTrim,
             back_inserter(repeatCounts));
 
         // Add the sequence of the link following this segment.
