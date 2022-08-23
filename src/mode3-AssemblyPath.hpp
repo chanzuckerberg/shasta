@@ -12,6 +12,7 @@
 namespace shasta {
     namespace mode3 {
         class AssemblyPath;
+        class AssemblyPathLink;
         class AssemblyPathSegment;
 
         class AssemblyGraph;
@@ -27,7 +28,6 @@ namespace shasta {
 // A segment in an AssemblyPath.
 class shasta::mode3::AssemblyPathSegment {
 public:
-public:
 
     // The id of this segment, in the AssemblyGraph.
     uint64_t id;
@@ -37,7 +37,7 @@ public:
     // The first and last segment are always primary segments.
     bool isPrimary;
 
-    // The AssembledSegment segment contains the sequence for this segment
+    // The AssembledSegment contains the sequence for this segment
     // plus information on how the sequence was extracted from the
     // marker graph.
     AssembledSegment assembledSegment;
@@ -48,13 +48,39 @@ public:
 
 
 
+// A link in an AssemblyPath.
+class shasta::mode3::AssemblyPathLink {
+public:
+
+    // A link is trivial if the last marker graph vertex
+    // of the source segment coincides with the first marker
+    // graph vertex of the target segment.
+    // In this case the link does not need to be assembled
+    // and all the next fields are left empty.
+    bool isTrivial;
+
+    // The RLE sequence as computed by the MSA
+    // of oriented reads in the link.
+    // This overlaps with adjacent segments.
+    vector<Base> msaRleSequence;
+    vector<uint64_t> msaRepeatCounts;
+
+    // The trimmed RLE sequence is obtained from
+    // the MSA sequence by removing bases at the two ends
+    // that are identical with the adjacent segments.
+    vector<Base> trimmedRleSequence;
+    vector<uint64_t> trimmedRepeatCounts;
+};
+
+
 
 // An assembly path in the mode3::AssemblyGraph
 class shasta::mode3::AssemblyPath {
 public:
 
-    // The segments on the path.
-     vector<AssemblyPathSegment > segments;
+    // The segments and links on the path.
+    vector<AssemblyPathSegment> segments;
+    vector<AssemblyPathLink> links;
 
     // Top level function to assemble sequence for this path.
     void assemble(const AssemblyGraph&);
@@ -66,8 +92,6 @@ public:
     // Assemble links in this assembly path.
     void assembleLinks(const AssemblyGraph&);
     void writeLinkSequences(const AssemblyGraph&);
-    vector< vector<Base> > linksRleSequence;
-    vector< vector<uint64_t> > linksRepeatCounts;
 
     // When assembling path sequence, we give priority to
     // sequence assembled from links over sequence assembled
