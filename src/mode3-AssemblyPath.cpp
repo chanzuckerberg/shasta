@@ -455,22 +455,20 @@ void AssemblyPath::writeSegmentSequences()
             continue;
         }
 
-        const uint64_t rleLengthKept =
-            assembledSegment.runLengthSequence.size() -
-            segment.leftTrim - segment.rightTrim;
+        const auto trimmedRleSequence = segment.trimmedRleSequence();
+        const auto trimmedRepeatCounts = segment.trimmedRepeatCounts();
 
         // Write out the RLE sequence.
-        // Also compute the raw length kept.
-        uint64_t rawLengthKept = 0;
+        // Also compute the raw length.
+        uint64_t rawLength = 0;
         txt << "S" << i << " " << segmentId << "\n";
         copy(
-            assembledSegment.runLengthSequence.begin() +  segment.leftTrim,
-            assembledSegment.runLengthSequence.end() - segment.rightTrim,
+            trimmedRleSequence.begin(),
+            trimmedRleSequence.end(),
             ostream_iterator<Base>(txt));
         txt << "\n";
-        for(uint64_t j=segment.leftTrim; j<rleLengthKept; j++) {
-            const uint32_t r = assembledSegment.repeatCounts[j];
-            rawLengthKept += r;
+        for(const uint32_t r: trimmedRepeatCounts) {
+            rawLength += r;
             if(r < 10) {
                 txt << r;
             } else {
@@ -482,10 +480,10 @@ void AssemblyPath::writeSegmentSequences()
         fasta <<
             ">S" << i <<
             " segment " << segmentId <<
-            ", length " << rawLengthKept << "\n";
-        for(uint64_t j=segment.leftTrim; j<rleLengthKept; j++) {
-            const Base b = assembledSegment.runLengthSequence[j];
-            const uint32_t r = assembledSegment.repeatCounts[j];
+            ", length " << rawLength << "\n";
+        for(uint64_t j=0; j<trimmedRleSequence.size(); j++) {
+            const Base b = trimmedRleSequence[j];
+            const uint32_t r = trimmedRepeatCounts[j];
             for(uint64_t k=0; k<r; k++) {
                 fasta << b;
             }
@@ -798,13 +796,15 @@ void AssemblyPath::assemble()
         }
 
         // Add the sequence of this segment.
+        const auto segmentTrimmedRleSequence = segment.trimmedRleSequence();
+        const auto segmentTrimmedRepeatCounts = segment.trimmedRepeatCounts();
         copy(
-            assembledSegment.runLengthSequence.begin() +  segment.leftTrim,
-            assembledSegment.runLengthSequence.end() - segment.rightTrim,
+            segmentTrimmedRleSequence.begin(),
+            segmentTrimmedRleSequence.end(),
             back_inserter(rleSequence));
         copy(
-            assembledSegment.repeatCounts.begin() +  segment.leftTrim,
-            assembledSegment.repeatCounts.end() - segment.rightTrim,
+            segmentTrimmedRepeatCounts.begin(),
+            segmentTrimmedRepeatCounts.end(),
             back_inserter(repeatCounts));
 
         // Add the sequence of the link following this segment.
@@ -845,3 +845,23 @@ AssemblyPathSegment::AssemblyPathSegment(
     id(id),
     isPrimary(isPrimary)
     {}
+
+
+
+span<const Base> AssemblyPathSegment::trimmedRleSequence() const
+{
+    const auto begin = assembledSegment.runLengthSequence.begin() + leftTrim;
+    const auto end = assembledSegment.runLengthSequence.end() - rightTrim;
+    SHASTA_ASSERT(begin <= end);
+    return span<const Base>(begin, end);
+}
+
+
+
+span<const uint32_t> AssemblyPathSegment::trimmedRepeatCounts() const
+{
+    const auto begin = assembledSegment.repeatCounts.begin() + leftTrim;
+    const auto end = assembledSegment.repeatCounts.end() - rightTrim;
+    SHASTA_ASSERT(begin <= end);
+    return span<const uint32_t>(begin, end);
+}

@@ -58,18 +58,8 @@ public:
     // sequence copy we are assembling.
     uint64_t leftTrim;
     uint64_t rightTrim;
-    span<const Base> trimmedRleSequence() const
-    {
-        return span<const Base>(
-            assembledSegment.runLengthSequence.begin() + leftTrim,
-            assembledSegment.runLengthSequence.end() - rightTrim);
-    }
-    span<const uint32_t> trimmedRepeatCounts() const
-    {
-        return span<const uint32_t>(
-            assembledSegment.repeatCounts.begin() + leftTrim,
-            assembledSegment.repeatCounts.end() - rightTrim);
-    }
+    span<const Base> trimmedRleSequence() const;
+    span<const uint32_t> trimmedRepeatCounts() const;
 
     // Constructor.
     AssemblyPathSegment(uint64_t id, bool isPrimary);
