@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "mode3.hpp"
+#include "mode3-AssemblyPath.hpp"
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "PngImage.hpp"
 using namespace shasta;
@@ -723,5 +724,108 @@ void Assembler::exploreMode3MetaAlignment(
     ifstream png("MetaAlignment.png.base64");
     html << png.rdbuf();
     html << "\"/>";
+
+}
+
+
+
+void Assembler::exploreMode3AssemblyPath(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the parametersof the request.
+
+    // The segment that the path will start from.
+    string pathStartString;
+    HttpServer::getParameterValue(request, "pathStart", pathStartString);
+
+    // The path direction can be forward, backward, or bidirectional.
+    string pathDirection = "bidirectional";
+    HttpServer::getParameterValue(request, "pathDirection", pathDirection);
+
+
+
+    // Write the form.
+    html <<
+        "<h2>Assembly path computation</h2>"
+        "<form>"
+
+        "Start the path at segment &nbsp;<input type=text name=pathStart required size=8 style='text-align:center'"
+                " value='" << pathStartString << "'>"
+
+        "<br><input type=radio name=pathDirection value=forward" <<
+        (pathDirection=="forward" ? " checked=checked" : "") << "> Forward"
+        "<br><input type=radio name=pathDirection value=backward" <<
+        (pathDirection=="backward" ? " checked=checked" : "") << "> Backward"
+        "<br><input type=radio name=pathDirection value=bidirectional" <<
+        (pathDirection=="bidirectional" ? " checked=checked" : "") << "> Both directions" <<
+
+        "<p><input type=submit value='Compute the path and assemble its sequence'>"
+        "</form>";
+
+    // If the path start was not specified, stop here.
+    if(pathStartString.empty()) {
+        return;
+    }
+
+    // Get the path start segment.
+    uint64_t pathStart;
+    try {
+        pathStart = boost::lexical_cast<uint64_t>(pathStartString);
+    } catch(std::exception&) {
+        throw runtime_error("Invalid path start segment id.");
+    }
+
+    // Check that it is a valid segment id.
+    const mode3::AssemblyGraph& assemblyGraph = *assemblyGraph3Pointer;
+    if(pathStart >= assemblyGraph.markerGraphPaths.size()) {
+        throw runtime_error("Invalid path start segment id. The assembly graph has " +
+            to_string(assemblyGraph.markerGraphPaths.size()) + " segments.");
+    }
+
+    // Write a header.
+    html << "<h1>Assembly path</h1>";
+
+
+
+    // Compute the assembly path.
+    AssemblyPath path;
+    if(pathDirection == "forward" or pathDirection == "backward") {
+
+        // Forward or backward.
+        assemblyGraph.createAssemblyPath(pathStart,
+            (pathDirection == "forward") ? 0 : 1, path);
+        if(pathDirection == "backward") {
+            reverse(path.segments.begin(), path.segments.end());
+        }
+
+    } else {
+
+        // Bidirectional.
+        AssemblyPath forwardPath;
+        AssemblyPath backwardPath;
+        assemblyGraph.createAssemblyPath(pathStart, 0, forwardPath);
+        assemblyGraph.createAssemblyPath(pathStart, 1, backwardPath);
+
+        // Stitch them together, making sure not to repeat the starting segment.
+        path.segments.clear();
+        copy(backwardPath.segments.rbegin(), backwardPath.segments.rend(), back_inserter(path.segments));
+        copy(forwardPath.segments.begin() + 1, forwardPath.segments.end(), back_inserter(path.segments));
+
+    }
+
+    html << "<p>This assembly path was created starting at segment " << pathStart <<
+        " and moving ";
+    if(pathDirection == "forward") {
+        html << "forward.";
+    } else if(pathDirection == "backward") {
+        html << "backward.";
+    } else if(pathDirection == "bidirectional") {
+        html << "in both directions.";
+    }
+
+    // Assemble sequence for this path.
+    path.assemble(assemblyGraph);
+
 
 }

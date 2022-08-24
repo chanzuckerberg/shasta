@@ -246,6 +246,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraphSegmentPair);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraphLink);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3MetaAlignment);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyPath);
 
 }
 #undef SHASTA_ADD_TO_FUNCTION_TABLE
@@ -464,6 +465,7 @@ void Assembler::writeNavigation(ostream& html) const
             {"Assembly graph segment pairs", "exploreMode3AssemblyGraphSegmentPair"},
             {"Assembly graph links", "exploreMode3AssemblyGraphLink"},
             {"Meta-alignments", "exploreMode3MetaAlignment"},
+            {"Assembly paths", "exploreMode3AssemblyPath"},
             });
     }
 
