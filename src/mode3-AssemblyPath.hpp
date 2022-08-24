@@ -72,6 +72,9 @@ public:
 class shasta::mode3::AssemblyPathLink {
 public:
 
+    // The id of this segment, in the AssemblyGraph.
+    uint64_t id;
+
     // A link is trivial if the last marker graph vertex
     // of the source segment coincides with the first marker
     // graph vertex of the target segment.
@@ -120,6 +123,11 @@ public:
     vector<Base> rawSequence;
 
     void clear();
+
+    // Find the segmentIds of the primary segments to be used when assembling
+    // the link at position0.
+    // These are the previous and next primary segments before/after the link.
+    pair<uint64_t, uint64_t> findReferenceSegmentsForLinkAtPosition(uint64_t position) const;
 
     // Use spoa to compute consensus sequence for a link, given sequences of
     // the oriented reads, which must all be anchored on both sides.

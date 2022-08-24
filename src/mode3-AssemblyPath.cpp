@@ -73,7 +73,7 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // If segmentId0 and segmentId1 are consecutive in the marker graph,
         // this is a trivial link because the two segments share a terminal
         // marker graph vertex.
-        // Just skip the last k/2 RLE bases of segmentId0
+        // Just trim from the assembly the last k/2 RLE bases of segmentId0
         // and the first k/2 RLE bases of seegmentId1.
         const auto markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
         const auto markerGraphPath1 = assemblyGraph.markerGraphPaths[segmentId1];
@@ -97,7 +97,7 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // If getting here, this segment and the next are not adjacent in the marker graph.
         // We need to assemble the link between them.
         // We can only use oriented reads that are in the link
-        // and also in orientedReadsForLinks.
+        // and also in either segment0 or segment1.
         link.isTrivial = false;
 
         // Locate the link between segmentId0 and segmentId1.
@@ -108,6 +108,7 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
                 break;
             }
         }
+        link.id = linkId01;
         SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
         if(debug) {
             cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
@@ -120,31 +121,11 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // that are present in the previous or next primary segment
         // and that are also present in the transitions for this link.
 
-        // Locate the previous primary segment preceding this link.
+        // Locate the previous and next primary segment preceding this link.
         uint64_t previousPrimarySegmentId = invalid<uint64_t>;
-        for(uint64_t position=position0; /* Check later */ ; position--) {
-            if(segments[position].isPrimary) {
-                previousPrimarySegmentId = segments[position].id;
-                break;
-            }
-            if(position == 0) {
-                break;
-            }
-        }
-        SHASTA_ASSERT(previousPrimarySegmentId != invalid<uint64_t>);
-
-        // Locate the next primary segment following this link.
         uint64_t nextPrimarySegmentId = invalid<uint64_t>;
-        for(uint64_t position=position1; position<segments.size() ; position++) {
-            if(segments[position].isPrimary) {
-                nextPrimarySegmentId = segments[position].id;
-                break;
-            }
-            if(position == 0) {
-                break;
-            }
-        }
-        SHASTA_ASSERT(nextPrimarySegmentId != invalid<uint64_t>);
+        tie(previousPrimarySegmentId, nextPrimarySegmentId) =
+            findReferenceSegmentsForLinkAtPosition(position0);
 
 
 
@@ -843,5 +824,40 @@ char AssemblyPath::repeatCountCharacter(uint32_t r) {
     } else {
         return '*';
     }
+}
+
+
+// Find the segmentIds of the primary segments to be used when assembling
+// the link at position0.
+// These are the previous and next primary segments before/after the link.
+pair<uint64_t, uint64_t>
+    AssemblyPath::findReferenceSegmentsForLinkAtPosition(uint64_t linkPosition) const
+{
+
+    // Locate the last primary segment preceding this link.
+    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+    for(uint64_t position=linkPosition; /* Check later */ ; position--) {
+        if(segments[position].isPrimary) {
+            previousPrimarySegmentId = segments[position].id;
+            break;
+        }
+        if(position == 0) {
+            break;
+        }
+    }
+    SHASTA_ASSERT(previousPrimarySegmentId != invalid<uint64_t>);
+
+    // Locate the first primary segment following this link.
+    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+    for(uint64_t position=linkPosition+1; position<segments.size() ; position++) {
+        if(segments[position].isPrimary) {
+            nextPrimarySegmentId = segments[position].id;
+            break;
+        }
+    }
+    SHASTA_ASSERT(nextPrimarySegmentId != invalid<uint64_t>);
+
+    return make_pair(previousPrimarySegmentId, nextPrimarySegmentId);
+
 }
 
