@@ -70,6 +70,21 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         const uint64_t segmentId1 = segment1.id;
         const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
 
+        // Locate the link between segmentId0 and segmentId1.
+        uint64_t linkId01 = invalid<uint64_t>;
+        for(uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
+            if(assemblyGraph.links[linkId].segmentId1 == segmentId1) {
+                linkId01 = linkId;
+                break;
+            }
+        }
+        link.id = linkId01;
+        SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
+        if(debug) {
+            cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
+                " at position " << position0 << " in the assembly path." << endl;
+        }
+
         // If segmentId0 and segmentId1 are consecutive in the marker graph,
         // this is a trivial link because the two segments share a terminal
         // marker graph vertex.
@@ -99,21 +114,6 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         // We can only use oriented reads that are in the link
         // and also in either segment0 or segment1.
         link.isTrivial = false;
-
-        // Locate the link between segmentId0 and segmentId1.
-        uint64_t linkId01 = invalid<uint64_t>;
-        for(uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
-            if(assemblyGraph.links[linkId].segmentId1 == segmentId1) {
-                linkId01 = linkId;
-                break;
-            }
-        }
-        link.id = linkId01;
-        SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
-        if(debug) {
-            cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
-                " at position " << position0 << " in the assembly path." << endl;
-        }
 
 
 
@@ -871,3 +871,121 @@ pair<uint64_t, uint64_t>
 
 }
 
+
+
+void AssemblyPath::writeHtml(ostream& html) const
+{
+    SHASTA_ASSERT(segments.size() > 1);
+    SHASTA_ASSERT(links.size() == segments.size() - 1);
+
+    writeHtmlSummary(html);
+    writeHtmlDetail(html);
+}
+
+
+
+void AssemblyPath::writeHtmlSummary(ostream& html) const
+{
+    html <<
+        "<table>" <<
+        "<tr><th class=left>First segment id<td class=centered>" << segments.front().id <<
+        "<tr><th class=left>Last segment id<td class=centered>" << segments.back().id <<
+        "<tr><th class=left>Number of segments<td class=centered>" << segments.size() <<
+        "<tr><th class=left>Number of links<td class=centered>" << segments.size() - 1 <<
+        "<tr><th class=left>Length of RLE sequence assembled<td class=centered>" << rleSequence.size() <<
+        "<tr><th class=left>Length of raw sequence assembled<td class=centered>" << rawSequence.size() <<
+        "</table>";
+}
+
+
+
+void AssemblyPath::writeHtmlDetail(ostream& html) const
+{
+    // Table legend.
+    html <<
+        "<p>"
+        "<table >"
+        "<tr><th colspan=2>Legend"
+        "<tr><th>Type<td>S (segment) or L (link). "
+        "Trivial links have a grey background and don't participate ijn the assembly."
+        "<tr><th>Id<td>Segment or link id"
+        "<tr><th>Raw sequence<td>The complete raw sequence for this segment or link. "
+        "The red portion is not used for assembly."
+        "</table>";
+
+    // Table header.
+    html <<
+        "<p>"
+        "<table style='table-layout:fixed;font-family:monospace;font-size:9'>"
+        "<tr>"
+        "<th>Type"
+        "<th>Id"
+        "<th>Raw sequence";
+
+
+
+    // Main body of the table.
+    // There is one row for each segment and one row for each link.
+    for(uint64_t position=0; position<segments.size(); position++) {
+
+        // Write a row for the segment at this position.
+        const AssemblyPathSegment& segment = segments[position];
+        const AssembledSegment& assembledSegment = segment.assembledSegment;
+        html << "<tr><td class=centered>S<td class=centered>" << segment.id;
+
+        // Raw sequence for this segment.
+        html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
+        html << "<span style='background-color:LightCoral'>";
+        for(uint64_t i=0; i<assembledSegment.runLengthSequence.size(); i++) {
+            const Base b = assembledSegment.runLengthSequence[i];
+            const uint32_t r = assembledSegment.repeatCounts[i];
+            if(i == segment.leftTrim) {
+                html << "</span>";
+            }
+            for(uint32_t k=0; k<r; k++) {
+                html << b;
+            }
+            if(i == assembledSegment.runLengthSequence.size() -1 - segment.rightTrim) {
+                html << "<span style='background-color:LightCoral'>";
+            }
+        }
+        html << "</span>";
+
+
+
+        // Write a row for the link.
+        if(position == links.size()) {
+            break;
+        }
+        const AssemblyPathLink& link = links[position];
+        html << "<tr";
+        if(link.isTrivial) {
+            html << " style='background-color:LightGray'";
+        }
+        html <<
+            "><td class=centered>L" <<
+            "<td class=centered>" << link.id;
+
+        // Raw sequence for this link.
+        html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
+        html << "<span style='background-color:LightCoral'>";
+        for(uint64_t i=0; i<link.msaRleSequence.size(); i++) {
+            const Base b = link.msaRleSequence[i];
+            const uint32_t r = link.msaRepeatCounts[i];
+            if(i == link.leftTrim) {
+                html << "</span>";
+            }
+            for(uint32_t k=0; k<r; k++) {
+                html << b;
+            }
+            if(i == link.msaRleSequence.size() -1 - link.rightTrim) {
+                html << "<span style='background-color:LightCoral'>";
+            }
+        }
+        html << "</span>";
+    }
+
+    // End the table.
+    html << "</table>";
+
+}

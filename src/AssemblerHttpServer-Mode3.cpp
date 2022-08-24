@@ -827,5 +827,8 @@ void Assembler::exploreMode3AssemblyPath(
     // Assemble sequence for this path.
     path.assemble(assemblyGraph);
 
+    // Write path details to html.
+    path.writeHtml(html);
+
 
 }

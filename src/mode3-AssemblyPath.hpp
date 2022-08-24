@@ -149,6 +149,11 @@ public:
     // when writing out RLE sequence.
     static char repeatCountCharacter(uint32_t);
 
+    // Html output.
+    void writeHtml(ostream&) const;
+    void writeHtmlSummary(ostream&) const;
+    void writeHtmlDetail(ostream&) const;
+
 };
 
 
