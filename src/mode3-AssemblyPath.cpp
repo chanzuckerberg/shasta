@@ -87,8 +87,8 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
             // Leave empty the sequence for the link between these segments.
             SHASTA_ASSERT(link.msaRleSequence.empty());
             SHASTA_ASSERT(link.msaRepeatCounts.empty());
-            SHASTA_ASSERT(link.trimmedRleSequence.empty());
-            SHASTA_ASSERT(link.trimmedRepeatCounts.empty());
+            SHASTA_ASSERT(link.leftTrim == 0);
+            SHASTA_ASSERT(link.rightTrim == 0);
 
             // We are done.
             continue;
@@ -335,20 +335,10 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
         }
 
         // Trim these identical bases from the link consensus sequence.
-        const uint64_t trimmedConsensusLength =
-            link.msaRleSequence.size() - identicalOnLeft - identicalOnRight;
-        link.trimmedRleSequence.resize(trimmedConsensusLength);
-        link.trimmedRepeatCounts.resize(trimmedConsensusLength);
-        copy(
-            link.msaRleSequence.begin() + identicalOnLeft,
-            link.msaRleSequence.begin() + identicalOnLeft + trimmedConsensusLength,
-            link.trimmedRleSequence.begin());
-        copy(
-            link.msaRepeatCounts.begin() + identicalOnLeft,
-            link.msaRepeatCounts.begin() + identicalOnLeft + trimmedConsensusLength,
-            link.trimmedRepeatCounts.begin());
+        link.leftTrim = identicalOnLeft;
+        link.rightTrim = identicalOnRight;
 
-        // Compute and store the number of bases to be skipped at the end of segmentId0
+        // Compute and store the number of bases to be trimmed at the end of segmentId0
         // and at the beginning of segmentId1.
         segment0.rightTrim =
             assembledSegment0.runLengthSequence.size() -
@@ -443,8 +433,8 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
         const uint64_t segmentId0 = segments[i].id;
         const uint64_t segmentId1 = segments[i+1].id;
         const uint64_t linkId = assemblyGraph.findLink(segmentId0, segmentId1);
-        const vector<Base>& rleSequence = links[i].trimmedRleSequence;
-        const vector<uint32_t>& repeatCounts = links[i].trimmedRepeatCounts;
+        const span<const Base> rleSequence = links[i].trimmedRleSequence();
+        const span<const uint32_t> repeatCounts = links[i].trimmedRepeatCounts();
         SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
         if(rleSequence.empty()) {
             continue;
@@ -738,8 +728,8 @@ void AssemblyPath::assemble()
 
         // Add the sequence of the link following this segment.
         if(i != segments.size() - 1) {
-            copy(links[i].trimmedRleSequence, back_inserter(rleSequence));
-            copy(links[i].trimmedRepeatCounts, back_inserter(repeatCounts));
+            copy(links[i].trimmedRleSequence(), back_inserter(rleSequence));
+            copy(links[i].trimmedRepeatCounts(), back_inserter(repeatCounts));
         }
     }
     SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
@@ -787,6 +777,26 @@ span<const uint32_t> AssemblyPathSegment::trimmedRepeatCounts() const
 {
     const auto begin = assembledSegment.repeatCounts.begin() + leftTrim;
     const auto end = assembledSegment.repeatCounts.end() - rightTrim;
+    SHASTA_ASSERT(begin <= end);
+    return span<const uint32_t>(begin, end);
+}
+
+
+
+span<const Base> AssemblyPathLink::trimmedRleSequence() const
+{
+    const auto begin = msaRleSequence.begin() + leftTrim;
+    const auto end = msaRleSequence.end() - rightTrim;
+    SHASTA_ASSERT(begin <= end);
+    return span<const Base>(begin, end);
+}
+
+
+
+span<const uint32_t> AssemblyPathLink::trimmedRepeatCounts() const
+{
+    const auto begin = msaRepeatCounts.begin() + leftTrim;
+    const auto end = msaRepeatCounts.end() - rightTrim;
     SHASTA_ASSERT(begin <= end);
     return span<const uint32_t>(begin, end);
 }

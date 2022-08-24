@@ -56,8 +56,8 @@ public:
     // using only a restricted set of
     // oriented reads that are believed to originate from the
     // sequence copy we are assembling.
-    uint64_t leftTrim;
-    uint64_t rightTrim;
+    uint64_t leftTrim = 0;
+    uint64_t rightTrim = 0;
     span<const Base> trimmedRleSequence() const;
     span<const uint32_t> trimmedRepeatCounts() const;
     void getTrimmedRawSequence(vector<Base>&) const;
@@ -88,11 +88,13 @@ public:
     vector<Base> msaRleSequence;
     vector<uint32_t> msaRepeatCounts;
 
-    // The trimmed RLE sequence is obtained from
+    // The trimmed RLE sequence, to be used for assembly, is obtained from
     // the MSA sequence by removing bases at the two ends
     // that are identical with the adjacent segments.
-    vector<Base> trimmedRleSequence;
-    vector<uint32_t> trimmedRepeatCounts;
+    uint64_t leftTrim = 0;
+    uint64_t rightTrim = 0;
+    span<const Base> trimmedRleSequence() const;
+    span<const uint32_t> trimmedRepeatCounts() const;
 };
 
 
