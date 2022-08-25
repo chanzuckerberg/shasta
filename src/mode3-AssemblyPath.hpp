@@ -162,6 +162,7 @@ public:
     // Html output.
     void writeHtml(ostream&) const;
     void writeHtmlSummary(ostream&) const;
+    void writeSequenceDialog(ostream&) const;
     void writeHtmlDetail(ostream&) const;
 
 };

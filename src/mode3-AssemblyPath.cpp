@@ -898,6 +898,7 @@ void AssemblyPath::writeHtml(ostream& html) const
     SHASTA_ASSERT(links.size() == segments.size() - 1);
 
     writeHtmlSummary(html);
+    writeSequenceDialog(html);
     writeHtmlDetail(html);
 }
 
@@ -1007,4 +1008,38 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
     // End the table.
     html << "</table>";
 
+}
+
+
+
+// This writes out a dialog that permit displaying
+// selected portions of the path assembled sequence.
+void AssemblyPath::writeSequenceDialog(ostream& html) const
+{
+    html << "<script>var assembledSequence = '";
+    copy(rawSequence, ostream_iterator<Base>(html));
+    html << "';</script>";
+
+    html << R"zzz(
+<form onsubmit="displaySequence(); return false;">
+<br><input type=submit value='Display assembled sequence'>
+ in the position range <input type=text id=begin>
+ to <input type=text id=end>
+</form>
+<script>
+function displaySequence()
+{
+    var beginString = document.getElementById('begin').value;
+    var endString = document.getElementById('end').value;
+    var begin = parseInt(beginString);
+    var end = parseInt(endString);
+    if((end < begin) || (end > assembledSequence.length)) {
+        document.getElementById("assembledSequence").innerText = "";
+    } else {
+        document.getElementById("assembledSequence").innerText = assembledSequence.substring(begin, end);
+    }
+}
+</script>
+<p id=assembledSequence style='font-family:monospace;font-size:9pt;word-wrap:break-word;'>
+    )zzz";
 }
