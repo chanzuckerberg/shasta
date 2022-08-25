@@ -465,26 +465,29 @@ void AssemblyPath::writeLinkSequences(const AssemblyGraph& assemblyGraph)
 
 
 
-#if 0
-// Compute consensus sequence for Link, given sequences of
-// the oriented reads, which must all be anchored on both sides.
+// Compute consensus sequence for a link.
 // Higher level version.
 void AssemblyPath::computeLinkConsensusUsingSpoa(
-    const uint64_t segmentId0,
-    const uint64_t segmentId1,
-    const span<const MarkerGraphEdgeId>& markerGraphPath0,
-    const span<const MarkerGraphEdgeId>& markerGraphPath1,
+    const AssemblyPathSegment& segment0,
+    const AssemblyPathSegment& segment1,
     uint64_t previousPrimarySegmentId,
     uint64_t nextPrimarySegmentId,
-    const span< pair<OrientedReadId, AssemblyGraph::Transition> >& linkTransitions,
-    uint64_t readRepresentation,
-    const ConsensusCaller&,
+    const span< pair<OrientedReadId, Transition> >& linkTransitions,
+    const AssemblyGraph& assemblyGraph,
     bool debug,
     ostream& html,
     vector<Base>& consensusRleSequence,
     vector<uint32_t>& consensusRepeatCounts
     )
 {
+    // Get the information we need for the segments adjacent to this link.
+    const uint64_t segmentId0 = segment0.id;
+    const uint64_t segmentId1 = segment1.id;
+    const span<const MarkerGraphEdgeId> markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
+    const span<const MarkerGraphEdgeId> markerGraphPath1 = assemblyGraph.markerGraphPaths[segmentId1];
+    const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
+    const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
+
     // First, find:
     // - The position in segmentId0 of the leftmost transition.
     // - The position in segmentId1 of the rightmost transition.
@@ -503,7 +506,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
         }
 
         // Access the transition from segmentId0 to segmentId1 for this oriented read.
-        const AssemblyGraph::Transition& transition = p.second;
+        const Transition& transition = p.second;
 
         minEdgePosition0 = min(minEdgePosition0, uint64_t(transition[0].position));
         maxEdgePosition1 = max(maxEdgePosition1, uint64_t(transition[1].position));
@@ -528,7 +531,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
     vector<OrientedReadId> orientedReadIdsForAssembly;
     vector< vector<Base> > orientedReadsSequencesForAssembly;
     vector< vector<uint32_t> > orientedReadsRepeatCountsForAssembly;
-    for(const auto& p: assemblyGraph.transitions[linkId01]) {
+    for(const auto& p: linkTransitions) {
         const OrientedReadId orientedReadId = p.first;
 
         // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
@@ -541,7 +544,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
         }
 
         // Access the transition from segmentId0 to segmentId1 for this oriented read.
-        const AssemblyGraph::Transition& transition = p.second;
+        const Transition& transition = p.second;
 
         // Get the ordinals of the last appearance of this oriented
         // read on segmentId0 and the first on segmentId1,
@@ -625,7 +628,6 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
     }
 
     // Compute the consensus sequence for the link.
-    html<< "<h2>Link " << linkId01 << "</h2>\n";
     computeLinkConsensusUsingSpoa(
         orientedReadIdsForAssembly,
         orientedReadsSequencesForAssembly,
@@ -640,7 +642,6 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
     SHASTA_ASSERT(consensusRleSequence.size() == consensusRepeatCounts.size());
 
 }
-#endif
 
 
 
