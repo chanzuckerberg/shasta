@@ -929,8 +929,11 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<tr><th>Type<td>S (segment) or L (link). "
         "Trivial links have a grey background and don't participate in the assembly."
         "<tr><th>Id<td>Segment or link id"
+        "<tr><th>Raw pos<td>The position "
+        "of the trimmed raw sequence of this segment or link "
+        "in the raw assembled sequence of the path."
         "<tr><th>Raw sequence<td>The complete raw sequence for this segment or link. "
-        "The red portion is not used for assembly."
+        "The red portion is trimmed out and not used for assembly."
         "</table>";
 
     // Table header.
@@ -940,6 +943,7 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<tr>"
         "<th>Type"
         "<th>Id"
+        "<th>Raw<br>pos"
         "<th>Raw sequence";
 
 
@@ -951,7 +955,10 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         // Write a row for the segment at this position.
         const AssemblyPathSegment& segment = segments[position];
         const AssembledSegment& assembledSegment = segment.assembledSegment;
-        html << "<tr><td class=centered>S<td class=centered>" << segment.id;
+        html << "<tr>"
+            "<td class=centered>S"
+            "<td class=centered>" << segment.id <<
+            "<td class=centered>" << segment.rawPosition;
 
         // Raw sequence for this segment.
         html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
@@ -984,7 +991,8 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         }
         html <<
             "><td class=centered>L" <<
-            "<td class=centered>" << link.id;
+            "<td class=centered>" << link.id <<
+            "<td class=centered>" << link.rawPosition;
 
         // Raw sequence for this link.
         html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
