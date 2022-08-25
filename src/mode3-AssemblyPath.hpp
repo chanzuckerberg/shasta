@@ -62,6 +62,11 @@ public:
     span<const uint32_t> trimmedRepeatCounts() const;
     void getTrimmedRawSequence(vector<Base>&) const;
 
+    // The position of the trimmed sequence of this segment
+    // in the assembled sequence of the path.
+    uint64_t rlePosition = 0;
+    uint64_t rawPosition = 0;
+
     // Constructor.
     AssemblyPathSegment(uint64_t id, bool isPrimary);
 };
@@ -95,6 +100,11 @@ public:
     uint64_t rightTrim = 0;
     span<const Base> trimmedRleSequence() const;
     span<const uint32_t> trimmedRepeatCounts() const;
+
+    // The position of the trimmed sequence of this link
+    // in the assembled sequence of the path.
+    uint64_t rlePosition = 0;
+    uint64_t rawPosition = 0;
 };
 
 

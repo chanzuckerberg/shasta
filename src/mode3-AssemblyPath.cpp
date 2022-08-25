@@ -705,9 +705,11 @@ void AssemblyPath::assemble()
 
     // Assemble RLE sequence.
     for(uint64_t i=0; i<segments.size(); i++) {
-        const AssemblyPathSegment& segment = segments[i];
+        AssemblyPathSegment& segment = segments[i];
         const uint64_t segmentId = segment.id;
         const AssembledSegment& assembledSegment = segment.assembledSegment;
+        segment.rlePosition = rleSequence.size();
+        segment.rawPosition = rawSequence.size();
 
         if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
             cout << "Segment " << segmentId <<
@@ -720,31 +722,48 @@ void AssemblyPath::assemble()
             continue;
         }
 
-        // Add the sequence of this segment.
+        // Add the RLE sequence of this segment.
         const auto segmentTrimmedRleSequence = segment.trimmedRleSequence();
         const auto segmentTrimmedRepeatCounts = segment.trimmedRepeatCounts();
         copy(segmentTrimmedRleSequence, back_inserter(rleSequence));
         copy(segmentTrimmedRepeatCounts, back_inserter(repeatCounts));
 
+        // Add the raw sequence of this segment.
+        for(uint64_t i=0; i<segmentTrimmedRleSequence.size(); i++) {
+            const Base b = segmentTrimmedRleSequence[i];
+            const uint64_t r = segmentTrimmedRepeatCounts[i];
+            for(uint64_t k=0; k<r; k++) {
+                rawSequence.push_back(b);
+            }
+        }
+
+
+
         // Add the sequence of the link following this segment.
         if(i != segments.size() - 1) {
-            copy(links[i].trimmedRleSequence(), back_inserter(rleSequence));
-            copy(links[i].trimmedRepeatCounts(), back_inserter(repeatCounts));
+            AssemblyPathLink& link = links[i];
+            link.rlePosition = rleSequence.size();
+            link.rawPosition = rawSequence.size();
+
+            // Add the RLE sequence of this link.
+            const auto trimmedRleSequence = link.trimmedRleSequence();
+            const auto trimmedRepeatCounts = link.trimmedRepeatCounts();
+            copy(trimmedRleSequence, back_inserter(rleSequence));
+            copy(trimmedRepeatCounts, back_inserter(repeatCounts));
+
+            // Add the raw sequence of this link.
+            for(uint64_t i=0; i<trimmedRleSequence.size(); i++) {
+                const Base b = trimmedRleSequence[i];
+                const uint64_t r = trimmedRepeatCounts[i];
+                for(uint64_t k=0; k<r; k++) {
+                    rawSequence.push_back(b);
+                }
+            }
         }
     }
     SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
 
-
-
-    // Now we can compute the raw sequence.
-    for(uint64_t i=0; i<rleSequence.size(); i++) {
-        const Base b = rleSequence[i];
-        const uint64_t r = repeatCounts[i];
-        for(uint64_t k=0; k<r; k++) {
-            rawSequence.push_back(b);
-        }
-    }
-
+    // Write it out.
     ofstream fasta("PathSequence.fasta");
     fasta << ">Path" << endl;
     copy(rawSequence, ostream_iterator<Base>(fasta));
@@ -907,7 +926,7 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<table >"
         "<tr><th colspan=2>Legend"
         "<tr><th>Type<td>S (segment) or L (link). "
-        "Trivial links have a grey background and don't participate ijn the assembly."
+        "Trivial links have a grey background and don't participate in the assembly."
         "<tr><th>Id<td>Segment or link id"
         "<tr><th>Raw sequence<td>The complete raw sequence for this segment or link. "
         "The red portion is not used for assembly."
