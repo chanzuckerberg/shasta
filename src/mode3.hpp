@@ -40,6 +40,7 @@ namespace shasta {
         class MarkerGraphJourneyEntry;
         class AssemblyGraphJourneyInterval;
         class AssemblyPath;
+        class Transition;
 
     }
 
@@ -132,6 +133,20 @@ public:
         return tie(orientedReadId, first) < tie(that.orientedReadId, that.first);
     }
 
+};
+
+
+
+// A transition is a sequence of two consecutive positions
+// in the assembly graph journey of an oriented reads.
+// In other words, it describes the transition of an oriented read
+// from a segment to the next segment it encounters.
+// Transitions are used to create edges in the AssemblyGraph (gfa links).
+// Indexed by the linkId. For each link, they are sorted.
+class shasta::mode3::Transition : public array<MarkerGraphJourneyEntry, 2> {
+public:
+    Transition(const array<MarkerGraphJourneyEntry, 2>& x) : array<MarkerGraphJourneyEntry, 2>(x) {}
+    Transition() {}
 };
 
 
@@ -249,17 +264,6 @@ public:
 
 
 
-    // A transition is a sequence of two consecutive positions
-    // in the assembly graph journey of an oriented reads.
-    // In other words, it describes the transition of an oriented read
-    // from a segment to the next segment it encounters.
-    // Transitions are used to create edges in the AssemblyGraph (gfa links).
-    // Indexed by the linkId. For each link, they are sorted.
-    class Transition : public array<MarkerGraphJourneyEntry, 2> {
-    public:
-        Transition(const array<MarkerGraphJourneyEntry, 2>& x) : array<MarkerGraphJourneyEntry, 2>(x) {}
-        Transition() {}
-    };
     using SegmentPair = pair<uint64_t, uint64_t>;
     using Transitions = vector< pair<OrientedReadId, Transition> >;
     std::map<SegmentPair, Transitions> transitionMap;

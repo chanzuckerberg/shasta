@@ -143,7 +143,24 @@ public:
 
     // Use spoa to compute consensus sequence for a link, given sequences of
     // the oriented reads, which must all be anchored on both sides.
-    void computeLinkConsensusUsingSpoa(
+#if 0
+    static void computeLinkConsensusUsingSpoa(          // Higher level version
+        const uint64_t segmentId0,
+        const uint64_t segmentId1,
+        const span<const MarkerGraphEdgeId>& markerGraphPath0,
+        const span<const MarkerGraphEdgeId>& markerGraphPath1,
+        uint64_t previousPrimarySegmentId,
+        uint64_t nextPrimarySegmentId,
+        const span< pair<OrientedReadId, AssemblyGraph::Transition> >& linkTransitions,
+        uint64_t readRepresentation,
+        const ConsensusCaller&,
+        bool debug,
+        ostream& html,
+        vector<Base>& consensusRleSequence,
+        vector<uint32_t>& consensusRepeatCounts
+        );
+#endif
+    static void computeLinkConsensusUsingSpoa(          // Lower lever version
         const vector<OrientedReadId> orientedReadIds,
         const vector< vector<Base> > rleSequences,
         const vector< vector<uint32_t> > repeatCounts,
@@ -153,7 +170,7 @@ public:
         ostream& html,
         vector<Base>& consensusRleSequence,
         vector<uint32_t>& consensusRepeatCounts
-        ) const;
+        );
 
     // Return a character to represent a repeat count
     // when writing out RLE sequence.
