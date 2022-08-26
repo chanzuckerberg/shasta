@@ -127,6 +127,10 @@ public:
 
     // Assemble links in this assembly path.
     void assembleLinks(const AssemblyGraph&);
+    void assembleLinkAtPosition(
+        const AssemblyGraph& assemblyGraph,
+        uint64_t position0,
+        ostream& html);
     void writeLinkSequences(const AssemblyGraph&);
 
     // Final assembly of segments and links sequence into the path sequence.

@@ -45,7 +45,6 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 // Assemble links in this assembly path.
 void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
 {
-    const bool debug = false;
     SHASTA_ASSERT((assemblyGraph.k % 2) == 0);
 
     // Don't skip any bases at the beginning of the first
@@ -58,296 +57,308 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
     // Loop over links in the path.
     links.resize(segments.size()-1);
     for(uint64_t position0=0; position0<links.size(); position0++) {
-        AssemblyPathLink& link = links[position0];
-        const uint64_t position1 = position0 + 1;
+        assembleLinkAtPosition(assemblyGraph, position0, html);
+    }
+}
 
-        // Access the source and target segments of this link.
-        // We will process the link between segmentId0 and segmentId1.
-        AssemblyPathSegment& segment0 = segments[position0];
-        const uint64_t segmentId0 = segment0.id;
-        const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
-        AssemblyPathSegment& segment1 = segments[position1];
-        const uint64_t segmentId1 = segment1.id;
-        const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
 
-        // Locate the link between segmentId0 and segmentId1.
-        uint64_t linkId01 = invalid<uint64_t>;
-        for(uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
-            if(assemblyGraph.links[linkId].segmentId1 == segmentId1) {
-                linkId01 = linkId;
-                break;
-            }
+
+void AssemblyPath::assembleLinkAtPosition(
+    const AssemblyGraph& assemblyGraph,
+    uint64_t position0,
+    ostream& html)
+{
+    const bool debug = false;
+
+    AssemblyPathLink& link = links[position0];
+    const uint64_t position1 = position0 + 1;
+
+    // Access the source and target segments of this link.
+    // We will process the link between segmentId0 and segmentId1.
+    AssemblyPathSegment& segment0 = segments[position0];
+    const uint64_t segmentId0 = segment0.id;
+    const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
+    AssemblyPathSegment& segment1 = segments[position1];
+    const uint64_t segmentId1 = segment1.id;
+    const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
+
+    // Locate the link between segmentId0 and segmentId1.
+    uint64_t linkId01 = invalid<uint64_t>;
+    for(uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
+        if(assemblyGraph.links[linkId].segmentId1 == segmentId1) {
+            linkId01 = linkId;
+            break;
         }
-        link.id = linkId01;
-        SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
-        if(debug) {
-            cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
-                " at position " << position0 << " in the assembly path." << endl;
-        }
+    }
+    link.id = linkId01;
+    SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
+    if(debug) {
+        cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
+            " at position " << position0 << " in the assembly path." << endl;
+    }
 
-        // If segmentId0 and segmentId1 are consecutive in the marker graph,
-        // this is a trivial link because the two segments share a terminal
-        // marker graph vertex.
-        // Just trim from the assembly the last k/2 RLE bases of segmentId0
-        // and the first k/2 RLE bases of seegmentId1.
-        const auto markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
-        const auto markerGraphPath1 = assemblyGraph.markerGraphPaths[segmentId1];
-        const MarkerGraph::Edge lastEdge0 = assemblyGraph.markerGraph.edges[markerGraphPath0.back()];
-        const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[markerGraphPath1.front()];
-        if(lastEdge0.target == firstEdge1.source) {
-            link.isTrivial = true;
-            segment0.rightTrim = assemblyGraph.k/2;
-            segment1.leftTrim  = assemblyGraph.k/2;
+    // If segmentId0 and segmentId1 are consecutive in the marker graph,
+    // this is a trivial link because the two segments share a terminal
+    // marker graph vertex.
+    // Just trim from the assembly the last k/2 RLE bases of segmentId0
+    // and the first k/2 RLE bases of seegmentId1.
+    const auto markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
+    const auto markerGraphPath1 = assemblyGraph.markerGraphPaths[segmentId1];
+    const MarkerGraph::Edge lastEdge0 = assemblyGraph.markerGraph.edges[markerGraphPath0.back()];
+    const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[markerGraphPath1.front()];
+    if(lastEdge0.target == firstEdge1.source) {
+        link.isTrivial = true;
+        segment0.rightTrim = assemblyGraph.k/2;
+        segment1.leftTrim  = assemblyGraph.k/2;
 
-            // Leave empty the sequence for the link between these segments.
-            SHASTA_ASSERT(link.msaRleSequence.empty());
-            SHASTA_ASSERT(link.msaRepeatCounts.empty());
-            SHASTA_ASSERT(link.leftTrim == 0);
-            SHASTA_ASSERT(link.rightTrim == 0);
+        // Leave empty the sequence for the link between these segments.
+        SHASTA_ASSERT(link.msaRleSequence.empty());
+        SHASTA_ASSERT(link.msaRepeatCounts.empty());
+        SHASTA_ASSERT(link.leftTrim == 0);
+        SHASTA_ASSERT(link.rightTrim == 0);
 
-            // We are done.
+        // We are done with this link.
+        return;
+    }
+
+    // If getting here, this segment and the next are not adjacent in the marker graph.
+    // We need to assemble the link between them.
+    // We can only use oriented reads that are in the link
+    // and also in either segment0 or segment1.
+    link.isTrivial = false;
+
+
+
+    // We only want to use for assembly of this link oriented reads
+    // that are present in the previous or next primary segment
+    // and that are also present in the transitions for this link.
+
+    // Locate the previous and next primary segment preceding this link.
+    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+    tie(previousPrimarySegmentId, nextPrimarySegmentId) =
+        findReferenceSegmentsForLinkAtPosition(position0);
+
+
+
+    // First, find:
+    // - The position in segmentId0 of the leftmost transition.
+    // - The position in segmentId1 of the rightmost transition.
+    uint64_t minEdgePosition0 = markerGraphPath0.size();
+    uint64_t maxEdgePosition1 = 0;
+    for(const auto& p: assemblyGraph.transitions[linkId01]) {
+        const OrientedReadId orientedReadId = p.first;
+
+        // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
+        if(not(
+            assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
+            or
+            assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
+            )) {
             continue;
         }
 
-        // If getting here, this segment and the next are not adjacent in the marker graph.
-        // We need to assemble the link between them.
-        // We can only use oriented reads that are in the link
-        // and also in either segment0 or segment1.
-        link.isTrivial = false;
+        // Access the transition from segmentId0 to segmentId1 for this oriented read.
+        const Transition& transition = p.second;
 
-
-
-        // We only want to use for assembly of this link oriented reads
-        // that are present in the previous or next primary segment
-        // and that are also present in the transitions for this link.
-
-        // Locate the previous and next primary segment preceding this link.
-        uint64_t previousPrimarySegmentId = invalid<uint64_t>;
-        uint64_t nextPrimarySegmentId = invalid<uint64_t>;
-        tie(previousPrimarySegmentId, nextPrimarySegmentId) =
-            findReferenceSegmentsForLinkAtPosition(position0);
-
-
-
-        // First, find:
-        // - The position in segmentId0 of the leftmost transition.
-        // - The position in segmentId1 of the rightmost transition.
-        uint64_t minEdgePosition0 = markerGraphPath0.size();
-        uint64_t maxEdgePosition1 = 0;
-        for(const auto& p: assemblyGraph.transitions[linkId01]) {
-            const OrientedReadId orientedReadId = p.first;
-
-            // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
-            if(not(
-                assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
-                or
-                assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
-                )) {
-                continue;
-            }
-
-            // Access the transition from segmentId0 to segmentId1 for this oriented read.
-            const Transition& transition = p.second;
-
-            minEdgePosition0 = min(minEdgePosition0, uint64_t(transition[0].position));
-            maxEdgePosition1 = max(maxEdgePosition1, uint64_t(transition[1].position));
-        }
-
-        // When getting here:
-        // - minEdgePosition0 is the leftmost position of the transitions in path0.
-        // - maxEdgePosition1 is the rightmost position of the transitions in path1.
-        // These positions are edge positions in markerGraphPath0 and markerGraphPath1.
-        // We will do a multiple sequence alignment of the oriented reads,
-        // using the sequence of segmentId0 to extend to the left all reads to minEdgePosition0,
-        // and using the sequence of segmentId1 to extend to the right all reads to maxEdgePosition1,
-
-        // Get the corresponding vertex positions in segmentId0 and segmentId1.
-        const uint64_t minVertexPosition0 = minEdgePosition0 + 1;
-        const uint64_t maxVertexPosition1 = maxEdgePosition1;
-
-
-
-        // Now extract the portion of each oriented read sequence that
-        // will be used to assemble this link.
-        vector<OrientedReadId> orientedReadIdsForAssembly;
-        vector< vector<Base> > orientedReadsSequencesForAssembly;
-        vector< vector<uint32_t> > orientedReadsRepeatCountsForAssembly;
-        for(const auto& p: assemblyGraph.transitions[linkId01]) {
-            const OrientedReadId orientedReadId = p.first;
-
-            // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
-            if(not(
-                assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
-                or
-                assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
-                )) {
-                continue;
-            }
-
-            // Access the transition from segmentId0 to segmentId1 for this oriented read.
-            const Transition& transition = p.second;
-
-            // Get the ordinals of the last appearance of this oriented
-            // read on segmentId0 and the first on segmentId1,
-            // and the corresponding markers.
-            const uint32_t ordinal0 = transition[0].ordinals[1];
-            const uint32_t ordinal1 = transition[1].ordinals[0];
-            const CompressedMarker& marker0 = assemblyGraph.markers[orientedReadId.getValue()][ordinal0];
-            const CompressedMarker& marker1 = assemblyGraph.markers[orientedReadId.getValue()][ordinal1];
-
-            // Get the positions of these markers on the oriented read.
-            // If using RLE, these are RLE positions.
-            const uint32_t position0 = marker0.position;
-            const uint32_t position1 = marker1.position;
-
-            // Extract the sequence between these markers (including the markers).
-            vector<Base> orientedReadSequence;
-            vector<uint8_t> orientedReadRepeatCounts;
-            if(assemblyGraph.readRepresentation == 1) {
-                // RLE.
-                for(uint64_t position=position0; position<position1+assemblyGraph.k; position++) {
-                    Base b;
-                    uint8_t r;
-                    tie(b, r) = assemblyGraph.reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
-                    orientedReadSequence.push_back(b);
-                    orientedReadRepeatCounts.push_back(r);
-                }
-            } else {
-                // Raw sequence.
-                for(uint64_t position=position0; position<position1+assemblyGraph.k; position++) {
-                    const Base b = assemblyGraph.reads.getOrientedReadBase(orientedReadId, uint32_t(position));
-                    orientedReadSequence.push_back(b);
-                    orientedReadRepeatCounts.push_back(uint8_t(1));
-                }
-            }
-
-            // We need to extend the sequence of this read to the left,
-            // using segmentId0 sequence, up to minVertexPosition0,
-            // so the portions of all reads we will be using for the MSA
-            // all begin in the same place.
-            vector<Base> leftSequence;
-            vector<uint32_t> leftRepeatCounts;
-            const uint64_t vertexPosition0 = transition[0].position + 1;  // Add 1 to get vertex position.
-            const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
-            const uint64_t end0 = assembledSegment0.vertexOffsets[vertexPosition0];
-            for(uint64_t position=begin0; position!=end0; position++) {
-                leftSequence.push_back(assembledSegment0.runLengthSequence[position]);
-                leftRepeatCounts.push_back(assembledSegment0.repeatCounts[position]);
-            }
-
-            vector<Base> rightSequence;
-            vector<uint32_t> rightRepeatCounts;
-            const uint64_t vertexPosition1 = transition[1].position;
-            const uint64_t begin1 = assembledSegment1.vertexOffsets[vertexPosition1] + assemblyGraph.k;
-            const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
-            for(uint64_t position=begin1; position!=end1; position++) {
-                rightSequence.push_back(assembledSegment1.runLengthSequence[position]);
-                rightRepeatCounts.push_back(assembledSegment1.repeatCounts[position]);
-            }
-
-            // Construct the extended sequence for this oriented read,
-            // to be used in the MSA.
-            vector<Base> orientedReadExtendedSequence;
-            vector<uint32_t> orientedReadExtendedRepeatCounts;
-            const auto addToExtendedSequence = back_inserter(orientedReadExtendedSequence);
-            copy(leftSequence, addToExtendedSequence);
-            copy(orientedReadSequence, addToExtendedSequence);
-            copy(rightSequence, addToExtendedSequence);
-            const auto addToRepeatCounts = back_inserter(orientedReadExtendedRepeatCounts);
-            copy(leftRepeatCounts, addToRepeatCounts);
-            copy(orientedReadRepeatCounts, addToRepeatCounts);
-            copy(rightRepeatCounts, addToRepeatCounts);
-
-            orientedReadIdsForAssembly.push_back(orientedReadId);
-            orientedReadsSequencesForAssembly.push_back(orientedReadExtendedSequence);
-            orientedReadsRepeatCountsForAssembly.push_back(orientedReadExtendedRepeatCounts);
-
-            if(debug) {
-                copy(orientedReadExtendedSequence, ostream_iterator<Base>(cout));
-                cout << " " << orientedReadId << endl;
-            }
-        }
-
-        // Compute the consensus sequence for the link.
-        html<< "<h2>Link " << linkId01 << "</h2>\n";
-        computeLinkConsensusUsingSpoa(
-            orientedReadIdsForAssembly,
-            orientedReadsSequencesForAssembly,
-            orientedReadsRepeatCountsForAssembly,
-            assemblyGraph.readRepresentation,
-            assemblyGraph.consensusCaller,
-            debug,
-            html,
-            link.msaRleSequence,
-            link.msaRepeatCounts
-            );
-        SHASTA_ASSERT(link.msaRleSequence.size() == link.msaRepeatCounts.size());
-
-        if(debug) {
-            cout << "Consensus RLE sequence length before trimming " << link.msaRleSequence.size() << endl;
-            cout << "Portion of segment on left involved in the MSA begins at position " <<
-                assembledSegment0.vertexOffsets[minVertexPosition0] << endl;
-            cout << "Portion of segment on right involved in the MSA ends at position " <<
-                assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k << endl;
-        }
-
-        // Count the number of identical (RLE) bases at the beginning of the
-        // link consensus sequence and of the segmentId0 sequence portion
-        // involved in assembling this link.
-        uint64_t identicalOnLeft = 0;
-        const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
-        const uint64_t end0 = assembledSegment0.runLengthSequence.size();
-        for(uint64_t i=begin0; (i!=end0 and (i-begin0)<link.msaRleSequence.size()); i++) {
-            if(link.msaRleSequence[i-begin0] == assembledSegment0.runLengthSequence[i]) {
-                // cout << "*** " << begin0 << " " << end0 << " " << i << endl;
-                ++identicalOnLeft;
-            } else {
-                break;
-            }
-        }
-        if(debug) {
-            cout << "Identical on left: " << identicalOnLeft << endl;
-        }
-
-        // Count the number of identical (RLE) bases at the end of the
-        // link consensus sequence and the beginning of segmentId1 .
-        uint64_t identicalOnRight = 0;
-        const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
-        for(uint64_t i=end1-1; ; i--) {
-            const uint64_t j = link.msaRleSequence.size() - (end1 - i);
-            if(link.msaRleSequence[j] == assembledSegment1.runLengthSequence[i]) {
-                // cout << "*** " << i << " " << assembledSegment1.runLengthSequence[i] << " " <<
-                //     j << " " << consensusRleSequence[j] << endl;
-                ++identicalOnRight;
-            } else {
-                break;
-            }
-            if(i == 0) {
-                break;
-            }
-            if(j == 0) {
-                break;
-            }
-        }
-        identicalOnRight = min(identicalOnRight, link.msaRleSequence.size()-identicalOnLeft);
-        if(debug) {
-            cout << "Identical on right: " << identicalOnRight << endl;
-        }
-
-        // Trim these identical bases from the link consensus sequence.
-        link.leftTrim = identicalOnLeft;
-        link.rightTrim = identicalOnRight;
-
-        // Compute and store the number of bases to be trimmed at the end of segmentId0
-        // and at the beginning of segmentId1.
-        segment0.rightTrim =
-            assembledSegment0.runLengthSequence.size() -
-            assembledSegment0.vertexOffsets[minVertexPosition0] -
-            identicalOnLeft;
-        segment1.leftTrim =
-            assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k
-            - identicalOnRight;
+        minEdgePosition0 = min(minEdgePosition0, uint64_t(transition[0].position));
+        maxEdgePosition1 = max(maxEdgePosition1, uint64_t(transition[1].position));
     }
+
+    // When getting here:
+    // - minEdgePosition0 is the leftmost position of the transitions in path0.
+    // - maxEdgePosition1 is the rightmost position of the transitions in path1.
+    // These positions are edge positions in markerGraphPath0 and markerGraphPath1.
+    // We will do a multiple sequence alignment of the oriented reads,
+    // using the sequence of segmentId0 to extend to the left all reads to minEdgePosition0,
+    // and using the sequence of segmentId1 to extend to the right all reads to maxEdgePosition1,
+
+    // Get the corresponding vertex positions in segmentId0 and segmentId1.
+    const uint64_t minVertexPosition0 = minEdgePosition0 + 1;
+    const uint64_t maxVertexPosition1 = maxEdgePosition1;
+
+
+
+    // Now extract the portion of each oriented read sequence that
+    // will be used to assemble this link.
+    vector<OrientedReadId> orientedReadIdsForAssembly;
+    vector< vector<Base> > orientedReadsSequencesForAssembly;
+    vector< vector<uint32_t> > orientedReadsRepeatCountsForAssembly;
+    for(const auto& p: assemblyGraph.transitions[linkId01]) {
+        const OrientedReadId orientedReadId = p.first;
+
+        // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
+        if(not(
+            assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
+            or
+            assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
+            )) {
+            continue;
+        }
+
+        // Access the transition from segmentId0 to segmentId1 for this oriented read.
+        const Transition& transition = p.second;
+
+        // Get the ordinals of the last appearance of this oriented
+        // read on segmentId0 and the first on segmentId1,
+        // and the corresponding markers.
+        const uint32_t ordinal0 = transition[0].ordinals[1];
+        const uint32_t ordinal1 = transition[1].ordinals[0];
+        const CompressedMarker& marker0 = assemblyGraph.markers[orientedReadId.getValue()][ordinal0];
+        const CompressedMarker& marker1 = assemblyGraph.markers[orientedReadId.getValue()][ordinal1];
+
+        // Get the positions of these markers on the oriented read.
+        // If using RLE, these are RLE positions.
+        const uint32_t position0 = marker0.position;
+        const uint32_t position1 = marker1.position;
+
+        // Extract the sequence between these markers (including the markers).
+        vector<Base> orientedReadSequence;
+        vector<uint8_t> orientedReadRepeatCounts;
+        if(assemblyGraph.readRepresentation == 1) {
+            // RLE.
+            for(uint64_t position=position0; position<position1+assemblyGraph.k; position++) {
+                Base b;
+                uint8_t r;
+                tie(b, r) = assemblyGraph.reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+                orientedReadSequence.push_back(b);
+                orientedReadRepeatCounts.push_back(r);
+            }
+        } else {
+            // Raw sequence.
+            for(uint64_t position=position0; position<position1+assemblyGraph.k; position++) {
+                const Base b = assemblyGraph.reads.getOrientedReadBase(orientedReadId, uint32_t(position));
+                orientedReadSequence.push_back(b);
+                orientedReadRepeatCounts.push_back(uint8_t(1));
+            }
+        }
+
+        // We need to extend the sequence of this read to the left,
+        // using segmentId0 sequence, up to minVertexPosition0,
+        // so the portions of all reads we will be using for the MSA
+        // all begin in the same place.
+        vector<Base> leftSequence;
+        vector<uint32_t> leftRepeatCounts;
+        const uint64_t vertexPosition0 = transition[0].position + 1;  // Add 1 to get vertex position.
+        const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
+        const uint64_t end0 = assembledSegment0.vertexOffsets[vertexPosition0];
+        for(uint64_t position=begin0; position!=end0; position++) {
+            leftSequence.push_back(assembledSegment0.runLengthSequence[position]);
+            leftRepeatCounts.push_back(assembledSegment0.repeatCounts[position]);
+        }
+
+        vector<Base> rightSequence;
+        vector<uint32_t> rightRepeatCounts;
+        const uint64_t vertexPosition1 = transition[1].position;
+        const uint64_t begin1 = assembledSegment1.vertexOffsets[vertexPosition1] + assemblyGraph.k;
+        const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
+        for(uint64_t position=begin1; position!=end1; position++) {
+            rightSequence.push_back(assembledSegment1.runLengthSequence[position]);
+            rightRepeatCounts.push_back(assembledSegment1.repeatCounts[position]);
+        }
+
+        // Construct the extended sequence for this oriented read,
+        // to be used in the MSA.
+        vector<Base> orientedReadExtendedSequence;
+        vector<uint32_t> orientedReadExtendedRepeatCounts;
+        const auto addToExtendedSequence = back_inserter(orientedReadExtendedSequence);
+        copy(leftSequence, addToExtendedSequence);
+        copy(orientedReadSequence, addToExtendedSequence);
+        copy(rightSequence, addToExtendedSequence);
+        const auto addToRepeatCounts = back_inserter(orientedReadExtendedRepeatCounts);
+        copy(leftRepeatCounts, addToRepeatCounts);
+        copy(orientedReadRepeatCounts, addToRepeatCounts);
+        copy(rightRepeatCounts, addToRepeatCounts);
+
+        orientedReadIdsForAssembly.push_back(orientedReadId);
+        orientedReadsSequencesForAssembly.push_back(orientedReadExtendedSequence);
+        orientedReadsRepeatCountsForAssembly.push_back(orientedReadExtendedRepeatCounts);
+
+        if(debug) {
+            copy(orientedReadExtendedSequence, ostream_iterator<Base>(cout));
+            cout << " " << orientedReadId << endl;
+        }
+    }
+
+    // Compute the consensus sequence for the link.
+    html<< "<h2>Link " << linkId01 << "</h2>\n";
+    computeLinkConsensusUsingSpoa(
+        orientedReadIdsForAssembly,
+        orientedReadsSequencesForAssembly,
+        orientedReadsRepeatCountsForAssembly,
+        assemblyGraph.readRepresentation,
+        assemblyGraph.consensusCaller,
+        debug,
+        html,
+        link.msaRleSequence,
+        link.msaRepeatCounts
+        );
+    SHASTA_ASSERT(link.msaRleSequence.size() == link.msaRepeatCounts.size());
+
+    if(debug) {
+        cout << "Consensus RLE sequence length before trimming " << link.msaRleSequence.size() << endl;
+        cout << "Portion of segment on left involved in the MSA begins at position " <<
+            assembledSegment0.vertexOffsets[minVertexPosition0] << endl;
+        cout << "Portion of segment on right involved in the MSA ends at position " <<
+            assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k << endl;
+    }
+
+    // Count the number of identical (RLE) bases at the beginning of the
+    // link consensus sequence and of the segmentId0 sequence portion
+    // involved in assembling this link.
+    uint64_t identicalOnLeft = 0;
+    const uint64_t begin0 = assembledSegment0.vertexOffsets[minVertexPosition0];
+    const uint64_t end0 = assembledSegment0.runLengthSequence.size();
+    for(uint64_t i=begin0; (i!=end0 and (i-begin0)<link.msaRleSequence.size()); i++) {
+        if(link.msaRleSequence[i-begin0] == assembledSegment0.runLengthSequence[i]) {
+            // cout << "*** " << begin0 << " " << end0 << " " << i << endl;
+            ++identicalOnLeft;
+        } else {
+            break;
+        }
+    }
+    if(debug) {
+        cout << "Identical on left: " << identicalOnLeft << endl;
+    }
+
+    // Count the number of identical (RLE) bases at the end of the
+    // link consensus sequence and the beginning of segmentId1 .
+    uint64_t identicalOnRight = 0;
+    const uint64_t end1 = assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k;
+    for(uint64_t i=end1-1; ; i--) {
+        const uint64_t j = link.msaRleSequence.size() - (end1 - i);
+        if(link.msaRleSequence[j] == assembledSegment1.runLengthSequence[i]) {
+            // cout << "*** " << i << " " << assembledSegment1.runLengthSequence[i] << " " <<
+            //     j << " " << consensusRleSequence[j] << endl;
+            ++identicalOnRight;
+        } else {
+            break;
+        }
+        if(i == 0) {
+            break;
+        }
+        if(j == 0) {
+            break;
+        }
+    }
+    identicalOnRight = min(identicalOnRight, link.msaRleSequence.size()-identicalOnLeft);
+    if(debug) {
+        cout << "Identical on right: " << identicalOnRight << endl;
+    }
+
+    // Trim these identical bases from the link consensus sequence.
+    link.leftTrim = identicalOnLeft;
+    link.rightTrim = identicalOnRight;
+
+    // Compute and store the number of bases to be trimmed at the end of segmentId0
+    // and at the beginning of segmentId1.
+    segment0.rightTrim =
+        assembledSegment0.runLengthSequence.size() -
+        assembledSegment0.vertexOffsets[minVertexPosition0] -
+        identicalOnLeft;
+    segment1.leftTrim =
+        assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k
+        - identicalOnRight;
 }
 
 
