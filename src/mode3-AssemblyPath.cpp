@@ -113,18 +113,9 @@ void AssemblyPath::assembleLinkAtPosition(
     // this is a trivial link because the two segments share a terminal
     // marker graph vertex.
     // Just trim from the assembly the last k/2 RLE bases of segmentId0
-    // and the first k/2 RLE bases of seegmentId1.
+    // and the first k/2 RLE bases of segmentId1.
     if(link.isTrivial) {
-        segment0.rightTrim = assemblyGraph.k/2;
-        segment1.leftTrim  = assemblyGraph.k/2;
-
-        // Leave empty the sequence for the link between these segments.
-        SHASTA_ASSERT(link.msaRleSequence.empty());
-        SHASTA_ASSERT(link.msaRepeatCounts.empty());
-        SHASTA_ASSERT(link.leftTrim == 0);
-        SHASTA_ASSERT(link.rightTrim == 0);
-
-        // We are done with this link.
+        assembleTrivialLink(segment0, segment1, link, assemblyGraph.k);
         return;
     }
 
@@ -372,6 +363,26 @@ void AssemblyPath::assembleLinkAtPosition(
     segment1.leftTrim =
         assembledSegment1.vertexOffsets[maxVertexPosition1] + assemblyGraph.k
         - identicalOnRight;
+}
+
+
+
+void AssemblyPath::assembleTrivialLink(
+    AssemblyPathSegment& segment0,
+    AssemblyPathSegment& segment1,
+    AssemblyPathLink& link,
+    uint64_t k)
+{
+    SHASTA_ASSERT(link.isTrivial);
+    SHASTA_ASSERT(link.msaRleSequence.empty());
+    SHASTA_ASSERT(link.msaRepeatCounts.empty());
+    SHASTA_ASSERT(link.leftTrim == 0);
+    SHASTA_ASSERT(link.rightTrim == 0);
+
+    // Just trim k/2 bases from the adjacent segments,
+    // because they are adjacent in the marker graph.
+    segment0.rightTrim = k/2;
+    segment1.leftTrim  = k/2;
 }
 
 

@@ -136,6 +136,11 @@ public:
         const AssemblyGraph& assemblyGraph,
         uint64_t position0,
         ostream& html);
+    void assembleTrivialLink(
+        AssemblyPathSegment& segment0,
+        AssemblyPathSegment& segment1,
+        AssemblyPathLink& link,
+        uint64_t k);
     void writeLinkSequences(const AssemblyGraph&);
 
     // Final assembly of segments and links sequence into the path sequence.
