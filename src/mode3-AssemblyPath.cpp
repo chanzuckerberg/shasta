@@ -31,6 +31,7 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
     assembleSegments(assemblyGraph);
 
     // Assemble links in this assembly path.
+    initializeLinks(assemblyGraph);
     assembleLinks(assemblyGraph);
 
     writeSegmentSequences();
@@ -39,6 +40,31 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
     assemble();
 }
 
+// Initialize the links.
+// This only resizes the links vector and fills in the id and isTrivial
+// fields of each link.
+void AssemblyPath::initializeLinks(const AssemblyGraph& assemblyGraph)
+{
+
+    links.resize(segments.size()-1);
+    for(uint64_t position0=0; position0<links.size(); position0++) {
+        const uint64_t position1 = position0 + 1;
+
+        // Access the source and target segments of this link.
+        // We will process the link between segmentId0 and segmentId1.
+        AssemblyPathSegment& segment0 = segments[position0];
+        AssemblyPathSegment& segment1 = segments[position1];
+
+        // Fill in the id and isTrivial fields.
+        AssemblyPathLink& assemblyPathLink = links[position0];
+        assemblyPathLink.id = assemblyGraph.findLink(segment0.id, segment1.id);
+        const AssemblyGraph::Link& link = assemblyGraph.links[assemblyPathLink.id];
+        assemblyPathLink.isTrivial = link.segmentsAreAdjacent;
+
+        SHASTA_ASSERT(segment0.id == link.segmentId0);
+        SHASTA_ASSERT(segment1.id == link.segmentId1);
+    }
+}
 
 
 
@@ -76,24 +102,10 @@ void AssemblyPath::assembleLinkAtPosition(
     // Access the source and target segments of this link.
     // We will process the link between segmentId0 and segmentId1.
     AssemblyPathSegment& segment0 = segments[position0];
-    const uint64_t segmentId0 = segment0.id;
-    const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
     AssemblyPathSegment& segment1 = segments[position1];
-    const uint64_t segmentId1 = segment1.id;
-    const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
 
-    // Locate the link between segmentId0 and segmentId1.
-    uint64_t linkId01 = invalid<uint64_t>;
-    for(uint64_t linkId: assemblyGraph.linksBySource[segmentId0]) {
-        if(assemblyGraph.links[linkId].segmentId1 == segmentId1) {
-            linkId01 = linkId;
-            break;
-        }
-    }
-    link.id = linkId01;
-    SHASTA_ASSERT(linkId01!= invalid<uint64_t>);
     if(debug) {
-        cout << "Assembling link " << linkId01 << " " << segmentId0 << "->" << segmentId1 <<
+        cout << "Assembling link " << link.id << " " << segment0.id << "->" << segment1.id <<
             " at position " << position0 << " in the assembly path." << endl;
     }
 
@@ -102,12 +114,7 @@ void AssemblyPath::assembleLinkAtPosition(
     // marker graph vertex.
     // Just trim from the assembly the last k/2 RLE bases of segmentId0
     // and the first k/2 RLE bases of seegmentId1.
-    const auto markerGraphPath0 = assemblyGraph.markerGraphPaths[segmentId0];
-    const auto markerGraphPath1 = assemblyGraph.markerGraphPaths[segmentId1];
-    const MarkerGraph::Edge lastEdge0 = assemblyGraph.markerGraph.edges[markerGraphPath0.back()];
-    const MarkerGraph::Edge firstEdge1 = assemblyGraph.markerGraph.edges[markerGraphPath1.front()];
-    if(lastEdge0.target == firstEdge1.source) {
-        link.isTrivial = true;
+    if(link.isTrivial) {
         segment0.rightTrim = assemblyGraph.k/2;
         segment1.leftTrim  = assemblyGraph.k/2;
 
@@ -125,7 +132,6 @@ void AssemblyPath::assembleLinkAtPosition(
     // We need to assemble the link between them.
     // We can only use oriented reads that are in the link
     // and also in either segment0 or segment1.
-    link.isTrivial = false;
 
 
 
@@ -144,9 +150,9 @@ void AssemblyPath::assembleLinkAtPosition(
     // First, find:
     // - The position in segmentId0 of the leftmost transition.
     // - The position in segmentId1 of the rightmost transition.
-    uint64_t minEdgePosition0 = markerGraphPath0.size();
+    uint64_t minEdgePosition0 = assemblyGraph.markerGraphPaths[segment0.id].size();
     uint64_t maxEdgePosition1 = 0;
-    for(const auto& p: assemblyGraph.transitions[linkId01]) {
+    for(const auto& p: assemblyGraph.transitions[link.id]) {
         const OrientedReadId orientedReadId = p.first;
 
         // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
@@ -177,6 +183,13 @@ void AssemblyPath::assembleLinkAtPosition(
     const uint64_t minVertexPosition0 = minEdgePosition0 + 1;
     const uint64_t maxVertexPosition1 = maxEdgePosition1;
 
+    // To compute an MSA anchored at both sides,we will extend the
+    // sequence of each read to the left/right using the sequence of
+    // adjacent segments.
+    const AssembledSegment& assembledSegment0 = segment0.assembledSegment;
+    SHASTA_ASSERT(not assembledSegment0.runLengthSequence.empty());
+    const AssembledSegment& assembledSegment1 = segment1.assembledSegment;
+    SHASTA_ASSERT(not assembledSegment1.runLengthSequence.empty());
 
 
     // Now extract the portion of each oriented read sequence that
@@ -184,7 +197,7 @@ void AssemblyPath::assembleLinkAtPosition(
     vector<OrientedReadId> orientedReadIdsForAssembly;
     vector< vector<Base> > orientedReadsSequencesForAssembly;
     vector< vector<uint32_t> > orientedReadsRepeatCountsForAssembly;
-    for(const auto& p: assemblyGraph.transitions[linkId01]) {
+    for(const auto& p: assemblyGraph.transitions[link.id]) {
         const OrientedReadId orientedReadId = p.first;
 
         // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
@@ -281,7 +294,7 @@ void AssemblyPath::assembleLinkAtPosition(
     }
 
     // Compute the consensus sequence for the link.
-    html<< "<h2>Link " << linkId01 << "</h2>\n";
+    html<< "<h2>Link " << link.id << "</h2>\n";
     computeLinkConsensusUsingSpoa(
         orientedReadIdsForAssembly,
         orientedReadsSequencesForAssembly,

@@ -125,6 +125,11 @@ public:
     void assembleSegments(const AssemblyGraph&);
     void writeSegmentSequences();
 
+    // Initialize the links.
+    // This only resizes the links vector and fills in the id and isTrivial
+    // fields of each link.
+    void initializeLinks(const AssemblyGraph&);
+
     // Assemble links in this assembly path.
     void assembleLinks(const AssemblyGraph&);
     void assembleLinkAtPosition(
