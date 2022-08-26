@@ -146,12 +146,12 @@ public:
         const AssemblyGraph& assemblyGraph,
         uint64_t position0,
         ostream& html);
-    void assembleTrivialLink(
+    static void assembleTrivialLink(
         AssemblyPathSegment& segment0,
         AssemblyPathSegment& segment1,
         AssemblyPathLink& link,
         uint64_t k);
-    void assembleNonTrivialLink(
+    static void assembleNonTrivialLink(
         const AssemblyGraph& assemblyGraph,
         AssemblyPathSegment& segment0,
         AssemblyPathSegment& segment1,

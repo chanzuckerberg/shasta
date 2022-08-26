@@ -972,6 +972,7 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "in the raw assembled sequence of the path."
         "<tr><th>Raw sequence<td>The complete raw sequence for this segment or link. "
         "The red portion is trimmed out and not used for assembly."
+        "<tr><th>Detail<td>Link to assembly details."
         "</table>";
 
     // Table header.
@@ -984,7 +985,8 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<th>Prev<br>primary"
         "<th>Next<br>primary"
         "<th>Raw<br>pos"
-        "<th>Raw sequence";
+        "<th>Raw sequence"
+        "<th>Detail";
 
 
 
@@ -1022,7 +1024,7 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
                 html << "<span style='background-color:LightCoral'>";
             }
         }
-        html << "</span>";
+        html << "</span><td>";
 
 
 
@@ -1059,6 +1061,14 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
             }
         }
         html << "</span>";
+
+        html << "<td class=centered>";
+        if(not link.isTrivial) {
+            html << "<a href='exploreMode3LinkAssembly?linkId=" << link.id <<
+                "&previousPrimarySegmentId=" << link.previousPrimarySegmentId <<
+                "&nextPrimarySegmentId=" << link.nextPrimarySegmentId <<
+                "'>Detail</a>";
+        }
     }
 
     // End the table.

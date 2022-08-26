@@ -247,6 +247,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyGraphLink);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3MetaAlignment);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3AssemblyPath);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMode3LinkAssembly);
 
 }
 #undef SHASTA_ADD_TO_FUNCTION_TABLE

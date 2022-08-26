@@ -2381,6 +2381,7 @@ private:
     void exploreMode3AssemblyGraphLink(const vector<string>&, ostream&);
     void exploreMode3MetaAlignment(const vector<string>&, ostream&);
     void exploreMode3AssemblyPath(const vector<string>&, ostream&);
+    void exploreMode3LinkAssembly(const vector<string>&, ostream&);
 
 
 

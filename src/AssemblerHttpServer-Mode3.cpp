@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "assembleMarkerGraphPath.hpp"
 #include "mode3.hpp"
 #include "mode3-AssemblyPath.hpp"
 #include "mode3-LocalAssemblyGraph.hpp"
@@ -831,4 +832,80 @@ void Assembler::exploreMode3AssemblyPath(
     path.writeHtml(html);
 
 
+}
+
+
+
+void Assembler::exploreMode3LinkAssembly(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Access the AssemblyGraph.
+    using mode3::AssemblyGraph; // Hide shasta::AssemblyGraph;
+    SHASTA_ASSERT(assemblyGraph3Pointer);
+    const AssemblyGraph& assemblyGraph = *assemblyGraph3Pointer;
+
+    // Get the parameters of the request.
+    uint64_t linkId = invalid<uint64_t>;
+    getParameterValue(request, "linkId", linkId);
+    SHASTA_ASSERT(linkId < assemblyGraph.links.size());
+    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+    getParameterValue(request, "previousPrimarySegmentId", previousPrimarySegmentId);
+    SHASTA_ASSERT(previousPrimarySegmentId < assemblyGraph.markerGraphPaths.size());
+    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+    getParameterValue(request, "nextPrimarySegmentId", nextPrimarySegmentId);
+    SHASTA_ASSERT(nextPrimarySegmentId < assemblyGraph.markerGraphPaths.size());
+
+    // Access the link.
+    if(linkId >= assemblyGraph.links.size()) {
+        html << "Invalid link id. There are " << assemblyGraph.links.size() <<
+            " links in the assembly graph.";
+        return;
+    }
+    const AssemblyGraph::Link& link = assemblyGraph.links[linkId];
+
+    // If this is a trivial link, there is nothing to show.
+    if(link.segmentsAreAdjacent) {
+        html << "This is a trivial link. No assembly is required.";
+        return;
+    }
+
+
+
+    html << "<h1>Details of link assembly</h1>";
+
+    // Create the segments and assemble them.
+    AssemblyPathSegment segment0(link.segmentId0, false);
+    AssemblyPathSegment segment1(link.segmentId1, false);
+    assembleMarkerGraphPath(
+        assemblyGraph.readRepresentation,
+        assemblyGraph.k,
+        assemblyGraph.markers,
+        assemblyGraph.markerGraph,
+        assemblyGraph.markerGraphPaths[segment0.id],
+        false,
+        segment0.assembledSegment);
+    assembleMarkerGraphPath(
+        assemblyGraph.readRepresentation,
+        assemblyGraph.k,
+        assemblyGraph.markers,
+        assemblyGraph.markerGraph,
+        assemblyGraph.markerGraphPaths[segment1.id],
+        false,
+        segment1.assembledSegment);
+
+    // Create the AssemblyPathLink.
+    AssemblyPathLink assemblyPathLink;
+    assemblyPathLink.id = linkId;
+    assemblyPathLink.isTrivial = false;
+    assemblyPathLink.previousPrimarySegmentId = previousPrimarySegmentId;
+    assemblyPathLink.nextPrimarySegmentId = nextPrimarySegmentId;
+
+    // Do the assembly.
+    AssemblyPath::assembleNonTrivialLink(
+        assemblyGraph,
+        segment0,
+        segment1,
+        assemblyPathLink,
+        html);
 }
