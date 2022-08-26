@@ -109,32 +109,49 @@ void AssemblyPath::assembleLinkAtPosition(
             " at position " << position0 << " in the assembly path." << endl;
     }
 
-    // If segmentId0 and segmentId1 are consecutive in the marker graph,
-    // this is a trivial link because the two segments share a terminal
-    // marker graph vertex.
-    // Just trim from the assembly the last k/2 RLE bases of segmentId0
-    // and the first k/2 RLE bases of segmentId1.
     if(link.isTrivial) {
+
+        // The two segments are consecutive in the marker graph.
+        // This is a trivial link because the two segments share a terminal
+        // marker graph vertex.
+        // Just trim from the assembly the last k/2 RLE bases of segmentId0
+        // and the first k/2 RLE bases of segmentId1.
         assembleTrivialLink(segment0, segment1, link, assemblyGraph.k);
-        return;
+
+    } else {
+
+        // We only want to use for assembly oriented reads that appear
+        // in the link and also in one of these two segments.
+        // Locate the previous and next primary segment preceding this link.
+        uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+        uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+        tie(previousPrimarySegmentId, nextPrimarySegmentId) =
+            findReferenceSegmentsForLinkAtPosition(position0);
+
+        // Assemble the link.
+        assembleNonTrivialLink(
+            assemblyGraph,
+            segment0,
+            segment1,
+            link,
+            previousPrimarySegmentId,
+            nextPrimarySegmentId,
+            html);
     }
-
-    // If getting here, this segment and the next are not adjacent in the marker graph.
-    // We need to assemble the link between them.
-    // We can only use oriented reads that are in the link
-    // and also in either segment0 or segment1.
+}
 
 
 
-    // We only want to use for assembly of this link oriented reads
-    // that are present in the previous or next primary segment
-    // and that are also present in the transitions for this link.
-
-    // Locate the previous and next primary segment preceding this link.
-    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
-    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
-    tie(previousPrimarySegmentId, nextPrimarySegmentId) =
-        findReferenceSegmentsForLinkAtPosition(position0);
+void AssemblyPath::assembleNonTrivialLink(
+    const AssemblyGraph& assemblyGraph,
+    AssemblyPathSegment& segment0,
+    AssemblyPathSegment& segment1,
+    AssemblyPathLink& link,
+    uint64_t previousPrimarySegmentId,
+    uint64_t nextPrimarySegmentId,
+    ostream& html)
+{
+    const bool debug = false;
 
 
 

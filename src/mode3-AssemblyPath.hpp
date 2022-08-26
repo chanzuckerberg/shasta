@@ -141,6 +141,14 @@ public:
         AssemblyPathSegment& segment1,
         AssemblyPathLink& link,
         uint64_t k);
+    void assembleNonTrivialLink(
+        const AssemblyGraph& assemblyGraph,
+        AssemblyPathSegment& segment0,
+        AssemblyPathSegment& segment1,
+        AssemblyPathLink& link,
+        uint64_t previousPrimarySegmentId,
+        uint64_t nextPrimarySegmentId,
+        ostream& html);
     void writeLinkSequences(const AssemblyGraph&);
 
     // Final assembly of segments and links sequence into the path sequence.
