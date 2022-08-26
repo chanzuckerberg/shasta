@@ -142,21 +142,7 @@ public:
     // These are the previous and next primary segments before/after the link.
     pair<uint64_t, uint64_t> findReferenceSegmentsForLinkAtPosition(uint64_t position) const;
 
-    // Use spoa to compute consensus sequence for a link. Higher level version.
-    // This requires
-    static void computeLinkConsensusUsingSpoa(
-        const AssemblyPathSegment& segment0,
-        const AssemblyPathSegment& segment1,
-        uint64_t previousPrimarySegmentId,
-        uint64_t nextPrimarySegmentId,
-        const span< pair<OrientedReadId, Transition> >& linkTransitions,
-        const AssemblyGraph& assemblyGraph,
-        bool debug,
-        ostream& html,
-        vector<Base>& consensusRleSequence,
-        vector<uint32_t>& consensusRepeatCounts
-        );
-    // Lower lever version
+    // Use spoa to compute consensus sequence for a link.
     static void computeLinkConsensusUsingSpoa(
         const vector<OrientedReadId> orientedReadIds,
         const vector< vector<Base> > rleSequences,
