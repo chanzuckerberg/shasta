@@ -3,6 +3,7 @@
 
 // Shasta.
 #include "AssembledSegment.hpp"
+#include "invalid.hpp"
 
 // Standard library.
 #include "cstdint.hpp"
@@ -88,6 +89,12 @@ public:
     // and all the next fields are left empty.
     bool isTrivial;
 
+    // The last primary segment in the path preceding this link.
+    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+
+    // The next primary segment in the path following this link.
+    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+
     // The RLE sequence as computed by the MSA
     // of oriented reads in the link.
     // This overlaps with adjacent segments.
@@ -126,8 +133,11 @@ public:
     void writeSegmentSequences();
 
     // Initialize the links.
-    // This only resizes the links vector and fills in the id and isTrivial
-    // fields of each link.
+    // This only resizes the links vector and fills in the following fields of each link.
+    // - id
+    // - isTrivial
+    // - previousPrimarySegmentId
+    // - nextPrimarySegmentId
     void initializeLinks(const AssemblyGraph&);
 
     // Assemble links in this assembly path.
@@ -146,8 +156,6 @@ public:
         AssemblyPathSegment& segment0,
         AssemblyPathSegment& segment1,
         AssemblyPathLink& link,
-        uint64_t previousPrimarySegmentId,
-        uint64_t nextPrimarySegmentId,
         ostream& html);
     void writeLinkSequences(const AssemblyGraph&);
 
@@ -158,11 +166,6 @@ public:
     vector<Base> rawSequence;
 
     void clear();
-
-    // Find the segmentIds of the primary segments to be used when assembling
-    // the link at position0.
-    // These are the previous and next primary segments before/after the link.
-    pair<uint64_t, uint64_t> findReferenceSegmentsForLinkAtPosition(uint64_t position) const;
 
     // Use spoa to compute consensus sequence for a link.
     static void computeLinkConsensusUsingSpoa(

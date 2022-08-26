@@ -4,7 +4,6 @@
 #include "ConsensusCaller.hpp"
 #include "deduplicate.hpp"
 #include "html.hpp"
-#include "invalid.hpp"
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
 #include "Reads.hpp"
@@ -45,8 +44,10 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 // fields of each link.
 void AssemblyPath::initializeLinks(const AssemblyGraph& assemblyGraph)
 {
-
+    SHASTA_ASSERT(segments.size() > 1);
     links.resize(segments.size()-1);
+
+    // Fill in the id and isTrivial fields of each link.
     for(uint64_t position0=0; position0<links.size(); position0++) {
         const uint64_t position1 = position0 + 1;
 
@@ -63,6 +64,35 @@ void AssemblyPath::initializeLinks(const AssemblyGraph& assemblyGraph)
 
         SHASTA_ASSERT(segment0.id == link.segmentId0);
         SHASTA_ASSERT(segment1.id == link.segmentId1);
+    }
+
+
+    // Fill in the previousPrimarySegmentId field of each link.
+    SHASTA_ASSERT(segments.front().isPrimary);
+    uint64_t lastPrimarySegmentSeen = invalid<uint64_t>;
+    for(uint64_t position=0; position<links.size(); position++) {
+        const AssemblyPathSegment& segment = segments[position];
+        if(segment.isPrimary) {
+            lastPrimarySegmentSeen = segment.id;
+        }
+        links[position].previousPrimarySegmentId = lastPrimarySegmentSeen;
+    }
+
+
+
+    // Fill in the nextPrimarySegmentId field of each link.
+    SHASTA_ASSERT(segments.back().isPrimary);
+    lastPrimarySegmentSeen = invalid<uint64_t>;
+    for(uint64_t position = links.size() - 1; /* Check later */; position--) {
+        const AssemblyPathSegment& segment = segments[position + 1];
+        if(segment.isPrimary) {
+            lastPrimarySegmentSeen = segment.id;
+        }
+        links[position].nextPrimarySegmentId = lastPrimarySegmentSeen;
+
+        if(position == 0) {
+            break;
+        }
     }
 }
 
@@ -120,22 +150,11 @@ void AssemblyPath::assembleLinkAtPosition(
 
     } else {
 
-        // We only want to use for assembly oriented reads that appear
-        // in the link and also in one of these two segments.
-        // Locate the previous and next primary segment preceding this link.
-        uint64_t previousPrimarySegmentId = invalid<uint64_t>;
-        uint64_t nextPrimarySegmentId = invalid<uint64_t>;
-        tie(previousPrimarySegmentId, nextPrimarySegmentId) =
-            findReferenceSegmentsForLinkAtPosition(position0);
-
-        // Assemble the link.
         assembleNonTrivialLink(
             assemblyGraph,
             segment0,
             segment1,
             link,
-            previousPrimarySegmentId,
-            nextPrimarySegmentId,
             html);
     }
 }
@@ -147,12 +166,9 @@ void AssemblyPath::assembleNonTrivialLink(
     AssemblyPathSegment& segment0,
     AssemblyPathSegment& segment1,
     AssemblyPathLink& link,
-    uint64_t previousPrimarySegmentId,
-    uint64_t nextPrimarySegmentId,
     ostream& html)
 {
     const bool debug = false;
-
 
 
     // First, find:
@@ -165,9 +181,9 @@ void AssemblyPath::assembleNonTrivialLink(
 
         // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
         if(not(
-            assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
+            assemblyGraph.segmentContainsOrientedRead(link.previousPrimarySegmentId, orientedReadId)
             or
-            assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
+            assemblyGraph.segmentContainsOrientedRead(link.nextPrimarySegmentId, orientedReadId)
             )) {
             continue;
         }
@@ -210,9 +226,9 @@ void AssemblyPath::assembleNonTrivialLink(
 
         // If not in previousPrimarySegmentId or nextPrimarySegmentId, skip it.
         if(not(
-            assemblyGraph.segmentContainsOrientedRead(previousPrimarySegmentId, orientedReadId)
+            assemblyGraph.segmentContainsOrientedRead(link.previousPrimarySegmentId, orientedReadId)
             or
-            assemblyGraph.segmentContainsOrientedRead(nextPrimarySegmentId, orientedReadId)
+            assemblyGraph.segmentContainsOrientedRead(link.nextPrimarySegmentId, orientedReadId)
             )) {
             continue;
         }
@@ -909,42 +925,6 @@ char AssemblyPath::repeatCountCharacter(uint32_t r) {
 }
 
 
-// Find the segmentIds of the primary segments to be used when assembling
-// the link at position0.
-// These are the previous and next primary segments before/after the link.
-pair<uint64_t, uint64_t>
-    AssemblyPath::findReferenceSegmentsForLinkAtPosition(uint64_t linkPosition) const
-{
-
-    // Locate the last primary segment preceding this link.
-    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
-    for(uint64_t position=linkPosition; /* Check later */ ; position--) {
-        if(segments[position].isPrimary) {
-            previousPrimarySegmentId = segments[position].id;
-            break;
-        }
-        if(position == 0) {
-            break;
-        }
-    }
-    SHASTA_ASSERT(previousPrimarySegmentId != invalid<uint64_t>);
-
-    // Locate the first primary segment following this link.
-    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
-    for(uint64_t position=linkPosition+1; position<segments.size() ; position++) {
-        if(segments[position].isPrimary) {
-            nextPrimarySegmentId = segments[position].id;
-            break;
-        }
-    }
-    SHASTA_ASSERT(nextPrimarySegmentId != invalid<uint64_t>);
-
-    return make_pair(previousPrimarySegmentId, nextPrimarySegmentId);
-
-}
-
-
-
 void AssemblyPath::writeHtml(ostream& html) const
 {
     SHASTA_ASSERT(segments.size() > 1);
@@ -979,9 +959,14 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<p>"
         "<table >"
         "<tr><th colspan=2>Legend"
-        "<tr><th>Type<td>S (segment) or L (link). "
-        "Trivial links have a grey background and don't participate in the assembly."
+        "<tr><th>Type<td>S (segment) or L (link)."
+        "<ul>"
+        "<li>Primary segments have a light blue background."
+        "<li>Trivial links have a grey background."
+        "<ul>"
         "<tr><th>Id<td>Segment or link id"
+        "<tr><th>Prev primary<td>The id of the last primary segment preceding a link."
+        "<tr><th>Next primary<td>The id of the first primary segment following a link."
         "<tr><th>Raw pos<td>The position "
         "of the trimmed raw sequence of this segment or link "
         "in the raw assembled sequence of the path."
@@ -996,6 +981,8 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<tr>"
         "<th>Type"
         "<th>Id"
+        "<th>Prev<br>primary"
+        "<th>Next<br>primary"
         "<th>Raw<br>pos"
         "<th>Raw sequence";
 
@@ -1008,9 +995,15 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         // Write a row for the segment at this position.
         const AssemblyPathSegment& segment = segments[position];
         const AssembledSegment& assembledSegment = segment.assembledSegment;
-        html << "<tr>"
+        html << "<tr";
+        if(segment.isPrimary) {
+            html << " style='background-color:LightCyan'";
+        }
+        html <<
+            ">"
             "<td class=centered>S"
             "<td class=centered>" << segment.id <<
+            "<td><td>"
             "<td class=centered>" << segment.rawPosition;
 
         // Raw sequence for this segment.
@@ -1045,6 +1038,8 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         html <<
             "><td class=centered>L" <<
             "<td class=centered>" << link.id <<
+            "<td class=centered>" << link.previousPrimarySegmentId <<
+            "<td class=centered>" << link.nextPrimarySegmentId <<
             "<td class=centered>" << link.rawPosition;
 
         // Raw sequence for this link.
