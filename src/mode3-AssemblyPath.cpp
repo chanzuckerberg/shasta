@@ -617,10 +617,20 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
     // Compute consensus base and repeat count at every position in the alignment.
     vector<AlignedBase> msaConsensusSequence(msaLength);
     vector<uint32_t> msaConsensusRepeatCount(msaLength);
+    vector<uint64_t> msaConsensusDiscordantCount(msaLength);
     for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
-        const Consensus consensus = consensusCaller(coverage[aPosition]);
+        const Coverage& c = coverage[aPosition];
+        const Consensus consensus = consensusCaller(c);
         msaConsensusSequence[aPosition] = consensus.base;
         msaConsensusRepeatCount[aPosition] = uint32_t(consensus.repeatCount);
+
+        // Compute discordant count at this position of the alignment.
+        msaConsensusDiscordantCount[aPosition] = 0;
+        for(uint64_t b=0; b<5; b++) {
+            if(b != consensus.base.value) {
+                msaConsensusDiscordantCount[aPosition] += c.coverage(AlignedBase::fromInteger(b));
+            }
+        }
     }
 
 
@@ -727,7 +737,32 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
             }
         }
         html << " Consensus<br>\n";
+
+        // Write the discordant count.
+        for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+            const uint64_t d = msaConsensusDiscordantCount[aPosition];
+            const double errorRate = double(d) / double(orientedReadIds.size());
+            int hue;
+            if(errorRate < .01) {
+                hue = 120;    // Q>=20, green.
+            } else {
+                const double Q = -10. * log10(errorRate);
+                hue = int(std::round(6. * Q));  // 60 at Q=10 (yellow), 120 at Q=20 (green).
+            }
+            const string color = "hsl(" + to_string(hue) + ",100%, 70%)";
+            html << "<span style='background-color:" << color << "'>";
+            html << repeatCountCharacter(uint32_t(d));
+            html << "</span>";
+        }
+        html << "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        for(uint64_t aPosition=0; aPosition<msaLength; aPosition++) {
+            html << "&nbsp;";
+        }
+        html << " Discordant<br>\n";
+
         html << "</div>\n";
+
+
 
         html << "<h3>Consensus</h3>";
         html << "<div style='font-family:monospace;white-space:nowrap;'>\n";
