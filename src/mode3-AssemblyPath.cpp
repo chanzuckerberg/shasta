@@ -461,11 +461,6 @@ void AssemblyPath::writeSegmentSequences()
                 " has overlapping skips on left/right." << endl;
             continue;
         }
-        if(segment.leftTrim + segment.rightTrim == assembledSegment.runLengthSequence.size()) {
-            cout << "Segment " << segmentId <<
-                " is skipped entirely." << endl;
-            continue;
-        }
 
         // Write the trimmed RLE sequence to txt.
         const auto trimmedRleSequence = segment.trimmedRleSequence();
@@ -785,11 +780,6 @@ void AssemblyPath::assemble()
                 " has overlapping skips on left/right." << endl;
             continue;
         }
-        if(segment.leftTrim + segment.rightTrim == assembledSegment.runLengthSequence.size()) {
-            cout << "Segment " << segmentId <<
-                " is skipped entirely." << endl;
-            continue;
-        }
 
         // Add the RLE sequence of this segment.
         const auto segmentTrimmedRleSequence = segment.trimmedRleSequence();
@@ -1008,23 +998,49 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
             "<td><td>"
             "<td class=centered>" << segment.rawPosition;
 
+
+
         // Raw sequence for this segment.
         html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
-        html << "<span style='background-color:LightCoral'>";
-        for(uint64_t i=0; i<assembledSegment.runLengthSequence.size(); i++) {
-            const Base b = assembledSegment.runLengthSequence[i];
-            const uint32_t r = assembledSegment.repeatCounts[i];
-            if(i == segment.leftTrim) {
-                html << "</span>";
+         if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
+
+            // Exceptional case where the left and right trim overlap.
+             html << "<span style='background-color:LightCoral'>";
+             for(uint64_t i=0; i<assembledSegment.runLengthSequence.size(); i++) {
+                 const Base b = assembledSegment.runLengthSequence[i];
+                 const uint32_t r = assembledSegment.repeatCounts[i];
+                 if(i == assembledSegment.runLengthSequence.size() - segment.rightTrim) {
+                     html << "</span><span style='background-color:Fuchsia'>";
+                 }
+                 for(uint32_t k=0; k<r; k++) {
+                     html << b;
+                 }
+                 if(i == segment.leftTrim - 1) {
+                     html << "</span><span style='background-color:LightCoral'>";
+                 }
+             }
+             html << "</span><td>";
+
+        } else {
+
+            // Normal case.
+            html << "<span style='background-color:LightCoral'>";
+            for(uint64_t i=0; i<assembledSegment.runLengthSequence.size(); i++) {
+                const Base b = assembledSegment.runLengthSequence[i];
+                const uint32_t r = assembledSegment.repeatCounts[i];
+                if(i == segment.leftTrim) {
+                    html << "</span>";
+                }
+                for(uint32_t k=0; k<r; k++) {
+                    html << b;
+                }
+                if(i == assembledSegment.runLengthSequence.size() -1 - segment.rightTrim) {
+                    html << "<span style='background-color:LightCoral'>";
+                }
+
             }
-            for(uint32_t k=0; k<r; k++) {
-                html << b;
-            }
-            if(i == assembledSegment.runLengthSequence.size() -1 - segment.rightTrim) {
-                html << "<span style='background-color:LightCoral'>";
-            }
+            html << "</span><td>";
         }
-        html << "</span><td>";
 
 
 
