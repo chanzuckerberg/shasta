@@ -457,8 +457,6 @@ void AssemblyPath::writeSegmentSequences()
         const AssembledSegment& assembledSegment = segment.assembledSegment;
 
         if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
-            cout << "Segment " << segmentId <<
-                " has overlapping skips on left/right." << endl;
             continue;
         }
 
@@ -770,29 +768,49 @@ void AssemblyPath::assemble()
     // Assemble RLE sequence.
     for(uint64_t i=0; i<segments.size(); i++) {
         AssemblyPathSegment& segment = segments[i];
-        const uint64_t segmentId = segment.id;
         const AssembledSegment& assembledSegment = segment.assembledSegment;
         segment.rlePosition = rleSequence.size();
         segment.rawPosition = rawSequence.size();
 
+
         if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
-            cout << "Segment " << segmentId <<
-                " has overlapping skips on left/right." << endl;
-            continue;
-        }
+            // The left and right trim of this segment overlap.
+            // To handle this case, just take the excess number of bases out of the sequence
+            // we already assembled.
+            // This is not a great solution, but better than nothing.
+            const uint64_t excessTrim =
+               (segment.leftTrim + segment.rightTrim) - assembledSegment.runLengthSequence.size();
+            SHASTA_ASSERT(excessTrim <= rleSequence.size());
+            SHASTA_ASSERT(repeatCounts.size() == rleSequence.size());
 
-        // Add the RLE sequence of this segment.
-        const auto segmentTrimmedRleSequence = segment.trimmedRleSequence();
-        const auto segmentTrimmedRepeatCounts = segment.trimmedRepeatCounts();
-        copy(segmentTrimmedRleSequence, back_inserter(rleSequence));
-        copy(segmentTrimmedRepeatCounts, back_inserter(repeatCounts));
+            // Compute the excess trim in the raw sequence.
+            uint64_t excessTrimRaw = 0;
+            for(uint64_t i=0; i<excessTrim; i++) {
+                excessTrimRaw += repeatCounts[repeatCounts.size() - 1 - i];
+            }
+            SHASTA_ASSERT(excessTrimRaw <= rawSequence.size());
 
-        // Add the raw sequence of this segment.
-        for(uint64_t i=0; i<segmentTrimmedRleSequence.size(); i++) {
-            const Base b = segmentTrimmedRleSequence[i];
-            const uint64_t r = segmentTrimmedRepeatCounts[i];
-            for(uint64_t k=0; k<r; k++) {
-                rawSequence.push_back(b);
+            // Remove the excess trim from the sequence we already assembled.
+            rleSequence.resize(rleSequence.size() - excessTrim);
+            repeatCounts.resize(repeatCounts.size() - excessTrim);
+            rawSequence.resize(rawSequence.size() - excessTrimRaw);
+        } else {
+
+            // This is the normal case.
+
+            // Add the RLE sequence of this segment.
+            const auto segmentTrimmedRleSequence = segment.trimmedRleSequence();
+            const auto segmentTrimmedRepeatCounts = segment.trimmedRepeatCounts();
+            copy(segmentTrimmedRleSequence, back_inserter(rleSequence));
+            copy(segmentTrimmedRepeatCounts, back_inserter(repeatCounts));
+
+            // Add the raw sequence of this segment.
+            for(uint64_t i=0; i<segmentTrimmedRleSequence.size(); i++) {
+                const Base b = segmentTrimmedRleSequence[i];
+                const uint64_t r = segmentTrimmedRepeatCounts[i];
+                for(uint64_t k=0; k<r; k++) {
+                    rawSequence.push_back(b);
+                }
             }
         }
 
