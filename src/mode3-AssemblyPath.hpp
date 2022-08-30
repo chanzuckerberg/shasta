@@ -89,6 +89,10 @@ public:
     // and all the next fields are left empty.
     bool isTrivial;
 
+    // The number of oriented reads used to assemble this link.
+    // This is only filled in for non-trivial links.
+    uint64_t coverage = 0;
+
     // The last primary segment in the path preceding this link.
     uint64_t previousPrimarySegmentId = invalid<uint64_t>;
 
@@ -185,10 +189,10 @@ public:
     static char repeatCountCharacter(uint32_t);
 
     // Html output.
-    void writeHtml(ostream&) const;
+    void writeHtml(ostream&, const AssemblyGraph& assemblyGraph) const;
     void writeHtmlSummary(ostream&) const;
     void writeSequenceDialog(ostream&) const;
-    void writeHtmlDetail(ostream&) const;
+    void writeHtmlDetail(ostream&, const AssemblyGraph& assemblyGraph) const;
 
 };
 

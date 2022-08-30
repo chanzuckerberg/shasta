@@ -317,6 +317,9 @@ void AssemblyPath::assembleNonTrivialLink(
         }
     }
 
+    // Store coverage for this link.
+    link.coverage = orientedReadIdsForAssembly.size();
+
     // Compute the consensus sequence for the link.
     html<< "<h2>Link " << link.id << "</h2>\n";
     computeLinkConsensusUsingSpoa(
@@ -968,14 +971,14 @@ char AssemblyPath::repeatCountCharacter(uint32_t r) {
 }
 
 
-void AssemblyPath::writeHtml(ostream& html) const
+void AssemblyPath::writeHtml(ostream& html, const AssemblyGraph& assemblyGraph) const
 {
     SHASTA_ASSERT(segments.size() > 1);
     SHASTA_ASSERT(links.size() == segments.size() - 1);
 
     writeHtmlSummary(html);
     writeSequenceDialog(html);
-    writeHtmlDetail(html);
+    writeHtmlDetail(html, assemblyGraph);
 }
 
 
@@ -995,7 +998,7 @@ void AssemblyPath::writeHtmlSummary(ostream& html) const
 
 
 
-void AssemblyPath::writeHtmlDetail(ostream& html) const
+void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyGraph) const
 {
     // Table legend.
     html <<
@@ -1016,6 +1019,10 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
 
         "<th title='Segment or link id'>"
         "<span class=rotated>Id"
+
+        "<th title='The number of oriented reads contributing to assembly of this segment or link. "
+        "This is not the same as average coverage on marker graph vertices or edges.'>"
+        "<span class=rotated>Coverage"
 
         "<th title='The id of the last primary segment preceding a link.'>"
         "<span class=rotated>Previous<br>primary<br>segment"
@@ -1051,13 +1058,14 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
             ">"
             "<td class=centered>S"
             "<td class=centered>" << segment.id <<
+            "<td>" << assemblyGraph.coverage(segment.id) <<
             "<td><td>"
             "<td class=centered>" << segment.rawPosition;
 
 
 
         // Raw sequence for this segment.
-        html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
+        html << "<td class=centered style='max-width:500px;word-wrap:break-word'>";
          if(segment.leftTrim + segment.rightTrim > assembledSegment.runLengthSequence.size()) {
 
             // Exceptional case where the left and right trim overlap.
@@ -1112,6 +1120,13 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         html <<
             "><td class=centered>L" <<
             "<td class=centered>" << link.id <<
+            "<td class=centered>";
+
+        if(not link.isTrivial) {
+            html << link.coverage;
+        }
+
+        html <<
             "<td class=centered>" << link.previousPrimarySegmentId <<
             "<td class=centered>" << link.nextPrimarySegmentId <<
             "<td class=centered>" << link.rawPosition;

@@ -829,7 +829,7 @@ void Assembler::exploreMode3AssemblyPath(
     path.assemble(assemblyGraph);
 
     // Write path details to html.
-    path.writeHtml(html);
+    path.writeHtml(html, assemblyGraph);
 
 
 }

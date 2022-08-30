@@ -255,6 +255,13 @@ public:
         assemblyGraphJourneyInfos;
     void computeAssemblyGraphJourneyInfos();
 
+    //Coverage is th enumber of oriented reads that appear in this segment.
+    // This is not the same as average coverage on marker graph vertices or edges.
+    uint64_t coverage(uint64_t segmentId) const
+    {
+        return assemblyGraphJourneyInfos.size(segmentId);
+    }
+
     // Find out if a segment contains a given OrientedReadId.
     // This returns true if assemblyGraphJourneyInfos[segmentId]
     // contains an entry with the given OrientedReadId.
