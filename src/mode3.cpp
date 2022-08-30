@@ -2284,12 +2284,12 @@ void AssemblyGraph::createAssemblyPath3(
 
 
 
-    // At each iteration, we start from segmentIdA (the current "reference segment")
+    // At each iteration, we start from segmentIdA (the current "primary segment")
     // and move in the specified direction until we find segmentIdB with
     // sufficiently high Jaccard similarity and number of
     // common oriented reads with segmentIdA.
     // At each step, we choose the links that has the most common oriented
-    // reads with the current reference segment.
+    // reads with the current primary segment.
     uint64_t referenceSegmentId = startSegmentId;
     SegmentOrientedReadInformation infoReference;
     getOrientedReadsOnSegment(referenceSegmentId, infoReference);
@@ -2374,8 +2374,13 @@ void AssemblyGraph::createAssemblyPath3(
             if(debug) {
                 cout << "New reference segment is " << segmentId1 << endl;
             }
+            const uint64_t lastPrimarySegmentId = path.segments.back().id;
             for(const uint64_t segmentId: lastIterationSegments) {
                 path.segments.push_back(AssemblyPathSegment(segmentId, false));
+                if(segmentId != segmentId1) {
+                    path.segments.back().previousPrimarySegmentId = lastPrimarySegmentId;
+                    path.segments.back().nextPrimarySegmentId = segmentId1;
+                }
             }
             path.segments.back().isPrimary = true;
             lastIterationSegments.clear();

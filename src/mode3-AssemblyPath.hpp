@@ -40,6 +40,11 @@ public:
     // The first and last segment are always primary segments.
     bool isPrimary;
 
+    // For secondary segments only (isPrimary is false) we store the
+    // segment id of the previous and next primary segment.
+    uint64_t previousPrimarySegmentId = invalid<uint64_t>;
+    uint64_t nextPrimarySegmentId = invalid<uint64_t>;
+
     // The AssembledSegment contains the sequence for this segment
     // plus information on how the sequence was extracted from the
     // marker graph.

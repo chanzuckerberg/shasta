@@ -1024,11 +1024,19 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
         "This is not the same as average coverage on marker graph vertices or edges.'>"
         "<span class=rotated>Coverage"
 
-        "<th title='The id of the last primary segment preceding a link.'>"
-        "<span class=rotated>Previous<br>primary<br>segment"
+        "<th title='The id of the previous primary segment.'>"
+        "<span class=rotated>Previous<br>primary segment"
 
-        "<th title='The id of the first primary segment following a link.'>"
-        "<span class=rotated>Next<br>primary<br>segment"
+        "<th title='The id of the next primary segment.'>"
+        "<span class=rotated>Next<br>primary segment"
+
+        "<th title='The fraction of oriented reads that appear on the "
+        "previous primary segment and are long enough to appear on this segment, but do not.'>"
+        "<span class=rotated>Unexplained fraction<br>on previous<br>primary segment"
+
+        "<th title='The fraction of oriented reads that appear on the "
+        "next primary segment and are long enough to appear on this segment, but do not.'>"
+        "<span class=rotated>Unexplained fraction<br>on next<br>primary segment"
 
         "<th title='The position of the trimmed raw sequence of this segment or link "
         "in the raw assembled sequence of the path.'>"
@@ -1046,9 +1054,30 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
     // Main body of the table.
     // There is one row for each segment and one row for each link.
     for(uint64_t position=0; position<segments.size(); position++) {
+        const AssemblyPathSegment& segment = segments[position];
+
+        // If nto a primary segment, evaluate this segment against
+        // the previous and next primary segment.
+        AssemblyGraph::SegmentOrientedReadInformation info;
+        AssemblyGraph::SegmentOrientedReadInformation previousInfo;
+        AssemblyGraph::SegmentOrientedReadInformation nextInfo;
+        AssemblyGraph::SegmentPairInformation previousSegmentPairInfo;
+        AssemblyGraph::SegmentPairInformation nextSegmentPairInfo;
+        if(not segment.isPrimary) {
+            assemblyGraph.getOrientedReadsOnSegment(segment.id, info);
+            assemblyGraph.getOrientedReadsOnSegment(segment.previousPrimarySegmentId, previousInfo);
+            assemblyGraph.getOrientedReadsOnSegment(segment.nextPrimarySegmentId, nextInfo);
+            assemblyGraph.analyzeSegmentPair(
+                segment.previousPrimarySegmentId, segment.id,
+                previousInfo, info,
+                assemblyGraph.markers, previousSegmentPairInfo);
+            assemblyGraph.analyzeSegmentPair(
+                segment.nextPrimarySegmentId, segment.id,
+                nextInfo, info,
+                assemblyGraph.markers, nextSegmentPairInfo);
+        }
 
         // Write a row for the segment at this position.
-        const AssemblyPathSegment& segment = segments[position];
         const AssembledSegment& assembledSegment = segment.assembledSegment;
         html << "<tr";
         if(segment.isPrimary) {
@@ -1058,9 +1087,21 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
             ">"
             "<td class=centered>S"
             "<td class=centered>" << segment.id <<
-            "<td>" << assemblyGraph.coverage(segment.id) <<
-            "<td><td>"
-            "<td class=centered>" << segment.rawPosition;
+            "<td>" << assemblyGraph.coverage(segment.id);
+        if(segment.isPrimary) {
+            html << "<td><td><td><td>";
+        } else {
+            const auto oldPrecision = html.precision(2);
+            const auto oldFlags = html.setf(std::ios_base::fixed, std::ios_base::floatfield);
+            html <<
+                "<td class=centered>" << segment.previousPrimarySegmentId <<
+                "<td class=centered>" << segment.nextPrimarySegmentId <<
+                "<td class=centered>" << previousSegmentPairInfo.unexplainedFraction(0) <<
+                "<td class=centered>" << nextSegmentPairInfo.unexplainedFraction(0);
+            html.precision(oldPrecision);
+            html.flags(oldFlags);
+            }
+        html << "<td class=centered>" << segment.rawPosition;
 
 
 
@@ -1129,7 +1170,11 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
         html <<
             "<td class=centered>" << link.previousPrimarySegmentId <<
             "<td class=centered>" << link.nextPrimarySegmentId <<
-            "<td class=centered>" << link.rawPosition;
+            "<td><td><td class=centered>";
+
+        if(not link.isTrivial) {
+            html << link.rawPosition;
+        }
 
         // Raw sequence for this link.
         html << "<td class=centered style='max-width:300px;word-wrap:break-word'>";
