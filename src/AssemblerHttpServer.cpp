@@ -784,6 +784,14 @@ void Assembler::writeStyle(ostream& html)
     a {
         color: DarkSlateBlue;
     }
+
+    /* This can be used to get vertical text in table cells. */
+    span.rotated 
+    {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
     ul.navigationMenu {
         list-style-type: none;
         margin: 0px 0px 12px 0px;
@@ -791,7 +799,7 @@ void Assembler::writeStyle(ostream& html)
         overflow: hidden;
         background-color: #404040;
     }
-    
+
     div.navigationButton {
         display: inline-block;
         color: white;
@@ -800,7 +808,7 @@ void Assembler::writeStyle(ostream& html)
         text-decoration: none;
         // min-width: 120px;
     }
-    
+
     .navigationMenuEntry:hover .navigationButton {
         background-color: black;
     }

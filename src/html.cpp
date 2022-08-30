@@ -65,7 +65,13 @@ void shasta::writeStyle(ostream& html)
     a {
         color: DarkSlateBlue;
     }
-    
+
+    /* This can be used to get vertical text in table cells. */
+    span.rotated 
+    {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
 </style>
     )%";
 

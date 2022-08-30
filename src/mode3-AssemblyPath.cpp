@@ -1023,13 +1023,13 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
         "<p>"
         "<table style='table-layout:fixed;font-family:monospace;font-size:9'>"
         "<tr>"
-        "<th>Type"
-        "<th>Id"
-        "<th>Prev<br>primary"
-        "<th>Next<br>primary"
-        "<th>Raw<br>pos"
+        "<th><span class=rotated>Type"
+        "<th><span class=rotated>Id"
+        "<th><span class=rotated>Prev<br>primary"
+        "<th><span class=rotated>Next<br>primary"
+        "<th><span class=rotated>Raw<br>pos"
         "<th>Raw sequence"
-        "<th>Detail";
+        "<th><span class=rotated>Detail";
 
 
 
