@@ -999,37 +999,40 @@ void AssemblyPath::writeHtmlDetail(ostream& html) const
 {
     // Table legend.
     html <<
-        "<p>"
-        "<table >"
-        "<tr><th colspan=2>Legend"
-        "<tr><th>Type<td>S (segment) or L (link)."
-        "<ul>"
-        "<li>Primary segments have a light blue background."
-        "<li>Trivial links have a grey background."
-        "<ul>"
-        "<tr><th>Id<td>Segment or link id"
-        "<tr><th>Prev primary<td>The id of the last primary segment preceding a link."
-        "<tr><th>Next primary<td>The id of the first primary segment following a link."
-        "<tr><th>Raw pos<td>The position "
-        "of the trimmed raw sequence of this segment or link "
-        "in the raw assembled sequence of the path."
-        "<tr><th>Raw sequence<td>The complete raw sequence for this segment or link. "
-        "The red portion is trimmed out and not used for assembly."
-        "<tr><th>Detail<td>Link to assembly details."
-        "</table>";
+        "<p>Hover on table headers for information on the meaning of each column.";
+
+
 
     // Table header.
     html <<
         "<p>"
         "<table style='table-layout:fixed;font-family:monospace;font-size:9'>"
         "<tr>"
-        "<th><span class=rotated>Type"
-        "<th><span class=rotated>Id"
-        "<th><span class=rotated>Prev<br>primary"
-        "<th><span class=rotated>Next<br>primary"
-        "<th><span class=rotated>Raw<br>pos"
-        "<th>Raw sequence"
-        "<th><span class=rotated>Detail";
+
+        "<th title ='S (segment) or L (link). "
+        "Primary segments have a light blue background. "
+        "Trivial links have a grey background.'>"
+        "<span class=rotated>Type"
+
+        "<th title='Segment or link id'>"
+        "<span class=rotated>Id"
+
+        "<th title='The id of the last primary segment preceding a link.'>"
+        "<span class=rotated>Previous<br>primary<br>segment"
+
+        "<th title='The id of the first primary segment following a link.'>"
+        "<span class=rotated>Next<br>primary<br>segment"
+
+        "<th title='The position of the trimmed raw sequence of this segment or link "
+        "in the raw assembled sequence of the path.'>"
+        "<span class=rotated>Raw<br>position"
+
+        "<th title='The complete raw sequence for this segment or link. "
+        "The red portion is trimmed out and not used for assembly.'>"
+        "Raw sequence"
+
+        "<th title='Assembly details for non-trivial links.'>"
+        "<span class=rotated>Detail";
 
 
 
