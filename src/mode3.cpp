@@ -2297,6 +2297,7 @@ void AssemblyGraph::createAssemblyPath3(
     path.clear();
     path.segments.push_back(AssemblyPathSegment(startSegmentId, true));
     vector<uint64_t> lastIterationSegments;
+    std::set< pair<uint64_t, uint64_t> > previousPairs;  // (reference segment, current segment).
     while(true) {
 
         if(debug) {
@@ -2354,6 +2355,12 @@ void AssemblyGraph::createAssemblyPath3(
             cout << "segmentId1 " << segmentId1 << endl;
         }
         lastIterationSegments.push_back(segmentId1);
+
+        // Check that we haven't been here before.
+        if(previousPairs.contains(make_pair(referenceSegmentId, segmentId1))) {
+            break;
+        }
+        previousPairs.insert(make_pair(referenceSegmentId, segmentId1));
 
         // Check segmentId1 against the reference segment.
         SegmentOrientedReadInformation info1;
