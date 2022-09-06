@@ -2378,15 +2378,24 @@ void AssemblyGraph::createAssemblyPath3(
         if(info.commonCount >= minCommonForReference and info.jaccard() >= minJaccard) {
             referenceSegmentId = segmentId1;
             getOrientedReadsOnSegment(referenceSegmentId, infoReference);
+            const uint64_t lastPrimarySegmentId = path.segments.back().id;
             if(debug) {
                 cout << "New reference segment is " << segmentId1 << endl;
+                cout << "Previous reference segment is " << lastPrimarySegmentId << endl;
             }
-            const uint64_t lastPrimarySegmentId = path.segments.back().id;
             for(const uint64_t segmentId: lastIterationSegments) {
                 path.segments.push_back(AssemblyPathSegment(segmentId, false));
+                if(debug) {
+                    cout << "Added segment " << segmentId << " to path." << endl;
+                }
                 if(segmentId != segmentId1) {
-                    path.segments.back().previousPrimarySegmentId = lastPrimarySegmentId;
-                    path.segments.back().nextPrimarySegmentId = segmentId1;
+                    if(direction == 0) {
+                        path.segments.back().previousPrimarySegmentId = lastPrimarySegmentId;
+                        path.segments.back().nextPrimarySegmentId = segmentId1;
+                    } else {
+                        path.segments.back().previousPrimarySegmentId = segmentId1;
+                        path.segments.back().nextPrimarySegmentId = lastPrimarySegmentId;
+                    }
                 }
             }
             path.segments.back().isPrimary = true;
