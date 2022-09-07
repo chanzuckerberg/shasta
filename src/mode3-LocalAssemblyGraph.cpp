@@ -1,6 +1,7 @@
 // Shasta.
 #include "mode3-LocalAssemblyGraph.hpp"
 #include "mode3-AssemblyPath.hpp"
+#include "mode3-SegmentPairInformation.hpp"
 #include "computeLayout.hpp"
 #include "html.hpp"
 #include "HttpServer.hpp"
@@ -508,7 +509,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
     // containing pair information between the reference segment
     // and each segment in the local assembly graph.
     const bool doSegmentPairComputations = true;
-    std::map<vertex_descriptor, mode3::AssemblyGraph::SegmentPairInformation> segmentPairInformationTable;
+    std::map<vertex_descriptor, SegmentPairInformation> segmentPairInformationTable;
     mode3::AssemblyGraph::SegmentOrientedReadInformation referenceSegmentInfo;
     if(doSegmentPairComputations) {
 
@@ -521,7 +522,7 @@ void mode3::LocalAssemblyGraph::writeSvg(
             assemblyGraph.getOrientedReadsOnSegment(
                 localAssemblyGraph[v].segmentId, segmentInfo);
 
-            mode3::AssemblyGraph::SegmentPairInformation segmentPairInformation;
+            SegmentPairInformation segmentPairInformation;
             assemblyGraph.analyzeSegmentPair(
                 options.referenceSegmentId, localAssemblyGraph[v].segmentId,
                 referenceSegmentInfo, segmentInfo,

@@ -9,6 +9,7 @@
 #include "orderPairs.hpp"
 #include "Reads.hpp"
 #include "ReadFlags.hpp"
+#include "mode3-SegmentPairInformation.hpp"
 #include "SubsetGraph.hpp"
 using namespace shasta;
 using namespace mode3;

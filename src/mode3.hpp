@@ -18,6 +18,7 @@ number of transitions 0->1, we create a link 0->1.
 // Shasta.
 #include "invalid.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
+#include "mode3-JaccardGraph.hpp"
 #include "MultithreadedObject.hpp"
 #include "ReadId.hpp"
 #include "shastaTypes.hpp"
@@ -40,6 +41,7 @@ namespace shasta {
         class MarkerGraphJourneyEntry;
         class AssemblyGraphJourneyInterval;
         class AssemblyPath;
+        class SegmentPairInformation;
         class Transition;
 
     }
@@ -436,56 +438,6 @@ public:
 
     // Analyze a pair of segments for common oriented reads,
     // offsets, missing reads, etc.
-    class SegmentPairInformation {
-    public:
-
-        // The total number of oriented reads present in each segment.
-        array<uint64_t, 2> totalCount = {0, 0};
-
-        // The number of oriented reads present in both segments.
-        // If this is zero, the rest of the information is not valid.
-        uint64_t commonCount = 0;
-
-        // The offset of segment 1 relative to segment 0, in markers.
-        int64_t offset = invalid<int64_t>;
-
-        // The number of oriented reads present in each segment
-        // but missing from the other segment,
-        // and which should have been present based on the above estimated offset.
-        array<uint64_t, 2> unexplainedCount = {0, 0};
-
-        // The number of oriented reads that appear in only one
-        // of the two segments, but based on the estimated offset
-        // are too short to appear in the other segment.
-        array<uint64_t, 2> shortCount = {0, 0};
-
-        // Check that the above counts are consistent.
-        void check() const
-        {
-            for(uint64_t i=0; i<2; i++) {
-                SHASTA_ASSERT(commonCount + unexplainedCount[i] + shortCount[i] ==
-                    totalCount[i]);
-            }
-        }
-
-        // This computes the fraction of unexplained oriented reads,
-        // without counting the short ones.
-        double unexplainedFraction(uint64_t i) const
-        {
-            // return double(unexplainedCount[i]) / double(totalCount[i]);
-            return double(unexplainedCount[i]) / double(commonCount + unexplainedCount[i]);
-        }
-        double maximumUnexplainedFraction() const
-        {
-            return max(unexplainedFraction(0), unexplainedFraction(1));
-        }
-
-        // Jaccard similarity, without counting the short reads.
-        double jaccard() const
-        {
-            return double(commonCount) / double(commonCount + unexplainedCount[0] + unexplainedCount[1]);
-        }
-    };
     void analyzeSegmentPair(
         uint64_t segmentId0,
         uint64_t segmentId1,
@@ -703,6 +655,9 @@ public:
 
         return averageLinkSeparation;
     }
+
+    JaccardGraph jaccardGraph;
+    void createJaccardGraph(size_t threadCount);
 };
 
 

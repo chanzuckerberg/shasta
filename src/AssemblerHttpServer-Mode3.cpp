@@ -4,6 +4,7 @@
 #include "mode3.hpp"
 #include "mode3-AssemblyPath.hpp"
 #include "mode3-LocalAssemblyGraph.hpp"
+#include "mode3-SegmentPairInformation.hpp"
 #include "PngImage.hpp"
 using namespace shasta;
 using namespace mode3;
@@ -451,7 +452,7 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
 
     // Estimate the offset between the segments and count missing
     // oriented reads.
-    mode3::AssemblyGraph::SegmentPairInformation segmentPairInformation;
+    SegmentPairInformation segmentPairInformation;
     assemblyGraph3.analyzeSegmentPair(
             segmentId0, segmentId1,
             orientedReads0, orientedReads1,

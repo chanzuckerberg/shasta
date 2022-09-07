@@ -1,5 +1,6 @@
 // Shasta.
 #include "mode3-AssemblyPath.hpp"
+#include "mode3-SegmentPairInformation.hpp"
 #include "assembleMarkerGraphPath.hpp"
 #include "ConsensusCaller.hpp"
 #include "deduplicate.hpp"
@@ -1061,8 +1062,8 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
         AssemblyGraph::SegmentOrientedReadInformation info;
         AssemblyGraph::SegmentOrientedReadInformation previousInfo;
         AssemblyGraph::SegmentOrientedReadInformation nextInfo;
-        AssemblyGraph::SegmentPairInformation previousSegmentPairInfo;
-        AssemblyGraph::SegmentPairInformation nextSegmentPairInfo;
+        SegmentPairInformation previousSegmentPairInfo;
+        SegmentPairInformation nextSegmentPairInfo;
         if(not segment.isPrimary) {
             assemblyGraph.getOrientedReadsOnSegment(segment.id, info);
             assemblyGraph.getOrientedReadsOnSegment(segment.previousPrimarySegmentId, previousInfo);
