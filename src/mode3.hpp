@@ -656,8 +656,17 @@ public:
         return averageLinkSeparation;
     }
 
+    // Jaccard graph.
     JaccardGraph jaccardGraph;
     void createJaccardGraph(size_t threadCount);
+    void createJaccardGraphThreadFunction(size_t threadId);
+    void createJaccardGraphEdges(
+        uint64_t segmentId,
+        vector<JaccardGraphEdge>& edges);
+    void createJaccardGraphEdges(
+        uint64_t segmentId,
+        uint64_t direction,
+        vector<JaccardGraphEdge>& edges);
 };
 
 

@@ -24,7 +24,9 @@ For the edge to be created, we also require one of the following:
 
 #include "mode3-SegmentPairInformation.hpp"
 #include "MemoryMappedVector.hpp"
+
 #include "cstdint.hpp"
+#include "tuple.hpp"
 
 namespace shasta {
     namespace mode3 {
@@ -48,6 +50,16 @@ public:
     // mode3::AssemblyGraph::analyzeSegmentPair
     // when called for (segmentId0, segmentId1), in this order.
     SegmentPairInformation segmentPairInformation;
+
+    // Compare using only the segment ids.
+    bool operator==(const JaccardGraphEdge& that) const
+    {
+        return tie(segmentId0, segmentId1) == tie(that.segmentId0, that.segmentId1);
+    }
+    bool operator<(const JaccardGraphEdge& that) const
+    {
+        return tie(segmentId0, segmentId1) < tie(that.segmentId0, that.segmentId1);
+    }
 };
 
 
@@ -55,6 +67,9 @@ public:
 class shasta::mode3::JaccardGraph {
 public:
     MemoryMapped::Vector<JaccardGraphEdge> edges;
+
+    // The edges found by each thread.
+    vector< vector<JaccardGraphEdge> > threadEdges;
 };
 
 
