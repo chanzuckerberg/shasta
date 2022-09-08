@@ -5,6 +5,8 @@
 using namespace shasta;
 using namespace mode3;
 
+#include <boost/graph/iteration_macros.hpp>
+
 #include "fstream.hpp"
 
 
@@ -22,22 +24,79 @@ void AssemblyGraph::createJaccardGraph(
     setupLoadBalancing(markerGraphPaths.size(), batchSize);
     runThreads(&AssemblyGraph::createJaccardGraphThreadFunction, threadCount);
 
-    // Combine the edges found by all threads.
-    vector<JaccardGraphEdge> edges;
-    for(const auto& v: jaccardGraph.threadEdges) {
-        copy(v.begin(), v.end(), back_inserter(edges));
+
+
+    // Because we do this in both directions, two things can happen:
+    // - An edge can be found twice.
+    // - Vertex in-degree and out-degree are often equal to 1 but
+    // are in principle unlimited.
+
+    // Represent the edges we found using a boost::Graph.
+    using Graph = boost::adjacency_list<
+        boost::listS, boost::vecS, boost::bidirectionalS,
+        boost::no_property, SegmentPairInformation>;
+    Graph graph(markerGraphPaths.size());
+    for(const auto& threadEdges: jaccardGraph.threadEdges) {
+        for(const auto& jaccardGraphEdge: threadEdges) {
+            const uint64_t segmentId0 = jaccardGraphEdge.segmentId0;
+            const uint64_t segmentId1 = jaccardGraphEdge.segmentId1;
+            bool edgeExists = false;
+            tie(ignore, edgeExists) = boost::edge(segmentId0, segmentId1, graph);
+            if(not edgeExists) {
+                add_edge(segmentId0, segmentId1, jaccardGraphEdge.segmentPairInformation, graph);
+            }
+        }
     }
 
-    // Deduplicate them.
-    deduplicate(edges);
-    cout << "The Jaccard graph has " << markerGraphPaths.size() <<
-        " vertices (segments) and " << edges.size() << " edges." << endl;
+
+
+    // When a vertex as in-degree/out-degree > 1,
+    // of all the outgoing/incoming edges we only keep the one
+    // with the smallest estimated gap.
+    vector<Graph::edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        if(out_degree(v, graph) > 1) {
+            vector<pair<int64_t, Graph::edge_descriptor> > outgoingEdges; // Gap abs value
+            BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
+                const int64_t offset = graph[e].offset;
+                const uint64_t segmentId0 = source(e, graph);
+                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
+                const int64_t gap = offset - length0;
+                outgoingEdges.push_back(make_pair(labs(gap), e));
+            }
+            sort(outgoingEdges.begin(), outgoingEdges.end());
+            for(uint64_t i=1; i<outgoingEdges.size(); i++) {
+                edgesToBeRemoved.push_back(outgoingEdges[i].second);
+            }
+        }
+        if(in_degree(v, graph) > 1) {
+            vector<pair<int64_t, Graph::edge_descriptor> > incomingEdges; // Gap abs value
+            BGL_FORALL_INEDGES(v, e, graph, Graph) {
+                const int64_t offset = graph[e].offset;
+                const uint64_t segmentId0 = source(e, graph);
+                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
+                const int64_t gap = offset - length0;
+                incomingEdges.push_back(make_pair(labs(gap), e));
+            }
+            sort(incomingEdges.begin(), incomingEdges.end());
+            for(uint64_t i=1; i<incomingEdges.size(); i++) {
+                edgesToBeRemoved.push_back(incomingEdges[i].second);
+            }
+        }
+    }
+    deduplicate(edgesToBeRemoved);
+    for(const auto e: edgesToBeRemoved) {
+        remove_edge(e, graph);
+    }
+
+    cout << "The Jaccard graph has " << num_vertices(graph) <<
+        " vertices (segments) and " << num_edges(graph) << " edges." << endl;
 
     // Write them out.
     ofstream dot("JaccardGraph.dot");
     dot << "digraph JaccardGraph {" << endl;
-    for(const auto& edge: edges) {
-        dot << edge.segmentId0 << "->" << edge.segmentId1 << "\n";
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        dot << source(e, graph) << "->" << target(e, graph) << "\n";
     }
     dot << "}" << endl;
     cout << timestamp << "createJaccardGraph ends." << endl;
