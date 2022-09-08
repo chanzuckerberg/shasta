@@ -516,6 +516,10 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
     }
 
      html <<  "</table>";
+     if(segmentPairInformation.commonCount > 0) {
+         html << "<p>Estimated offset " << segmentPairInformation.offset;
+         html << "<br>Estimated gap " << segmentPairInformation.offset - int64_t(length0);
+     }
 
 
 
