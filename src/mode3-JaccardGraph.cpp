@@ -1,10 +1,12 @@
 #include "mode3-JaccardGraph.hpp"
 #include "deduplicate.hpp"
 #include "mode3.hpp"
+#include "orderVectors.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 using namespace mode3;
 
+// Boost libraries.
 #include <boost/graph/iteration_macros.hpp>
 
 #include "fstream.hpp"
@@ -35,7 +37,8 @@ void AssemblyGraph::createJaccardGraph(
     using Graph = boost::adjacency_list<
         boost::listS, boost::vecS, boost::bidirectionalS,
         boost::no_property, SegmentPairInformation>;
-    Graph graph(markerGraphPaths.size());
+    const uint64_t n = markerGraphPaths.size();
+    Graph graph(n);
     for(const auto& threadEdges: jaccardGraph.threadEdges) {
         for(const auto& jaccardGraphEdge: threadEdges) {
             const uint64_t segmentId0 = jaccardGraphEdge.segmentId0;
@@ -48,6 +51,15 @@ void AssemblyGraph::createJaccardGraph(
         }
     }
 
+    // Write out the Jaccard graph
+    {
+        ofstream dot("JaccardGraph1.dot");
+        dot << "digraph JaccardGraph {" << endl;
+        BGL_FORALL_EDGES(e, graph, Graph) {
+            dot << source(e, graph) << "->" << target(e, graph) << "\n";
+        }
+        dot << "}" << endl;
+    }
 
 
     // When a vertex as in-degree/out-degree > 1,
@@ -89,16 +101,147 @@ void AssemblyGraph::createJaccardGraph(
         remove_edge(e, graph);
     }
 
+    // At this point no vertex has in-degree or out-degree greater than 1.
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        SHASTA_ASSERT(out_degree(v, graph) <= 1);
+        SHASTA_ASSERT(in_degree(v, graph) <= 1);
+    }
     cout << "The Jaccard graph has " << num_vertices(graph) <<
         " vertices (segments) and " << num_edges(graph) << " edges." << endl;
 
-    // Write them out.
-    ofstream dot("JaccardGraph.dot");
-    dot << "digraph JaccardGraph {" << endl;
-    BGL_FORALL_EDGES(e, graph, Graph) {
-        dot << source(e, graph) << "->" << target(e, graph) << "\n";
+
+    // Compute connected components.
+    // Since no vertex has in-degree or out-degree greater than 1,
+    // all connected component are guaranteed to have one of two structures:
+    // 1. A linear structure beginning at a vertex with in-degree 0,
+    //    out-degree 1, ending at a vertex with in-degree 1, out-degree 0,
+    //    and other wise consisting of vertices with in-degree and out-degree 1.
+    //    This includes isolated vertices.
+    // 2. A circular structure consisting entirely of vertices with in-degree and out-degree 1.
+    //    This is not common.
+    vector<bool> wasFound(n, false);
+    vector< vector<uint64_t> > components;
+    vector<bool> isCircularComponent;
+    for(uint64_t startSegmentId=0; startSegmentId<n; startSegmentId++) {
+        if(wasFound[startSegmentId]) {
+            continue;
+        }
+        // cout << "Start a new component at " << startSegmentId << endl;
+
+        // Start a new connected component here,
+        wasFound[startSegmentId] = true;
+        uint64_t segmentId0 = startSegmentId;
+        vector<uint64_t> forwardVertices;
+        vector<uint64_t> backwardVertices;
+        bool isCircular = false;
+
+        // Look forward.
+        while(true) {
+            Graph::out_edge_iterator begin, end;
+            tie(begin, end) = out_edges(segmentId0, graph);
+            if(end == begin) {
+                // segmentId0 has out-degree 0
+                break;
+            }
+            const Graph::edge_descriptor e = *begin;
+            const uint64_t segmentId1 = target(e, graph);
+            // cout << "Forward found " << segmentId1 << endl;
+            if(segmentId1 == startSegmentId) {
+                isCircular = true;
+                break;
+            }
+            SHASTA_ASSERT(not wasFound[segmentId1]);
+            wasFound[segmentId1] = true;
+            forwardVertices.push_back(segmentId1);
+            segmentId0 = segmentId1;
+        }
+
+        // Look backward.
+        if(not isCircular) {
+            segmentId0 = startSegmentId;
+            while(true) {
+                Graph::in_edge_iterator begin, end;
+                tie(begin, end) = in_edges(segmentId0, graph);
+                if(end == begin) {
+                    // segmentId0 has in-degree 0
+                    break;
+                }
+                const Graph::edge_descriptor e = *begin;
+                const uint64_t segmentId1 = source(e, graph);
+                // cout << "Backward found " << segmentId1 << endl;
+                SHASTA_ASSERT(segmentId1 != startSegmentId);
+                SHASTA_ASSERT(not wasFound[segmentId1]);
+                wasFound[segmentId1] = true;
+                backwardVertices.push_back(segmentId1);
+                segmentId0 = segmentId1;
+            }
+        }
+
+        // Store it.
+        components.resize(components.size() + 1);
+        isCircularComponent.push_back(isCircular);
+        vector<uint64_t>& component = components.back();
+        copy(backwardVertices.rbegin(), backwardVertices.rend(), back_inserter(component));
+        component.push_back(startSegmentId);
+        copy(forwardVertices.begin(), forwardVertices.end(), back_inserter(component));
     }
-    dot << "}" << endl;
+    sort(components.begin(), components.end(), OrderVectorsByDecreasingSize<uint64_t>());
+
+    // Write out the components.
+    ofstream csv("JaccardGraphComponents.csv");
+    csv << "Id,Size,Circular,SegmentIds\n";
+    for(uint64_t componentId=0; componentId<components.size(); componentId++) {
+        csv << componentId << ",";
+        const vector<uint64_t>& component = components[componentId];
+        csv << component.size() << ",";
+        if(isCircularComponent[componentId]) {
+            csv << "Yes,";
+        } else {
+            csv << "No,";
+        }
+        for(const uint64_t segmentId: component) {
+            csv << segmentId << ",";
+        }
+        csv << "\n";
+    }
+
+    // Write a histogram of component sizes.
+    {
+        vector<uint64_t> histogram;
+        for(const vector<uint64_t>& component: components) {
+            const uint64_t componentSize = component.size();
+            if(componentSize >= histogram.size()) {
+                histogram.resize(componentSize + 1, 0);
+            }
+            ++histogram[componentSize];
+        }
+        ofstream csv("JaccardGraphComponentSizeHistogram.csv");
+        csv << "Size,Frequency,Segments,Cumulative segments\n";
+        uint64_t cumulativeSegments = 0;
+        for(uint64_t componentSize=histogram.size()-1; componentSize>0; componentSize--) {
+            const uint64_t frequency = histogram[componentSize];
+            const uint64_t segments = componentSize * frequency;
+            cumulativeSegments += segments;
+            if(frequency > 0) {
+                csv << componentSize << ",";
+                csv << frequency << ",";
+                csv << segments << ",";
+                csv << cumulativeSegments << "\n";
+            }
+        }
+    }
+
+
+    // Write out the Jaccard graph
+    {
+        ofstream dot("JaccardGraph2.dot");
+        dot << "digraph JaccardGraph {" << endl;
+        BGL_FORALL_EDGES(e, graph, Graph) {
+            dot << source(e, graph) << "->" << target(e, graph) << "\n";
+        }
+        dot << "}" << endl;
+    }
+
     cout << timestamp << "createJaccardGraph ends." << endl;
 }
 
