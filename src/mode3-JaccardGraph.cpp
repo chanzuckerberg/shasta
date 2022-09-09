@@ -51,8 +51,7 @@ void AssemblyGraph::createJaccardGraph(
         }
     }
 
-
-
+#if 0
     // When a vertex has multiple outgoing/incoming edges,
     // remove the ones with very large gap.
     vector<Graph::edge_descriptor> edgesToBeRemoved;
@@ -106,7 +105,7 @@ void AssemblyGraph::createJaccardGraph(
     for(const auto e: edgesToBeRemoved) {
         remove_edge(e, graph);
     }
-
+#endif
     cout << "The Jaccard graph has " << num_vertices(graph) <<
         " vertices (segments) and " << num_edges(graph) << " edges." << endl;
 
@@ -273,7 +272,7 @@ void AssemblyGraph::createJaccardGraphEdges(
     uint64_t segmentId,
     vector<JaccardGraphEdge>& edges)
 {
-    for(uint64_t direction=0; direction<2; direction++) {
+    for(uint64_t direction=0; direction<1; direction++) {
         createJaccardGraphEdges(segmentId, direction, edges);
     }
 }
