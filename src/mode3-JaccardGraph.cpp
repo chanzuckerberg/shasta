@@ -51,48 +51,54 @@ void AssemblyGraph::createJaccardGraph(
         }
     }
 
-    // Write out the Jaccard graph
-    {
-        ofstream dot("JaccardGraph1.dot");
-        dot << "digraph JaccardGraph {" << endl;
-        BGL_FORALL_EDGES(e, graph, Graph) {
-            dot << source(e, graph) << "->" << target(e, graph) << "\n";
-        }
-        dot << "}" << endl;
-    }
 
 
-    // When a vertex as in-degree/out-degree > 1,
-    // of all the outgoing/incoming edges we only keep the one
-    // with the smallest estimated gap.
+    // When a vertex has multiple outgoing/incoming edges,
+    // remove the ones with very large gap.
     vector<Graph::edge_descriptor> edgesToBeRemoved;
     BGL_FORALL_VERTICES(v, graph, Graph) {
+
+        // Outgoing.
         if(out_degree(v, graph) > 1) {
-            vector<pair<int64_t, Graph::edge_descriptor> > outgoingEdges; // Gap abs value
+            int64_t minGap = std::numeric_limits<int64_t>::max();
             BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
                 const int64_t offset = graph[e].offset;
                 const uint64_t segmentId0 = source(e, graph);
                 const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
                 const int64_t gap = offset - length0;
-                outgoingEdges.push_back(make_pair(labs(gap), e));
+                minGap = min(minGap, labs(gap));
             }
-            sort(outgoingEdges.begin(), outgoingEdges.end());
-            for(uint64_t i=1; i<outgoingEdges.size(); i++) {
-                edgesToBeRemoved.push_back(outgoingEdges[i].second);
+            const int64_t gapThreshold = 20 + 3 * minGap;  // *** EXPOSE WHEN CODE STABILIZES
+            BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
+                const int64_t offset = graph[e].offset;
+                const uint64_t segmentId0 = source(e, graph);
+                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
+                const int64_t gap = offset - length0;
+                if(gap > gapThreshold) {
+                    edgesToBeRemoved.push_back(e);
+                }
             }
         }
+
+        // Incoming.
         if(in_degree(v, graph) > 1) {
-            vector<pair<int64_t, Graph::edge_descriptor> > incomingEdges; // Gap abs value
+            int64_t minGap = std::numeric_limits<int64_t>::max();
             BGL_FORALL_INEDGES(v, e, graph, Graph) {
                 const int64_t offset = graph[e].offset;
                 const uint64_t segmentId0 = source(e, graph);
                 const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
                 const int64_t gap = offset - length0;
-                incomingEdges.push_back(make_pair(labs(gap), e));
+                minGap = min(minGap, labs(gap));
             }
-            sort(incomingEdges.begin(), incomingEdges.end());
-            for(uint64_t i=1; i<incomingEdges.size(); i++) {
-                edgesToBeRemoved.push_back(incomingEdges[i].second);
+            const int64_t gapThreshold = 20 + 3 * minGap;  // *** EXPOSE WHEN CODE STABILIZES
+            BGL_FORALL_INEDGES(v, e, graph, Graph) {
+                const int64_t offset = graph[e].offset;
+                const uint64_t segmentId0 = source(e, graph);
+                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
+                const int64_t gap = offset - length0;
+                if(gap > gapThreshold) {
+                    edgesToBeRemoved.push_back(e);
+                }
             }
         }
     }
@@ -101,14 +107,25 @@ void AssemblyGraph::createJaccardGraph(
         remove_edge(e, graph);
     }
 
+    cout << "The Jaccard graph has " << num_vertices(graph) <<
+        " vertices (segments) and " << num_edges(graph) << " edges." << endl;
+
+    // Write out the Jaccard graph
+    {
+        ofstream dot("JaccardGraph.dot");
+        dot << "digraph JaccardGraph {" << endl;
+        BGL_FORALL_EDGES(e, graph, Graph) {
+            dot << source(e, graph) << "->" << target(e, graph) << "\n";
+        }
+        dot << "}" << endl;
+    }
+
+#if 0
     // At this point no vertex has in-degree or out-degree greater than 1.
     BGL_FORALL_VERTICES(v, graph, Graph) {
         SHASTA_ASSERT(out_degree(v, graph) <= 1);
         SHASTA_ASSERT(in_degree(v, graph) <= 1);
     }
-    cout << "The Jaccard graph has " << num_vertices(graph) <<
-        " vertices (segments) and " << num_edges(graph) << " edges." << endl;
-
 
     // Compute connected components.
     // Since no vertex has in-degree or out-degree greater than 1,
@@ -230,17 +247,7 @@ void AssemblyGraph::createJaccardGraph(
             }
         }
     }
-
-
-    // Write out the Jaccard graph
-    {
-        ofstream dot("JaccardGraph2.dot");
-        dot << "digraph JaccardGraph {" << endl;
-        BGL_FORALL_EDGES(e, graph, Graph) {
-            dot << source(e, graph) << "->" << target(e, graph) << "\n";
-        }
-        dot << "}" << endl;
-    }
+#endif
 
     cout << timestamp << "createJaccardGraph ends." << endl;
 }
