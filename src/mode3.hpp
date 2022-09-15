@@ -615,21 +615,6 @@ public:
         uint64_t direction,    // 0 = forward, 1 = backward
         AssemblyPath&
         ) const;
-    void createAssemblyPath1(
-        uint64_t segmentId,
-        uint64_t direction,    // 0 = forward, 1 = backward
-        vector<uint64_t>& path // The segmentId's of the path.
-        ) const;
-    void createAssemblyPath2(
-        uint64_t segmentId,
-        uint64_t direction,    // 0 = forward, 1 = backward
-        vector<uint64_t>& path // The segmentId's of the path.
-        ) const;
-    void createAssemblyPath3(
-        uint64_t segmentId,
-        uint64_t direction,    // 0 = forward, 1 = backward
-        AssemblyPath&
-        ) const;
 
     // Compute link separation given a set of Transitions.
     template<class Container> static double linkSeparation(
