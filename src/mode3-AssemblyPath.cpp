@@ -27,6 +27,11 @@ using namespace mode3;
 // Assemble sequence for an AssemblyPath.
 void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
 {
+    const bool debug = false;
+    if(true) {
+        cout << timestamp << "AssemblyPath::assemble begins." << endl;
+    }
+
     // Assemble each segment on the path.
     assembleSegments(assemblyGraph);
 
@@ -34,10 +39,16 @@ void AssemblyPath::assemble(const AssemblyGraph& assemblyGraph)
     initializeLinks(assemblyGraph);
     assembleLinks(assemblyGraph);
 
-    writeSegmentSequences();
-    writeLinkSequences(assemblyGraph);
+    if(debug) {
+        writeSegmentSequences();
+        writeLinkSequences(assemblyGraph);
+    }
 
     assemble();
+
+    if(true) {
+        cout << timestamp << "AssemblyPath::assemble ends." << endl;
+    }
 }
 
 // Initialize the links.
@@ -102,6 +113,8 @@ void AssemblyPath::initializeLinks(const AssemblyGraph& assemblyGraph)
 // Assemble links in this assembly path.
 void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
 {
+    const bool debug = false;
+
     SHASTA_ASSERT((assemblyGraph.k % 2) == 0);
 
     // Don't skip any bases at the beginning of the first
@@ -109,7 +122,10 @@ void AssemblyPath::assembleLinks(const AssemblyGraph& assemblyGraph)
     segments.front().leftTrim = 0;
     segments.back().rightTrim = 0;
 
-    ofstream html("Msa.html");
+    ofstream html;
+    if(debug) {
+        html.open("Msa.html");
+    }
 
     // Loop over links in the path.
     links.resize(segments.size()-1);
@@ -322,7 +338,9 @@ void AssemblyPath::assembleNonTrivialLink(
     link.coverage = orientedReadIdsForAssembly.size();
 
     // Compute the consensus sequence for the link.
-    html<< "<h2>Link " << link.id << "</h2>\n";
+    if(html) {
+        html << "<h2>Link " << link.id << "</h2>\n";
+    }
     computeLinkConsensusUsingSpoa(
         orientedReadIdsForAssembly,
         orientedReadsSequencesForAssembly,
@@ -655,7 +673,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
 
 
     // Html output of the alignment.
-    if(html.good()) {
+    if(html) {
         html << "Coverage " << rleSequences.size() << "<br>\n";
         html << "Alignment length " << msaLength << "<br>\n";
         html << "<div style='font-family:monospace;white-space:nowrap;'>\n";
@@ -800,6 +818,7 @@ void AssemblyPath::computeLinkConsensusUsingSpoa(
 // Final assembly of segments and links sequence into the path sequence.
 void AssemblyPath::assemble()
 {
+
     rleSequence.clear();
     repeatCounts.clear();
     rawSequence.clear();
@@ -879,7 +898,11 @@ void AssemblyPath::assemble()
     }
     SHASTA_ASSERT(rleSequence.size() == repeatCounts.size());
 
-    // Write it out.
+    if(true) {
+        cout << timestamp << "AssemblyPath::assemble begins." << endl;
+    }
+
+    // For now, write it out.
     ofstream fasta("PathSequence.fasta");
     fasta << ">Path" << endl;
     copy(rawSequence, ostream_iterator<Base>(fasta));
