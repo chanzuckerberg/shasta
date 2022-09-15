@@ -1080,7 +1080,7 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
     for(uint64_t position=0; position<segments.size(); position++) {
         const AssemblyPathSegment& segment = segments[position];
 
-        // If nto a primary segment, evaluate this segment against
+        // If not a primary segment, evaluate this segment against
         // the previous and next primary segment.
         AssemblyGraph::SegmentOrientedReadInformation info;
         AssemblyGraph::SegmentOrientedReadInformation previousInfo;
@@ -1105,7 +1105,9 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
         const AssembledSegment& assembledSegment = segment.assembledSegment;
         html << "<tr";
         if(segment.isPrimary) {
-            html << " style='background-color:LightCyan'";
+            html << " style='background-color:LightCyan' title='Primary segment'";
+        } else {
+            html << " title='Secondary segment'";
         }
         html <<
             ">"
@@ -1180,7 +1182,9 @@ void AssemblyPath::writeHtmlDetail(ostream& html, const AssemblyGraph& assemblyG
         const AssemblyPathLink& link = links[position];
         html << "<tr";
         if(link.isTrivial) {
-            html << " style='background-color:LightGray'";
+            html << " style='background-color:LightGray' title='Trivial link'";
+        } else {
+            html << " title='Non-trivial link'";
         }
         html <<
             "><td class=centered>L" <<
