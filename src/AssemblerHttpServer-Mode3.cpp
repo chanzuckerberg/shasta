@@ -140,9 +140,27 @@ void Assembler::exploreMode3AssemblyGraphSegment(
     SHASTA_ASSERT(assemblyGraph3Pointer);
     const mode3::AssemblyGraph& assemblyGraph3 = *assemblyGraph3Pointer;
 
-    // Get the segment id from the request.
+
+
+    // Get request parameters.
     uint64_t segmentId;
     const bool segmentIdIsPresent = getParameterValue(request, "segmentId", segmentId);
+
+    string showOrientedReadsString;
+    const bool showOrientedReads = HttpServer::getParameterValue(request,
+        "showOrientedReads", showOrientedReadsString);
+
+    string showMarkerGraphPathString;
+    const bool showMarkerGraphPath = HttpServer::getParameterValue(request,
+        "showMarkerGraphPath", showMarkerGraphPathString);
+
+    string showSequenceString;
+    const bool showSequence = HttpServer::getParameterValue(request,
+        "showSequence", showSequenceString);
+
+    string showSequenceDetailsString;
+    const bool showSequenceDetails = HttpServer::getParameterValue(request,
+        "showSequenceDetails", showSequenceDetailsString);
 
 
 
@@ -157,6 +175,30 @@ void Assembler::exploreMode3AssemblyGraphSegment(
         "<td><input type=text required name=segmentId size=8 style='text-align:center'"
         " value='" << (segmentIdIsPresent ? to_string(segmentId) : "") <<
         "'>"
+
+        "<tr>"
+        "<td>Show oriented reads"
+        "<td class=centered> <input type=checkbox name=showOrientedReads" <<
+        (showOrientedReads ? " checked=checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Show marker graph path"
+        "<td class=centered> <input type=checkbox name=showMarkerGraphPath" <<
+        (showMarkerGraphPath ? " checked=checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Show sequence"
+        "<td class=centered> <input type=checkbox name=showSequence" <<
+        (showSequence ? " checked=checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Show sequence assembly details"
+        "<td class=centered> <input type=checkbox name=showSequenceDetails" <<
+        (showSequenceDetails ? " checked=checked" : "") <<
+        ">"
 
         "</table>"
         "<br><input type=submit value='Display'>"
@@ -209,57 +251,83 @@ void Assembler::exploreMode3AssemblyGraphSegment(
 
 
     // Write the oriented reads in a table.
-    html <<
-        "<h2>Oriented reads on this segment</h2>"
-        "<table>"
-        "<tr>"
-        "<th>Oriented<br>read"
-        "<th>Average<br>offset";
-    for(const auto& info: orientedReads.infos) {
-        html<<
+    if(showOrientedReads) {
+        html <<
+            "<h2>Oriented reads on this segment</h2>"
+            "<table>"
             "<tr>"
-            "<td class=centered>" << info.orientedReadId <<
-            "<td class=centered>" << info.averageOffset;
+            "<th>Oriented<br>read"
+            "<th>Average<br>offset";
+        for(const auto& info: orientedReads.infos) {
+            html<<
+                "<tr>"
+                "<td class=centered>" << info.orientedReadId <<
+                "<td class=centered>" << info.averageOffset;
+        }
+        html << "</table>";
     }
-    html << "</table>";
 
 
 
-    // Write the path in a table.
-    html <<
-        "<h2>Marker graph path for this segment</h2>"
-        "<table>"
-        "<tr>"
-        "<th>Position"
-        "<th>Edge"
-        "<th>Coverage"
-        "<th>Source<br>vertex"
-        "<th>Target<br>vertex";
+    // Write the marker graph path.
+    if(showMarkerGraphPath) {
+        html <<
+            "<h2>Marker graph path for this segment</h2>"
+            "<table>"
+            "<tr>"
+            "<th>Position"
+            "<th>Edge"
+            "<th>Coverage"
+            "<th>Source<br>vertex"
+            "<th>Target<br>vertex";
 
-    for(uint64_t position=0; position<path.size(); position++) {
-        const MarkerGraphEdgeId& edgeId = path[position];
-        const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
-        const MarkerGraph::VertexId vertexId0 = edge.source;
-        const MarkerGraph::VertexId vertexId1 = edge.target;
+        for(uint64_t position=0; position<path.size(); position++) {
+            const MarkerGraphEdgeId& edgeId = path[position];
+            const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+            const MarkerGraph::VertexId vertexId0 = edge.source;
+            const MarkerGraph::VertexId vertexId1 = edge.target;
 
-        html << "<tr>"
-            "<td class=centered>" << position <<
-            "<td class=centered>" <<
-            "<a href='exploreMarkerGraphEdge?edgeId=" << edgeId <<
-            "'>" << edgeId << "</a>"
-            "<td class=centered>" << markerGraph.edgeMarkerIntervals.size(edgeId) <<
-            "<td class=centered>" <<
-            "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId0 <<
-            "'>" << vertexId0 << "</a>"
-            "<td class=centered>" <<
-            "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId1 <<
-            "'>" << vertexId1 << "</a>"
-            "\n";
+            html << "<tr>"
+                "<td class=centered>" << position <<
+                "<td class=centered>" <<
+                "<a href='exploreMarkerGraphEdge?edgeId=" << edgeId <<
+                "'>" << edgeId << "</a>"
+                "<td class=centered>" << markerGraph.edgeMarkerIntervals.size(edgeId) <<
+                "<td class=centered>" <<
+                "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId0 <<
+                "'>" << vertexId0 << "</a>"
+                "<td class=centered>" <<
+                "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId1 <<
+                "'>" << vertexId1 << "</a>"
+                "\n";
 
 
 
+        }
+        html << "</table>";
     }
-    html << "</table>";
+
+
+
+    // Assembled sequence, optionally with details.
+    if(showSequence or showSequenceDetails) {
+
+        // Assemble the sequence for this segment.
+        AssembledSegment assembledSegment;
+        assembleMarkerGraphPath(
+            assemblyGraph3.readRepresentation,
+            assemblyGraph3.k,
+            assemblyGraph3.markers,
+            assemblyGraph3.markerGraph,
+            assemblyGraph3.markerGraphPaths[segmentId],
+            false,
+            assembledSegment);
+
+        // Write the sequence.
+        assembledSegment.writeHtml(html, showSequence, showSequenceDetails,
+            0, uint32_t(assembledSegment.rawSequence.size()));
+    }
+
 
 }
 

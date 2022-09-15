@@ -982,7 +982,9 @@ void mode3::LocalAssemblyGraph::writeSvg(
             " marker-end='url(#" <<
             arrowMarkerName <<
             ")'"
-            " onclick='if(event.ctrlKey) {location.href=\"exploreMode3AssemblyGraphSegment?segmentId=" << segmentId << "\";}'"
+            " onclick='if(event.ctrlKey) {"
+            "location.href=\"exploreMode3AssemblyGraphSegment?segmentId=" << segmentId <<
+            "&showSequence=on\";}'"
             "/>"
             // "</a>"
             // "</g>"

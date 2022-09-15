@@ -218,9 +218,14 @@ void AssembledSegment::writeRawSequenceHtml(
     uint32_t end) const
 {
 
-    html << "<p>Bases " << begin << " to " << end << " (" << end-begin <<
-        " bases) of " << rawSequence.size() <<
-        " bases of assembled raw sequence :<br><pre style='font-family:courier'>\n";
+    if(begin==0 and end==rawSequence.size()) {
+        html << "<p>" << rawSequence.size() <<
+            " bases of assembled raw sequence:<br><pre style='font-family:courier'>\n";
+    } else {
+        html << "<p>Bases " << begin << " to " << end << " (" << end-begin <<
+            " bases) of " << rawSequence.size() <<
+            " bases of assembled raw sequence :<br><pre style='font-family:courier'>\n";
+    }
 
     // Write the position labels.
     for(size_t i=begin; i<end; ) {
