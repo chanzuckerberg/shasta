@@ -272,7 +272,7 @@ void AssemblyGraph::createJaccardGraphEdges(
     uint64_t segmentId,
     vector<JaccardGraphEdge>& edges)
 {
-    for(uint64_t direction=0; direction<1; direction++) {
+    for(uint64_t direction=0; direction<2; direction++) {
         createJaccardGraphEdges(segmentId, direction, edges);
     }
 }
@@ -286,6 +286,7 @@ void AssemblyGraph::createJaccardGraphEdges(
     vector<JaccardGraphEdge>& edges)
 {
     // EXPOSE WHEN CODE STABILIZES.
+    // FOR NOW THESE SHOULD BE THE SAME AS IN AssemblyGraph::createAssemblyPath3.
     const uint64_t minCommonForLink = 3;
     const uint64_t minCommonForPrimary = 3;
     const double minJaccard = 0.7;
