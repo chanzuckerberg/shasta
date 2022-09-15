@@ -407,6 +407,19 @@ function onMouseExitSegment()
             }
         }
         </script>
+        )stringDelimiter";
+
+
+
+    // Zoom buttons.
+    html << R"stringDelimiter(
+    <tr title='Or use the mouse wheel.'><th class=left>Zoom<td>
+    <button type='button' onClick='zoomSvg(0.1)' style='width:3em'>---</button>
+    <button type='button' onClick='zoomSvg(0.5)' style='width:3em'>--</button>
+    <button type='button' onClick='zoomSvg(0.8)' style='width:3em'>-</button>
+    <button type='button' onClick='zoomSvg(1.25)' style='width:3em'>+</button>
+    <button type='button' onClick='zoomSvg(2.)' style='width:3em'>++</button>
+    <button type='button' onClick='zoomSvg(10.)' style='width:3em'>+++</button>
      </table>
         )stringDelimiter";
 

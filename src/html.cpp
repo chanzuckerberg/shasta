@@ -160,9 +160,12 @@ function onMouseWheel(event) {
     event.preventDefault();  
     var value = event.wheelDelta / 120.;
     var factor = Math.pow(1.1, value);
-    ratio /= factor;
+    zoomSvg(factor);
+}
 
-    var viewBoxString = `${x} ${y} ${width} ${height}`;
+function zoomSvg(factor)
+{
+    ratio /= factor;
 
     // Adjust the viewbox so the center does not move.
     var xCenter = x + 0.5 * width;
