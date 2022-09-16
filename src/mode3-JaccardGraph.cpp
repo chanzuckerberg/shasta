@@ -34,19 +34,24 @@ void AssemblyGraph::createJaccardGraph(
     // are in principle unlimited.
 
     // Represent the edges we found using a boost::Graph.
+    // The edge contains the number of times it was found.
     using Graph = boost::adjacency_list<
         boost::listS, boost::vecS, boost::bidirectionalS,
-        boost::no_property, SegmentPairInformation>;
+        boost::no_property, pair<SegmentPairInformation, uint64_t> >;
     const uint64_t n = markerGraphPaths.size();
     Graph graph(n);
     for(const auto& threadEdges: jaccardGraph.threadEdges) {
         for(const auto& jaccardGraphEdge: threadEdges) {
             const uint64_t segmentId0 = jaccardGraphEdge.segmentId0;
             const uint64_t segmentId1 = jaccardGraphEdge.segmentId1;
+            Graph::edge_descriptor e;
             bool edgeExists = false;
-            tie(ignore, edgeExists) = boost::edge(segmentId0, segmentId1, graph);
+            tie(e, edgeExists) = boost::edge(segmentId0, segmentId1, graph);
             if(not edgeExists) {
-                add_edge(segmentId0, segmentId1, jaccardGraphEdge.segmentPairInformation, graph);
+                add_edge(segmentId0, segmentId1,
+                    make_pair(jaccardGraphEdge.segmentPairInformation, 1), graph);
+            } else {
+                ++graph[e].second;
             }
         }
     }
@@ -114,7 +119,11 @@ void AssemblyGraph::createJaccardGraph(
         ofstream dot("JaccardGraph.dot");
         dot << "digraph JaccardGraph {" << endl;
         BGL_FORALL_EDGES(e, graph, Graph) {
-            dot << source(e, graph) << "->" << target(e, graph) << "\n";
+            dot << source(e, graph) << "->" << target(e, graph);
+            if(graph[e].second < 2) {
+                dot << "[color=red constraint=false]";
+            }
+            dot << ";\n";
         }
         dot << "}" << endl;
     }
