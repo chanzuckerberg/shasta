@@ -56,6 +56,53 @@ void AssemblyGraph::createJaccardGraph(
         }
     }
 
+
+
+    // A "strong edge" is an edge that was found in both directions.
+    // An "almost isolated" vertex is a vertex that has no
+    // incoming/outgoing strong edges.
+    // Remove all edges to "almost isolated" vertices.
+    {
+        vector<Graph::edge_descriptor> edgesToBeRemoved;
+        BGL_FORALL_VERTICES(v, graph, Graph) {
+
+            // Figure out if this vertex has strong edges.
+            bool hasStrongEdges = false;
+            BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
+                if(graph[e].second == 2) {
+                    hasStrongEdges = true;
+                    break;
+                }
+            }
+            if(not hasStrongEdges) {
+                BGL_FORALL_INEDGES(v, e, graph, Graph) {
+                    if(graph[e].second == 2) {
+                        hasStrongEdges = true;
+                        break;
+                    }
+                }
+            }
+
+            // If not, flag its edges for removal.
+            if(not hasStrongEdges) {
+                BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
+                    edgesToBeRemoved.push_back(e);
+                }
+                BGL_FORALL_INEDGES(v, e, graph, Graph) {
+                    edgesToBeRemoved.push_back(e);
+                }
+            }
+        }
+
+        // Remove the edges we flagged.
+        deduplicate(edgesToBeRemoved);
+        for(const Graph::edge_descriptor e: edgesToBeRemoved) {
+            remove_edge(e, graph);
+        }
+    }
+
+
+
 #if 0
     // When a vertex has multiple outgoing/incoming edges,
     // remove the ones with very large gap.
@@ -114,7 +161,8 @@ void AssemblyGraph::createJaccardGraph(
     cout << "The Jaccard graph has " << num_vertices(graph) <<
         " vertices (segments) and " << num_edges(graph) << " edges." << endl;
 
-    // Write out the Jaccard graph
+    // Write out the Jaccard graph.
+    // This only writes the edges, so isolated vertices are not included.
     {
         ofstream dot("JaccardGraph.dot");
         dot << "digraph JaccardGraph {" << endl;
