@@ -28,6 +28,7 @@ void AssemblyGraph::createJaccardGraph(
 
     // Create the JaccardGraph and its vertices.
     const uint64_t segmentCount = markerGraphPaths.size();
+    cout << "The total number of segments in the assembly graph is " << segmentCount << endl;
     jaccardGraphPointer = make_shared<JaccardGraph>(segmentCount);
     JaccardGraph& jaccardGraph = *jaccardGraphPointer;
 
@@ -37,44 +38,16 @@ void AssemblyGraph::createJaccardGraph(
     setupLoadBalancing(segmentCount, batchSize);
     runThreads(&AssemblyGraph::createJaccardGraphThreadFunction, threadCount);
     jaccardGraph.storeEdges();
-
-    // Remove all edges incident to weak vertices.
-    jaccardGraph.removeEdgesIncidentToWeakVertices();
-
-    cout << "The Jaccard graph has " << num_vertices(jaccardGraph) <<
+    jaccardGraph.writeGraphviz("JaccardGraph0.dot", false);
+    cout << "The initial Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
 
-    // Write out the Jaccard graph.
-    // This only writes the edges, so isolated vertices are not included.
-    {
-        ofstream dot("JaccardGraph.dot");
-        dot << "digraph JaccardGraph {" << endl;
-        BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
-            const JaccardGraphEdge& edge = jaccardGraph[e];
-            const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
-            const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
-            const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
-            const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
-            dot << segmentId0 << "->" << segmentId1;
-            if(edge.wasFoundInDirection[0]) {
-                if(edge.wasFoundInDirection[1]) {
-                    // Found in both directions, leave black.
-                } else {
-                    // Only found in the forward direction.
-                    dot << "[color=red]";
-                }
-            } else {
-                if(edge.wasFoundInDirection[1]) {
-                    // Only found in the backward direction.
-                    dot << "[color=green]";
-                } else {
-                    SHASTA_ASSERT(0);
-                }
-            }
-            dot << ";\n";
-        }
-        dot << "}" << endl;
-    }
+    // Remove all weak vertices.
+    jaccardGraph.removeWeakVertices();
+    cout << "After removing weak vertices, the Jaccard graph has " << num_vertices(jaccardGraph) <<
+        " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
+    jaccardGraph.writeGraphviz("JaccardGraph1.dot");
+
 
     cout << timestamp << "createJaccardGraph ends." << endl;
 }
@@ -268,29 +241,92 @@ bool JaccardGraph::isStrongVertex(vertex_descriptor v) const
 
 
 
-// Remove all edges incident to weak vertices.
-void JaccardGraph::removeEdgesIncidentToWeakVertices()
+// Remove all weak vertices.
+void JaccardGraph::removeWeakVertices()
 {
     JaccardGraph& jaccardGraph = *this;
-    vector<JaccardGraph::edge_descriptor> edgesToBeRemoved;
 
-    // Find the edges that we are going to remove.
+    // Find the vertices we are going to remove.
+    vector<vertex_descriptor> verticesToBeRemoved;
     BGL_FORALL_VERTICES(v, jaccardGraph, JaccardGraph) {
-
         if(not isStrongVertex(v)) {
-            BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
-                edgesToBeRemoved.push_back(e);
-            }
-            BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
-                edgesToBeRemoved.push_back(e);
-            }
+            verticesToBeRemoved.push_back(v);
         }
     }
 
-    // Remove the edges we flagged.
-    deduplicate(edgesToBeRemoved);
-    for(const JaccardGraph::edge_descriptor e: edgesToBeRemoved) {
-        boost::remove_edge(e, jaccardGraph);
+    // Remove the vertices we flagged.
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        removeVertex(v);
     }
+
+}
+
+
+
+// Remove a vertex, making sure to update the vertexTable.
+void JaccardGraph::removeVertex(vertex_descriptor v)
+{
+    JaccardGraph& jaccardGraph = *this;
+    const uint64_t segmentId = jaccardGraph[v].segmentId;
+    vertexTable[segmentId] = null_vertex();
+    clear_vertex(v, jaccardGraph);
+    remove_vertex(v, jaccardGraph);
+}
+
+
+
+void JaccardGraph::writeGraphviz(
+    const string& fileName,
+    bool includeIsolatedVertices) const
+{
+    ofstream file(fileName);
+    writeGraphviz(file, includeIsolatedVertices);
+}
+
+
+
+void JaccardGraph::writeGraphviz(ostream& graphOut, bool includeIsolatedVertices) const
+{
+    const JaccardGraph& jaccardGraph = *this;
+
+    graphOut << "digraph JaccardGraph {" << endl;
+
+    BGL_FORALL_VERTICES(v, jaccardGraph, JaccardGraph) {
+        if( includeIsolatedVertices or
+            in_degree(v, jaccardGraph) or
+            out_degree(v, jaccardGraph)) {
+            graphOut << jaccardGraph[v].segmentId << ";\n";
+        }
+    }
+
+    BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
+        const JaccardGraphEdge& edge = jaccardGraph[e];
+        const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
+        const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
+        const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
+        const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
+
+        graphOut << segmentId0 << "->" << segmentId1;
+
+        // Color the edge based on the direction flags.
+        if(edge.wasFoundInDirection[0]) {
+            if(edge.wasFoundInDirection[1]) {
+                // Found in both directions, leave black.
+            } else {
+                // Only found in the forward direction.
+                graphOut << "[color=red]";
+            }
+        } else {
+            if(edge.wasFoundInDirection[1]) {
+                // Only found in the backward direction.
+                graphOut << "[color=green]";
+            } else {
+                SHASTA_ASSERT(0);
+            }
+        }
+        graphOut << ";\n";
+    }
+
+    graphOut << "}" << endl;
 
 }

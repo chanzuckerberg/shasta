@@ -31,7 +31,9 @@ For the edge to be created, we also require one of the following:
 
 // Standard library.
 #include "cstdint.hpp"
+#include "iosfwd.hpp"
 #include <map>
+#include "string.hpp"
 #include "tuple.hpp"
 #include "vector.hpp"
 
@@ -113,6 +115,9 @@ public:
     // If  vertex is removed, the corresponding entry will be null_vertex().
     vector<vertex_descriptor> vertexTable;
 
+    // Remove a vertex, making sure to update the vertexTable.
+    void removeVertex(vertex_descriptor v);
+
     // The edges found by each thread.
     // Only used during edge creation.
     vector< vector<JaccardGraphEdgeInfo> > threadEdges;
@@ -123,8 +128,12 @@ public:
     // A strong vertex is one that is incident to at least one strong edge.
     bool isStrongVertex(vertex_descriptor) const;
 
-    // Remove all edges incident to weak vertices.
-    void removeEdgesIncidentToWeakVertices();
+    // Remove all weak vertices.
+    void removeWeakVertices();
+
+    // Write the JaccardGraph in graphviz format.
+    void writeGraphviz(const string& fileName, bool includeIsolatedVertices = false) const;
+    void writeGraphviz(ostream&, bool includeIsolatedVertices = false) const;
 };
 
 
