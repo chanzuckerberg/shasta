@@ -18,7 +18,6 @@ number of transitions 0->1, we create a link 0->1.
 // Shasta.
 #include "invalid.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
-#include "mode3-JaccardGraph.hpp"
 #include "MultithreadedObject.hpp"
 #include "ReadId.hpp"
 #include "shastaTypes.hpp"
@@ -28,6 +27,7 @@ number of transitions 0->1, we create a link 0->1.
 
 // Standard library.
 #include "array.hpp"
+#include "memory.hpp"
 #include "tuple.hpp"
 #include "unordered_map"
 #include "vector.hpp"
@@ -41,6 +41,8 @@ namespace shasta {
         class MarkerGraphJourneyEntry;
         class AssemblyGraphJourneyInterval;
         class AssemblyPath;
+        class JaccardGraph;
+        class JaccardGraphEdgeInfo;
         class SegmentPairInformation;
         class Transition;
 
@@ -642,16 +644,16 @@ public:
     }
 
     // Jaccard graph.
-    JaccardGraph jaccardGraph;
+    shared_ptr<JaccardGraph> jaccardGraphPointer;
     void createJaccardGraph(size_t threadCount);
     void createJaccardGraphThreadFunction(size_t threadId);
     void createJaccardGraphEdges(
         uint64_t segmentId,
-        vector<JaccardGraphEdge>& edges);
+        vector<JaccardGraphEdgeInfo>& edges);
     void createJaccardGraphEdges(
         uint64_t segmentId,
         uint64_t direction,
-        vector<JaccardGraphEdge>& edges);
+        vector<JaccardGraphEdgeInfo>& edges);
 };
 
 

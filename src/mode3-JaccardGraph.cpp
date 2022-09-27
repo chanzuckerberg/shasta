@@ -6,11 +6,18 @@
 using namespace shasta;
 using namespace mode3;
 
-// Boost libraries.
-#include <boost/graph/iteration_macros.hpp>
-
 #include "fstream.hpp"
 
+
+
+// Create a JaccardGraph with the given number of vertices
+// (one for each segment) and no edges.
+JaccardGraph::JaccardGraph(uint64_t segmentCount)
+{
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        vertexTable.push_back(add_vertex(JaccardGraphVertex(segmentId), *this));
+    }
+}
 
 
 void AssemblyGraph::createJaccardGraph(
@@ -19,42 +26,39 @@ void AssemblyGraph::createJaccardGraph(
 {
     cout << timestamp << "createJaccardGraph begins." << endl;
 
+    // Create the JaccardGraph and its vertices.
+    const uint64_t segmentCount = markerGraphPaths.size();
+    jaccardGraphPointer = make_shared<JaccardGraph>(segmentCount);
+    JaccardGraph& jaccardGraph = *jaccardGraphPointer;
+
     // Compute edges, in parallel.
-    jaccardGraph.threadEdges.clear();
     jaccardGraph.threadEdges.resize(threadCount);
     const uint64_t batchSize = 100;
-    setupLoadBalancing(markerGraphPaths.size(), batchSize);
+    setupLoadBalancing(segmentCount, batchSize);
     runThreads(&AssemblyGraph::createJaccardGraphThreadFunction, threadCount);
 
 
 
-    // Because we do this in both directions, two things can happen:
-    // - An edge can be found twice.
-    // - Vertex in-degree and out-degree are often equal to 1 but
-    // are in principle unlimited.
-
-    // Represent the edges we found using a boost::Graph.
-    // The edge contains the number of times it was found.
-    using Graph = boost::adjacency_list<
-        boost::listS, boost::vecS, boost::bidirectionalS,
-        boost::no_property, pair<SegmentPairInformation, uint64_t> >;
-    const uint64_t n = markerGraphPaths.size();
-    Graph graph(n);
+    // Store the edges in the JaccardGraph.
     for(const auto& threadEdges: jaccardGraph.threadEdges) {
         for(const auto& jaccardGraphEdge: threadEdges) {
             const uint64_t segmentId0 = jaccardGraphEdge.segmentId0;
             const uint64_t segmentId1 = jaccardGraphEdge.segmentId1;
-            Graph::edge_descriptor e;
+            const JaccardGraph::vertex_descriptor v0 = jaccardGraph.vertexTable[segmentId0];
+            const JaccardGraph::vertex_descriptor v1 = jaccardGraph.vertexTable[segmentId1];
+
+            JaccardGraph::edge_descriptor e;
             bool edgeExists = false;
-            tie(e, edgeExists) = boost::edge(segmentId0, segmentId1, graph);
+            tie(e, edgeExists) = boost::edge(v0, v1, jaccardGraph);
             if(not edgeExists) {
-                add_edge(segmentId0, segmentId1,
-                    make_pair(jaccardGraphEdge.segmentPairInformation, 1), graph);
+                boost::add_edge(v0, v1,
+                    JaccardGraphEdge(jaccardGraphEdge.segmentPairInformation), jaccardGraph);
             } else {
-                ++graph[e].second;
+                ++jaccardGraph[e].directionCount;
             }
         }
     }
+    jaccardGraph.threadEdges.clear();
 
 
 
@@ -63,20 +67,20 @@ void AssemblyGraph::createJaccardGraph(
     // incoming/outgoing strong edges.
     // Remove all edges to "almost isolated" vertices.
     {
-        vector<Graph::edge_descriptor> edgesToBeRemoved;
-        BGL_FORALL_VERTICES(v, graph, Graph) {
+        vector<JaccardGraph::edge_descriptor> edgesToBeRemoved;
+        BGL_FORALL_VERTICES(v, jaccardGraph, JaccardGraph) {
 
             // Figure out if this vertex has strong edges.
             bool hasStrongEdges = false;
-            BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
-                if(graph[e].second == 2) {
+            BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
+                if(jaccardGraph[e].directionCount == 2) {
                     hasStrongEdges = true;
                     break;
                 }
             }
             if(not hasStrongEdges) {
-                BGL_FORALL_INEDGES(v, e, graph, Graph) {
-                    if(graph[e].second == 2) {
+                BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
+                    if(jaccardGraph[e].directionCount == 2) {
                         hasStrongEdges = true;
                         break;
                     }
@@ -85,10 +89,10 @@ void AssemblyGraph::createJaccardGraph(
 
             // If not, flag its edges for removal.
             if(not hasStrongEdges) {
-                BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
+                BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
                     edgesToBeRemoved.push_back(e);
                 }
-                BGL_FORALL_INEDGES(v, e, graph, Graph) {
+                BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
                     edgesToBeRemoved.push_back(e);
                 }
             }
@@ -96,214 +100,35 @@ void AssemblyGraph::createJaccardGraph(
 
         // Remove the edges we flagged.
         deduplicate(edgesToBeRemoved);
-        for(const Graph::edge_descriptor e: edgesToBeRemoved) {
-            remove_edge(e, graph);
+        for(const JaccardGraph::edge_descriptor e: edgesToBeRemoved) {
+            remove_edge(e, jaccardGraph);
         }
     }
 
 
 
-#if 0
-    // When a vertex has multiple outgoing/incoming edges,
-    // remove the ones with very large gap.
-    vector<Graph::edge_descriptor> edgesToBeRemoved;
-    BGL_FORALL_VERTICES(v, graph, Graph) {
 
-        // Outgoing.
-        if(out_degree(v, graph) > 1) {
-            int64_t minGap = std::numeric_limits<int64_t>::max();
-            BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
-                const int64_t offset = graph[e].offset;
-                const uint64_t segmentId0 = source(e, graph);
-                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
-                const int64_t gap = offset - length0;
-                minGap = min(minGap, labs(gap));
-            }
-            const int64_t gapThreshold = 20 + 3 * minGap;  // *** EXPOSE WHEN CODE STABILIZES
-            BGL_FORALL_OUTEDGES(v, e, graph, Graph) {
-                const int64_t offset = graph[e].offset;
-                const uint64_t segmentId0 = source(e, graph);
-                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
-                const int64_t gap = offset - length0;
-                if(gap > gapThreshold) {
-                    edgesToBeRemoved.push_back(e);
-                }
-            }
-        }
-
-        // Incoming.
-        if(in_degree(v, graph) > 1) {
-            int64_t minGap = std::numeric_limits<int64_t>::max();
-            BGL_FORALL_INEDGES(v, e, graph, Graph) {
-                const int64_t offset = graph[e].offset;
-                const uint64_t segmentId0 = source(e, graph);
-                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
-                const int64_t gap = offset - length0;
-                minGap = min(minGap, labs(gap));
-            }
-            const int64_t gapThreshold = 20 + 3 * minGap;  // *** EXPOSE WHEN CODE STABILIZES
-            BGL_FORALL_INEDGES(v, e, graph, Graph) {
-                const int64_t offset = graph[e].offset;
-                const uint64_t segmentId0 = source(e, graph);
-                const int64_t length0 = int64_t(markerGraphPaths.size(segmentId0));
-                const int64_t gap = offset - length0;
-                if(gap > gapThreshold) {
-                    edgesToBeRemoved.push_back(e);
-                }
-            }
-        }
-    }
-    deduplicate(edgesToBeRemoved);
-    for(const auto e: edgesToBeRemoved) {
-        remove_edge(e, graph);
-    }
-#endif
-    cout << "The Jaccard graph has " << num_vertices(graph) <<
-        " vertices (segments) and " << num_edges(graph) << " edges." << endl;
+    cout << "The Jaccard graph has " << num_vertices(jaccardGraph) <<
+        " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
 
     // Write out the Jaccard graph.
     // This only writes the edges, so isolated vertices are not included.
     {
         ofstream dot("JaccardGraph.dot");
         dot << "digraph JaccardGraph {" << endl;
-        BGL_FORALL_EDGES(e, graph, Graph) {
-            dot << source(e, graph) << "->" << target(e, graph);
-            if(graph[e].second < 2) {
+        BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
+            const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
+            const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
+            const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
+            const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
+            dot << segmentId0 << "->" << segmentId1;
+            if(jaccardGraph[e].directionCount < 2) {
                 dot << "[color=red constraint=false]";
             }
             dot << ";\n";
         }
         dot << "}" << endl;
     }
-
-#if 0
-    // At this point no vertex has in-degree or out-degree greater than 1.
-    BGL_FORALL_VERTICES(v, graph, Graph) {
-        SHASTA_ASSERT(out_degree(v, graph) <= 1);
-        SHASTA_ASSERT(in_degree(v, graph) <= 1);
-    }
-
-    // Compute connected components.
-    // Since no vertex has in-degree or out-degree greater than 1,
-    // all connected component are guaranteed to have one of two structures:
-    // 1. A linear structure beginning at a vertex with in-degree 0,
-    //    out-degree 1, ending at a vertex with in-degree 1, out-degree 0,
-    //    and other wise consisting of vertices with in-degree and out-degree 1.
-    //    This includes isolated vertices.
-    // 2. A circular structure consisting entirely of vertices with in-degree and out-degree 1.
-    //    This is not common.
-    vector<bool> wasFound(n, false);
-    vector< vector<uint64_t> > components;
-    vector<bool> isCircularComponent;
-    for(uint64_t startSegmentId=0; startSegmentId<n; startSegmentId++) {
-        if(wasFound[startSegmentId]) {
-            continue;
-        }
-        // cout << "Start a new component at " << startSegmentId << endl;
-
-        // Start a new connected component here,
-        wasFound[startSegmentId] = true;
-        uint64_t segmentId0 = startSegmentId;
-        vector<uint64_t> forwardVertices;
-        vector<uint64_t> backwardVertices;
-        bool isCircular = false;
-
-        // Look forward.
-        while(true) {
-            Graph::out_edge_iterator begin, end;
-            tie(begin, end) = out_edges(segmentId0, graph);
-            if(end == begin) {
-                // segmentId0 has out-degree 0
-                break;
-            }
-            const Graph::edge_descriptor e = *begin;
-            const uint64_t segmentId1 = target(e, graph);
-            // cout << "Forward found " << segmentId1 << endl;
-            if(segmentId1 == startSegmentId) {
-                isCircular = true;
-                break;
-            }
-            SHASTA_ASSERT(not wasFound[segmentId1]);
-            wasFound[segmentId1] = true;
-            forwardVertices.push_back(segmentId1);
-            segmentId0 = segmentId1;
-        }
-
-        // Look backward.
-        if(not isCircular) {
-            segmentId0 = startSegmentId;
-            while(true) {
-                Graph::in_edge_iterator begin, end;
-                tie(begin, end) = in_edges(segmentId0, graph);
-                if(end == begin) {
-                    // segmentId0 has in-degree 0
-                    break;
-                }
-                const Graph::edge_descriptor e = *begin;
-                const uint64_t segmentId1 = source(e, graph);
-                // cout << "Backward found " << segmentId1 << endl;
-                SHASTA_ASSERT(segmentId1 != startSegmentId);
-                SHASTA_ASSERT(not wasFound[segmentId1]);
-                wasFound[segmentId1] = true;
-                backwardVertices.push_back(segmentId1);
-                segmentId0 = segmentId1;
-            }
-        }
-
-        // Store it.
-        components.resize(components.size() + 1);
-        isCircularComponent.push_back(isCircular);
-        vector<uint64_t>& component = components.back();
-        copy(backwardVertices.rbegin(), backwardVertices.rend(), back_inserter(component));
-        component.push_back(startSegmentId);
-        copy(forwardVertices.begin(), forwardVertices.end(), back_inserter(component));
-    }
-    sort(components.begin(), components.end(), OrderVectorsByDecreasingSize<uint64_t>());
-
-    // Write out the components.
-    ofstream csv("JaccardGraphComponents.csv");
-    csv << "Id,Size,Circular,SegmentIds\n";
-    for(uint64_t componentId=0; componentId<components.size(); componentId++) {
-        csv << componentId << ",";
-        const vector<uint64_t>& component = components[componentId];
-        csv << component.size() << ",";
-        if(isCircularComponent[componentId]) {
-            csv << "Yes,";
-        } else {
-            csv << "No,";
-        }
-        for(const uint64_t segmentId: component) {
-            csv << segmentId << ",";
-        }
-        csv << "\n";
-    }
-
-    // Write a histogram of component sizes.
-    {
-        vector<uint64_t> histogram;
-        for(const vector<uint64_t>& component: components) {
-            const uint64_t componentSize = component.size();
-            if(componentSize >= histogram.size()) {
-                histogram.resize(componentSize + 1, 0);
-            }
-            ++histogram[componentSize];
-        }
-        ofstream csv("JaccardGraphComponentSizeHistogram.csv");
-        csv << "Size,Frequency,Segments,Cumulative segments\n";
-        uint64_t cumulativeSegments = 0;
-        for(uint64_t componentSize=histogram.size()-1; componentSize>0; componentSize--) {
-            const uint64_t frequency = histogram[componentSize];
-            const uint64_t segments = componentSize * frequency;
-            cumulativeSegments += segments;
-            if(frequency > 0) {
-                csv << componentSize << ",";
-                csv << frequency << ",";
-                csv << segments << ",";
-                csv << cumulativeSegments << "\n";
-            }
-        }
-    }
-#endif
 
     cout << timestamp << "createJaccardGraph ends." << endl;
 }
@@ -318,7 +143,7 @@ void AssemblyGraph::createJaccardGraphThreadFunction(size_t threadId)
 
         // Loop over all segments assigned to this batch.
         for(uint64_t segmentId=begin; segmentId!=end; ++segmentId) {
-            createJaccardGraphEdges(segmentId, jaccardGraph.threadEdges[threadId]);
+            createJaccardGraphEdges(segmentId, jaccardGraphPointer->threadEdges[threadId]);
         }
     }
 }
@@ -327,7 +152,7 @@ void AssemblyGraph::createJaccardGraphThreadFunction(size_t threadId)
 
 void AssemblyGraph::createJaccardGraphEdges(
     uint64_t segmentId,
-    vector<JaccardGraphEdge>& edges)
+    vector<JaccardGraphEdgeInfo>& edges)
 {
     for(uint64_t direction=0; direction<2; direction++) {
         createJaccardGraphEdges(segmentId, direction, edges);
@@ -340,7 +165,7 @@ void AssemblyGraph::createJaccardGraphEdges(
 void AssemblyGraph::createJaccardGraphEdges(
     uint64_t primarySegmentId,
     uint64_t direction,
-    vector<JaccardGraphEdge>& edges)
+    vector<JaccardGraphEdgeInfo>& edges)
 {
     // EXPOSE WHEN CODE STABILIZES.
     // FOR NOW THESE SHOULD BE THE SAME AS IN AssemblyGraph::createAssemblyPath3.
@@ -357,7 +182,7 @@ void AssemblyGraph::createJaccardGraphEdges(
     // reads with the primarySegmentId.
     SegmentOrientedReadInformation infoPrimary;
     getOrientedReadsOnSegment(primarySegmentId, infoPrimary);
-    JaccardGraphEdge edge;
+    JaccardGraphEdgeInfo edge;
     uint64_t segmentId0 = primarySegmentId;
     std::set<uint64_t> previousSegments;
     while(true) {

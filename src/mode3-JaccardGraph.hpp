@@ -22,45 +22,91 @@ For the edge to be created, we also require one of the following:
 
 *******************************************************************************/
 
+// Shasta.
 #include "mode3-SegmentPairInformation.hpp"
-#include "MemoryMappedVector.hpp"
 
+// Boost libraries.
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/iteration_macros.hpp>
+
+// Standard library.
 #include "cstdint.hpp"
+#include <map>
 #include "tuple.hpp"
+#include "vector.hpp"
+
+
 
 namespace shasta {
     namespace mode3 {
         class JaccardGraph;
         class JaccardGraphEdge;
+        class JaccardGraphEdgeInfo;
+        class JaccardGraphVertex;
+
+        using JaccardGraphBaseClass = boost::adjacency_list<
+            boost::listS, boost::listS, boost::bidirectionalS,
+            JaccardGraphVertex, JaccardGraphEdge>;
+
     }
 }
+
+
+
+class shasta::mode3::JaccardGraphVertex {
+public:
+
+    // The assembly graph segment corresponding to this vertex.
+    uint64_t segmentId;
+};
 
 
 
 class shasta::mode3::JaccardGraphEdge {
 public:
 
-    // The source segment.
-    uint64_t segmentId0;
-
-    // The target segment.
-    uint64_t segmentId1;
-
     // The SegmentPairInformation computed by
     // mode3::AssemblyGraph::analyzeSegmentPair
     // when called for (segmentId0, segmentId1), in this order.
     SegmentPairInformation segmentPairInformation;
 
+    // The number of directions (1 or 2)
+    // in which this edge was encountered.
+    // Later this will be replaced by a bool for each direction.
+    uint64_t directionCount = 0;
+
+    JaccardGraphEdge() :
+        directionCount(0) {}
+    JaccardGraphEdge(const SegmentPairInformation& segmentPairInformation) :
+        segmentPairInformation(segmentPairInformation), directionCount(1) {}
 };
 
 
 
-class shasta::mode3::JaccardGraph {
+// This is only used during parallel creation of the edges.
+class shasta::mode3::JaccardGraphEdgeInfo {
 public:
-    MemoryMapped::Vector<JaccardGraphEdge> edges;
+    uint64_t segmentId0;
+    uint64_t segmentId1;
+    SegmentPairInformation segmentPairInformation;
+};
+
+
+
+class shasta::mode3::JaccardGraph : public JaccardGraphBaseClass {
+public:
+
+    // Create a JaccardGraph with the given number of vertices
+    // (one for each segment) and no edges.
+    JaccardGraph(uint64_t segmentCount);
+
+    // Map segment ids to vertices.
+    // If  vertex is removed, the corresponding entry will be null_vertex().
+    vector<vertex_descriptor> vertexTable;
 
     // The edges found by each thread.
-    vector< vector<JaccardGraphEdge> > threadEdges;
+    // Only used during edge creation.
+    vector< vector<JaccardGraphEdgeInfo> > threadEdges;
 };
 
 
