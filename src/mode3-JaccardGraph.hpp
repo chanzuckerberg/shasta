@@ -73,7 +73,9 @@ public:
     // Flags for the directions in which this edge was found
     // (0=forward, 1=backward).
     array<bool, 2> wasFoundInDirection = {false, false};
-    bool wasFoundInBothDirections() const
+
+    // A strong edge is one that was found in both directions.
+    bool isStrong() const
     {
         return wasFoundInDirection[0] and wasFoundInDirection[1];
     }
@@ -114,6 +116,15 @@ public:
     // The edges found by each thread.
     // Only used during edge creation.
     vector< vector<JaccardGraphEdgeInfo> > threadEdges;
+
+    // Use the threadEdges to add edges to the graph.
+    void storeEdges();
+
+    // A strong vertex is one that is incident to at least one strong edge.
+    bool isStrongVertex(vertex_descriptor) const;
+
+    // Remove all edges incident to weak vertices.
+    void removeEdgesIncidentToWeakVertices();
 };
 
 

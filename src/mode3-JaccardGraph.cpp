@@ -36,78 +36,10 @@ void AssemblyGraph::createJaccardGraph(
     const uint64_t batchSize = 100;
     setupLoadBalancing(segmentCount, batchSize);
     runThreads(&AssemblyGraph::createJaccardGraphThreadFunction, threadCount);
+    jaccardGraph.storeEdges();
 
-
-
-    // Store the edges in the JaccardGraph.
-    for(const auto& threadEdges: jaccardGraph.threadEdges) {
-        for(const JaccardGraphEdgeInfo& info: threadEdges) {
-            const uint64_t segmentId0 = info.segmentId0;
-            const uint64_t segmentId1 = info.segmentId1;
-            const JaccardGraph::vertex_descriptor v0 = jaccardGraph.vertexTable[segmentId0];
-            const JaccardGraph::vertex_descriptor v1 = jaccardGraph.vertexTable[segmentId1];
-
-            JaccardGraph::edge_descriptor e;
-            bool edgeExists = false;
-            tie(e, edgeExists) = boost::edge(v0, v1, jaccardGraph);
-            if(not edgeExists) {
-                boost::add_edge(v0, v1,
-                    JaccardGraphEdge(info.segmentPairInformation, info.direction),
-                    jaccardGraph);
-            } else {
-                jaccardGraph[e].wasFoundInDirection[info.direction] = true;
-            }
-        }
-    }
-    jaccardGraph.threadEdges.clear();
-
-
-
-    // A "strong edge" is an edge that was found in both directions.
-    // An "almost isolated" vertex is a vertex that has no
-    // incoming/outgoing strong edges.
-    // Remove all edges to "almost isolated" vertices.
-    {
-        vector<JaccardGraph::edge_descriptor> edgesToBeRemoved;
-        BGL_FORALL_VERTICES(v, jaccardGraph, JaccardGraph) {
-
-            // Figure out if this vertex has strong edges.
-            bool hasStrongEdges = false;
-            BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
-                if(jaccardGraph[e].wasFoundInBothDirections()) {
-                    hasStrongEdges = true;
-                    break;
-                }
-            }
-            if(not hasStrongEdges) {
-                BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
-                    if(jaccardGraph[e].wasFoundInBothDirections()) {
-                        hasStrongEdges = true;
-                        break;
-                    }
-                }
-            }
-
-            // If not, flag its edges for removal.
-            if(not hasStrongEdges) {
-                BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
-                    edgesToBeRemoved.push_back(e);
-                }
-                BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
-                    edgesToBeRemoved.push_back(e);
-                }
-            }
-        }
-
-        // Remove the edges we flagged.
-        deduplicate(edgesToBeRemoved);
-        for(const JaccardGraph::edge_descriptor e: edgesToBeRemoved) {
-            remove_edge(e, jaccardGraph);
-        }
-    }
-
-
-
+    // Remove all edges incident to weak vertices.
+    jaccardGraph.removeEdgesIncidentToWeakVertices();
 
     cout << "The Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
@@ -278,3 +210,87 @@ void AssemblyGraph::createJaccardGraphEdges(
     }
 }
 
+
+
+// This storesin the Jaccard graph the edges found by all threads.
+void JaccardGraph::storeEdges()
+{
+    JaccardGraph& jaccardGraph = *this;
+
+    for(const auto& threadEdges: threadEdges) {
+        for(const JaccardGraphEdgeInfo& info: threadEdges) {
+
+            const uint64_t segmentId0 = info.segmentId0;
+            const uint64_t segmentId1 = info.segmentId1;
+            const JaccardGraph::vertex_descriptor v0 = vertexTable[segmentId0];
+            const JaccardGraph::vertex_descriptor v1 = vertexTable[segmentId1];
+
+            edge_descriptor e;
+            bool edgeExists = false;
+            tie(e, edgeExists) = boost::edge(v0, v1, jaccardGraph);
+            if(not edgeExists) {
+                boost::add_edge(v0, v1,
+                    JaccardGraphEdge(info.segmentPairInformation, info.direction),
+                    jaccardGraph);
+            } else {
+                jaccardGraph[e].wasFoundInDirection[info.direction] = true;
+            }
+        }
+    }
+    threadEdges.clear();
+}
+
+
+
+// A strong vertex is one that is incident to at least one strong edge.
+bool JaccardGraph::isStrongVertex(vertex_descriptor v) const
+{
+    const JaccardGraph& jaccardGraph = *this;
+
+    // Check the out-edges.
+    BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
+        if(jaccardGraph[e].isStrong()) {
+            return true;
+        }
+    }
+
+    // Check the in-edges.
+    BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
+        if(jaccardGraph[e].isStrong()) {
+            return true;
+        }
+    }
+
+    // We did not find any strong edges.
+    return false;
+}
+
+
+
+
+// Remove all edges incident to weak vertices.
+void JaccardGraph::removeEdgesIncidentToWeakVertices()
+{
+    JaccardGraph& jaccardGraph = *this;
+    vector<JaccardGraph::edge_descriptor> edgesToBeRemoved;
+
+    // Find the edges that we are going to remove.
+    BGL_FORALL_VERTICES(v, jaccardGraph, JaccardGraph) {
+
+        if(not isStrongVertex(v)) {
+            BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
+                edgesToBeRemoved.push_back(e);
+            }
+            BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
+                edgesToBeRemoved.push_back(e);
+            }
+        }
+    }
+
+    // Remove the edges we flagged.
+    deduplicate(edgesToBeRemoved);
+    for(const JaccardGraph::edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, jaccardGraph);
+    }
+
+}
