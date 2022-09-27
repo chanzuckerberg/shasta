@@ -41,9 +41,9 @@ void AssemblyGraph::createJaccardGraph(
 
     // Store the edges in the JaccardGraph.
     for(const auto& threadEdges: jaccardGraph.threadEdges) {
-        for(const auto& jaccardGraphEdge: threadEdges) {
-            const uint64_t segmentId0 = jaccardGraphEdge.segmentId0;
-            const uint64_t segmentId1 = jaccardGraphEdge.segmentId1;
+        for(const JaccardGraphEdgeInfo& info: threadEdges) {
+            const uint64_t segmentId0 = info.segmentId0;
+            const uint64_t segmentId1 = info.segmentId1;
             const JaccardGraph::vertex_descriptor v0 = jaccardGraph.vertexTable[segmentId0];
             const JaccardGraph::vertex_descriptor v1 = jaccardGraph.vertexTable[segmentId1];
 
@@ -52,9 +52,10 @@ void AssemblyGraph::createJaccardGraph(
             tie(e, edgeExists) = boost::edge(v0, v1, jaccardGraph);
             if(not edgeExists) {
                 boost::add_edge(v0, v1,
-                    JaccardGraphEdge(jaccardGraphEdge.segmentPairInformation), jaccardGraph);
+                    JaccardGraphEdge(info.segmentPairInformation, info.direction),
+                    jaccardGraph);
             } else {
-                ++jaccardGraph[e].directionCount;
+                jaccardGraph[e].wasFoundInDirection[info.direction] = true;
             }
         }
     }
@@ -73,14 +74,14 @@ void AssemblyGraph::createJaccardGraph(
             // Figure out if this vertex has strong edges.
             bool hasStrongEdges = false;
             BGL_FORALL_OUTEDGES(v, e, jaccardGraph, JaccardGraph) {
-                if(jaccardGraph[e].directionCount == 2) {
+                if(jaccardGraph[e].wasFoundInBothDirections()) {
                     hasStrongEdges = true;
                     break;
                 }
             }
             if(not hasStrongEdges) {
                 BGL_FORALL_INEDGES(v, e, jaccardGraph, JaccardGraph) {
-                    if(jaccardGraph[e].directionCount == 2) {
+                    if(jaccardGraph[e].wasFoundInBothDirections()) {
                         hasStrongEdges = true;
                         break;
                     }
@@ -117,13 +118,26 @@ void AssemblyGraph::createJaccardGraph(
         ofstream dot("JaccardGraph.dot");
         dot << "digraph JaccardGraph {" << endl;
         BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
+            const JaccardGraphEdge& edge = jaccardGraph[e];
             const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
             const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
             const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
             const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
             dot << segmentId0 << "->" << segmentId1;
-            if(jaccardGraph[e].directionCount < 2) {
-                dot << "[color=red constraint=false]";
+            if(edge.wasFoundInDirection[0]) {
+                if(edge.wasFoundInDirection[1]) {
+                    // Found in both directions, leave black.
+                } else {
+                    // Only found in the forward direction.
+                    dot << "[color=red]";
+                }
+            } else {
+                if(edge.wasFoundInDirection[1]) {
+                    // Only found in the backward direction.
+                    dot << "[color=green]";
+                } else {
+                    SHASTA_ASSERT(0);
+                }
             }
             dot << ";\n";
         }
@@ -183,6 +197,7 @@ void AssemblyGraph::createJaccardGraphEdges(
     SegmentOrientedReadInformation infoPrimary;
     getOrientedReadsOnSegment(primarySegmentId, infoPrimary);
     JaccardGraphEdgeInfo edge;
+    edge.direction = direction;
     uint64_t segmentId0 = primarySegmentId;
     std::set<uint64_t> previousSegments;
     while(true) {

@@ -70,15 +70,21 @@ public:
     // when called for (segmentId0, segmentId1), in this order.
     SegmentPairInformation segmentPairInformation;
 
-    // The number of directions (1 or 2)
-    // in which this edge was encountered.
-    // Later this will be replaced by a bool for each direction.
-    uint64_t directionCount = 0;
+    // Flags for the directions in which this edge was found
+    // (0=forward, 1=backward).
+    array<bool, 2> wasFoundInDirection = {false, false};
+    bool wasFoundInBothDirections() const
+    {
+        return wasFoundInDirection[0] and wasFoundInDirection[1];
+    }
 
-    JaccardGraphEdge() :
-        directionCount(0) {}
-    JaccardGraphEdge(const SegmentPairInformation& segmentPairInformation) :
-        segmentPairInformation(segmentPairInformation), directionCount(1) {}
+    JaccardGraphEdge(
+        const SegmentPairInformation& segmentPairInformation,
+        uint64_t direction) :
+        segmentPairInformation(segmentPairInformation)
+        {
+            wasFoundInDirection[direction] = true;
+        }
 };
 
 
@@ -88,6 +94,7 @@ class shasta::mode3::JaccardGraphEdgeInfo {
 public:
     uint64_t segmentId0;
     uint64_t segmentId1;
+    uint64_t direction;
     SegmentPairInformation segmentPairInformation;
 };
 
