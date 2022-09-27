@@ -47,6 +47,7 @@ void AssemblyGraph::createJaccardGraph(
     cout << "After removing weak vertices, the Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
     jaccardGraph.writeGraphviz("JaccardGraph1.dot");
+    jaccardGraph.writeEdgesCsv("JaccardGraph1Edges.csv");
 
 
     cout << timestamp << "createJaccardGraph ends." << endl;
@@ -174,11 +175,13 @@ void AssemblyGraph::createJaccardGraphEdges(
             } else {
                 edge.segmentId0 = segmentId1;
                 edge.segmentId1 = primarySegmentId;
+                reverse(edge.segmentIds.begin(), edge.segmentIds.end());
             }
             edges.push_back(edge);
             return;
         }
 
+        edge.segmentIds.push_back(segmentId1);
         segmentId0 = segmentId1;
     }
 }
@@ -203,7 +206,7 @@ void JaccardGraph::storeEdges()
             tie(e, edgeExists) = boost::edge(v0, v1, jaccardGraph);
             if(not edgeExists) {
                 boost::add_edge(v0, v1,
-                    JaccardGraphEdge(info.segmentPairInformation, info.direction),
+                    JaccardGraphEdge(info.segmentPairInformation, info.direction, info.segmentIds),
                     jaccardGraph);
             } else {
                 jaccardGraph[e].wasFoundInDirection[info.direction] = true;
@@ -329,4 +332,34 @@ void JaccardGraph::writeGraphviz(ostream& graphOut, bool includeIsolatedVertices
 
     graphOut << "}" << endl;
 
+}
+
+
+
+// Write edges in csv format.
+void JaccardGraph::writeEdgesCsv(const string& fileName) const
+{
+    ofstream file(fileName);
+    writeEdgesCsv(file);
+}
+void JaccardGraph::writeEdgesCsv(ostream& csv) const
+{
+    const JaccardGraph& jaccardGraph = *this;
+
+    csv << "SegmentId0,SegmentId1,FoundForward,FoundBackward,SegmentId\n";
+    BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
+        const JaccardGraphEdge& edge = jaccardGraph[e];
+        const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
+        const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
+        const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
+        const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
+
+        for(const uint64_t segmentId: edge.segmentIds) {
+            csv << segmentId0 << ",";
+            csv << segmentId1 << ",";
+            csv << int(edge.wasFoundInDirection[0]) << ",";
+            csv << int(edge.wasFoundInDirection[1]) << ",";
+            csv << segmentId << "\n";
+        }
+    }
 }

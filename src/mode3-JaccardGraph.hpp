@@ -72,6 +72,9 @@ public:
     // when called for (segmentId0, segmentId1), in this order.
     SegmentPairInformation segmentPairInformation;
 
+    // The segments encountered on the way.
+    vector<uint64_t> segmentIds;
+
     // Flags for the directions in which this edge was found
     // (0=forward, 1=backward).
     array<bool, 2> wasFoundInDirection = {false, false};
@@ -84,8 +87,10 @@ public:
 
     JaccardGraphEdge(
         const SegmentPairInformation& segmentPairInformation,
-        uint64_t direction) :
-        segmentPairInformation(segmentPairInformation)
+        uint64_t direction,
+        const vector<uint64_t>& segmentIds) :
+        segmentPairInformation(segmentPairInformation),
+        segmentIds(segmentIds)
         {
             wasFoundInDirection[direction] = true;
         }
@@ -98,8 +103,15 @@ class shasta::mode3::JaccardGraphEdgeInfo {
 public:
     uint64_t segmentId0;
     uint64_t segmentId1;
+
+    // The direction in which we found this (0=forward, 1=backward).
     uint64_t direction;
+
+    // SegmentPairInformation between segmentId0 and segmentId1.
     SegmentPairInformation segmentPairInformation;
+
+    // The segments encountered on the way.
+    vector<uint64_t> segmentIds;
 };
 
 
@@ -134,6 +146,10 @@ public:
     // Write the JaccardGraph in graphviz format.
     void writeGraphviz(const string& fileName, bool includeIsolatedVertices = false) const;
     void writeGraphviz(ostream&, bool includeIsolatedVertices = false) const;
+
+    // Write edges in csv format.
+    void writeEdgesCsv(const string& fileName) const;
+    void writeEdgesCsv(ostream&) const;
 };
 
 
