@@ -234,6 +234,7 @@ void mode3::LocalAssemblyGraph::writeHtml(ostream& html, const SvgOptions& optio
     if(
         options.segmentColoring == "byCommonReads" or
         options.segmentColoring == "byJaccard" or
+        options.segmentColoring == "byRawJaccard" or
         options.segmentColoring == "byUnexplainedFractionOnReferenceSegment" or
         options.segmentColoring == "byUnexplainedFractionOnDisplayedSegment"
         ) {
@@ -285,6 +286,11 @@ Comparison of read compositions
 <th id='jaccardDisplayedCell'>
 
 <tr>
+<th class='left'>Raw Jaccard
+<th id='rawJaccardReferenceCell'>
+<th id='rawJaccardDisplayedCell'>
+
+<tr>
 <th class='left'>Unexplained
 <th id='unexplainedReferenceCell'>
 <th id='unexplainedDisplayedCell'>
@@ -319,9 +325,12 @@ function onMouseEnterSegment(id, distance, pathLength, coverage, clusterId,
     if(common > 0) {
         document.getElementById('shortReferenceCell').innerHTML = shortReference;
         document.getElementById('shortDisplayedCell').innerHTML = shortDisplayed;
-        jaccard = (common / (common + unexplainedReference + unexplainedDisplayed)).toFixed(2)
+        jaccard = (common / (common + unexplainedReference + unexplainedDisplayed)).toFixed(2);
+        rawJaccard = (common / (totalReference + totalDisplayed - common)).toFixed(2);
         document.getElementById('jaccardReferenceCell').innerHTML = jaccard;
         document.getElementById('jaccardDisplayedCell').innerHTML = jaccard;
+        document.getElementById('rawJaccardReferenceCell').innerHTML = rawJaccard;
+        document.getElementById('rawJaccardDisplayedCell').innerHTML = rawJaccard;
         document.getElementById('unexplainedReferenceCell').innerHTML = unexplainedReference;
         document.getElementById('unexplainedDisplayedCell').innerHTML = unexplainedDisplayed;
         document.getElementById('unexplainedFractionReferenceCell').innerHTML = 
@@ -822,6 +831,15 @@ void mode3::LocalAssemblyGraph::writeSvg(
                 if(pairInfo.commonCount > 0) {
                     const double jaccard = pairInfo.jaccard();
                     const uint64_t hue = uint64_t(std::round(jaccard * 120.));
+                    color = "hsl(" + to_string(hue) + ",100%, 50%)";
+                } else {
+                    color = "blue";
+                }
+            } else if(options.segmentColoring == "byRawJaccard") {
+                const auto& pairInfo = segmentPairInformationTable[v];
+                if(pairInfo.commonCount > 0) {
+                    const double rawJaccard = pairInfo.rawJaccard();
+                    const uint64_t hue = uint64_t(std::round(rawJaccard * 120.));
                     color = "hsl(" + to_string(hue) + ",100%, 50%)";
                 } else {
                     color = "blue";
@@ -1393,6 +1411,12 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "<input type=radio name=segmentColoring value=byJaccard"
         << (segmentColoring=="byJaccard" ? " checked=checked" : "") <<
         ">By Jaccard similarity with reference segment, without counting short reads"
+        "<br>"
+
+        // Segment coloring by raw Jaccard similarity with the reference segment.
+        "<input type=radio name=segmentColoring value=byRawJaccard"
+        << (segmentColoring=="byRawJaccard" ? " checked=checked" : "") <<
+        ">By raw Jaccard similarity with reference segment (no special treatment of short reads)"
         "<br>"
 
         // Segment coloring by number of common reads with the reference segment.

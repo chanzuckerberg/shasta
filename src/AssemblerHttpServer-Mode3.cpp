@@ -574,6 +574,11 @@ void Assembler::exploreMode3AssemblyGraphSegmentPair(
             "<td class=centered>" << segmentPairInformation.jaccard() <<
             "<td class=centered>" << segmentPairInformation.jaccard() <<
 
+            "<tr title='Jaccard similarity without special treatment of short reads'>"
+            "<th class=left>Raw Jaccard"
+            "<td class=centered>" << segmentPairInformation.rawJaccard() <<
+            "<td class=centered>" << segmentPairInformation.rawJaccard() <<
+
             "<tr title='Fraction of oriented reads in this segment that are "
             "unexpectedly missing in the other segment'>"
             "<th class=left>Unexplained fraction"

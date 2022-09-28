@@ -69,6 +69,12 @@ public:
     {
         return double(commonCount) / double(commonCount + unexplainedCount[0] + unexplainedCount[1]);
     }
+
+    // Raw Jaccard similarity (no special treatment of short reads)
+    double rawJaccard() const
+    {
+        return double(commonCount) / double(totalCount[0] + totalCount[1] - commonCount);
+    }
 };
 
 #endif
