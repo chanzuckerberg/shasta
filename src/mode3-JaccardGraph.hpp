@@ -144,8 +144,14 @@ public:
     void removeWeakVertices();
 
     // Write the JaccardGraph in graphviz format.
-    void writeGraphviz(const string& fileName, bool includeIsolatedVertices = false) const;
-    void writeGraphviz(ostream&, bool includeIsolatedVertices = false) const;
+    void writeGraphviz(
+        const string& fileName,
+        bool includeIsolatedVertices,
+        bool writeLabels) const;
+    void writeGraphviz(
+        ostream&,
+        bool includeIsolatedVertices,
+        bool writeLabels) const;
 
     // Write edges in csv format.
     void writeEdgesCsv(const string& fileName) const;

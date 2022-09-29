@@ -38,7 +38,8 @@ void AssemblyGraph::createJaccardGraph(
     setupLoadBalancing(segmentCount, batchSize);
     runThreads(&AssemblyGraph::createJaccardGraphThreadFunction, threadCount);
     jaccardGraph.storeEdges();
-    jaccardGraph.writeGraphviz("JaccardGraph0.dot", false);
+    jaccardGraph.writeGraphviz("JaccardGraph0.dot", false, false);
+    jaccardGraph.writeGraphviz("JaccardGraph0-Labeled.dot", false, true);
     cout << "The initial Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
 
@@ -46,7 +47,8 @@ void AssemblyGraph::createJaccardGraph(
     jaccardGraph.removeWeakVertices();
     cout << "After removing weak vertices, the Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
-    jaccardGraph.writeGraphviz("JaccardGraph1.dot");
+    jaccardGraph.writeGraphviz("JaccardGraph1.dot", false, false);
+    jaccardGraph.writeGraphviz("JaccardGraph1-Labeled.dot", false, true);
     jaccardGraph.writeEdgesCsv("JaccardGraph1Edges.csv");
 
 
@@ -280,15 +282,19 @@ void JaccardGraph::removeVertex(vertex_descriptor v)
 
 void JaccardGraph::writeGraphviz(
     const string& fileName,
-    bool includeIsolatedVertices) const
+    bool includeIsolatedVertices,
+    bool writeLabels) const
 {
     ofstream file(fileName);
-    writeGraphviz(file, includeIsolatedVertices);
+    writeGraphviz(file, includeIsolatedVertices, writeLabels);
 }
 
 
 
-void JaccardGraph::writeGraphviz(ostream& graphOut, bool includeIsolatedVertices) const
+void JaccardGraph::writeGraphviz(
+    ostream& graphOut,
+    bool includeIsolatedVertices,
+    bool writeLabels) const
 {
     const JaccardGraph& jaccardGraph = *this;
 
@@ -298,7 +304,11 @@ void JaccardGraph::writeGraphviz(ostream& graphOut, bool includeIsolatedVertices
         if( includeIsolatedVertices or
             in_degree(v, jaccardGraph) or
             out_degree(v, jaccardGraph)) {
-            graphOut << jaccardGraph[v].segmentId << ";\n";
+            graphOut << jaccardGraph[v].segmentId;
+            if(writeLabels) {
+                graphOut << " [label=" << jaccardGraph[v].segmentId << "]";
+            }
+            graphOut << ";\n";
         }
     }
 
@@ -309,25 +319,34 @@ void JaccardGraph::writeGraphviz(ostream& graphOut, bool includeIsolatedVertices
         const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
         const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
 
-        graphOut << segmentId0 << "->" << segmentId1;
+        graphOut << segmentId0 << "->" << segmentId1 << "[";
 
         // Color the edge based on the direction flags.
         if(edge.wasFoundInDirection[0]) {
             if(edge.wasFoundInDirection[1]) {
-                // Found in both directions, leave black.
+                // Found in both directions.
+                graphOut << " color=black";
             } else {
                 // Only found in the forward direction.
-                graphOut << "[color=red]";
+                graphOut << " color=red";
             }
         } else {
             if(edge.wasFoundInDirection[1]) {
                 // Only found in the backward direction.
-                graphOut << "[color=green]";
+                graphOut << " color=green";
             } else {
                 SHASTA_ASSERT(0);
             }
         }
-        graphOut << ";\n";
+
+        if(writeLabels) {
+            graphOut << " label=\"";
+            for(const uint64_t segmentId: edge.segmentIds) {
+                graphOut << segmentId << "\\n";
+            }
+            graphOut << "\"";
+        }
+        graphOut << "];\n";
     }
 
     graphOut << "}" << endl;
