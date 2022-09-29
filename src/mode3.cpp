@@ -1926,7 +1926,7 @@ void AssemblyGraph::createAssemblyPath(
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t minCommonForLink = 3;
     const uint64_t minCommonForReference = 3;
-    const double minJaccard = 0.7;
+    const double minJaccard = 0.75;
     const int32_t minLinkSeparation = -20;
 
     const bool debug = false;
@@ -2027,8 +2027,8 @@ void AssemblyGraph::createAssemblyPath(
             cout << "Jaccard " << info.jaccard() << endl;
         }
 
-        // If the Jaccard similarity is low, this becomes the new reference segment.
-        if(info.commonCount >= minCommonForReference and info.jaccard() >= minJaccard) {
+        // If the Jaccard similarity is high, this becomes the new reference segment.
+        if(info.commonCount >= minCommonForReference and info.rawJaccard() >= minJaccard) { // ****** USING RAWJACCARD INSTEAD OF JACCARD
             referenceSegmentId = segmentId1;
             getOrientedReadsOnSegment(referenceSegmentId, infoReference);
             const uint64_t lastPrimarySegmentId = path.segments.back().id;

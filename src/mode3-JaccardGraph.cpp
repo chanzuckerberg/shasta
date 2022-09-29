@@ -91,7 +91,7 @@ void AssemblyGraph::createJaccardGraphEdges(
     // FOR NOW THESE SHOULD BE THE SAME AS IN AssemblyGraph::createAssemblyPath3.
     const uint64_t minCommonForLink = 3;
     const uint64_t minCommonForPrimary = 3;
-    const double minJaccard = 0.7;
+    const double minJaccard = 0.75;
     const int32_t minLinkSeparation = -20;
 
     // We start from primarySegmentId
@@ -168,7 +168,7 @@ void AssemblyGraph::createJaccardGraphEdges(
         // If the Jaccard similarity is high, we found the Jaccard graph edge
         // we were looking for.
         if( edge.segmentPairInformation.commonCount >= minCommonForPrimary and
-            edge.segmentPairInformation.jaccard() >= minJaccard) {
+            edge.segmentPairInformation.rawJaccard() >= minJaccard) {   // ****** USING RAWJACCARD INSTEAD OF JACCARD
             if(direction == 0) {
                 edge.segmentId0 = primarySegmentId;
                 edge.segmentId1 = segmentId1;
