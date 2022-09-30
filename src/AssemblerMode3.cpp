@@ -11,7 +11,7 @@ void Assembler::mode3Assembly(
     size_t threadCount)
 {
     // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t minClusterSize = 3;
+    // const uint64_t minClusterSize = 3;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -30,7 +30,7 @@ void Assembler::mode3Assembly(
         *consensusCaller);
     auto& assemblyGraph3 = *assemblyGraph3Pointer;
     assemblyGraph3.writeGfa("AssemblyGraph");
-    assemblyGraph3.clusterSegments(threadCount, minClusterSize);
+    // assemblyGraph3.clusterSegments(threadCount, minClusterSize);
     assemblyGraph3.createJaccardGraph(threadCount);
 
 }

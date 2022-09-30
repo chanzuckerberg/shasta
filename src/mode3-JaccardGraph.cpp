@@ -51,6 +51,12 @@ void AssemblyGraph::createJaccardGraph(
     jaccardGraph.writeGraphviz("JaccardGraph1-Labeled.dot", false, true);
     jaccardGraph.writeEdgesCsv("JaccardGraph1Edges.csv");
 
+    // Store the cluster id of each segment (uninitialized for now).
+    createNew(clusterIds, "Mode3-ClusterIds");
+    clusterIds.resize(segmentCount);
+    fill(clusterIds.begin(), clusterIds.end(), invalid<uint64_t>);
+
+
 
     cout << timestamp << "createJaccardGraph ends." << endl;
 }

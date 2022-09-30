@@ -460,6 +460,7 @@ public:
 
 
 
+#if 0
     // Find segment pairs a sufficient number of common reads
     // and with low unexplained fraction (in both directions)
     // between segmentId0 and one of its descendants within the specified distance.
@@ -472,7 +473,6 @@ public:
         double maxUnexplainedFraction,
         vector<uint64_t>& segmentIds1
     ) const;
-
 
 
     // Cluster the segments based on read composition.
@@ -489,6 +489,10 @@ public:
     ClusterSegmentsData clusterSegmentsData;
     void clusterSegmentsThreadFunction1(size_t threadId);
     void addClusterPairs(size_t threadId, uint64_t segmentId0);
+#endif
+
+    // The cluster that each segment belongs to.
+    // Each connected component of the Jaccard graph corresponds to a cluster.
     MemoryMapped::Vector<uint64_t> clusterIds;
 
 

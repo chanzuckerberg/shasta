@@ -1195,6 +1195,9 @@ void AssemblyGraph::storeSegmentOrientedReadInformationThreadFunction(size_t thr
     }
 }
 
+
+
+#if 0
 void AssemblyGraph::clusterSegments(size_t threadCount, uint64_t minClusterSize)
 {
     // Gather oriented read information for all segments.
@@ -1400,6 +1403,7 @@ void AssemblyGraph::addClusterPairs(size_t threadId, uint64_t startSegmentId)
         }
     }
 }
+#endif
 
 
 
