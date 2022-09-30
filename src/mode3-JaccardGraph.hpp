@@ -50,6 +50,12 @@ namespace shasta {
             boost::listS, boost::listS, boost::bidirectionalS,
             JaccardGraphVertex, JaccardGraphEdge>;
 
+        class ExpandedJaccardGraph;
+        class ExpandedJaccardGraphVertex;
+        using ExpandedJaccardGraphBaseClass = boost::adjacency_list<
+            boost::listS, boost::listS, boost::bidirectionalS,
+            ExpandedJaccardGraphVertex>;
+
     }
 
     namespace MemoryMapped {
@@ -166,6 +172,32 @@ public:
     void findClusters(
         uint64_t segmentCount,
         MemoryMapped::Vector<uint64_t>& clusterIds);
+};
+
+
+
+class shasta::mode3::ExpandedJaccardGraphVertex {
+public:
+
+    // The assembly graph segment corresponding to this vertex.
+    uint64_t segmentId;
+
+    ExpandedJaccardGraphVertex(uint64_t segmentId) :
+        segmentId(segmentId) {}
+};
+
+
+
+// The ExpandedJaccardGraph is constructed starting with vertices
+// of the JaccardGraph, and expanding each of the edges into a linear
+// chain of vertices. The graph is then cleaned up by merging equivalent branches.
+class shasta::mode3::ExpandedJaccardGraph : public ExpandedJaccardGraphBaseClass {
+public:
+    ExpandedJaccardGraph(const JaccardGraph&);
+
+    // Write in graphviz format.
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
 };
 
 

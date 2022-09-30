@@ -62,6 +62,10 @@ void AssemblyGraph::createJaccardGraph(
     createNew(clusterIds, "Mode3-ClusterIds");
     jaccardGraph.findClusters(segmentCount, clusterIds);
 
+    // Create the ExpandedJaccardGraph.
+    ExpandedJaccardGraph expandedJaccardGraph(jaccardGraph);
+    expandedJaccardGraph.writeGraphviz("ExpandedJaccardGraph.dot");
+
     cout << timestamp << "createJaccardGraph ends." << endl;
 }
 
@@ -457,3 +461,76 @@ void JaccardGraph::findClusters(
     }
 
 }
+
+
+
+// Construction of the ExpandedJaccardGraph.
+// Each vertex of the JaccardGraph generates a vertex in the ExpandedJaccardGraph.
+// Each edge of the JaccardGraph generates a linear chain of vertices
+// in the ExpandedJaccardGraph.
+ExpandedJaccardGraph::ExpandedJaccardGraph(const JaccardGraph& jaccardGraph)
+{
+    using Graph = ExpandedJaccardGraph;
+    Graph& graph = *this;
+
+    // Generate the vertices.
+    std::map<JaccardGraph::vertex_descriptor, Graph::vertex_descriptor> vertexMap;
+    BGL_FORALL_VERTICES(v, jaccardGraph, JaccardGraph) {
+        const Graph::vertex_descriptor u = add_vertex(
+            ExpandedJaccardGraphVertex(jaccardGraph[v].segmentId), graph);
+        vertexMap.insert(make_pair(v, u));
+    }
+
+
+
+    // Each edge of the JaccardGraph generates a linear chain of vertices
+    // in the ExpandedJaccardGraph.
+    BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
+        const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
+        const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
+        const Graph::vertex_descriptor u0 = vertexMap[v0];
+        const Graph::vertex_descriptor u1 = vertexMap[v1];
+        const vector<uint64_t>& segmentIds = jaccardGraph[e].segmentIds;
+
+        Graph::vertex_descriptor u = u0;
+        for(const uint64_t segmentId: segmentIds) {
+            const Graph::vertex_descriptor w = add_vertex(
+                ExpandedJaccardGraphVertex(segmentId), graph);
+            add_edge(u, w, graph);
+            u = w;
+        }
+        add_edge(u, u1, graph);
+    }
+}
+
+
+
+void ExpandedJaccardGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream s(fileName);
+    writeGraphviz(s);
+}
+void ExpandedJaccardGraph::writeGraphviz(ostream& s) const
+{
+    using Graph = ExpandedJaccardGraph;
+    const Graph& graph = *this;
+
+    s << "digraph ExpandedJaccardGraph {" << endl;
+
+    // We can't use the segment ids to identify vertices
+    // because each segment id can appear multiple times.
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        s << "\"" << v << "\" [label=" << graph[v].segmentId << "];\n";
+    }
+
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        const Graph::vertex_descriptor v0 = source(e, graph);
+        const Graph::vertex_descriptor v1 = target(e, graph);
+
+        s << "\"" << v0 << "\"->\"" << v1 << "\";\n";
+    }
+
+    s << "}" << endl;
+
+}
+
