@@ -1,11 +1,16 @@
 #include "mode3-JaccardGraph.hpp"
 #include "deduplicate.hpp"
 #include "mode3.hpp"
+#include "orderPairs.hpp"
 #include "orderVectors.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 using namespace mode3;
 
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
+
+// Standard library.
 #include "fstream.hpp"
 
 
@@ -38,25 +43,24 @@ void AssemblyGraph::createJaccardGraph(
     setupLoadBalancing(segmentCount, batchSize);
     runThreads(&AssemblyGraph::createJaccardGraphThreadFunction, threadCount);
     jaccardGraph.storeEdges();
-    jaccardGraph.writeGraphviz("JaccardGraph0.dot", false, false);
-    jaccardGraph.writeGraphviz("JaccardGraph0-Labeled.dot", false, true);
-    cout << "The initial Jaccard graph has " << num_vertices(jaccardGraph) <<
+    jaccardGraph.writeGraphviz("JaccardGraph.dot", false, false);
+    jaccardGraph.writeGraphviz("JaccardGraph-Labeled.dot", false, true);
+    jaccardGraph.writeEdgesCsv("JaccardGraphEdges.csv");
+    cout << "The Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
 
+#if 0
     // Remove all weak vertices.
     jaccardGraph.removeWeakVertices();
     cout << "After removing weak vertices, the Jaccard graph has " << num_vertices(jaccardGraph) <<
         " vertices (segments) and " << num_edges(jaccardGraph) << " edges." << endl;
     jaccardGraph.writeGraphviz("JaccardGraph1.dot", false, false);
     jaccardGraph.writeGraphviz("JaccardGraph1-Labeled.dot", false, true);
-    jaccardGraph.writeEdgesCsv("JaccardGraph1Edges.csv");
+#endif
 
     // Store the cluster id of each segment (uninitialized for now).
     createNew(clusterIds, "Mode3-ClusterIds");
-    clusterIds.resize(segmentCount);
-    fill(clusterIds.begin(), clusterIds.end(), invalid<uint64_t>);
-
-
+    jaccardGraph.findClusters(segmentCount, clusterIds);
 
     cout << timestamp << "createJaccardGraph ends." << endl;
 }
@@ -387,4 +391,66 @@ void JaccardGraph::writeEdgesCsv(ostream& csv) const
             csv << segmentId << "\n";
         }
     }
+}
+
+
+
+// Compute connected component and store the component
+// (define as a cluster) that each segment belongs to.
+void JaccardGraph::findClusters(
+    uint64_t segmentCount,
+    MemoryMapped::Vector<uint64_t>& clusterIds)
+{
+    const JaccardGraph& jaccardGraph = *this;
+
+    // This must be called without removing any vertices.
+    SHASTA_ASSERT(num_vertices(jaccardGraph) == segmentCount);
+
+    // Compute connected components.
+    vector<uint64_t> rank(segmentCount);
+    vector<uint64_t> parent(segmentCount);
+    boost::disjoint_sets<uint64_t*, uint64_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        disjointSets.make_set(segmentId);
+    }
+    BGL_FORALL_EDGES(e, jaccardGraph, JaccardGraph) {
+        const JaccardGraph::vertex_descriptor v0 = source(e, jaccardGraph);
+        const JaccardGraph::vertex_descriptor v1 = target(e, jaccardGraph);
+        const uint64_t segmentId0 = jaccardGraph[v0].segmentId;
+        const uint64_t segmentId1 = jaccardGraph[v1].segmentId;
+        disjointSets.union_set(segmentId0, segmentId1);
+    }
+
+    // Gather the segments in each connected component.
+    vector< vector<uint64_t> > components(segmentCount);
+    for(uint64_t segmentId=0; segmentId<segmentCount; segmentId++) {
+        const uint64_t componentId = disjointSets.find_set(segmentId);
+        components[componentId].push_back(segmentId);
+    }
+
+    // Sort the components by decreasing size.
+    vector< pair<uint64_t, uint64_t> > componentTable; // pair(componentId, componentSize)
+    for(uint64_t componentId=0; componentId<segmentCount; componentId++) {
+        const uint64_t componentSize = components[componentId].size();
+        if(componentSize > 1) {
+            componentTable.push_back(make_pair(componentId, componentSize));
+        }
+    }
+    sort(componentTable.begin(), componentTable.end(),
+        OrderPairsBySecondOnlyGreater<uint64_t, uint64_t>());
+
+    // Store the cluster ids.
+    clusterIds.resize(segmentCount);
+    fill(clusterIds.begin(), clusterIds.end(), invalid<uint64_t>);
+    for(uint64_t newComponentId=0; newComponentId<componentTable.size(); newComponentId++) {
+        const auto& p = componentTable[newComponentId];
+        const uint64_t oldComponentId = p.first;
+        const uint64_t componentSize = p.second;
+        const vector<uint64_t>& component = components[oldComponentId];
+        SHASTA_ASSERT(component.size() == componentSize);
+        for(const uint64_t segmentId: component) {
+            clusterIds[segmentId] = newComponentId;
+        }
+    }
+
 }

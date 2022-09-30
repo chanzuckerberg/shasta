@@ -51,6 +51,10 @@ namespace shasta {
             JaccardGraphVertex, JaccardGraphEdge>;
 
     }
+
+    namespace MemoryMapped {
+        template<class T> class Vector;
+    }
 }
 
 
@@ -156,6 +160,12 @@ public:
     // Write edges in csv format.
     void writeEdgesCsv(const string& fileName) const;
     void writeEdgesCsv(ostream&) const;
+
+    // Compute connected component and store the component
+    // (define as a cluster) that each segment belongs to.
+    void findClusters(
+        uint64_t segmentCount,
+        MemoryMapped::Vector<uint64_t>& clusterIds);
 };
 
 
