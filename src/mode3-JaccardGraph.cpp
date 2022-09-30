@@ -401,6 +401,9 @@ void JaccardGraph::findClusters(
     uint64_t segmentCount,
     MemoryMapped::Vector<uint64_t>& clusterIds)
 {
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t minClusterSize = 5;
+
     const JaccardGraph& jaccardGraph = *this;
 
     // This must be called without removing any vertices.
@@ -432,7 +435,7 @@ void JaccardGraph::findClusters(
     vector< pair<uint64_t, uint64_t> > componentTable; // pair(componentId, componentSize)
     for(uint64_t componentId=0; componentId<segmentCount; componentId++) {
         const uint64_t componentSize = components[componentId].size();
-        if(componentSize > 1) {
+        if(componentSize >= minClusterSize) {
             componentTable.push_back(make_pair(componentId, componentSize));
         }
     }
