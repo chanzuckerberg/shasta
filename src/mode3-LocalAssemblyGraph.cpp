@@ -1320,7 +1320,7 @@ LocalAssemblyGraph::SvgOptions::SvgOptions(const vector<string>& request)
     clustersToBeColored.clear();
     if(not clustersToBeColoredString.empty()) {
         vector<string> tokens;
-        boost::algorithm::split(tokens, clustersToBeColoredString, boost::algorithm::is_any_of(" "));
+        boost::algorithm::split(tokens, clustersToBeColoredString, boost::algorithm::is_any_of(","));
         for(const string& token: tokens) {
             try {
                 const uint64_t clusterId =std::stoi(token);
@@ -1455,7 +1455,7 @@ void LocalAssemblyGraph::SvgOptions::addFormRows(ostream& html)
         "Only color clusters&nbsp;<input type=text name=clustersToBeColored size=8 style='text-align:center'"
                 " value='";
      for(const uint64_t clusterId: clustersToBeColored) {
-         html << clusterId << " ";
+         html << clusterId << ",";
      }
      html <<  "'><hr>"
 
