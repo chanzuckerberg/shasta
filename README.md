@@ -1,6 +1,19 @@
 # Shasta long read assembler
 ___
 
+### This repository is being phased out.
+
+**Shasta development continues in the
+`github.com/paoloshasta/shasta`
+[repository](https://github.com/paoloshasta/shasta).**
+
+New Shasta releases will appear in the
+[Releases](https://github.com/paoloshasta/shasta/releases) page of that repository.
+
+Old Shasta releases (up to 0.10.0) continue to be available in the
+[Releases](https://github.com/chanzuckerberg/shasta/releases) page of this repository.
+
+___
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
 
 **For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
