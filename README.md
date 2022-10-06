@@ -7,7 +7,8 @@ ___
 `github.com/paoloshasta/shasta`
 [repository](https://github.com/paoloshasta/shasta).**
 
-Shasta development continues in the new repository. 
+Shasta development continues in the
+[new repository](https://github.com/paoloshasta/shasta). 
 
 New Shasta releases will appear in the
 [Releases](https://github.com/paoloshasta/shasta/releases) page of the new repository.
