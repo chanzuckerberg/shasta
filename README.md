@@ -1,5 +1,4 @@
 # Shasta long read assembler
-___
 
 ### This repository is no longer in use
 
@@ -16,10 +15,9 @@ New Shasta releases will appear in the
 Old Shasta releases (up to 0.10.0) continue to be available in the
 [Releases](https://github.com/chanzuckerberg/shasta/releases) page of this repository.
 
-For questions, issues and discussion on any version of Shasta please use the
+For questions, issues, and discussion on any version of Shasta, please use the
 [Issues page](https://github.com/paoloshasta/shasta/issues)
 of the new repository.
-___
 
 [Here](OLD-README.md)
 is the old README file for this repository. It is now obsolete.
