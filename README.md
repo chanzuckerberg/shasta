@@ -20,7 +20,7 @@ For questions, issues and discussion on any version of Shasta please use the
 of the new repository.
 ___
 
-[Here](OLD_README.md)
+[Here](OLD-README.md)
 is the old README file for this repository. It is now obsolete.
 
 
