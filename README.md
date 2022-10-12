@@ -2,12 +2,12 @@
 
 ### This repository is no longer in use
 
-**It has been replaced by the
+**This project is obsolete, and has been replaced by
 `github.com/paoloshasta/shasta`
 [repository](https://github.com/paoloshasta/shasta).**
 
 Shasta development continues in the
-[new repository](https://github.com/paoloshasta/shasta). 
+[new repository](https://github.com/paoloshasta/shasta).
 
 New Shasta releases will appear in the
 [Releases](https://github.com/paoloshasta/shasta/releases) page of the new repository.
@@ -21,5 +21,3 @@ of the new repository.
 
 [Here](OLD-README.md)
 is the old README file for this repository. It is now obsolete.
-
-
