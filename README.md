@@ -2,9 +2,8 @@
 
 ### This repository is no longer in use
 
-**This project is obsolete, and has been replaced by
-`github.com/paoloshasta/shasta`
-[repository](https://github.com/paoloshasta/shasta).**
+**The project has moved to
+[github.com/paoloshasta/shasta](https://github.com/paoloshasta/shasta).**
 
 Shasta development continues in the
 [new repository](https://github.com/paoloshasta/shasta).
